@@ -88,6 +88,9 @@ int effects_state_load(const char *dir);
 int effects_connect(const char *portA, const char *portB);
 int effects_disconnect(const char *portA, const char *portB);
 int effects_monitor_output(int effect_id, const char *symbol);
+/* the rate the instance runs at, Hz, for the curve verbs: the graph's at the add, then at each change it applied;
+ * ERR_INSTANCE_NON_EXISTS */
+int effects_sample_rate(int effect_id, double *rate);
 /* monitor_output_off: the output is no longer read; a monitor also ends with the connection that set it */
 int effects_monitor_output_off(int effect_id, const char *symbol);
 /* the descriptor of the connection the command being run came in on, given before each command */

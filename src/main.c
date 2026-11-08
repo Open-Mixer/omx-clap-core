@@ -54,6 +54,7 @@
 #error "plugin-hostd-protocol's curve verbs (host_dispatch_register_curve) not found: install plugin-hostd-protocol-devel >= 0.5.0 and < 0.6"
 #endif
 #include "effects.h"
+#include "meter_reader.h"
 #include "host_verbs.h"
 // plugin-hostd's verbs this host answers (preset_list, preset_get, pin_layout, chain): their words and formats are the
 // protocol library's declaration
@@ -77,7 +78,8 @@
 #error "build with make: the version is passed in OMX_CLAP_VERSION from the file VERSION"
 #endif
 #define VERSION         OMX_CLAP_VERSION
-#define IDLE_INTERVAL_MS 20
+/* the idle tick is the rate a host reads a plugin's held meter at: omx-dsp's declared hostReadHz, not a number of ours */
+#define IDLE_INTERVAL_MS METER_READ_INTERVAL_MS
 
 
 /*
@@ -119,6 +121,8 @@ static const char g_help_msg[] =
     "bypass <instance_number> <bypass_value>\n"
     "param_set <instance_number> <param_id> <param_value>\n"
     "param_get <instance_number> <param_id>\n"
+    "patch_set <instance_number> <property_uri> <value>\n"
+    "patch_get <instance_number> <property_uri>\n"
     "monitor_output <instance_number> <output_symbol>\n"
     OMX_VERB_PIN_EXPECT " <instance_number> <scheme>:<sha256>\n"
     OMX_VERB_CHAIN_EXPECT " <instance_number> <chain>\n"
@@ -285,6 +289,39 @@ static void note_cb(proto_t *proto)
 static void pin_expect_cb(proto_t *proto)
 {
     protocol_response_int(effects_pin_expect(atoi(proto->list[1]), proto->list[2]), proto);
+}
+
+/* patch_set <N> <property_uri> <value> and patch_get <N> <property_uri> of an LV2 plugin: a refusal with its hosting code
+ * when there is one; patch_get answers "resp 0 <value>", the value the plugin last reported, a path whole whatever spaces
+ * it holds (the protocol reads a double-quoted word as one) */
+static void patch_reply(int resp, const char *value, proto_t *proto)
+{
+    static char reply[OMX_PATCH_VALUE_MAX + 32];
+
+    if (resp < 0 && effects_patch_why()[0])
+        snprintf(reply, sizeof(reply), "resp %i %s", resp, effects_patch_why());
+    else if (resp == 0 && value && value[0])
+        snprintf(reply, sizeof(reply), "resp 0 %s", value);
+    else
+    {
+        protocol_response_int(resp, proto);
+        return;
+    }
+    protocol_response(reply, proto);
+}
+
+static void patch_set_cb(proto_t *proto)
+{
+    patch_reply(proto->list_count == 4 ? effects_patch_set(atoi(proto->list[1]), proto->list[2], proto->list[3]) : ERR_INVALID_OPERATION,
+                NULL, proto);
+}
+
+static void patch_get_cb(proto_t *proto)
+{
+    static char value[OMX_PATCH_VALUE_MAX + 1];
+
+    patch_reply(proto->list_count == 3 ? effects_patch_get(atoi(proto->list[1]), proto->list[2], value, sizeof(value)) : ERR_INVALID_OPERATION,
+                value, proto);
 }
 
 static void track_info_cb(proto_t *proto)
@@ -529,6 +566,13 @@ static void term_signal(int sig)
  * declares of this host (preset_show_cb): mod-host's preset_show <uri> has one word and is not answered here */
 #define PRESET_SHOW_INSTANCE "preset_show %i %s"
 
+/* each command, with the connection it came in on: a monitor it sets ends with that connection */
+static void receive_cb(msg_t *msg)
+{
+    effects_connection(msg->sender_id);
+    protocol_parse(msg);
+}
+
 static int host_init(int socket_port, int feedback_port)
 {
     // hello: a client names its protocol version and the extensions it asks for; one that never sends it is answered as before
@@ -542,9 +586,15 @@ static int host_init(int socket_port, int feedback_port)
     host_dispatch_register(&g_clap_backend);
     host_dispatch_register_curve(&g_clap_curve);
     host_dispatch_register_monitor_output(effects_monitor_output);
+#ifdef HOST_DISPATCH_HAS_MONITOR_OUTPUT_OFF
+    host_dispatch_register_monitor_output_off(effects_monitor_output_off);
+#endif
     protocol_add_command(OMX_VERB_PIN_EXPECT_FMT, pin_expect_cb);
     protocol_add_command(OMX_VERB_CHAIN_EXPECT_FMT, chain_expect_cb);
     protocol_add_command(OMX_VERB_TRACK_INFO_FMT, track_info_cb);
+    // ahead of the unsupported list, which answers them -902 for a host that has no patch property
+    protocol_add_command(EFFECT_PATCH_SET, patch_set_cb);
+    protocol_add_command(EFFECT_PATCH_GET, patch_get_cb);
     protocol_add_command(OMX_VERB_REMOTE_PAGES_FMT, remote_pages_cb);
     protocol_add_command(OMX_VERB_REMOTE_PAGE_GET_FMT, remote_page_get_cb);
     protocol_add_command(OMX_VERB_PARAM_INFO_FMT, param_info_cb);
@@ -580,7 +630,7 @@ static int host_init(int socket_port, int feedback_port)
     if (socket_start(socket_port, feedback_port, SOCKET_MSG_BUFFER_SIZE) < 0)
         return -1;
 
-    socket_set_receive_cb(protocol_parse);
+    socket_set_receive_cb(receive_cb);
     socket_set_idle_cb(idle_cb);
     socket_set_idle_interval(IDLE_INTERVAL_MS);
     return 0;

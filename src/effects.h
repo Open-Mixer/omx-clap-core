@@ -91,7 +91,28 @@ int effects_monitor_output(int effect_id, const char *symbol);
 /* the rate the instance runs at, Hz, for the curve verbs: the graph's at the add, then at each change it applied;
  * ERR_INSTANCE_NON_EXISTS */
 int effects_sample_rate(int effect_id, double *rate);
+/* monitor_output_off: the output is no longer read; a monitor also ends with the connection that set it */
+int effects_monitor_output_off(int effect_id, const char *symbol);
+/* the descriptor of the connection the command being run came in on, given before each command */
+void effects_connection(int fd);
+/* the values read for monitors of an instance so far (zero while nothing is monitored); -1 for no such instance */
+int64_t effects_meter_reads(int effect_id);
+/* 1: the plugin holds the output's meter until it is read; 0: unheld; -1: no such output */
+int effects_meter_held(int effect_id, const char *symbol);
+/* clears a meter's clip word, which the reader keeps lit until then */
+int effects_meter_clip_clear(int effect_id, const char *symbol);
 int effects_track_info(int effect_id, const char *name, const char *color, const char *kind);
+/* patch_set and patch_get of an LV2 plugin's patch:writable property, by its URI: a numeric one as the adapter's
+ * parameter above the port indices, a string or path one through the plugin's patch port (omx_clap_lv2_patch_text_*).
+ * patch_get writes the value the plugin last reported, else the host's last write, into `buf` (a number as %.4f). A text
+ * write while the previous one waits for its block waits for that block, up to 200 ms. ERR_INSTANCE_NON_EXISTS,
+ * ERR_INVALID_OPERATION for a CLAP plugin or a value that is no number, ERR_LV2_INVALID_PARAM_SYMBOL for a URI the
+ * plugin does not list; effects_patch_why() is then the hosting code, "" when there is none. */
+/* the longest patch value, without its NUL: the adapter's 4095 */
+#define OMX_PATCH_VALUE_MAX 4095
+int effects_patch_set(int effect_id, const char *uri, const char *value);
+int effects_patch_get(int effect_id, const char *uri, char *buf, size_t size);
+const char *effects_patch_why(void);
 int effects_chain(int id, const int *instances, int n);
 int effects_remote_pages(int effect_id);
 int effects_remote_page_get(int effect_id, int page, char *reply, size_t size);

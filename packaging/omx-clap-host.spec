@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.30.2
+Version:        0.30.6
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -15,10 +15,10 @@ BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
 BuildRequires: (plugin-hostd-protocol-devel >= 0.5.0 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.2.0 with plugin-db-devel < 0.3)
+BuildRequires: (plugin-db-devel >= 0.3.0 with plugin-db-devel < 0.4)
 BuildRequires: clap-devel
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: (omx-dsp-devel >= 0.31.0 with omx-dsp-devel < 0.32)
+BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
 BuildRequires: (omx-contract-devel >= 3.9.0 with omx-contract-devel < 4)
@@ -84,7 +84,7 @@ License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
 Requires: clap-devel
 # hosted_stage.h includes omx-dsp's headers
-Requires: (omx-dsp-devel >= 0.31.0 with omx-dsp-devel < 0.32)
+Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
 Requires: (omx-contract-devel >= 3.9.0 with omx-contract-devel < 4)
 Requires: omx-clap-core-contract = %{version}-%{release}
@@ -198,6 +198,25 @@ make test-lv2
 %{_includedir}/omx-clap-lv2/
 
 %changelog
+* Sat Nov 07 2026 Pau Aliagas <linuxnow@gmail.com> - 0.30.6-1
+- The LV2 adapter no longer drops the worker's queue at deactivate and reset: after
+  the worker thread is joined, every queued request goes through work(), every
+  response through work_response and end_run is called once, on the control thread,
+  before the plugin's deactivate (worker.h: what returned SUCCESS is delivered)
+* Sat Nov 07 2026 Pau Aliagas <linuxnow@gmail.com> - 0.30.5-1
+- data/verbs.json declares hide_external_ui as optional of plugin-hostd (and
+  mod-host as not offering it): the daemon relays show_external_ui and
+  hide_external_ui to the worker, and its verb check found the second declared
+  for omx-clap-host alone; the host itself is unchanged
+* Sat Nov 07 2026 Pau Aliagas <linuxnow@gmail.com> - 0.30.4-1
+- patch_set and patch_get reach an LV2 plugin's patch:writable properties: a
+  number as the parameter above the port indices, a path or a string through
+  the plugin's patch port (omx_clap_lv2_patch_text_*); patch_get answers the
+  value the plugin last reported. A path with spaces arrives double-quoted.
+  They answered -902, so samplv1's sample file could not be set over the
+  socket, by this host or through plugin-hostd
+- The LV2 adapter gives the parameter of a numeric patch property by its URI
+  (omx_clap_lv2_patch_param_id)
 * Fri Nov 06 2026 Pau Aliagas <linuxnow@gmail.com> - 0.30.2-1
 - With no display (neither DISPLAY nor WAYLAND_DISPLAY), Qt is given the
   offscreen platform before a plugin loads, unless the user set

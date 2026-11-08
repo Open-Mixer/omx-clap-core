@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.0.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "HOSTING_COST_CODES": {
     "kind": "codes",
@@ -9,19 +9,39 @@
     "doc": "The hosting codes of the cost dimension: hosting.cost.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
     "codes": {
       "costAboveCeiling": {
-        "code": "hosting.cost.above-ceiling"
+        "code": "hosting.cost.above-ceiling",
+        "text": {
+          "en": "The plugin’s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less.",
+          "ca": "El cost de CPU mesurat del connector supera el límit per a aquesta freqüència i quàntum. Pugeu el límit, o useu un connector que costi menys."
+        }
       },
       "costFieldsMissing": {
-        "code": "hosting.cost.fields-missing"
+        "code": "hosting.cost.fields-missing",
+        "text": {
+          "en": "The cost measurement is missing fields it needs. Measure the plugin’s cost again, completely.",
+          "ca": "A la mesura de cost li falten camps que calen. Torneu a mesurar el cost del connector, de manera completa."
+        }
       },
       "costSpiky": {
-        "code": "hosting.cost.spiky-tail"
+        "code": "hosting.cost.spiky-tail",
+        "text": {
+          "en": "The plugin’s CPU cost has a spiky tail: occasional blocks cost much more than the rest. Treat it as unreliable at this rate and quantum.",
+          "ca": "El cost de CPU del connector té una cua amb pics: alguns blocs costen molt més que la resta. Tracteu-lo com a poc fiable a aquesta freqüència i quàntum."
+        }
       },
       "costUnmeasured": {
-        "code": "hosting.cost.unmeasured-at-rate-and-quantum"
+        "code": "hosting.cost.unmeasured-at-rate-and-quantum",
+        "text": {
+          "en": "The plugin’s CPU cost has not been measured at this rate and quantum. Measure it before relying on a ceiling.",
+          "ca": "El cost de CPU del connector no s’ha mesurat a aquesta freqüència i quàntum. Mesureu-lo abans de confiar en cap límit."
+        }
       },
       "costWithinCeiling": {
-        "code": "hosting.cost.within-ceiling"
+        "code": "hosting.cost.within-ceiling",
+        "text": {
+          "en": "The plugin’s measured CPU cost is within the ceiling for this rate and quantum.",
+          "ca": "El cost de CPU mesurat del connector és dins el límit per a aquesta freqüència i quàntum."
+        }
       }
     }
   }

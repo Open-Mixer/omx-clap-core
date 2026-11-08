@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.3.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "HOST_REPLY_CODES": {
     "kind": "codes",
@@ -11,57 +11,101 @@
       "instanceInvalid": {
         "code": "reply.host.instance-invalid",
         "resp": -1,
-        "doc": "mod-host's ERR_INSTANCE_INVALID: an instance number outside the host's table"
+        "doc": "mod-host's ERR_INSTANCE_INVALID: an instance number outside the host's table",
+        "text": {
+          "en": "That instance number is not one of the host’s. Use an instance the host actually has.",
+          "ca": "Aquest número d’instància no és cap de l’amfitrió. Useu una instància que l’amfitrió tingui de veritat."
+        }
       },
       "instanceNonExists": {
         "code": "reply.host.instance-non-exists",
         "resp": -3,
-        "doc": "mod-host's ERR_INSTANCE_NON_EXISTS: an instance no add made"
+        "doc": "mod-host's ERR_INSTANCE_NON_EXISTS: an instance no add made",
+        "text": {
+          "en": "No add ever created that instance. Add it before using it.",
+          "ca": "Cap ordre add ha creat aquesta instància. Creeu-la amb add abans d’utilitzar-la."
+        }
       },
       "paramSymbolInvalid": {
         "code": "reply.host.param-symbol-invalid",
         "resp": -103,
-        "doc": "mod-host's ERR_LV2_INVALID_PARAM_SYMBOL: a symbol that is not a parameter param_set takes, the plugin's own bypass included"
+        "doc": "mod-host's ERR_LV2_INVALID_PARAM_SYMBOL: a symbol that is not a parameter param_set takes, the plugin's own bypass included",
+        "text": {
+          "en": "That symbol is not one of this plugin’s parameters, not even its bypass. Ask the plugin for its parameter list and use one of those symbols.",
+          "ca": "Aquest símbol no és cap paràmetre d’aquest connector, ni tan sols el seu bypass. Demaneu la llista de paràmetres del connector i useu-ne un dels símbols."
+        }
       },
       "memoryAllocation": {
         "code": "reply.host.memory-allocation",
         "resp": -901,
-        "doc": "mod-host's ERR_MEMORY_ALLOCATION: the reply could not be built"
+        "doc": "mod-host's ERR_MEMORY_ALLOCATION: the reply could not be built",
+        "text": {
+          "en": "The host ran out of memory while building the reply. Try again once memory is free.",
+          "ca": "L’amfitrió s’ha quedat sense memòria en construir la resposta. Torneu-ho a provar quan hi hagi memòria lliure."
+        }
       },
       "invalidOperation": {
         "code": "reply.host.invalid-operation",
         "resp": -902,
-        "doc": "mod-host's ERR_INVALID_OPERATION: a word outside the verb's grammar, or a verb the host refuses on purpose"
+        "doc": "mod-host's ERR_INVALID_OPERATION: a word outside the verb's grammar, or a verb the host refuses on purpose",
+        "text": {
+          "en": "That word is not part of this verb, or the host refuses it on purpose. Check the verb’s grammar and send a word it accepts.",
+          "ca": "Aquesta paraula no forma part d’aquesta ordre, o l’amfitrió la rebutja expressament. Comproveu la gramàtica de l’ordre i envieu una paraula que accepti."
+        }
       },
       "pinAbsent": {
         "code": "reply.host.pin-absent",
         "resp": -508,
-        "doc": "a layout pin in a scheme this host does not know, refused as no pin at all"
+        "doc": "a layout pin in a scheme this host does not know, refused as no pin at all",
+        "text": {
+          "en": "This host does not know that layout pin’s scheme, so it is refused as if no pin had been sent. Send a pin in a scheme this host knows.",
+          "ca": "Aquest amfitrió no coneix l’esquema d’aquest pin de disposició, així que es rebutja com si no se n’hagués enviat cap. Envieu un pin en un esquema que aquest amfitrió conegui."
+        }
       },
       "pinLayoutMismatch": {
         "code": "reply.host.pin-layout-mismatch",
         "resp": -510,
-        "doc": "the add of an instance whose layout after init is not the one pin_expect named: the plugin is not activated"
+        "doc": "the add of an instance whose layout after init is not the one pin_expect named: the plugin is not activated",
+        "text": {
+          "en": "After it started, the plugin’s layout did not match the pin you expected, so it was not activated. Expect the layout the plugin actually has, or use a plugin built to that pin.",
+          "ca": "Un cop iniciat, la disposició del connector no coincidia amb el pin esperat, i per això no s’ha activat. Espereu la disposició real del connector, o useu un connector fet per a aquest pin."
+        }
       },
       "noParamContract": {
         "code": "reply.host.no-param-contract",
         "resp": -511,
-        "doc": "the host holds no checked unit and scale for this parameter: the controller falls back to the layout the scan gives"
+        "doc": "the host holds no checked unit and scale for this parameter: the controller falls back to the layout the scan gives",
+        "text": {
+          "en": "The host has no checked unit or scale for this parameter. Fall back to the layout the scan gave.",
+          "ca": "L’amfitrió no té cap unitat ni escala comprovada per a aquest paràmetre. Recorreu a la disposició que ha donat l’escaneig."
+        }
       },
       "noNoteInput": {
         "code": "reply.host.no-note-input",
         "resp": -513,
-        "doc": "the instance's plugin takes no notes"
+        "doc": "the instance's plugin takes no notes",
+        "text": {
+          "en": "This plugin’s instance takes no notes. Don’t send it note events.",
+          "ca": "Aquesta instància del connector no accepta notes. No li envieu esdeveniments de nota."
+        }
       },
       "notesByJack": {
         "code": "reply.host.notes-by-jack",
         "resp": -514,
-        "doc": "the instance's worker takes no notes on its socket (mod-host): the plugin is played through its jack MIDI input"
+        "doc": "the instance's worker takes no notes on its socket (mod-host): the plugin is played through its jack MIDI input",
+        "text": {
+          "en": "This instance’s worker takes no notes on its socket; play it through its jack MIDI input instead.",
+          "ca": "El worker d’aquesta instància no accepta notes pel seu socket; toqueu-la per la seva entrada MIDI de jack."
+        }
       },
       "noteQueueFull": {
         "code": "reply.host.note-queue-full",
         "resp": -517,
-        "doc": "the worker has no room for the line's notes before its next block: nothing of it is kept, and the line may be sent again"
+        "doc": "the worker has no room for the line's notes before its next block: nothing of it is kept, and the line may be sent again",
+        "text": {
+          "en": "The worker had no room for these notes before its next block, so none of them were kept. Send the line again.",
+          "ca": "El worker no tenia espai per a aquestes notes abans del seu següent bloc, i no se n’ha conservat cap. Torneu a enviar la línia."
+        }
       }
     }
   },

@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.0.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "HOSTING_OUTPUT_CODES": {
     "kind": "codes",
@@ -10,7 +10,11 @@
     "codes": {
       "outputNonFinite": {
         "code": "hosting.output.non-finite",
-        "doc": "the plugin produced non-finite output"
+        "doc": "the plugin produced non-finite output",
+        "text": {
+          "en": "This plugin produced non-finite output: infinities or NaNs. Treat its output as a fault.",
+          "ca": "Aquest connector ha produït una sortida no finita: infinits o NaN. Tracteu la seva sortida com una fallada."
+        }
       }
     }
   }

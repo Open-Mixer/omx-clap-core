@@ -288,6 +288,8 @@ install-lib: $(CORE_SO)
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
 	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
 	if [ -f abi/$(CORE_SONAME).abi ]; then install -m 644 abi/$(CORE_SONAME).abi $(DESTDIR)$(DATADIR)/$(CORE)/; fi
+	if [ -f $(RT_GATE_GRAPHS)/clap_host.ci ]; then install -d $(DESTDIR)$(DATADIR)/$(CORE)/rt-gate/graphs \
+	    && install -m 644 $(RT_GATE_GRAPHS)/*.ci $(DESTDIR)$(DATADIR)/$(CORE)/rt-gate/graphs/; fi
 
 # the LV2 adapter: the archive, its one header and its pkg-config file, what a program that hosts LV2 plugins as CLAP
 # plugins builds against; lilv is the program's to have at run time (the adapter dlopens liblilv-0.so.0)
@@ -714,6 +716,45 @@ test-thread-pool: tests/thread_pool_test tests/fake_pool.clap
 	    || { echo "FAIL request_exec's path names an allocator, sleep, lock or printf"; false; }
 	@echo "ok   request_exec and every function it reaches ($$(sed -n 's/^# reached: //p' build/thread_pool_rt.c | wc -w)) name no allocator, sleep, lock or printf"
 	./tests/thread_pool_test $(abspath tests/fake_pool.clap)
+
+# ---- omx-rt-gate: the one static real-time gate (omx-dsp's omx-rt-gate(1), spec 7.13) -----------------------------
+# The gate reads the units the way the compiler sees them (-O0 -fno-inline -fcallgraph-info) and derives the roots from
+# the ABI tables they fill. This tree binds the host side of CLAP and LV2 (--abi clap:host --abi lv2:host): try_push,
+# in_events.size and get, request_exec, tail.changed, request_flush, schedule_work and log.printf are audio, the respond
+# LV2 work is handed is worker. omx-dsp-devel installs the gate; OMX_RT_GATE=<path> names one built from an omx-dsp checkout.
+#   rt-gate-graphs           the call graph of every compiled unit of the core and the LV2 adapter, the graphs this tree
+#                            ships (make install, $(DATADIR)/omx-clap-core/rt-gate/graphs) for a plugin's run to join
+#   test-rt-gate-control     tests/rt_gate/host_roots.c: every host root derived, clean green, a malloc, a lock or a
+#                            sleep planted in try_push and a malloc in respond each red
+#   test-rt-gate-sabotage    the gate's tables emptied in a copy: it judges nothing (exit 2), never a pass
+#   test-rt-gate             the core's and the adapter's real-time units, the units that hold no root joined by graph
+OMX_RT_GATE ?= omx-rt-gate
+RT_GATE_GRAPHS = build/rt-gate/graphs
+RT_GATE_FLAGS = -std=gnu99 -D_GNU_SOURCE -pthread -fPIC -fvisibility=hidden -Isrc -Ilv2/core -Ilv2/clap $(DSP_CFLAGS) \
+    $(CLAP_CFLAGS) $(CRYPTO_CFLAGS) $(PIN_CFLAGS) $(LV2_CFLAGS) -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u
+# the units that store a host root, judged; the rest of the core and the adapter joined by their graphs
+RT_GATE_UNITS = src/clap_host.c lv2/core/lv2_instance.c lv2/core/lv2_features.c
+RT_GATE_JOINED = $(filter-out $(RT_GATE_UNITS),$(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC))
+RT_GATE_ABIS = --abi clap:host --abi lv2:host
+# omx-dsp's graphs, joined beside this tree's: the installed ones, unless OMX_RT_GATE_DSP_GRAPHS names others
+OMX_RT_GATE_DSP_GRAPHS ?= $(abspath $(dir $(shell command -v $(OMX_RT_GATE) 2>/dev/null))../share/omxdsp/rt-gate/graphs)
+
+.PHONY: rt-gate-graphs test-rt-gate-control test-rt-gate-sabotage test-rt-gate
+rt-gate-graphs:
+	rm -rf $(RT_GATE_GRAPHS) && mkdir -p build/rt-gate
+	$(OMX_RT_GATE) --write-graphs $(RT_GATE_GRAPHS) -- $(CC) $(RT_GATE_FLAGS) $(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC)
+
+test-rt-gate-control:
+	./tests/rt_gate/control.sh $(OMX_RT_GATE) $(CC)
+
+test-rt-gate-sabotage:
+	./tests/rt_gate/sabotage.sh $(OMX_RT_GATE) $(CC)
+
+test-rt-gate: test-rt-gate-control
+	rm -rf build/rt-gate/join && mkdir -p build/rt-gate
+	$(OMX_RT_GATE) --write-graphs build/rt-gate/join -- $(CC) $(RT_GATE_FLAGS) $(RT_GATE_JOINED)
+	$(OMX_RT_GATE) $(RT_GATE_ABIS) --graphs build/rt-gate/join --graphs $(OMX_RT_GATE_DSP_GRAPHS) --list-roots \
+	    -- $(CC) $(RT_GATE_FLAGS) $(RT_GATE_UNITS)
 
 # what one block of fake_pool's tasks costs, pool off against pool on (docs/thread-pool.md, Measured): a measurement
 tests/thread_pool_bench: tests/thread_pool_bench.c $(CORE_SO)

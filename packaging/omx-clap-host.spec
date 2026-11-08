@@ -13,12 +13,12 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.4.1 with plugin-hostd-protocol-devel < 0.5)
+BuildRequires: (plugin-hostd-protocol-devel >= 0.5.0 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.2.0 with plugin-db-devel < 0.3)
+BuildRequires: (plugin-db-devel >= 0.3.0 with plugin-db-devel < 0.4)
 BuildRequires: clap-devel
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: (omx-dsp-devel >= 0.31.0 with omx-dsp-devel < 0.32)
+BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
 BuildRequires: (omx-contract-devel >= 3.9.0 with omx-contract-devel < 4)
@@ -35,7 +35,7 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.4.1 with plugin-hostd-protocol%{?_isa} < 0.5)
+Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.0 with plugin-hostd-protocol%{?_isa} < 0.6)
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -84,7 +84,7 @@ License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
 Requires: clap-devel
 # hosted_stage.h includes omx-dsp's headers
-Requires: (omx-dsp-devel >= 0.31.0 with omx-dsp-devel < 0.32)
+Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
 Requires: (omx-contract-devel >= 3.9.0 with omx-contract-devel < 4)
 Requires: omx-clap-core-contract = %{version}-%{release}

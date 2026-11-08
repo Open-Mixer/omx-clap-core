@@ -539,13 +539,9 @@ test-transport-sabotage: tests/transport_seqlock_test.c src/clap_stage.h src/hos
 test-layouts-sabotage:
 	./tests/layout_sabotage.sh
 
-# the chain (docs/chain.md, #311): its values over the fake plugins and stages of the test's own; and its cycle, pass_dry and
-# omx_clap_chain_process, names nothing that allocates, waits, locks or prints
+# the chain (docs/chain.md, #311): its values over the fake plugins and stages of the test's own (its cycle is the
+# real-time gate's, make test-rt-gate)
 test-chain: tests/clap_chain_test tests/fake.clap tests/fake_compressor.clap
-	mkdir -p build && sed -n '/^static void pass_dry/,/^}/p; /^int omx_clap_chain_process/,/^}/p' src/clap_chain.c > build/clap_chain_rt.c
-	grep -q 'omx_clap_host_run_ports' build/clap_chain_rt.c && grep -q 'memcpy' build/clap_chain_rt.c \
-	    && ! grep -n -E '\<(malloc|calloc|realloc|free|posix_memalign|usleep|nanosleep|sleep|printf|fprintf|snprintf|puts)\s*\(|pthread_|_lock\s*\(' build/clap_chain_rt.c \
-	    && echo "ok   the chain's cycle (pass_dry, omx_clap_chain_process) names no allocator, sleep, lock or printf"
 	./tests/clap_chain_test $(abspath tests/fake.clap) $(abspath tests/fake_compressor.clap)
 
 # each guard of the chain broken in a copy of the tree, the test seen red on the check that names it
@@ -707,14 +703,7 @@ tests/clap_ext_test: tests/clap_ext_test.c $(CORE_SO)
 tests/thread_pool_test: tests/thread_pool_test.c tests/test_util.h $(CORE_SO)
 	$(CC) $(INCS) $(CFLAGS) -Werror -o $@ $< $(CORE_LINK_TEST) -ldl -lpthread -lm
 
-# and request_exec's path, the pool's hand-out and wait included (tests/rt_reach.py), names no allocator, sleep, lock or
-# printf: the one syscall it makes is the futex's
 test-thread-pool: tests/thread_pool_test tests/fake_pool.clap
-	mkdir -p build && python3 -I tests/rt_reach.py build/thread_pool_rt.c host_request_exec src/clap_host.c src/thread_pool.c
-	@for f in thread_pool_run take_tasks run_task futex_wait futex_wake; do grep -q -E "^# reached: .*\<$$f\>" build/thread_pool_rt.c || { echo "FAIL the scan of request_exec does not reach $$f"; exit 1; }; done
-	! grep -n -E '\<(malloc|calloc|realloc|free|posix_memalign|usleep|nanosleep|sleep|printf|fprintf|snprintf|puts)\s*\(|pthread_mutex|pthread_cond|_lock\s*\(' build/thread_pool_rt.c \
-	    || { echo "FAIL request_exec's path names an allocator, sleep, lock or printf"; false; }
-	@echo "ok   request_exec and every function it reaches ($$(sed -n 's/^# reached: //p' build/thread_pool_rt.c | wc -w)) name no allocator, sleep, lock or printf"
 	./tests/thread_pool_test $(abspath tests/fake_pool.clap)
 
 # ---- omx-rt-gate: the one static real-time gate (omx-dsp's omx-rt-gate(1), spec 7.13) -----------------------------
@@ -831,7 +820,6 @@ test-core: tests/core_link_test tests/fake.clap tests/fake_synth.clap tests/faul
 	sh tests/exports.sh $(CORE_FILE) $(CORE_MAP) src/clap_host.h src/clap_chain.h src/abi_guard.h
 	for h in $(CORE_HEADERS); do echo "#include \"$$(basename $$h)\"" | $(CC) -x c -fsyntax-only -Wall -Wextra -Werror -std=gnu99 -Isrc $(CLAP_CFLAGS) $(DSP_CFLAGS) - || exit 1; done; echo "ok   each installed header compiles on its own"
 	@echo "the RT headers reach nothing that loads, allocates or waits:"; ! grep -n -E '#include <(dlfcn|pthread|stdlib|unistd|stdio)\.h>|clap_entry|dlopen|malloc|calloc' src/hosted_stage.h src/clap_stage.h src/omx_msgring.h && echo "ok   hosted_stage.h, clap_stage.h and omx_msgring.h include none of dlfcn, pthread, stdlib, unistd, stdio and name no clap_entry, dlopen or allocator"
-	@echo "clap_host.h's inline RT code calls nothing that allocates, waits, locks or prints:"; mkdir -p build && sed -n '/INLINE FUNCTIONS/,$$p' src/clap_host.h > build/clap_host_inline.h && grep -q 'omx_clap_host_run(' build/clap_host_inline.h && ! grep -n -E '\<(malloc|calloc|realloc|free|usleep|nanosleep|sleep|dlopen|dlsym|printf|fprintf|snprintf|puts)\s*\(|pthread_|_lock\s*\(' build/clap_host_inline.h && echo "ok   the inline section of clap_host.h (omx_clap_host_run and the tempo word) names no allocator, sleep, lock, loader or printf"
 	./tests/core_link_test $(abspath $(CORE_LINK_FIXTURES))
 
 tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap-core.pc.in
@@ -1111,23 +1099,10 @@ test-identity: $(PROG) tests/jack_identity build/bench/inproc
 test-chain-identity: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap
 	PLUGINS=$${PLUGINS:-tests/chain_fixture.tsv} ./tests/chain_identity.sh
 
-# the chain line in one JACK client (#104, docs/chain.md): the client's process callback and every function of this
-# tree it reaches (tests/rt_reach.py: chain_stage, process_gated, notes_out, transport_block, publish_gain_adjustment,
-# the header functions they run, and the core's: omx_clap_chain_process, omx_clap_host_run_ports, the note and stage
-# functions of clap_host.c and hosted_stage.h) names nothing that allocates, waits, locks or prints; three instances
+# the chain line in one JACK client (#104, docs/chain.md): three instances
 # one node, its output the same instances one client each in series bit for bit, changed while it runs, every refusal
 # changing nothing (tests/chain_host_e2e.sh)
-RT_CHAIN_FILES = src/effects.c src/cycle_gate.h src/omx_msgring.h src/host_transport.h src/clap_stage.h \
-    src/clap_host.c src/clap_host.h src/clap_chain.c src/hosted_stage.h
-RT_CHAIN_CALLEES = chain_stage process_gated notes_out transport_block publish_gain_adjustment host_transport_read omx_cycle_gate_enter \
-    omx_clap_chain_process omx_clap_host_run_ports omx_clap_host_notes_out omx_clap_host_note_in
 test-chain-host: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap
-	mkdir -p build && python3 -I tests/rt_reach.py build/chain_host_rt.c process $(RT_CHAIN_FILES)
-	@unreached=; for f in $(RT_CHAIN_CALLEES); do grep -q -E "^# reached: .*\<$$f\>" build/chain_host_rt.c || unreached="$$unreached $$f"; done; \
-	    [ -z "$$unreached" ] || { echo "FAIL the scan of the host's chain cycle does not reach$$unreached"; false; }
-	! grep -n -E '\<(malloc|calloc|realloc|free|posix_memalign|usleep|nanosleep|sleep|printf|fprintf|snprintf|puts)\s*\(|pthread_|_lock\s*\(' build/chain_host_rt.c \
-	    || { echo "FAIL the host's chain cycle names an allocator, sleep, lock or printf"; false; }
-	@echo "ok   the host's chain cycle and every function of this tree it reaches ($$(sed -n 's/^# reached: //p' build/chain_host_rt.c | wc -w)) name no allocator, sleep, lock or printf"
 	./tests/chain_host_e2e.sh
 
 # the chain's members walked by JACK's buffer-size callback while the control thread joins, frees, adds and lets go

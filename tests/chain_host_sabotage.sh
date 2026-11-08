@@ -203,19 +203,6 @@ arm note-port-back src/effects.c 's/^        \&\& !(own->midi_in = jack_port_reg
 arm other-chain src/effects.c 's/if (effect->chain \&\& effect->chain != chain)/if (0)/' \
     'chain 8 15 10 -> '
 
-# 10. the cycle allocates, locks or prints nothing: a print in every member's stage
-arm rt-print src/effects.c '/^static void chain_stage/,/^}/s/^    effect_t \*effect = ctx;$/    effect_t *effect = ctx;\n    fprintf(stderr, "stage\\n");/' \
-    "the host's chain cycle names an allocator"
-
-# 10b. and nothing the cycle calls does either: an allocation in transport_block, which process_gated calls
-arm rt-callee src/effects.c '/^static void transport_block/,/^}/s/^    struct omx_clap_transport rec;$/&\n\n    free(malloc(1));/' \
-    "the host's chain cycle names an allocator"
-
-# 10c. and nothing the core runs for it either: an allocation in omx_clap_chain_process, the library's walk the head's
-# cycle runs (src/clap_chain.c, which the scan reads with clap_host.c, clap_host.h and hosted_stage.h)
-arm rt-core src/clap_chain.c '/^int omx_clap_chain_process/,/^}/s/^    uint32_t s;$/&\n\n    free(malloc(1));/' \
-    "the host's chain cycle names an allocator"
-
 # 12. a member's auxiliary ports are on the head's client, under the name it has alone too, and leave with it
 arm aux-port src/effects.c 's/^        aux_ports_on_head(effect, head->jack_client);$/        ;/' \
     'the side chain of member 16 is'

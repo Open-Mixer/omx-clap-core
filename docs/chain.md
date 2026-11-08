@@ -157,8 +157,8 @@ and freed by the library. The structures are in `abi/libomx-clap-core.so.1.layou
 - the cycles on a thread of their own while the control thread bypasses, adds and removes members hundreds of times:
   every block is one whole walk, never part of the old one and part of the new.
 
-`make test-chain` also holds the cycle's code (`pass_dry`, `omx_clap_chain_process`) to naming no allocator, sleep, lock
-or printf. `make test-chain-sabotage` (`tests/chain_sabotage.sh`, in CI) breaks each guard in a copy of the tree and
+The cycle's code (`pass_dry`, `omx_clap_chain_process`) is omx-rt-gate's to judge (`make test-rt-gate`).
+`make test-chain-sabotage` (`tests/chain_sabotage.sh`, in CI) breaks each guard in a copy of the tree and
 sees the test red on the check that names it: a bypassed member left in the walk, a bypassed member's latency counted,
 the sum replaced by the last member's, a change never told, a removal that does not publish the walk again, the long
 cycle's bound one frame short, its dry copy dropped, one block for every member instead of two in turn, the ABI
@@ -291,8 +291,7 @@ quarantined member that is not the head takes none of them, and the chain rejoin
   still reach one member, the head's and a member's bypass both; a member's removal, a member left out, added and
   moved (in one walk, the read-back's walk one more), and a new head each give the output of the chain built that way,
   bit for bit; every refusal changes nothing; a member's auxiliary ports are on the head's client, a connect by the name
-  it has alone reaches them, and they leave with it (`make test-jack-fake`: the side chain and the auxiliary output carry their levels in a chain). The client's process
-  callback and every function of this tree it reaches (`tests/rt_reach.py`) name no allocator, sleep, lock or printf.
+  it has alone reaches them, and they leave with it (`make test-jack-fake`: the side chain and the auxiliary output carry their levels in a chain). 
 - `make test-chain-host-tsan` (`tests/chain_host_tsan.sh`): the host and the core under ThreadSanitizer, 40 rounds of
   joins, a move, a member freed and added again, another head and the first one back, while the quantum changes all
   along (each change the head's buffer-size callback walking the members, each new client's thread-init callback

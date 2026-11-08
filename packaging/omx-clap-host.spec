@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.30.6
+Version:        0.31.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -198,6 +198,16 @@ make test-lv2
 %{_includedir}/omx-clap-lv2/
 
 %changelog
+* Sun Nov 08 2026 Pau Aliagas <linuxnow@gmail.com> - 0.31.0-1
+- Held meters: a plugin that holds its block value until the host reads it is
+  read at omx-dsp's host read rate, with a level meter's clip word;
+  monitor_output_off ends a monitor, and a monitor ends with its connection
+- curve_bind and curve_points answered through plugin-hostd-protocol's hook,
+  at the rate the instance runs at
+- every code omx-clap-core owns carries its sentence in English and Catalan
+- built against omx-dsp >= 0.32.0 and < 0.33, plugin-hostd-protocol >= 0.5.0
+  and < 0.6, plugin-db >= 0.3.0 and < 0.4, omx-contract >= 3.11.0
+
 * Sat Nov 07 2026 Pau Aliagas <linuxnow@gmail.com> - 0.30.6-1
 - The LV2 adapter no longer drops the worker's queue at deactivate and reset: after
   the worker thread is joined, every queued request goes through work(), every

@@ -1352,8 +1352,24 @@ test-lv2-asan: $(LV2_ASAN_DIR)/lv2_asan_test $(LV2_ASAN_DIR)/omx-midi-echo.lv2/o
 	ASAN_OPTIONS=detect_leaks=0 ./$(LV2_ASAN_DIR)/lv2_host_test build/lv2 $(LILV_LIB)
 .PHONY: test-lv2-asan
 
+# the sabotage of the worker drain: lv2/core with the drain calls struck must leave a request and a response queued at
+# deactivate and at reset, and the host test must say so at the drain checks and nowhere else
+LV2_DRAIN_SAB = build/lv2-drain-sabotage
+test-lv2-drain-sabotage: lv2/tests/lv2_host_test.c $(LV2_CORE_SRC) lv2/core/lv2_core.h lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_worker_gain.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h $(LV2_BUNDLES)
+	mkdir -p $(LV2_DRAIN_SAB)/core
+	cp lv2/core/*.c lv2/core/*.h $(LV2_DRAIN_SAB)/core/
+	sed -i -e '/^    worker_drain(in);$$/d' $(LV2_DRAIN_SAB)/core/lv2_instance.c
+	! cmp -s lv2/core/lv2_instance.c $(LV2_DRAIN_SAB)/core/lv2_instance.c
+	$(CC) -g -O1 -fPIC -D_GNU_SOURCE -std=gnu99 -Wall -Wextra -Werror -ffp-contract=off $(LV2_CFLAGS) $(DSP_CFLAGS) -Wno-unused-function -Isrc -I$(LV2_DRAIN_SAB)/core -Ilv2/clap -Ilv2/tests -o $(LV2_DRAIN_SAB)/lv2_host_test lv2/tests/lv2_host_test.c \
+	    $(addprefix $(LV2_DRAIN_SAB)/core/,$(notdir $(LV2_CORE_SRC))) src/abi_guard.S -Wl,--wrap=strdup,--wrap=free -ldl -lpthread -lm
+	! ./$(LV2_DRAIN_SAB)/lv2_host_test build/lv2 $(LILV_LIB) > $(LV2_DRAIN_SAB)/log 2>&1
+	grep -q '^FAIL worker drain (deactivate)' $(LV2_DRAIN_SAB)/log
+	grep -q '^FAIL worker drain (reset)' $(LV2_DRAIN_SAB)/log
+	! grep '^FAIL' $(LV2_DRAIN_SAB)/log | grep -qv 'worker drain'
+.PHONY: test-lv2-drain-sabotage
+
 .PHONY: test-lv2 test-lv2-core test-lv2-clap test-lv2-link install-lv2
-test-lv2: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-asan
+test-lv2: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-asan test-lv2-drain-sabotage
 
 lv2/tests/lv2_clap_test: lv2/tests/lv2_clap_test.c $(LV2_LIB) $(CORE_SO) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_direct_fixture.h $(LV2_FIXTURE_DIR)/lv2_fakes.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h $(LV2_FIXTURE_DIR)/lv2_hints_fixture.h
 	$(CC) $(LV2_TEST_CFLAGS) $(CLAP_CFLAGS) -o $@ $< $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK_TEST) $(LV2_WRAP) -Wl,--wrap=pthread_create -ldl -lpthread -lm
@@ -1389,6 +1405,11 @@ test-lv2-link: lv2/tests/lv2_link_test build/lv2/omx-host-fixture.lv2/omx-host-f
 test-jack-lv2: $(PROG) $(LV2_BUNDLES) tests/fake.clap tests/jack_meter_source tests/jack_synth_probe
 	@! readelf -d $(PROG) | grep -q 'liblilv' && echo "ok   $(PROG) does not link lilv: the adapter dlopens it"
 	./tests/jack_lv2_e2e.sh
+
+# patch_set and patch_get, sabotaged: the verbs unregistered and the numeric property's parameter path dropped, each
+# arm red on the check that names it, the tree's own test-jack-lv2 green first
+test-jack-lv2-patch-sabotage:
+	bash tests/patch_verbs_sabotage.sh
 
 # the fixture bundle three ways, bit for bit, in a PipeWire of its own: through mod-host, through this host's adapter
 # (add lv2:<uri>) and through the adapter in process; IDENTITY_ARMS="lv2 inproc" where mod-host is not installed

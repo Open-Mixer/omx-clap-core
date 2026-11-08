@@ -47,9 +47,14 @@
 #include "protocol.h"
 // hello, request tags and error words are the protocol library's from 0.3.0: protocol_add_hello() registers them
 #ifndef PROTOCOL_HELLO
-#error "plugin-hostd-protocol's hello (protocol_add_hello) not found: install plugin-hostd-protocol-devel >= 0.4.1 and < 0.5"
+#error "plugin-hostd-protocol's hello (protocol_add_hello) not found: install plugin-hostd-protocol-devel >= 0.5.0 and < 0.6"
+#endif
+// curve_bind and curve_points are the protocol library's from 0.5.0: host_dispatch_register_curve() answers them
+#ifndef HOST_DISPATCH_HAS_CURVE
+#error "plugin-hostd-protocol's curve verbs (host_dispatch_register_curve) not found: install plugin-hostd-protocol-devel >= 0.5.0 and < 0.6"
 #endif
 #include "effects.h"
+#include "meter_reader.h"
 #include "host_verbs.h"
 // plugin-hostd's verbs this host answers (preset_list, preset_get, pin_layout, chain): their words and formats are the
 // protocol library's declaration
@@ -73,7 +78,8 @@
 #error "build with make: the version is passed in OMX_CLAP_VERSION from the file VERSION"
 #endif
 #define VERSION         OMX_CLAP_VERSION
-#define IDLE_INTERVAL_MS 20
+/* the idle tick is the rate a host reads a plugin's held meter at: omx-dsp's declared hostReadHz, not a number of ours */
+#define IDLE_INTERVAL_MS METER_READ_INTERVAL_MS
 
 
 /*
@@ -100,6 +106,12 @@ static const host_backend_t g_clap_backend = {
     effects_state_load,
     effects_connect,
     effects_disconnect,
+};
+
+/* the curve verbs (plugin-hostd-protocol, doc/protocol.md, Curves): the library keeps each display's binding, reads its
+ * values through g_clap_backend's param_get and draws them with omx_curve_points at the rate the instance runs at */
+static const host_curve_t g_clap_curve = {
+    .sample_rate = effects_sample_rate,
 };
 
 static const char g_help_msg[] =
@@ -554,6 +566,13 @@ static void term_signal(int sig)
  * declares of this host (preset_show_cb): mod-host's preset_show <uri> has one word and is not answered here */
 #define PRESET_SHOW_INSTANCE "preset_show %i %s"
 
+/* each command, with the connection it came in on: a monitor it sets ends with that connection */
+static void receive_cb(msg_t *msg)
+{
+    effects_connection(msg->sender_id);
+    protocol_parse(msg);
+}
+
 static int host_init(int socket_port, int feedback_port)
 {
     // hello: a client names its protocol version and the extensions it asks for; one that never sends it is answered as before
@@ -565,7 +584,11 @@ static int host_init(int socket_port, int feedback_port)
     protocol_add_command("preset_save %i %s ...", preset_save_cb);
     protocol_add_command(PRESET_SHOW_INSTANCE, preset_show_cb);
     host_dispatch_register(&g_clap_backend);
+    host_dispatch_register_curve(&g_clap_curve);
     host_dispatch_register_monitor_output(effects_monitor_output);
+#ifdef HOST_DISPATCH_HAS_MONITOR_OUTPUT_OFF
+    host_dispatch_register_monitor_output_off(effects_monitor_output_off);
+#endif
     protocol_add_command(OMX_VERB_PIN_EXPECT_FMT, pin_expect_cb);
     protocol_add_command(OMX_VERB_CHAIN_EXPECT_FMT, chain_expect_cb);
     protocol_add_command(OMX_VERB_TRACK_INFO_FMT, track_info_cb);
@@ -607,7 +630,7 @@ static int host_init(int socket_port, int feedback_port)
     if (socket_start(socket_port, feedback_port, SOCKET_MSG_BUFFER_SIZE) < 0)
         return -1;
 
-    socket_set_receive_cb(protocol_parse);
+    socket_set_receive_cb(receive_cb);
     socket_set_idle_cb(idle_cb);
     socket_set_idle_interval(IDLE_INTERVAL_MS);
     return 0;

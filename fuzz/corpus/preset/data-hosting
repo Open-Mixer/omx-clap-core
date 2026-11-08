@@ -1,7 +1,7 @@
 {
   "$schema": "../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 2.15.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "render": {
     "c": [
@@ -130,7 +130,11 @@
     "codes": {
       "idleHoldRefused": {
         "code": "hosting.idle.hold-refused",
-        "doc": "the device could not be opened for writing (no permission, or no such device): the host runs with no hold"
+        "doc": "the device could not be opened for writing (no permission, or no such device): the host runs with no hold",
+        "text": {
+          "en": "The CPU idle-latency device could not be opened for writing, so the host runs with no hold on it. Grant write access to /dev/cpu_dma_latency, or accept that idle states are not held.",
+          "ca": "No s’ha pogut obrir per escriptura el dispositiu de latència inactiva de la CPU, i per això l’amfitrió funciona sense cap retenció. Doneu permís d’escriptura a /dev/cpu_dma_latency, o accepteu que els estats inactius no es retenen."
+        }
       }
     }
   },
@@ -147,15 +151,27 @@
     "codes": {
       "windowNoDisplay": {
         "code": "hosting.window.no-display",
-        "doc": "no display to show it on: none is named, or its server refused the connection; the plugin runs on"
+        "doc": "no display to show it on: none is named, or its server refused the connection; the plugin runs on",
+        "text": {
+          "en": "There is no display to show the window on: none was named, or its server refused the connection. The plugin keeps running without a window.",
+          "ca": "No hi ha cap pantalla on mostrar la finestra: no se n’ha indicat cap, o el seu servidor ha refusat la connexió. El connector continua funcionant sense finestra."
+        }
       },
       "windowUnsupported": {
         "code": "hosting.window.unsupported",
-        "doc": "the plugin has no clap.gui, or its clap.gui offers no window API the host shows, embedded or floating"
+        "doc": "the plugin has no clap.gui, or its clap.gui offers no window API the host shows, embedded or floating",
+        "text": {
+          "en": "This plugin has no window, or none in a form this host can show, embedded or floating. Run it without a window.",
+          "ca": "Aquest connector no té finestra, o no en té cap en una forma que aquest amfitrió pugui mostrar, encastada o flotant. Feu-lo anar sense finestra."
+        }
       },
       "windowRefused": {
         "code": "hosting.window.refused",
-        "doc": "the plugin's clap.gui answered false when asked to create, embed or show its window"
+        "doc": "the plugin's clap.gui answered false when asked to create, embed or show its window",
+        "text": {
+          "en": "The plugin refused to create, embed or show its own window when asked. Run it without a window.",
+          "ca": "El connector ha refusat crear, encastar o mostrar la seva pròpia finestra quan se li ha demanat. Feu-lo anar sense finestra."
+        }
       }
     }
   }

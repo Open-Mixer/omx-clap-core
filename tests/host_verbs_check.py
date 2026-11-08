@@ -84,6 +84,8 @@ EXAMPLES = {
     # transfer curve bound to the passthrough's parameter 0, then drawn
     'curve_bind': (['{fx}', '0', 'transfer_curve', 'dynamics', 'threshold=0:db', 'ratio=0:ratio'], []),
     'curve_points': (['{fx}', '0', '9'], []),
+    # monitor_output_off (plugin-hostd-protocol 0.5.0): an output this connection never monitored is refused by its code
+    'monitor_output_off': (['{fx}', 'out'], [(['x', 'out'], 'invalidOperation')]),
 }
 
 # a verb a package declares of this host that the host answers in an open change, with that change: the check names it

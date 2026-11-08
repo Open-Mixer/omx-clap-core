@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.0.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "HOSTING_PATCH_CODES": {
     "kind": "codes",
@@ -9,13 +9,25 @@
     "doc": "The hosting codes of the patch dimension: hosting.patch.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
     "codes": {
       "patchBusy": {
-        "code": "hosting.patch.busy"
+        "code": "hosting.patch.busy",
+        "text": {
+          "en": "The plugin’s patch is busy right now. Try again once it’s free.",
+          "ca": "El patch del connector està ocupat ara mateix. Torneu-ho a provar quan estigui lliure."
+        }
       },
       "patchNotWritable": {
-        "code": "hosting.patch.not-writable"
+        "code": "hosting.patch.not-writable",
+        "text": {
+          "en": "This plugin’s patch cannot be written. Treat it as read-only.",
+          "ca": "No es pot escriure el patch d’aquest connector. Tracteu-lo com de només lectura."
+        }
       },
       "patchTooLarge": {
-        "code": "hosting.patch.too-large"
+        "code": "hosting.patch.too-large",
+        "text": {
+          "en": "This patch is too large for the plugin to accept. Use a smaller patch.",
+          "ca": "Aquest patch és massa gran perquè el connector l’accepti. Useu un patch més petit."
+        }
       }
     }
   }

@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.0.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "HOSTING_LATENCY_CODES": {
     "kind": "codes",
@@ -9,16 +9,32 @@
     "doc": "The hosting codes of the latency dimension: hosting.latency.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
     "codes": {
       "latencyNonconforming": {
-        "code": "hosting.latency.nonconforming"
+        "code": "hosting.latency.nonconforming",
+        "text": {
+          "en": "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency.",
+          "ca": "La latència declarada d’aquest connector no s’ajusta al que pot utilitzar un amfitrió. No confieu en la latència que declara."
+        }
       },
       "latencyParameterDependent": {
-        "code": "hosting.latency.parameter-dependent"
+        "code": "hosting.latency.parameter-dependent",
+        "text": {
+          "en": "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it.",
+          "ca": "La latència d’aquest connector canvia amb els seus paràmetres. Torneu a llegir la latència després de qualsevol canvi de paràmetre que la pugui afectar."
+        }
       },
       "latencyResolved": {
-        "code": "hosting.latency.resolved"
+        "code": "hosting.latency.resolved",
+        "text": {
+          "en": "This plugin’s latency has been resolved to a fixed figure.",
+          "ca": "La latència d’aquest connector s’ha resolt en una xifra fixa."
+        }
       },
       "latencyUnmeasured": {
-        "code": "hosting.latency.unmeasured"
+        "code": "hosting.latency.unmeasured",
+        "text": {
+          "en": "This plugin’s latency has not been measured. Measure it before relying on it.",
+          "ca": "La latència d’aquest connector no s’ha mesurat. Mesureu-la abans de confiar-hi."
+        }
       }
     }
   }

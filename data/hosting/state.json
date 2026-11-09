@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.11.0"
+    "omx-contract-schema": ">= 3.12.0"
   },
   "HOSTING_STATE_CODES": {
     "kind": "codes",
@@ -12,55 +12,48 @@
         "code": "hosting.state.not-a-copy",
         "doc": "not a save's copy directory of the root",
         "text": {
-          "en": "This path is not a save’s copy directory of the state root. Use the copy directory a save actually made.",
-          "ca": "Aquest camí no és el directori de còpia d’un desat de l’arrel de l’estat. Useu el directori de còpia que realment ha creat un desat."
+          "en": "This path is not a save’s copy directory of the state root. Use the copy directory a save actually made."
         }
       },
       "statePathOnAudio": {
         "code": "hosting.state.path-on-audio",
         "doc": "makePath: called on the audio role",
         "text": {
-          "en": "This path was requested from the audio role, where it cannot be made. Request it from outside the audio role.",
-          "ca": "Aquest camí s’ha demanat des del rol d’àudio, on no es pot crear. Demaneu-lo des de fora del rol d’àudio."
+          "en": "This path was requested from the audio role, where it cannot be made. Request it from outside the audio role."
         }
       },
       "statePathOutside": {
         "code": "hosting.state.path-outside",
         "doc": "makePath: empty, absolute, or a `..` component",
         "text": {
-          "en": "This path is empty, absolute, or steps outside with a `..` component. Use a path relative to the state root, with no `..`.",
-          "ca": "Aquest camí és buit, absolut, o surt fora amb un component `..`. Useu un camí relatiu a l’arrel de l’estat, sense cap `..`."
+          "en": "This path is empty, absolute, or steps outside with a `..` component. Use a path relative to the state root, with no `..`."
         }
       },
       "statePathSymlink": {
         "code": "hosting.state.path-symlink",
         "doc": "makePath: a component is a symbolic link",
         "text": {
-          "en": "A component of this path is a symbolic link, which is not allowed here. Use a path with no symbolic links.",
-          "ca": "Un component d’aquest camí és un enllaç simbòlic, cosa que no es permet aquí. Useu un camí sense cap enllaç simbòlic."
+          "en": "A component of this path is a symbolic link, which is not allowed here. Use a path with no symbolic links."
         }
       },
       "statePathTooLong": {
         "code": "hosting.state.path-too-long",
         "doc": "makePath: PATH_MAX or more, or a long component",
         "text": {
-          "en": "This path, or one of its components, is too long. Use a shorter path.",
-          "ca": "Aquest camí, o un dels seus components, és massa llarg. Useu un camí més curt."
+          "en": "This path, or one of its components, is too long. Use a shorter path."
         }
       },
       "statePathUnmakeable": {
         "code": "hosting.state.path-unmakeable",
         "doc": "makePath: a directory could not be made",
         "text": {
-          "en": "The directory for this path could not be made. Check that the state root is writable and try again.",
-          "ca": "No s’ha pogut crear el directori d’aquest camí. Comproveu que l’arrel de l’estat es pugui escriure i torneu-ho a provar."
+          "en": "The directory for this path could not be made. Check that the state root is writable and try again."
         }
       },
       "stateUnreadable": {
         "code": "hosting.state.unreadable",
         "text": {
-          "en": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy.",
-          "ca": "No s’ha pogut llegir l’estat desat d’aquest connector. Tracteu-lo com a perdut, o restaureu-lo des d’una còpia que funcioni."
+          "en": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy."
         }
       }
     }

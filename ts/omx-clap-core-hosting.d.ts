@@ -40,7 +40,6 @@ export declare const HOSTING_IDLE_CODES: {
     readonly doc: "the device could not be opened for writing (no permission, or no such device): the host runs with no hold";
     readonly text: {
       readonly en: "The CPU idle-latency device could not be opened for writing, so the host runs with no hold on it. Grant write access to /dev/cpu_dma_latency, or accept that idle states are not held.";
-      readonly ca: "No s’ha pogut obrir per escriptura el dispositiu de latència inactiva de la CPU, i per això l’amfitrió funciona sense cap retenció. Doneu permís d’escriptura a /dev/cpu_dma_latency, o accepteu que els estats inactius no es retenen.";
     };
   };
 };
@@ -55,7 +54,6 @@ export declare const HOSTING_WINDOW_CODES: {
     readonly doc: "no display to show it on: none is named, or its server refused the connection; the plugin runs on";
     readonly text: {
       readonly en: "There is no display to show the window on: none was named, or its server refused the connection. The plugin keeps running without a window.";
-      readonly ca: "No hi ha cap pantalla on mostrar la finestra: no se n’ha indicat cap, o el seu servidor ha refusat la connexió. El connector continua funcionant sense finestra.";
     };
   };
   readonly windowUnsupported: {
@@ -63,7 +61,6 @@ export declare const HOSTING_WINDOW_CODES: {
     readonly doc: "the plugin has no clap.gui, or its clap.gui offers no window API the host shows, embedded or floating";
     readonly text: {
       readonly en: "This plugin has no window, or none in a form this host can show, embedded or floating. Run it without a window.";
-      readonly ca: "Aquest connector no té finestra, o no en té cap en una forma que aquest amfitrió pugui mostrar, encastada o flotant. Feu-lo anar sense finestra.";
     };
   };
   readonly windowRefused: {
@@ -71,7 +68,6 @@ export declare const HOSTING_WINDOW_CODES: {
     readonly doc: "the plugin's clap.gui answered false when asked to create, embed or show its window";
     readonly text: {
       readonly en: "The plugin refused to create, embed or show its own window when asked. Run it without a window.";
-      readonly ca: "El connector ha refusat crear, encastar o mostrar la seva pròpia finestra quan se li ha demanat. Feu-lo anar sense finestra.";
     };
   };
 };

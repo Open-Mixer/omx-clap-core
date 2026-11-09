@@ -222,10 +222,31 @@ static void transport_sync_cb(proto_t *proto)
     protocol_response_int(effects_transport_sync(proto->list[1]), proto);
 }
 
+/* the instance word of a verb: a decimal number, else -902. atoi read "x" and "" as 0 and answered for instance 0; a
+ * number outside the table is still the instance's own refusal. 1 with *id set, else 0 with the refusal sent */
+static int instance_word(proto_t *proto, int *id)
+{
+    const char *word = proto->list[1], *digits = word + (word[0] == '-');
+    char *end;
+    long value;
+
+    if (!isdigit((unsigned char)digits[0]) || (value = strtol(word, &end, 10), *end != '\0'))
+    {
+        protocol_response_int(ERR_INVALID_OPERATION, proto);
+        return 0;
+    }
+    *id = value < INT_MIN || value > INT_MAX ? -1 : (int)value;
+    return 1;
+}
+
 static void note_out_drops_cb(proto_t *proto)
 {
     char reply[128];
-    int resp = effects_note_out_drops(atoi(proto->list[1]), reply, sizeof(reply));
+    int id, resp;
+
+    if (!instance_word(proto, &id))
+        return;
+    resp = effects_note_out_drops(id, reply, sizeof(reply));
 
     if (resp == SUCCESS)
         protocol_response(reply, proto);
@@ -236,7 +257,11 @@ static void note_out_drops_cb(proto_t *proto)
 static void note_drops_cb(proto_t *proto)
 {
     char reply[128];
-    int resp = effects_note_drops(atoi(proto->list[1]), reply, sizeof(reply));
+    int id, resp;
+
+    if (!instance_word(proto, &id))
+        return;
+    resp = effects_note_drops(id, reply, sizeof(reply));
 
     if (resp == SUCCESS)
         protocol_response(reply, proto);
@@ -382,7 +407,10 @@ static void chain_cb(proto_t *proto)
 
 static void remote_pages_cb(proto_t *proto)
 {
-    protocol_response_int(effects_remote_pages(atoi(proto->list[1])), proto);
+    int id;
+
+    if (instance_word(proto, &id))
+        protocol_response_int(effects_remote_pages(id), proto);
 }
 
 static void remote_page_get_cb(proto_t *proto)
@@ -495,7 +523,11 @@ static void param_info_cb(proto_t *proto)
 static void audio_ports_cb(proto_t *proto)
 {
     char *reply = NULL;
-    const int resp = effects_audio_ports(atoi(proto->list[1]), &reply);
+    int id, resp;
+
+    if (!instance_word(proto, &id))
+        return;
+    resp = effects_audio_ports(id, &reply);
 
     if (resp == SUCCESS)
         protocol_response(reply, proto);
@@ -523,7 +555,10 @@ static void show_external_ui_cb(proto_t *proto)
 
 static void hide_external_ui_cb(proto_t *proto)
 {
-    protocol_response_int(effects_hide_ui(atoi(proto->list[1])), proto);
+    int id;
+
+    if (instance_word(proto, &id))
+        protocol_response_int(effects_hide_ui(id), proto);
 }
 
 static void help_cb(proto_t *proto)

@@ -1,3 +1,18 @@
+omx-clap-host (0.31.1) unstable; urgency=medium
+
+  * The instance data races: active and latency_published are atomic (#531).
+  * Every code's Catalan moves to catalogs/ca.json; the source sentence stays
+    in data (#532).
+  * remote_pages, audio_ports, hide_external_ui, note_drops and note_out_drops
+    refuse an instance word that is no number (#533).
+  * The ThreadSanitizer test program is a build product, no longer tracked
+    (#534).
+  * Built against plugin-hostd-protocol >= 0.5.2 and << 0.6, plugin-db
+    >= 0.3.1 and << 0.4, omx-dsp >= 0.32.0 and << 0.33, omx-contract
+    >= 3.12.0 and << 4.
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Mon, 09 Nov 2026 15:20:00 +0100
+
 omx-clap-host (0.31.0) unstable; urgency=medium
 
   * Held meters: a plugin that holds its block value until the host reads

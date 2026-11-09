@@ -454,7 +454,7 @@ struct omx_clap_instance
     uint32_t note_dialects;  ///< every dialect the note input's port declared, not just note_dialect
     double rate;  ///< the sample rate the instance is activated at
     uint32_t max_block;  ///< the largest block in frames
-    int active;  ///< nonzero while the plugin is active
+    int active;  ///< nonzero while the plugin is active; written by the control thread, read by the cycle (effects.c process) and the idle thread: both go through __atomic_store_n and __atomic_load_n, the type stays int for the ABI
     float *bounce_map;          ///< mmap: [guard][bounce_blocks x max_block floats][guard]
     size_t bounce_map_len;  ///< the size of the bounce mapping in bytes
     uint32_t bounce_blocks;     ///< the blocks of max_block floats the bounce holds, from the port description

@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.0.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "HOSTING_PROVENANCE_CODES": {
     "kind": "codes",
@@ -9,10 +9,18 @@
     "doc": "The hosting codes of the provenance dimension: hosting.provenance.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
     "codes": {
       "hostProvenanceDiffers": {
-        "code": "hosting.provenance.host-differs"
+        "code": "hosting.provenance.host-differs",
+        "text": {
+          "en": "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference.",
+          "ca": "L’amfitrió que ha mesurat aquest connector no és el mateix que l’executa ara. Torneu-lo a mesurar en aquest amfitrió, o accepteu la diferència."
+        }
       },
       "sweepControlDidNotFire": {
-        "code": "hosting.provenance.sweep-control-did-not-fire"
+        "code": "hosting.provenance.sweep-control-did-not-fire",
+        "text": {
+          "en": "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again.",
+          "ca": "El connector de control de l’escombrat no s’ha activat durant la mesura. Comproveu el connector de control i torneu a mesurar."
+        }
       }
     }
   }

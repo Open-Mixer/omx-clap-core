@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.30.6
+Version:        0.31.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -16,12 +16,12 @@ BuildRequires: pkgconfig
 BuildRequires: (plugin-hostd-protocol-devel >= 0.5.0 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
 BuildRequires: (plugin-db-devel >= 0.3.0 with plugin-db-devel < 0.4)
-BuildRequires: clap-devel
+BuildRequires: (clap-devel >= 1.2.7 with clap-devel < 2)
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: (omx-contract-devel >= 3.9.0 with omx-contract-devel < 4)
+BuildRequires: (omx-contract-devel >= 3.11.0 with omx-contract-devel < 4)
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-lv2 runs the MIDI output path under AddressSanitizer
@@ -82,11 +82,11 @@ Its documentation is on openmixer.org.
 Summary: Build a program that hosts CLAP plugins on omx-clap-core
 License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: clap-devel
+Requires: (clap-devel >= 1.2.7 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: (omx-contract-devel >= 3.9.0 with omx-contract-devel < 4)
+Requires: (omx-contract-devel >= 3.11.0 with omx-contract-devel < 4)
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -101,7 +101,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: (omx-contract-data >= 3.3.0 with omx-contract-data < 4)
+Requires: (omx-contract-data >= 3.11.0 with omx-contract-data < 4)
 # the files lived in omx-clap-core-devel before this package
 Conflicts: omx-clap-core-devel < %{version}-%{release}
 
@@ -116,7 +116,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
-Requires: clap-devel
+Requires: (clap-devel >= 1.2.7 with clap-devel < 2)
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig
@@ -198,6 +198,16 @@ make test-lv2
 %{_includedir}/omx-clap-lv2/
 
 %changelog
+* Sun Nov 08 2026 Pau Aliagas <linuxnow@gmail.com> - 0.31.0-1
+- Held meters: a plugin that holds its block value until the host reads it is
+  read at omx-dsp's host read rate, with a level meter's clip word;
+  monitor_output_off ends a monitor, and a monitor ends with its connection
+- curve_bind and curve_points answered through plugin-hostd-protocol's hook,
+  at the rate the instance runs at
+- every code omx-clap-core owns carries its sentence in English and Catalan
+- built against omx-dsp >= 0.32.0 and < 0.33, plugin-hostd-protocol >= 0.5.0
+  and < 0.6, plugin-db >= 0.3.0 and < 0.4, omx-contract >= 3.11.0
+
 * Sat Nov 07 2026 Pau Aliagas <linuxnow@gmail.com> - 0.30.6-1
 - The LV2 adapter no longer drops the worker's queue at deactivate and reset: after
   the worker thread is joined, every queued request goes through work(), every

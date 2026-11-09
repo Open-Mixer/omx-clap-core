@@ -31,7 +31,11 @@ function expected(read) {
   for (const [name, item] of Object.entries(items)) {
     // this tree's codes items are the ones of the sheet's own file: omx-contract's hosting/*.json are not rendered here
     if (!name.endsWith('_CODES') || item.kind !== 'codes' || item.rel !== items.HOSTED_STAGE_LIMITS.rel) continue;
-    for (const [k, c] of Object.entries(item.value)) host.set(`CLAP_HOST_CODE_${snake(k)}`, c.code);
+    for (const [k, c] of Object.entries(item.value)) {
+      host.set(`CLAP_HOST_CODE_${snake(k)}`, c.code);
+      // a code's sentence, one define per language beside the code (omx-contract 3.11.0's text)
+      for (const [lang, t] of Object.entries(c.text ?? {})) host.set(`CLAP_HOST_CODE_${snake(k)}_TEXT_${lang.toUpperCase()}`, t);
+    }
   }
   return { 'clap_host_limits.h': host, 'hosted_stage_limits.h': stage, fields: Object.keys(limits).map(snake) };
 }

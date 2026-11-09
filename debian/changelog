@@ -1,3 +1,19 @@
+omx-clap-host (0.31.0) unstable; urgency=medium
+
+  * Held meters: a plugin that holds its block value until the host reads
+    it is read at omx-dsp's host read rate, and a level meter's clip word is
+    read with it; monitor_output_off ends a monitor, and a monitor ends with
+    the connection that set it.
+  * curve_bind and curve_points are answered through plugin-hostd-protocol's
+    hook, at the rate the instance runs at.
+  * Every code omx-clap-core owns carries its sentence in English and
+    Catalan.
+  * Built against omx-dsp >= 0.32.0 and < 0.33, plugin-hostd-protocol
+    >= 0.5.0 and < 0.6, plugin-db >= 0.3.0 and < 0.4, and omx-contract
+    >= 3.11.0.
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Sun, 08 Nov 2026 22:49:41 +0100
+
 omx-clap-host (0.30.6) unstable; urgency=medium
 
   * The LV2 adapter no longer drops the worker's queue at deactivate and

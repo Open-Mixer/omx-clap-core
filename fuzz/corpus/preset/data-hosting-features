@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.0.0"
+    "omx-contract-schema": ">= 3.11.0"
   },
   "HOSTING_FEATURES_CODES": {
     "kind": "codes",
@@ -10,26 +10,54 @@
     "codes": {
       "featuresAtomInUnfed": {
         "code": "hosting.features.atom-in-unfed",
-        "doc": "a non-MIDI atom input no buffer here can feed"
+        "doc": "a non-MIDI atom input no buffer here can feed",
+        "text": {
+          "en": "This plugin declares a non-MIDI atom input that nothing here can feed. Run it where that input can be fed, or accept it stays empty.",
+          "ca": "Aquest connector declara una entrada atòmica no MIDI que res d’aquí pot alimentar. Feu-lo anar on es pugui alimentar aquesta entrada, o accepteu que es quedi buida."
+        }
       },
       "featuresDisqualifying": {
-        "code": "hosting.features.host-not-provided"
+        "code": "hosting.features.host-not-provided",
+        "text": {
+          "en": "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature.",
+          "ca": "Aquest connector necessita una funció de l’amfitrió que aquest amfitrió no proporciona. Feu-lo anar en un amfitrió que proporcioni aquesta funció."
+        }
       },
       "featuresMidiIn": {
-        "code": "hosting.features.midi-in-fed-empty"
+        "code": "hosting.features.midi-in-fed-empty",
+        "text": {
+          "en": "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none.",
+          "ca": "L’entrada MIDI d’aquest connector no rep res. Connecteu-hi una font de MIDI, o accepteu que funcioni sense cap."
+        }
       },
       "featuresMissing": {
-        "code": "hosting.features.missing"
+        "code": "hosting.features.missing",
+        "text": {
+          "en": "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere.",
+          "ca": "A aquest connector li falta una funció que necessita per funcionar aquí. Proporcioneu aquesta funció, o feu-lo anar en un altre lloc."
+        }
       },
       "featuresPortsUnreadable": {
         "code": "hosting.features.ports-unreadable",
-        "doc": "the plugin declares ports its reader cannot read (a port node shared by several plugins of one bundle, a port with no symbol), so none reaches the host: the bundle's data is the fault, not the layout (omx-clap-core#255)"
+        "doc": "the plugin declares ports its reader cannot read (a port node shared by several plugins of one bundle, a port with no symbol), so none reaches the host: the bundle's data is the fault, not the layout (omx-clap-core#255)",
+        "text": {
+          "en": "This plugin declares ports its reader cannot read, so none of them reach the host. The fault is in the plugin’s own bundle, not in this host.",
+          "ca": "Aquest connector declara ports que el seu lector no pot llegir, i per això cap arriba a l’amfitrió. La fallada és del mateix paquet del connector, no d’aquest amfitrió."
+        }
       },
       "featuresProvided": {
-        "code": "hosting.features.all-provided"
+        "code": "hosting.features.all-provided",
+        "text": {
+          "en": "This plugin has every feature it needs.",
+          "ca": "Aquest connector té totes les funcions que necessita."
+        }
       },
       "featuresUnscanned": {
-        "code": "hosting.features.scan-predates-field"
+        "code": "hosting.features.scan-predates-field",
+        "text": {
+          "en": "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check.",
+          "ca": "Aquest connector es va escanejar abans que existeixi aquest camp, així que mai s’ha comprovat. Torneu-lo a escanejar per comprovar-ho."
+        }
       }
     }
   }

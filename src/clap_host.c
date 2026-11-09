@@ -3250,7 +3250,7 @@ int omx_clap_host_activate(struct omx_clap_instance *in, double rate, uint32_t m
         why_set(why, CLAP_HOST_CODE_HEADLESS_FAILED);
         return -1;
     }
-    in->active = 1;
+    __atomic_store_n(&in->active, 1, __ATOMIC_RELEASE);
     in->rate = rate;
     if (bind_stage(in) != 0)
     {
@@ -3285,7 +3285,7 @@ int omx_clap_host_activate(struct omx_clap_instance *in, double rate, uint32_t m
         atomic_store_explicit(&in->ports_rescan_requested, pending, memory_order_relaxed);
         if (!OMX_ABI_BOOL(omx_abi_gd(OMX_ABI_GUARD_OF(in), "activate", (const void *)in->plugin->activate, OMX_ABI_A(in->plugin), 1, OMX_ABI_A(max_block), 0, rate)))
         {
-            in->active = 0;
+            __atomic_store_n(&in->active, 0, __ATOMIC_RELEASE);
             drop_bounce(in);
             why_set(why, CLAP_HOST_CODE_HEADLESS_FAILED);
             return -1;
@@ -3463,7 +3463,7 @@ void omx_clap_host_deactivate(struct omx_clap_instance *in)
     if (!in || !in->active)
         return;
     omx_abi_g(OMX_ABI_GUARD_OF(in), "deactivate", (const void *)in->plugin->deactivate, OMX_ABI_A(in->plugin), 0, 0, 0, 0, 0);
-    in->active = 0;
+    __atomic_store_n(&in->active, 0, __ATOMIC_RELEASE);
     if (in->idle_held)
     {
         in->idle_held = 0;

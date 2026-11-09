@@ -5097,7 +5097,7 @@ int effects_audio_ports(int effect_id, char **reply)
     // both are written under g_reactivate by the buffer-size callback and the relayout, and read under it here. The
     // registered ports never move after add.
     pthread_mutex_lock(&g_reactivate);
-    dry = !effect->clap->active || ((effect->aux_in_count || effect->aux_out_count)
+    dry = !__atomic_load_n(&effect->clap->active, __ATOMIC_ACQUIRE) || ((effect->aux_in_count || effect->aux_out_count)
                                     && effect->aux_frames < jack_get_buffer_size(effect->jack_client));
     pthread_mutex_unlock(&g_reactivate);
     fputs(dry ? "resp 0 dry" : "resp 0", out);

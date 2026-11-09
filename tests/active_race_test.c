@@ -46,7 +46,7 @@ static void *reader(void *arg)
     unsigned seen = 0;
 
     while (!atomic_load(&g_stop))
-        seen += (__atomic_load_n(&in->active, __ATOMIC_ACQUIRE) != 0) + (in->active != 0);
+        seen += (__atomic_load_n(&in->active, __ATOMIC_ACQUIRE) != 0) + (__atomic_load_n(&in->active, __ATOMIC_RELAXED) != 0);
     return (void *)(size_t)seen;
 }
 

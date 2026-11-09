@@ -14,7 +14,7 @@ INPUT                  = src/clap_host.h \
                          src/omx_clap_ext.h \
                          src/omx_clap_raw.h \
                          src/clap_chain.h
-# a code's sentences (<CODE>_TEXT_EN, _TEXT_CA) are rendered by omx-contract 3.11.0 beside the code's define without a
+# a code's sentences (<CODE>_TEXT_EN, _TEXT_CA until 3.12.0) are rendered by omx-contract beside the code's define without a
 # docstring of their own; the code's define above them carries the doc. Until omx-contract's owner-header render writes
 # one, they are left out of the reference rather than read as an undocumented public symbol
 EXCLUDE_SYMBOLS        = *_TEXT_EN *_TEXT_CA

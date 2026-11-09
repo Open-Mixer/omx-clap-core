@@ -21,7 +21,7 @@ BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: (omx-contract-devel >= 3.11.0 with omx-contract-devel < 4)
+BuildRequires: (omx-contract-devel >= 3.12.0 with omx-contract-devel < 4)
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-lv2 runs the MIDI output path under AddressSanitizer
@@ -86,7 +86,7 @@ Requires: (clap-devel >= 1.2.7 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: (omx-contract-devel >= 3.11.0 with omx-contract-devel < 4)
+Requires: (omx-contract-devel >= 3.12.0 with omx-contract-devel < 4)
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -101,7 +101,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: (omx-contract-data >= 3.11.0 with omx-contract-data < 4)
+Requires: (omx-contract-data >= 3.12.0 with omx-contract-data < 4)
 # the files lived in omx-clap-core-devel before this package
 Conflicts: omx-clap-core-devel < %{version}-%{release}
 
@@ -189,6 +189,8 @@ make test-lv2
 %license COPYING
 %doc README.md
 %{_datadir}/omx-contract/contract.d/3/omx-clap-core/
+%dir %{_datadir}/omx-clap-core
+%{_datadir}/omx-clap-core/catalogs/
 
 %files -n omx-clap-lv2-devel
 %license COPYING

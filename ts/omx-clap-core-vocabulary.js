@@ -10,58 +10,50 @@ export const HOSTING_CLAP_CODES = {
   "clapExtensionsNotCovered": {
     "code": "hosting.clap.extensions-not-covered",
     "text": {
-      "en": "Not every extension this plugin declares is covered by what was checked. Check the plugin against the extensions this host covers, or accept the gap.",
-      "ca": "No totes les extensions que declara aquest connector estan cobertes pel que s’ha comprovat. Comproveu el connector amb les extensions que cobreix aquest amfitrió, o accepteu el buit."
+      "en": "Not every extension this plugin declares is covered by what was checked. Check the plugin against the extensions this host covers, or accept the gap."
     }
   },
   "clapFormatNotHosted": {
     "code": "hosting.clap.format-not-hosted",
     "text": {
-      "en": "This host does not host the CLAP format. Use a host that does.",
-      "ca": "Aquest amfitrió no allotja el format CLAP. Useu un amfitrió que ho faci."
+      "en": "This host does not host the CLAP format. Use a host that does."
     }
   },
   "clapHeadlessFailed": {
     "code": "hosting.clap.headless-failed",
     "text": {
-      "en": "The plugin failed while being checked headless, with no window. Fix what failed and check it again.",
-      "ca": "El connector ha fallat en comprovar-se sense finestra. Arregleu el que ha fallat i torneu-lo a comprovar."
+      "en": "The plugin failed while being checked headless, with no window. Fix what failed and check it again."
     }
   },
   "clapLatencyMismatch": {
     "code": "hosting.clap.latency-mismatch",
     "text": {
-      "en": "The plugin’s reported latency does not match what was measured. Trust the measured figure, not the plugin’s own report.",
-      "ca": "La latència que declara el connector no coincideix amb la mesurada. Confieu en la xifra mesurada, no en la que declara el connector."
+      "en": "The plugin’s reported latency does not match what was measured. Trust the measured figure, not the plugin’s own report."
     }
   },
   "clapNoteInput": {
     "code": "hosting.clap.note-input",
     "doc": "the plugin declares a note input the configuration refuses",
     "text": {
-      "en": "This configuration refuses the note input the plugin declares. Run the plugin in a configuration that accepts its note input, or without notes.",
-      "ca": "Aquesta configuració refusa l’entrada de notes que declara el connector. Feu anar el connector en una configuració que accepti la seva entrada de notes, o sense notes."
+      "en": "This configuration refuses the note input the plugin declares. Run the plugin in a configuration that accepts its note input, or without notes."
     }
   },
   "clapProcessError": {
     "code": "hosting.clap.process-error",
     "text": {
-      "en": "The plugin’s processing call returned an error. Treat the plugin as faulty for this block.",
-      "ca": "La crida de processament del connector ha retornat un error. Tracteu el connector com a defectuós per a aquest bloc."
+      "en": "The plugin’s processing call returned an error. Treat the plugin as faulty for this block."
     }
   },
   "clapThreadViolation": {
     "code": "hosting.clap.thread-violation",
     "text": {
-      "en": "The plugin called back from the wrong thread. Treat the plugin as not thread-safe.",
-      "ca": "El connector ha fet una crida de retorn des del fil equivocat. Tracteu el connector com a no segur per a fils."
+      "en": "The plugin called back from the wrong thread. Treat the plugin as not thread-safe."
     }
   },
   "clapUnqualified": {
     "code": "hosting.clap.unqualified",
     "text": {
-      "en": "This plugin has not been qualified for hosting. Qualify it before relying on it.",
-      "ca": "Aquest connector no s’ha qualificat per allotjar-se. Qualifiqueu-lo abans de confiar-hi."
+      "en": "This plugin has not been qualified for hosting. Qualify it before relying on it."
     }
   }
 };
@@ -74,36 +66,31 @@ export const HOSTING_COST_CODES = {
   "costAboveCeiling": {
     "code": "hosting.cost.above-ceiling",
     "text": {
-      "en": "The plugin’s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less.",
-      "ca": "El cost de CPU mesurat del connector supera el límit per a aquesta freqüència i quàntum. Pugeu el límit, o useu un connector que costi menys."
+      "en": "The plugin’s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less."
     }
   },
   "costFieldsMissing": {
     "code": "hosting.cost.fields-missing",
     "text": {
-      "en": "The cost measurement is missing fields it needs. Measure the plugin’s cost again, completely.",
-      "ca": "A la mesura de cost li falten camps que calen. Torneu a mesurar el cost del connector, de manera completa."
+      "en": "The cost measurement is missing fields it needs. Measure the plugin’s cost again, completely."
     }
   },
   "costSpiky": {
     "code": "hosting.cost.spiky-tail",
     "text": {
-      "en": "The plugin’s CPU cost has a spiky tail: occasional blocks cost much more than the rest. Treat it as unreliable at this rate and quantum.",
-      "ca": "El cost de CPU del connector té una cua amb pics: alguns blocs costen molt més que la resta. Tracteu-lo com a poc fiable a aquesta freqüència i quàntum."
+      "en": "The plugin’s CPU cost has a spiky tail: occasional blocks cost much more than the rest. Treat it as unreliable at this rate and quantum."
     }
   },
   "costUnmeasured": {
     "code": "hosting.cost.unmeasured-at-rate-and-quantum",
     "text": {
-      "en": "The plugin’s CPU cost has not been measured at this rate and quantum. Measure it before relying on a ceiling.",
-      "ca": "El cost de CPU del connector no s’ha mesurat a aquesta freqüència i quàntum. Mesureu-lo abans de confiar en cap límit."
+      "en": "The plugin’s CPU cost has not been measured at this rate and quantum. Measure it before relying on a ceiling."
     }
   },
   "costWithinCeiling": {
     "code": "hosting.cost.within-ceiling",
     "text": {
-      "en": "The plugin’s measured CPU cost is within the ceiling for this rate and quantum.",
-      "ca": "El cost de CPU mesurat del connector és dins el límit per a aquesta freqüència i quàntum."
+      "en": "The plugin’s measured CPU cost is within the ceiling for this rate and quantum."
     }
   }
 };
@@ -117,51 +104,44 @@ export const HOSTING_FEATURES_CODES = {
     "code": "hosting.features.atom-in-unfed",
     "doc": "a non-MIDI atom input no buffer here can feed",
     "text": {
-      "en": "This plugin declares a non-MIDI atom input that nothing here can feed. Run it where that input can be fed, or accept it stays empty.",
-      "ca": "Aquest connector declara una entrada atòmica no MIDI que res d’aquí pot alimentar. Feu-lo anar on es pugui alimentar aquesta entrada, o accepteu que es quedi buida."
+      "en": "This plugin declares a non-MIDI atom input that nothing here can feed. Run it where that input can be fed, or accept it stays empty."
     }
   },
   "featuresDisqualifying": {
     "code": "hosting.features.host-not-provided",
     "text": {
-      "en": "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature.",
-      "ca": "Aquest connector necessita una funció de l’amfitrió que aquest amfitrió no proporciona. Feu-lo anar en un amfitrió que proporcioni aquesta funció."
+      "en": "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature."
     }
   },
   "featuresMidiIn": {
     "code": "hosting.features.midi-in-fed-empty",
     "text": {
-      "en": "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none.",
-      "ca": "L’entrada MIDI d’aquest connector no rep res. Connecteu-hi una font de MIDI, o accepteu que funcioni sense cap."
+      "en": "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none."
     }
   },
   "featuresMissing": {
     "code": "hosting.features.missing",
     "text": {
-      "en": "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere.",
-      "ca": "A aquest connector li falta una funció que necessita per funcionar aquí. Proporcioneu aquesta funció, o feu-lo anar en un altre lloc."
+      "en": "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere."
     }
   },
   "featuresPortsUnreadable": {
     "code": "hosting.features.ports-unreadable",
     "doc": "the plugin declares ports its reader cannot read (a port node shared by several plugins of one bundle, a port with no symbol), so none reaches the host: the bundle's data is the fault, not the layout (omx-clap-core#255)",
     "text": {
-      "en": "This plugin declares ports its reader cannot read, so none of them reach the host. The fault is in the plugin’s own bundle, not in this host.",
-      "ca": "Aquest connector declara ports que el seu lector no pot llegir, i per això cap arriba a l’amfitrió. La fallada és del mateix paquet del connector, no d’aquest amfitrió."
+      "en": "This plugin declares ports its reader cannot read, so none of them reach the host. The fault is in the plugin’s own bundle, not in this host."
     }
   },
   "featuresProvided": {
     "code": "hosting.features.all-provided",
     "text": {
-      "en": "This plugin has every feature it needs.",
-      "ca": "Aquest connector té totes les funcions que necessita."
+      "en": "This plugin has every feature it needs."
     }
   },
   "featuresUnscanned": {
     "code": "hosting.features.scan-predates-field",
     "text": {
-      "en": "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check.",
-      "ca": "Aquest connector es va escanejar abans que existeixi aquest camp, així que mai s’ha comprovat. Torneu-lo a escanejar per comprovar-ho."
+      "en": "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check."
     }
   }
 };
@@ -174,29 +154,25 @@ export const HOSTING_LATENCY_CODES = {
   "latencyNonconforming": {
     "code": "hosting.latency.nonconforming",
     "text": {
-      "en": "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency.",
-      "ca": "La latència declarada d’aquest connector no s’ajusta al que pot utilitzar un amfitrió. No confieu en la latència que declara."
+      "en": "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency."
     }
   },
   "latencyParameterDependent": {
     "code": "hosting.latency.parameter-dependent",
     "text": {
-      "en": "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it.",
-      "ca": "La latència d’aquest connector canvia amb els seus paràmetres. Torneu a llegir la latència després de qualsevol canvi de paràmetre que la pugui afectar."
+      "en": "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it."
     }
   },
   "latencyResolved": {
     "code": "hosting.latency.resolved",
     "text": {
-      "en": "This plugin’s latency has been resolved to a fixed figure.",
-      "ca": "La latència d’aquest connector s’ha resolt en una xifra fixa."
+      "en": "This plugin’s latency has been resolved to a fixed figure."
     }
   },
   "latencyUnmeasured": {
     "code": "hosting.latency.unmeasured",
     "text": {
-      "en": "This plugin’s latency has not been measured. Measure it before relying on it.",
-      "ca": "La latència d’aquest connector no s’ha mesurat. Mesureu-la abans de confiar-hi."
+      "en": "This plugin’s latency has not been measured. Measure it before relying on it."
     }
   }
 };
@@ -210,32 +186,28 @@ export const HOSTING_MEMORY_CODES = {
     "code": "hosting.memory.above-ceiling",
     "doc": "the measured figure passes the host's budget for one instance or for all its plugins; the params name the figure, the ceiling, and whether the ceiling is provisional",
     "text": {
-      "en": "This plugin’s measured memory is above the host’s budget. Raise the budget, or use a plugin that uses less memory.",
-      "ca": "La memòria mesurada d’aquest connector supera el pressupost de l’amfitrió. Pugeu el pressupost, o useu un connector que faci servir menys memòria."
+      "en": "This plugin’s measured memory is above the host’s budget. Raise the budget, or use a plugin that uses less memory."
     }
   },
   "memoryUnmeasured": {
     "code": "hosting.memory.unmeasured",
     "doc": "no figure at the host's rate and quantum, so the plugin is not known to fit; a missing figure never reads as fitting",
     "text": {
-      "en": "This plugin’s memory has not been measured at the host’s rate and quantum, so it is not known to fit. Measure it before trusting that it fits.",
-      "ca": "La memòria d’aquest connector no s’ha mesurat a la freqüència i quàntum de l’amfitrió, així que no se sap si hi cap. Mesureu-la abans de confiar que hi cap."
+      "en": "This plugin’s memory has not been measured at the host’s rate and quantum, so it is not known to fit. Measure it before trusting that it fits."
     }
   },
   "memoryWithinCeiling": {
     "code": "hosting.memory.within-ceiling",
     "doc": "the measured figure fits a budget that was itself measured on that kind of host",
     "text": {
-      "en": "This plugin’s measured memory fits a budget that was itself measured on this kind of host.",
-      "ca": "La memòria mesurada d’aquest connector cap dins un pressupost que també s’ha mesurat en aquest tipus d’amfitrió."
+      "en": "This plugin’s measured memory fits a budget that was itself measured on this kind of host."
     }
   },
   "memoryWithinProvisionalCeiling": {
     "code": "hosting.memory.within-provisional-ceiling",
     "doc": "the measured figure is under a budget not yet measured on that kind of host, so this says the figure and the ceiling, not that the plugin fits",
     "text": {
-      "en": "This plugin’s measured memory is under a budget that has not yet been measured on this kind of host. This is not a guarantee that it fits, only that it is under that provisional budget.",
-      "ca": "La memòria mesurada d’aquest connector és per sota d’un pressupost encara no mesurat en aquest tipus d’amfitrió. Això no garanteix que hi càpiga, només que és per sota d’aquest pressupost provisional."
+      "en": "This plugin’s measured memory is under a budget that has not yet been measured on this kind of host. This is not a guarantee that it fits, only that it is under that provisional budget."
     }
   }
 };
@@ -249,8 +221,7 @@ export const HOSTING_OUTPUT_CODES = {
     "code": "hosting.output.non-finite",
     "doc": "the plugin produced non-finite output",
     "text": {
-      "en": "This plugin produced non-finite output: infinities or NaNs. Treat its output as a fault.",
-      "ca": "Aquest connector ha produït una sortida no finita: infinits o NaN. Tracteu la seva sortida com una fallada."
+      "en": "This plugin produced non-finite output: infinities or NaNs. Treat its output as a fault."
     }
   }
 };
@@ -263,8 +234,7 @@ export const HOSTING_OVERRIDE_CODES = {
   "overrideIsolated": {
     "code": "hosting.override.curator-isolated",
     "text": {
-      "en": "The curator’s override is isolated from this run. Apply the override where the curator’s run can see it.",
-      "ca": "La substitució del curador queda aïllada d’aquesta execució. Apliqueu la substitució on l’execució del curador la pugui veure."
+      "en": "The curator’s override is isolated from this run. Apply the override where the curator’s run can see it."
     }
   }
 };
@@ -277,22 +247,19 @@ export const HOSTING_PATCH_CODES = {
   "patchBusy": {
     "code": "hosting.patch.busy",
     "text": {
-      "en": "The plugin’s patch is busy right now. Try again once it’s free.",
-      "ca": "El patch del connector està ocupat ara mateix. Torneu-ho a provar quan estigui lliure."
+      "en": "The plugin’s patch is busy right now. Try again once it’s free."
     }
   },
   "patchNotWritable": {
     "code": "hosting.patch.not-writable",
     "text": {
-      "en": "This plugin’s patch cannot be written. Treat it as read-only.",
-      "ca": "No es pot escriure el patch d’aquest connector. Tracteu-lo com de només lectura."
+      "en": "This plugin’s patch cannot be written. Treat it as read-only."
     }
   },
   "patchTooLarge": {
     "code": "hosting.patch.too-large",
     "text": {
-      "en": "This patch is too large for the plugin to accept. Use a smaller patch.",
-      "ca": "Aquest patch és massa gran perquè el connector l’accepti. Useu un patch més petit."
+      "en": "This patch is too large for the plugin to accept. Use a smaller patch."
     }
   }
 };
@@ -305,8 +272,7 @@ export const HOSTING_PRESET_CODES = {
   "presetNotFound": {
     "code": "hosting.preset.not-found",
     "text": {
-      "en": "This preset could not be found. Check its name and location and try again.",
-      "ca": "No s’ha trobat aquest preset. Comproveu-ne el nom i la ubicació i torneu-ho a provar."
+      "en": "This preset could not be found. Check its name and location and try again."
     }
   }
 };
@@ -319,15 +285,13 @@ export const HOSTING_PROVENANCE_CODES = {
   "hostProvenanceDiffers": {
     "code": "hosting.provenance.host-differs",
     "text": {
-      "en": "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference.",
-      "ca": "L’amfitrió que ha mesurat aquest connector no és el mateix que l’executa ara. Torneu-lo a mesurar en aquest amfitrió, o accepteu la diferència."
+      "en": "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference."
     }
   },
   "sweepControlDidNotFire": {
     "code": "hosting.provenance.sweep-control-did-not-fire",
     "text": {
-      "en": "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again.",
-      "ca": "El connector de control de l’escombrat no s’ha activat durant la mesura. Comproveu el connector de control i torneu a mesurar."
+      "en": "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again."
     }
   }
 };
@@ -340,36 +304,31 @@ export const HOSTING_REALISED_CODES = {
   "disabled": {
     "code": "hosting.disabled",
     "text": {
-      "en": "This plugin is disabled. Enable it before using it.",
-      "ca": "Aquest connector està desactivat. Activeu-lo abans d’utilitzar-lo."
+      "en": "This plugin is disabled. Enable it before using it."
     }
   },
   "linked": {
     "code": "hosting.linked",
     "text": {
-      "en": "This plugin is realised linked into the host’s own process.",
-      "ca": "Aquest connector es realitza enllaçat dins el mateix procés de l’amfitrió."
+      "en": "This plugin is realised linked into the host’s own process."
     }
   },
   "noRealisation": {
     "code": "hosting.no-realisation",
     "text": {
-      "en": "This plugin has no realisation: nothing runs it. Give it a way to run before using it.",
-      "ca": "Aquest connector no té cap realització: no hi ha res que el faci anar. Doneu-li una manera de funcionar abans d’utilitzar-lo."
+      "en": "This plugin has no realisation: nothing runs it. Give it a way to run before using it."
     }
   },
   "realisedInProcess": {
     "code": "hosting.realised.in-process",
     "text": {
-      "en": "This plugin is realised in its own process, isolated from the host’s.",
-      "ca": "Aquest connector es realitza en un procés propi, aïllat del de l’amfitrió."
+      "en": "This plugin is realised in its own process, isolated from the host’s."
     }
   },
   "unjudged": {
     "code": "hosting.unjudged",
     "text": {
-      "en": "This plugin has not been judged yet. Judge it before trusting any verdict about it.",
-      "ca": "Aquest connector encara no s’ha jutjat. Jutgeu-lo abans de confiar en cap veredicte sobre ell."
+      "en": "This plugin has not been judged yet. Judge it before trusting any verdict about it."
     }
   }
 };
@@ -383,24 +342,21 @@ export const HOSTING_RESOURCE_HINTS_CODES = {
     "code": "hosting.resource-hints.out-of-range",
     "doc": "a figure below zero, or past what its hint's member holds",
     "text": {
-      "en": "This plugin declared a resource hint figure below zero, or past what that hint can hold. None of its hints are trusted; every one reads as unknown.",
-      "ca": "Aquest connector ha declarat una xifra de pista de recurs per sota de zero, o més enllà del que pot contenir aquesta pista. No es confía en cap de les seves pistes; totes es llegeixen com a desconegudes."
+      "en": "This plugin declared a resource hint figure below zero, or past what that hint can hold. None of its hints are trusted; every one reads as unknown."
     }
   },
   "resourceHintsUnknownHint": {
     "code": "hosting.resource-hints.unknown-hint",
     "doc": "the declared mask sets a bit RESOURCE_HINTS has no hint for",
     "text": {
-      "en": "This plugin’s declared hints set a bit that names no known hint. None of its hints are trusted; every one reads as unknown.",
-      "ca": "Les pistes declarades d’aquest connector activen un bit que no correspon a cap pista coneguda. No es confía en cap de les seves pistes; totes es llegeixen com a desconegudes."
+      "en": "This plugin’s declared hints set a bit that names no known hint. None of its hints are trusted; every one reads as unknown."
     }
   },
   "resourceHintsWrongUnit": {
     "code": "hosting.resource-hints.wrong-unit",
     "doc": "a figure not in its hint's unit: a flag that is not a boolean, a count, a time or a size that is not an integer",
     "text": {
-      "en": "This plugin declared a resource hint figure in the wrong unit: a flag that is not a boolean, or a count, time or size that is not a whole number. None of its hints are trusted; every one reads as unknown.",
-      "ca": "Aquest connector ha declarat una xifra de pista de recurs en una unitat incorrecta: un indicador que no és booleà, o un compte, temps o mida que no és un nombre enter. No es confía en cap de les seves pistes; totes es llegeixen com a desconegudes."
+      "en": "This plugin declared a resource hint figure in the wrong unit: a flag that is not a boolean, or a count, time or size that is not a whole number. None of its hints are trusted; every one reads as unknown."
     }
   }
 };
@@ -413,50 +369,43 @@ export const HOSTING_RT_SAFETY_CODES = {
   "rtSafetyClean": {
     "code": "hosting.rt-safety.clean-under-sweep",
     "text": {
-      "en": "The plugin showed no real-time safety violation under the sweep. It passed clean.",
-      "ca": "El connector no ha mostrat cap violació de seguretat en temps real durant l’escombrat. Ha passat net."
+      "en": "The plugin showed no real-time safety violation under the sweep. It passed clean."
     }
   },
   "rtSafetyNotReproducible": {
     "code": "hosting.rt-safety.not-reproducible",
     "text": {
-      "en": "The real-time safety measurement could not be reproduced. Measure it again before trusting it.",
-      "ca": "La mesura de seguretat en temps real no s’ha pogut reproduir. Torneu-la a mesurar abans de confiar-hi."
+      "en": "The real-time safety measurement could not be reproduced. Measure it again before trusting it."
     }
   },
   "rtSafetyNotesClean": {
     "code": "hosting.rt-safety.clean-under-notes",
     "text": {
-      "en": "The plugin showed no real-time safety violation while playing notes. It passed clean.",
-      "ca": "El connector no ha mostrat cap violació de seguretat en temps real mentre tocava notes. Ha passat net."
+      "en": "The plugin showed no real-time safety violation while playing notes. It passed clean."
     }
   },
   "rtSafetyNotesUnmeasured": {
     "code": "hosting.rt-safety.notes-unmeasured",
     "text": {
-      "en": "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it.",
-      "ca": "La seguretat en temps real del connector mentre toca notes no s’ha mesurat. Mesureu-la abans de confiar-hi."
+      "en": "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it."
     }
   },
   "rtSafetyNotesViolations": {
     "code": "hosting.rt-safety.violations-under-notes",
     "text": {
-      "en": "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes.",
-      "ca": "El connector ha violat la seguretat en temps real mentre tocava notes. Tracteu-lo com a no segur en temps real amb notes."
+      "en": "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes."
     }
   },
   "rtSafetyUnmeasured": {
     "code": "hosting.rt-safety.unmeasured",
     "text": {
-      "en": "The plugin’s real-time safety has not been measured. Measure it before relying on it.",
-      "ca": "La seguretat en temps real del connector no s’ha mesurat. Mesureu-la abans de confiar-hi."
+      "en": "The plugin’s real-time safety has not been measured. Measure it before relying on it."
     }
   },
   "rtSafetyViolations": {
     "code": "hosting.rt-safety.violations-in-run",
     "text": {
-      "en": "The plugin violated real-time safety during the run. Treat it as not real-time safe.",
-      "ca": "El connector ha violat la seguretat en temps real durant l’execució. Tracteu-lo com a no segur en temps real."
+      "en": "The plugin violated real-time safety during the run. Treat it as not real-time safe."
     }
   }
 };
@@ -469,80 +418,69 @@ export const HOSTING_STABILITY_CODES = {
   "stabilityBelowFloor": {
     "code": "hosting.stability.cycles-below-floor",
     "text": {
-      "en": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result.",
-      "ca": "El connector s’ha deixat en remull durant menys cicles dels que calen com a mínim. Deixeu-lo en remull els cicles necessaris abans de confiar en el resultat."
+      "en": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result."
     }
   },
   "stabilityCrashUnattributed": {
     "code": "hosting.stability.crash-unattributed",
     "text": {
-      "en": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them.",
-      "ca": "Alguna cosa s’ha avortat durant l’execució, però no s’ha pogut identificar quin connector. Determineu quin connector ha fallat abans de confiar en cap d’ells."
+      "en": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them."
     }
   },
   "stabilityCrashedAttributed": {
     "code": "hosting.stability.crashed-attributed-plugin",
     "text": {
-      "en": "This plugin crashed during the run. Don’t host it until it’s fixed.",
-      "ca": "Aquest connector s’ha avortat durant l’execució. No l’allotgeu fins que no estigui arreglat."
+      "en": "This plugin crashed during the run. Don’t host it until it’s fixed."
     }
   },
   "stabilityCalleeSavedClobbered": {
     "code": "hosting.stability.callee-saved-clobbered",
     "doc": "the plugin returned from a call with a callee-saved register changed (0.26.2): the host's guard put it back, but not the other members' state in the same process, so the plugin runs only in a worker of its own",
     "text": {
-      "en": "This plugin returned from a call having changed a register it should have preserved. The host put the register back, but other plugins sharing its process were not protected, so it now runs only in a worker of its own.",
-      "ca": "Aquest connector ha retornat d’una crida havent canviat un registre que hauria de preservar. L’amfitrió l’ha restaurat, però els altres connectors que compartien el seu procés no han quedat protegits, i per això ara només funciona en un worker propi."
+      "en": "This plugin returned from a call having changed a register it should have preserved. The host put the register back, but other plugins sharing its process were not protected, so it now runs only in a worker of its own."
     }
   },
   "stabilityCrashedLive": {
     "code": "hosting.stability.crashed-live-on-this-rig",
     "doc": "the plugin crashed live on this rig",
     "text": {
-      "en": "This plugin crashed live on this rig. Don’t host it on this rig until it’s fixed.",
-      "ca": "Aquest connector s’ha avortat en viu en aquest equip. No l’allotgeu en aquest equip fins que no estigui arreglat."
+      "en": "This plugin crashed live on this rig. Don’t host it on this rig until it’s fixed."
     }
   },
   "stabilityLinksGuiToolkit": {
     "code": "hosting.stability.links-gui-toolkit",
     "text": {
-      "en": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one.",
-      "ca": "Aquest connector enllaça un kit d’eines de GUI, que aquest amfitrió no fa anar sense pantalla. Feu-lo anar on sigui segur un kit d’eines de GUI, o useu un connector que no en tingui."
+      "en": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one."
     }
   },
   "stabilitySoakFailedAtRate": {
     "code": "hosting.stability.soak-failed-at-rate",
     "text": {
-      "en": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed.",
-      "ca": "El connector ha fallat la prova de remull a aquesta freqüència de mostreig. No hi confieu a aquesta freqüència fins que no estigui arreglat."
+      "en": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed."
     }
   },
   "stabilitySoaked": {
     "code": "hosting.stability.soaked",
     "text": {
-      "en": "The plugin completed its soak test. It held up over the run.",
-      "ca": "El connector ha completat la prova de remull. S’ha mantingut estable durant l’execució."
+      "en": "The plugin completed its soak test. It held up over the run."
     }
   },
   "stabilitySpawnsThreads": {
     "code": "hosting.stability.spawns-threads",
     "text": {
-      "en": "This plugin spawns its own threads. Watch it for behaviour a host does not control.",
-      "ca": "Aquest connector crea fils propis. Vigileu-lo per si té un comportament que l’amfitrió no controla."
+      "en": "This plugin spawns its own threads. Watch it for behaviour a host does not control."
     }
   },
   "stabilityUnmeasured": {
     "code": "hosting.stability.unmeasured",
     "text": {
-      "en": "This plugin’s stability has not been measured. Measure it before relying on it.",
-      "ca": "L’estabilitat d’aquest connector no s’ha mesurat. Mesureu-la abans de confiar-hi."
+      "en": "This plugin’s stability has not been measured. Measure it before relying on it."
     }
   },
   "stabilityUnsoaked": {
     "code": "hosting.stability.unsoaked",
     "text": {
-      "en": "This plugin has not been soaked. Soak it before trusting it over a long run.",
-      "ca": "Aquest connector no s’ha deixat en remull. Deixeu-lo en remull abans de confiar-hi en una execució llarga."
+      "en": "This plugin has not been soaked. Soak it before trusting it over a long run."
     }
   }
 };
@@ -556,55 +494,48 @@ export const HOSTING_STATE_CODES = {
     "code": "hosting.state.not-a-copy",
     "doc": "not a save's copy directory of the root",
     "text": {
-      "en": "This path is not a save’s copy directory of the state root. Use the copy directory a save actually made.",
-      "ca": "Aquest camí no és el directori de còpia d’un desat de l’arrel de l’estat. Useu el directori de còpia que realment ha creat un desat."
+      "en": "This path is not a save’s copy directory of the state root. Use the copy directory a save actually made."
     }
   },
   "statePathOnAudio": {
     "code": "hosting.state.path-on-audio",
     "doc": "makePath: called on the audio role",
     "text": {
-      "en": "This path was requested from the audio role, where it cannot be made. Request it from outside the audio role.",
-      "ca": "Aquest camí s’ha demanat des del rol d’àudio, on no es pot crear. Demaneu-lo des de fora del rol d’àudio."
+      "en": "This path was requested from the audio role, where it cannot be made. Request it from outside the audio role."
     }
   },
   "statePathOutside": {
     "code": "hosting.state.path-outside",
     "doc": "makePath: empty, absolute, or a `..` component",
     "text": {
-      "en": "This path is empty, absolute, or steps outside with a `..` component. Use a path relative to the state root, with no `..`.",
-      "ca": "Aquest camí és buit, absolut, o surt fora amb un component `..`. Useu un camí relatiu a l’arrel de l’estat, sense cap `..`."
+      "en": "This path is empty, absolute, or steps outside with a `..` component. Use a path relative to the state root, with no `..`."
     }
   },
   "statePathSymlink": {
     "code": "hosting.state.path-symlink",
     "doc": "makePath: a component is a symbolic link",
     "text": {
-      "en": "A component of this path is a symbolic link, which is not allowed here. Use a path with no symbolic links.",
-      "ca": "Un component d’aquest camí és un enllaç simbòlic, cosa que no es permet aquí. Useu un camí sense cap enllaç simbòlic."
+      "en": "A component of this path is a symbolic link, which is not allowed here. Use a path with no symbolic links."
     }
   },
   "statePathTooLong": {
     "code": "hosting.state.path-too-long",
     "doc": "makePath: PATH_MAX or more, or a long component",
     "text": {
-      "en": "This path, or one of its components, is too long. Use a shorter path.",
-      "ca": "Aquest camí, o un dels seus components, és massa llarg. Useu un camí més curt."
+      "en": "This path, or one of its components, is too long. Use a shorter path."
     }
   },
   "statePathUnmakeable": {
     "code": "hosting.state.path-unmakeable",
     "doc": "makePath: a directory could not be made",
     "text": {
-      "en": "The directory for this path could not be made. Check that the state root is writable and try again.",
-      "ca": "No s’ha pogut crear el directori d’aquest camí. Comproveu que l’arrel de l’estat es pugui escriure i torneu-ho a provar."
+      "en": "The directory for this path could not be made. Check that the state root is writable and try again."
     }
   },
   "stateUnreadable": {
     "code": "hosting.state.unreadable",
     "text": {
-      "en": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy.",
-      "ca": "No s’ha pogut llegir l’estat desat d’aquest connector. Tracteu-lo com a perdut, o restaureu-lo des d’una còpia que funcioni."
+      "en": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy."
     }
   }
 };
@@ -618,78 +549,68 @@ export const HOSTING_TOPOLOGY_CODES = {
     "code": "hosting.topology.ambisonic-config",
     "doc": "an ambisonic port refuses the carrier's ordering or normalisation",
     "text": {
-      "en": "This plugin’s ambisonic port refuses the carrier’s channel ordering or normalisation. Use a carrier whose ordering and normalisation this port accepts.",
-      "ca": "El port ambisònic d’aquest connector refusa l’ordenació o la normalització del transportador. Useu un transportador amb una ordenació i normalització que accepti aquest port."
+      "en": "This plugin’s ambisonic port refuses the carrier’s channel ordering or normalisation. Use a carrier whose ordering and normalisation this port accepts."
     }
   },
   "topologyChannelMapUnknown": {
     "code": "hosting.topology.channel-map-unknown",
     "doc": "a surround port names a channel id the host does not know, or refuses the carrier's channel mask",
     "text": {
-      "en": "This plugin’s surround port names a channel this host does not know, or refuses the carrier’s channel mask. Use a carrier whose channels this host recognises.",
-      "ca": "El port envoltant d’aquest connector anomena un canal que aquest amfitrió no coneix, o refusa la màscara de canals del transportador. Useu un transportador amb canals que aquest amfitrió reconegui."
+      "en": "This plugin’s surround port names a channel this host does not know, or refuses the carrier’s channel mask. Use a carrier whose channels this host recognises."
     }
   },
   "topologyInstrument": {
     "code": "hosting.topology.instrument",
     "text": {
-      "en": "This plugin is hosted as an instrument: it has no audio input of its own.",
-      "ca": "Aquest connector s’allotja com un instrument: no té cap entrada d’àudio pròpia."
+      "en": "This plugin is hosted as an instrument: it has no audio input of its own."
     }
   },
   "topologyMatched": {
     "code": "hosting.topology.matched",
     "text": {
-      "en": "This plugin’s ports match the topology it is hosted on.",
-      "ca": "Els ports d’aquest connector coincideixen amb la topologia on s’allotja."
+      "en": "This plugin’s ports match the topology it is hosted on."
     }
   },
   "topologyNoAudioInput": {
     "code": "hosting.topology.no-audio-input",
     "doc": "the plugin has no audio input",
     "text": {
-      "en": "This plugin has no audio input.",
-      "ca": "Aquest connector no té cap entrada d’àudio."
+      "en": "This plugin has no audio input."
     }
   },
   "topologyNoAudioOutput": {
     "code": "hosting.topology.no-audio-output",
     "doc": "the host has nothing of the plugin to carry: a CLAP plugin with an audio input or an auxiliary port and no main output, an LV2 plugin with no port at all (any other plugin with no audio output is hosted as a pass-through tool)",
     "text": {
-      "en": "This plugin has nothing for the host to carry on its output: it declares an audio input or auxiliary port but no main output. Use a plugin with a main audio output, or run it as a pass-through tool.",
-      "ca": "Aquest connector no té res que l’amfitrió pugui transportar a la seva sortida: declara una entrada d’àudio o un port auxiliar, però cap sortida principal. Useu un connector amb sortida d’àudio principal, o feu-lo anar com una eina de pas."
+      "en": "This plugin has nothing for the host to carry on its output: it declares an audio input or auxiliary port but no main output. Use a plugin with a main audio output, or run it as a pass-through tool."
     }
   },
   "topologyPortTooWide": {
     "code": "hosting.topology.port-too-wide",
     "doc": "a port of more channels than the limit, or an ambisonic port whose channels are not (order+1)²",
     "text": {
-      "en": "This plugin’s port has more channels than the limit, or its ambisonic channel count is not valid for its order. Use a plugin whose ports stay within the channel limit.",
-      "ca": "El port d’aquest connector té més canals que el límit permès, o el seu nombre de canals ambisònics no és vàlid per al seu ordre. Useu un connector amb ports dins el límit de canals."
+      "en": "This plugin’s port has more channels than the limit, or its ambisonic channel count is not valid for its order. Use a plugin whose ports stay within the channel limit."
     }
   },
   "topologyPortWithoutChannels": {
     "code": "hosting.topology.port-without-channels",
     "doc": "a port of zero channels",
     "text": {
-      "en": "This plugin declares a port with zero channels. Fix the plugin’s port declaration before hosting it.",
-      "ca": "Aquest connector declara un port amb zero canals. Corregiu la declaració del port del connector abans d’allotjar-lo."
+      "en": "This plugin declares a port with zero channels. Fix the plugin’s port declaration before hosting it."
     }
   },
   "topologyTooManyPorts": {
     "code": "hosting.topology.too-many-ports",
     "doc": "more than the limit of auxiliary ports on one side, or more than one main port on a side",
     "text": {
-      "en": "This plugin declares more auxiliary ports than the limit on one side, or more than one main port on a side. Use a plugin within the port limits.",
-      "ca": "Aquest connector declara més ports auxiliars que el límit en un costat, o més d’un port principal en un costat. Useu un connector dins els límits de ports."
+      "en": "This plugin declares more auxiliary ports than the limit on one side, or more than one main port on a side. Use a plugin within the port limits."
     }
   },
   "topologyWiderThanStrip": {
     "code": "hosting.topology.wider-than-strip",
     "doc": "a main port is wider than the lane the caller runs the plugin on",
     "text": {
-      "en": "This plugin’s main port is wider than the strip it runs on. Run it on a strip wide enough for its main port.",
-      "ca": "El port principal d’aquest connector és més ample que la pista on s’executa. Feu-lo anar en una pista prou ampla per al seu port principal."
+      "en": "This plugin’s main port is wider than the strip it runs on. Run it on a strip wide enough for its main port."
     }
   }
 };
@@ -702,8 +623,7 @@ export const HOSTING_WORKER_CODES = {
   "workerNonconforming": {
     "code": "hosting.worker.nonconforming",
     "text": {
-      "en": "This plugin’s worker does not conform to what a worker must do. Don’t rely on its worker.",
-      "ca": "El worker d’aquest connector no compleix el que ha de fer un worker. No confieu en el seu worker."
+      "en": "This plugin’s worker does not conform to what a worker must do. Don’t rely on its worker."
     }
   }
 };
@@ -718,8 +638,7 @@ export const HOST_REPLY_CODES = {
     "resp": -1,
     "doc": "mod-host's ERR_INSTANCE_INVALID: an instance number outside the host's table",
     "text": {
-      "en": "That instance number is not one of the host’s. Use an instance the host actually has.",
-      "ca": "Aquest número d’instància no és cap de l’amfitrió. Useu una instància que l’amfitrió tingui de veritat."
+      "en": "That instance number is not one of the host’s. Use an instance the host actually has."
     }
   },
   "instanceNonExists": {
@@ -727,8 +646,7 @@ export const HOST_REPLY_CODES = {
     "resp": -3,
     "doc": "mod-host's ERR_INSTANCE_NON_EXISTS: an instance no add made",
     "text": {
-      "en": "No add ever created that instance. Add it before using it.",
-      "ca": "Cap ordre add ha creat aquesta instància. Creeu-la amb add abans d’utilitzar-la."
+      "en": "No add ever created that instance. Add it before using it."
     }
   },
   "paramSymbolInvalid": {
@@ -736,8 +654,7 @@ export const HOST_REPLY_CODES = {
     "resp": -103,
     "doc": "mod-host's ERR_LV2_INVALID_PARAM_SYMBOL: a symbol that is not a parameter param_set takes, the plugin's own bypass included",
     "text": {
-      "en": "That symbol is not one of this plugin’s parameters, not even its bypass. Ask the plugin for its parameter list and use one of those symbols.",
-      "ca": "Aquest símbol no és cap paràmetre d’aquest connector, ni tan sols el seu bypass. Demaneu la llista de paràmetres del connector i useu-ne un dels símbols."
+      "en": "That symbol is not one of this plugin’s parameters, not even its bypass. Ask the plugin for its parameter list and use one of those symbols."
     }
   },
   "memoryAllocation": {
@@ -745,8 +662,7 @@ export const HOST_REPLY_CODES = {
     "resp": -901,
     "doc": "mod-host's ERR_MEMORY_ALLOCATION: the reply could not be built",
     "text": {
-      "en": "The host ran out of memory while building the reply. Try again once memory is free.",
-      "ca": "L’amfitrió s’ha quedat sense memòria en construir la resposta. Torneu-ho a provar quan hi hagi memòria lliure."
+      "en": "The host ran out of memory while building the reply. Try again once memory is free."
     }
   },
   "invalidOperation": {
@@ -754,8 +670,7 @@ export const HOST_REPLY_CODES = {
     "resp": -902,
     "doc": "mod-host's ERR_INVALID_OPERATION: a word outside the verb's grammar, or a verb the host refuses on purpose",
     "text": {
-      "en": "That word is not part of this verb, or the host refuses it on purpose. Check the verb’s grammar and send a word it accepts.",
-      "ca": "Aquesta paraula no forma part d’aquesta ordre, o l’amfitrió la rebutja expressament. Comproveu la gramàtica de l’ordre i envieu una paraula que accepti."
+      "en": "That word is not part of this verb, or the host refuses it on purpose. Check the verb’s grammar and send a word it accepts."
     }
   },
   "pinAbsent": {
@@ -763,8 +678,7 @@ export const HOST_REPLY_CODES = {
     "resp": -508,
     "doc": "a layout pin in a scheme this host does not know, refused as no pin at all",
     "text": {
-      "en": "This host does not know that layout pin’s scheme, so it is refused as if no pin had been sent. Send a pin in a scheme this host knows.",
-      "ca": "Aquest amfitrió no coneix l’esquema d’aquest pin de disposició, així que es rebutja com si no se n’hagués enviat cap. Envieu un pin en un esquema que aquest amfitrió conegui."
+      "en": "This host does not know that layout pin’s scheme, so it is refused as if no pin had been sent. Send a pin in a scheme this host knows."
     }
   },
   "pinLayoutMismatch": {
@@ -772,8 +686,7 @@ export const HOST_REPLY_CODES = {
     "resp": -510,
     "doc": "the add of an instance whose layout after init is not the one pin_expect named: the plugin is not activated",
     "text": {
-      "en": "After it started, the plugin’s layout did not match the pin you expected, so it was not activated. Expect the layout the plugin actually has, or use a plugin built to that pin.",
-      "ca": "Un cop iniciat, la disposició del connector no coincidia amb el pin esperat, i per això no s’ha activat. Espereu la disposició real del connector, o useu un connector fet per a aquest pin."
+      "en": "After it started, the plugin’s layout did not match the pin you expected, so it was not activated. Expect the layout the plugin actually has, or use a plugin built to that pin."
     }
   },
   "noParamContract": {
@@ -781,8 +694,7 @@ export const HOST_REPLY_CODES = {
     "resp": -511,
     "doc": "the host holds no checked unit and scale for this parameter: the controller falls back to the layout the scan gives",
     "text": {
-      "en": "The host has no checked unit or scale for this parameter. Fall back to the layout the scan gave.",
-      "ca": "L’amfitrió no té cap unitat ni escala comprovada per a aquest paràmetre. Recorreu a la disposició que ha donat l’escaneig."
+      "en": "The host has no checked unit or scale for this parameter. Fall back to the layout the scan gave."
     }
   },
   "noNoteInput": {
@@ -790,8 +702,7 @@ export const HOST_REPLY_CODES = {
     "resp": -513,
     "doc": "the instance's plugin takes no notes",
     "text": {
-      "en": "This plugin’s instance takes no notes. Don’t send it note events.",
-      "ca": "Aquesta instància del connector no accepta notes. No li envieu esdeveniments de nota."
+      "en": "This plugin’s instance takes no notes. Don’t send it note events."
     }
   },
   "notesByJack": {
@@ -799,8 +710,7 @@ export const HOST_REPLY_CODES = {
     "resp": -514,
     "doc": "the instance's worker takes no notes on its socket (mod-host): the plugin is played through its jack MIDI input",
     "text": {
-      "en": "This instance’s worker takes no notes on its socket; play it through its jack MIDI input instead.",
-      "ca": "El worker d’aquesta instància no accepta notes pel seu socket; toqueu-la per la seva entrada MIDI de jack."
+      "en": "This instance’s worker takes no notes on its socket; play it through its jack MIDI input instead."
     }
   },
   "noteQueueFull": {
@@ -808,8 +718,7 @@ export const HOST_REPLY_CODES = {
     "resp": -517,
     "doc": "the worker has no room for the line's notes before its next block: nothing of it is kept, and the line may be sent again",
     "text": {
-      "en": "The worker had no room for these notes before its next block, so none of them were kept. Send the line again.",
-      "ca": "El worker no tenia espai per a aquestes notes abans del seu següent bloc, i no se n’ha conservat cap. Torneu a enviar la línia."
+      "en": "The worker had no room for these notes before its next block, so none of them were kept. Send the line again."
     }
   }
 };

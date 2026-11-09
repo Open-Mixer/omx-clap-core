@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.11.0"
+    "omx-contract-schema": ">= 3.12.0"
   },
   "HOSTING_REALISED_CODES": {
     "kind": "codes",
@@ -11,36 +11,31 @@
       "disabled": {
         "code": "hosting.disabled",
         "text": {
-          "en": "This plugin is disabled. Enable it before using it.",
-          "ca": "Aquest connector està desactivat. Activeu-lo abans d’utilitzar-lo."
+          "en": "This plugin is disabled. Enable it before using it."
         }
       },
       "linked": {
         "code": "hosting.linked",
         "text": {
-          "en": "This plugin is realised linked into the host’s own process.",
-          "ca": "Aquest connector es realitza enllaçat dins el mateix procés de l’amfitrió."
+          "en": "This plugin is realised linked into the host’s own process."
         }
       },
       "noRealisation": {
         "code": "hosting.no-realisation",
         "text": {
-          "en": "This plugin has no realisation: nothing runs it. Give it a way to run before using it.",
-          "ca": "Aquest connector no té cap realització: no hi ha res que el faci anar. Doneu-li una manera de funcionar abans d’utilitzar-lo."
+          "en": "This plugin has no realisation: nothing runs it. Give it a way to run before using it."
         }
       },
       "realisedInProcess": {
         "code": "hosting.realised.in-process",
         "text": {
-          "en": "This plugin is realised in its own process, isolated from the host’s.",
-          "ca": "Aquest connector es realitza en un procés propi, aïllat del de l’amfitrió."
+          "en": "This plugin is realised in its own process, isolated from the host’s."
         }
       },
       "unjudged": {
         "code": "hosting.unjudged",
         "text": {
-          "en": "This plugin has not been judged yet. Judge it before trusting any verdict about it.",
-          "ca": "Aquest connector encara no s’ha jutjat. Jutgeu-lo abans de confiar en cap veredicte sobre ell."
+          "en": "This plugin has not been judged yet. Judge it before trusting any verdict about it."
         }
       }
     }

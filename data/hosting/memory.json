@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.11.0"
+    "omx-contract-schema": ">= 3.12.0"
   },
   "HOSTING_MEMORY_CODES": {
     "kind": "codes",
@@ -12,32 +12,28 @@
         "code": "hosting.memory.above-ceiling",
         "doc": "the measured figure passes the host's budget for one instance or for all its plugins; the params name the figure, the ceiling, and whether the ceiling is provisional",
         "text": {
-          "en": "This plugin’s measured memory is above the host’s budget. Raise the budget, or use a plugin that uses less memory.",
-          "ca": "La memòria mesurada d’aquest connector supera el pressupost de l’amfitrió. Pugeu el pressupost, o useu un connector que faci servir menys memòria."
+          "en": "This plugin’s measured memory is above the host’s budget. Raise the budget, or use a plugin that uses less memory."
         }
       },
       "memoryUnmeasured": {
         "code": "hosting.memory.unmeasured",
         "doc": "no figure at the host's rate and quantum, so the plugin is not known to fit; a missing figure never reads as fitting",
         "text": {
-          "en": "This plugin’s memory has not been measured at the host’s rate and quantum, so it is not known to fit. Measure it before trusting that it fits.",
-          "ca": "La memòria d’aquest connector no s’ha mesurat a la freqüència i quàntum de l’amfitrió, així que no se sap si hi cap. Mesureu-la abans de confiar que hi cap."
+          "en": "This plugin’s memory has not been measured at the host’s rate and quantum, so it is not known to fit. Measure it before trusting that it fits."
         }
       },
       "memoryWithinCeiling": {
         "code": "hosting.memory.within-ceiling",
         "doc": "the measured figure fits a budget that was itself measured on that kind of host",
         "text": {
-          "en": "This plugin’s measured memory fits a budget that was itself measured on this kind of host.",
-          "ca": "La memòria mesurada d’aquest connector cap dins un pressupost que també s’ha mesurat en aquest tipus d’amfitrió."
+          "en": "This plugin’s measured memory fits a budget that was itself measured on this kind of host."
         }
       },
       "memoryWithinProvisionalCeiling": {
         "code": "hosting.memory.within-provisional-ceiling",
         "doc": "the measured figure is under a budget not yet measured on that kind of host, so this says the figure and the ceiling, not that the plugin fits",
         "text": {
-          "en": "This plugin’s measured memory is under a budget that has not yet been measured on this kind of host. This is not a guarantee that it fits, only that it is under that provisional budget.",
-          "ca": "La memòria mesurada d’aquest connector és per sota d’un pressupost encara no mesurat en aquest tipus d’amfitrió. Això no garanteix que hi càpiga, només que és per sota d’aquest pressupost provisional."
+          "en": "This plugin’s measured memory is under a budget that has not yet been measured on this kind of host. This is not a guarantee that it fits, only that it is under that provisional budget."
         }
       }
     }

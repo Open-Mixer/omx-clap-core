@@ -5,7 +5,7 @@ Section: sound
 Priority: optional
 Maintainer: Pau Aliagas <linuxnow@gmail.com>
 Build-Depends: debhelper-compat (= 13),
-               clap-headers,
+               clap-headers (>= 1.2.10~), clap-headers (<< 2~),
                liblilv-dev,
                lv2-dev,
                libjack-jackd2-dev | libjack-dev,
@@ -101,7 +101,7 @@ Package: libomx-clap-lv2-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: libomx-clap-core-dev (= ${binary:Version}), clap-headers, libssl-dev, pkgconf, ${misc:Depends}
+Depends: libomx-clap-core-dev (= ${binary:Version}), clap-headers (>= 1.2.10~), clap-headers (<< 2~), libssl-dev, pkgconf, ${misc:Depends}
 Description: LV2 adapter of omx-clap-host, as a static library to link
  libomx-clap-lv2 is the LV2 adapter omx-clap-host links in, for a program of
  your own that hosts plugins on libomx-clap-core: it loads an LV2 plugin

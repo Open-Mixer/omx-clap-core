@@ -197,7 +197,7 @@ typedef struct EFFECT_T {
     jack_port_t *midi_out_port;             // the plugin's note output, when it has one
     _Atomic uint32_t midi_out_full;         // messages midi_out had no room for
     struct omx_clap_instance *clap;
-    uint32_t latency_published;
+    _Atomic uint32_t latency_published;     // written by the thread that adds or restarts the instance, read by the idle thread and the chain
     _Atomic uint32_t latency_run;           // between its client's ports: its own, or as a head the chain's sum
     const clap_plugin_meters_t *meters;
     const clap_plugin_gain_adjustment_metering_t *gain_adjustment;

@@ -22,8 +22,8 @@ Fedora 44 (x86_64 and aarch64):
 
 Debian bookworm and trixie and Raspberry Pi OS (amd64 and arm64):
 
-    curl -fsSLO https://www.openmixer.org/deb/openmixer-release.deb && sudo apt install ./openmixer-release.deb
-    sudo apt install omx-clap-host
+    cd /tmp && curl -fsSLO https://www.openmixer.org/deb/openmixer-release.deb && sudo apt install ./openmixer-release.deb
+    sudo apt update && sudo apt install omx-clap-host
 
 To build on the core: `omx-clap-core-devel` (`libomx-clap-core-dev`) and
 `pkg-config --cflags --libs omx-clap-core`.

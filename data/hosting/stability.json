@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.11.0"
+    "omx-contract-schema": ">= 3.12.0"
   },
   "HOSTING_STABILITY_CODES": {
     "kind": "codes",
@@ -11,80 +11,69 @@
       "stabilityBelowFloor": {
         "code": "hosting.stability.cycles-below-floor",
         "text": {
-          "en": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result.",
-          "ca": "El connector s’ha deixat en remull durant menys cicles dels que calen com a mínim. Deixeu-lo en remull els cicles necessaris abans de confiar en el resultat."
+          "en": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result."
         }
       },
       "stabilityCrashUnattributed": {
         "code": "hosting.stability.crash-unattributed",
         "text": {
-          "en": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them.",
-          "ca": "Alguna cosa s’ha avortat durant l’execució, però no s’ha pogut identificar quin connector. Determineu quin connector ha fallat abans de confiar en cap d’ells."
+          "en": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them."
         }
       },
       "stabilityCrashedAttributed": {
         "code": "hosting.stability.crashed-attributed-plugin",
         "text": {
-          "en": "This plugin crashed during the run. Don’t host it until it’s fixed.",
-          "ca": "Aquest connector s’ha avortat durant l’execució. No l’allotgeu fins que no estigui arreglat."
+          "en": "This plugin crashed during the run. Don’t host it until it’s fixed."
         }
       },
       "stabilityCalleeSavedClobbered": {
         "code": "hosting.stability.callee-saved-clobbered",
         "doc": "the plugin returned from a call with a callee-saved register changed (0.26.2): the host's guard put it back, but not the other members' state in the same process, so the plugin runs only in a worker of its own",
         "text": {
-          "en": "This plugin returned from a call having changed a register it should have preserved. The host put the register back, but other plugins sharing its process were not protected, so it now runs only in a worker of its own.",
-          "ca": "Aquest connector ha retornat d’una crida havent canviat un registre que hauria de preservar. L’amfitrió l’ha restaurat, però els altres connectors que compartien el seu procés no han quedat protegits, i per això ara només funciona en un worker propi."
+          "en": "This plugin returned from a call having changed a register it should have preserved. The host put the register back, but other plugins sharing its process were not protected, so it now runs only in a worker of its own."
         }
       },
       "stabilityCrashedLive": {
         "code": "hosting.stability.crashed-live-on-this-rig",
         "doc": "the plugin crashed live on this rig",
         "text": {
-          "en": "This plugin crashed live on this rig. Don’t host it on this rig until it’s fixed.",
-          "ca": "Aquest connector s’ha avortat en viu en aquest equip. No l’allotgeu en aquest equip fins que no estigui arreglat."
+          "en": "This plugin crashed live on this rig. Don’t host it on this rig until it’s fixed."
         }
       },
       "stabilityLinksGuiToolkit": {
         "code": "hosting.stability.links-gui-toolkit",
         "text": {
-          "en": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one.",
-          "ca": "Aquest connector enllaça un kit d’eines de GUI, que aquest amfitrió no fa anar sense pantalla. Feu-lo anar on sigui segur un kit d’eines de GUI, o useu un connector que no en tingui."
+          "en": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one."
         }
       },
       "stabilitySoakFailedAtRate": {
         "code": "hosting.stability.soak-failed-at-rate",
         "text": {
-          "en": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed.",
-          "ca": "El connector ha fallat la prova de remull a aquesta freqüència de mostreig. No hi confieu a aquesta freqüència fins que no estigui arreglat."
+          "en": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed."
         }
       },
       "stabilitySoaked": {
         "code": "hosting.stability.soaked",
         "text": {
-          "en": "The plugin completed its soak test. It held up over the run.",
-          "ca": "El connector ha completat la prova de remull. S’ha mantingut estable durant l’execució."
+          "en": "The plugin completed its soak test. It held up over the run."
         }
       },
       "stabilitySpawnsThreads": {
         "code": "hosting.stability.spawns-threads",
         "text": {
-          "en": "This plugin spawns its own threads. Watch it for behaviour a host does not control.",
-          "ca": "Aquest connector crea fils propis. Vigileu-lo per si té un comportament que l’amfitrió no controla."
+          "en": "This plugin spawns its own threads. Watch it for behaviour a host does not control."
         }
       },
       "stabilityUnmeasured": {
         "code": "hosting.stability.unmeasured",
         "text": {
-          "en": "This plugin’s stability has not been measured. Measure it before relying on it.",
-          "ca": "L’estabilitat d’aquest connector no s’ha mesurat. Mesureu-la abans de confiar-hi."
+          "en": "This plugin’s stability has not been measured. Measure it before relying on it."
         }
       },
       "stabilityUnsoaked": {
         "code": "hosting.stability.unsoaked",
         "text": {
-          "en": "This plugin has not been soaked. Soak it before trusting it over a long run.",
-          "ca": "Aquest connector no s’ha deixat en remull. Deixeu-lo en remull abans de confiar-hi en una execució llarga."
+          "en": "This plugin has not been soaked. Soak it before trusting it over a long run."
         }
       }
     }

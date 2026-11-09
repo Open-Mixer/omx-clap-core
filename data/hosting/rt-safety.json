@@ -1,7 +1,7 @@
 {
   "$schema": "../../schema/omx-contract.schema.json",
   "requires": {
-    "omx-contract-schema": ">= 3.11.0"
+    "omx-contract-schema": ">= 3.12.0"
   },
   "HOSTING_RT_SAFETY_CODES": {
     "kind": "codes",
@@ -11,50 +11,43 @@
       "rtSafetyClean": {
         "code": "hosting.rt-safety.clean-under-sweep",
         "text": {
-          "en": "The plugin showed no real-time safety violation under the sweep. It passed clean.",
-          "ca": "El connector no ha mostrat cap violació de seguretat en temps real durant l’escombrat. Ha passat net."
+          "en": "The plugin showed no real-time safety violation under the sweep. It passed clean."
         }
       },
       "rtSafetyNotReproducible": {
         "code": "hosting.rt-safety.not-reproducible",
         "text": {
-          "en": "The real-time safety measurement could not be reproduced. Measure it again before trusting it.",
-          "ca": "La mesura de seguretat en temps real no s’ha pogut reproduir. Torneu-la a mesurar abans de confiar-hi."
+          "en": "The real-time safety measurement could not be reproduced. Measure it again before trusting it."
         }
       },
       "rtSafetyNotesClean": {
         "code": "hosting.rt-safety.clean-under-notes",
         "text": {
-          "en": "The plugin showed no real-time safety violation while playing notes. It passed clean.",
-          "ca": "El connector no ha mostrat cap violació de seguretat en temps real mentre tocava notes. Ha passat net."
+          "en": "The plugin showed no real-time safety violation while playing notes. It passed clean."
         }
       },
       "rtSafetyNotesUnmeasured": {
         "code": "hosting.rt-safety.notes-unmeasured",
         "text": {
-          "en": "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it.",
-          "ca": "La seguretat en temps real del connector mentre toca notes no s’ha mesurat. Mesureu-la abans de confiar-hi."
+          "en": "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it."
         }
       },
       "rtSafetyNotesViolations": {
         "code": "hosting.rt-safety.violations-under-notes",
         "text": {
-          "en": "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes.",
-          "ca": "El connector ha violat la seguretat en temps real mentre tocava notes. Tracteu-lo com a no segur en temps real amb notes."
+          "en": "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes."
         }
       },
       "rtSafetyUnmeasured": {
         "code": "hosting.rt-safety.unmeasured",
         "text": {
-          "en": "The plugin’s real-time safety has not been measured. Measure it before relying on it.",
-          "ca": "La seguretat en temps real del connector no s’ha mesurat. Mesureu-la abans de confiar-hi."
+          "en": "The plugin’s real-time safety has not been measured. Measure it before relying on it."
         }
       },
       "rtSafetyViolations": {
         "code": "hosting.rt-safety.violations-in-run",
         "text": {
-          "en": "The plugin violated real-time safety during the run. Treat it as not real-time safe.",
-          "ca": "El connector ha violat la seguretat en temps real durant l’execució. Tracteu-lo com a no segur en temps real."
+          "en": "The plugin violated real-time safety during the run. Treat it as not real-time safe."
         }
       }
     }

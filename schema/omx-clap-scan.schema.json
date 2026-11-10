@@ -246,6 +246,15 @@
         },
         "panel": {
           "$ref": "#/$defs/panel"
+        },
+        "meters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/meter"
+          }
+        },
+        "param_contract": {
+          "$ref": "#/$defs/paramContract"
         }
       }
     },
@@ -329,6 +338,9 @@
               }
             }
           }
+        },
+        "contract": {
+          "$ref": "#/$defs/paramContractEntry"
         }
       }
     },
@@ -681,6 +693,124 @@
               "favorite"
             ]
           }
+        }
+      }
+    },
+    "meter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "flags",
+        "channels",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "oneOf": [
+            {
+              "enum": [
+                "other",
+                "gain-reduction",
+                "level"
+              ]
+            },
+            {
+              "type": "integer",
+              "minimum": 3
+            }
+          ]
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "coherent",
+              "held",
+              "clip"
+            ]
+          }
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "min": {
+          "$ref": "#/$defs/number"
+        },
+        "max": {
+          "$ref": "#/$defs/number"
+        }
+      }
+    },
+    "paramContract": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "error"
+          ],
+          "properties": {
+            "error": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "fingerprint"
+          ],
+          "properties": {
+            "version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "paramContractEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "symbol",
+        "unit",
+        "scale",
+        "step"
+      ],
+      "properties": {
+        "symbol": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "string"
+        },
+        "step": {
+          "$ref": "#/$defs/number"
         }
       }
     }

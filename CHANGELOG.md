@@ -4,6 +4,13 @@
 
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
+- omx-clap-scan states what a plugin exports through `clap.meters/1` and `org.openmixer.param-contract/1`: the text lists
+  each meter (`meter <id> "<name>" <kind> <n> channels [<min> .. <max>]` and its flags), the contract (`contract version
+  <n> fingerprint <sha256>`, or `contract not trusted: <rule>`) and each parameter's entry under it (`contract <symbol>
+  <unit> <scale> step <s>`); `--json` has `meters`, `param_contract` and each parameter's `contract` (docs/scan.md);
+  `--fields` writes them as the plugin states them, `meter:<n> clap_meter_info.*`, `plugin
+  omx_clap_plugin_param_contract_ext.{version,fingerprint}` and `param:<n> omx_clap_param_contract_entry.*`.
+- tests/published-comp-scan.py holds omx-plugins' published omx-comp to its meters and contract by value.
 - The host reads a plugin's meters at the rate omx-dsp declares for it (50 Hz, `hostReadHz`), taken from the installed
   omx-dsp definitions at build time; `IDLE_INTERVAL_MS` is no number of its own.
 - A meter flagged `OMX_CLAP_METER_IS_HELD` is one the plugin holds until it is read; a burst of 10 ms between two reads

@@ -331,7 +331,8 @@ install-contract:
 PLUGIN_HOSTD_TABLES ?=
 # omx-clap-scan --json is the program interface (docs/scan.md): it validates against schema/omx-clap-scan.schema.json, the file
 # the package installs, and holds the data the text lists, on the fixtures that between them list every kind of line
-SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_panel.clap tests/fake_tool.clap tests/crash.clap
+# (FAKE_CONTRACT=good: fake.clap offers its parameter contract, so the contract lines are among them)
+SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_compressor.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_panel.clap tests/fake_tool.clap tests/crash.clap
 # omx-plugins' omx-comp, as its package installs it: the scan states its clap.meters/1 meters and its
 # org.openmixer.param-contract/1 entries by value (tests/published-comp-scan.py). A desk without omx-plugins-clap skips
 # by name; CI, where the package is installed, never does.
@@ -346,7 +347,7 @@ test-published-comp: $(SCAN_PROG)
 
 .PHONY: test-scan-json
 test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
-	python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
+	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
 
 .PHONY: test-fields
 test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap

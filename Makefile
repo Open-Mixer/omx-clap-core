@@ -404,7 +404,7 @@ docs: $(CORE_HEADERS) Doxyfile
 	doxygen Doxyfile
 
 clean:
-	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test
+	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
@@ -415,6 +415,17 @@ test: test-scan-json test-no-sha256-copy test-unsupported-copy test-no-contract-
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
 test-scan: $(SCAN_PROG) tests/clap_scan_test tests/fake.clap tests/crash.clap tests/fake_synth.clap tests/fake_panel.clap
 	@$(call run_or_skip_clap_test_plugin,./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) $(CLAP_TEST_PLUGIN) $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap))
+
+# the scanner's sources and the core compiled directly into the test, bypassing the shared library so the whole walk
+# carries AddressSanitizer's instrumentation: a directory of real .clap files listed, then everything main() built
+# (roots, files, failures, seen) must be off the heap again. Needs libasan; CI runs it, the package builds do not
+tests/clap_scan_asan: src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c src/layout_pin.h $(CORE_SRC) $(CORE_HEADERS) $(LV2_LIB) src/abi_guard.S
+	$(CC) -Isrc -Ilv2/core $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror -fno-omit-frame-pointer \
+	    -fsanitize=address,undefined -fno-sanitize-recover=all -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u \
+	    -o $@ src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c $(CORE_SRC) $(LV2_LIB) $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+
+test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
+	ASAN_OPTIONS=detect_leaks=1 ./tests/clap_scan_asan $(abspath tests/fake.clap) $(abspath tests/crash.clap) >/dev/null
 
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of

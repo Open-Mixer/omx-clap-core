@@ -19,3 +19,4 @@ Lines for the next release; the release moves them into debian/changelog and the
   root so a plugin that writes relative to its cwd (clap-protoplug) writes there and not wherever the host started.
 - `MAX_PLUGIN_INSTANCES`/`MAX_TOOL_INSTANCES` are read from the rendered contract header
   (`OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES`/`_MAX_TOOL_INSTANCES`), not restated as a local `#define`.
+- `omx-clap-scan` frees every path its walk and its argument list built before it exits, on every path out of `main`.

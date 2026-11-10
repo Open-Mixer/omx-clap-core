@@ -1399,6 +1399,9 @@ static int buffers_make(struct lv2_instance *in)
     // a shared port carries the patch messages too: the MIDI buffers are at least the patch capacity
     if ((p->patch_in_shared || p->patch_out_shared) && patch_cap(p) > in->midi_bytes)
         in->midi_bytes = patch_cap(p);
+    // the plain MIDI port's own rsz:minimumSize, rounded up to the alignment every buffer here keeps
+    if (p->midi_min > in->midi_bytes)
+        in->midi_bytes = (p->midi_min + 7u) & ~7u;
     in->urid_sequence = lv2_urid_lookup(LV2_ATOM__Sequence);
     for (k = 0; k < 2; k++)
     {

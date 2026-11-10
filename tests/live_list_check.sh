@@ -12,8 +12,12 @@ src=${1:?usage: live_list_check.sh <src/effects.c>}
 fail=0
 
 hdr=$(dirname "$src")/effects.h; [ -f "$hdr" ] || hdr=src/effects.h
-grep -q '^#define MAX_PLUGIN_INSTANCES *9990$' "$hdr" && grep -q '^#define MAX_TOOL_INSTANCES *10$' "$hdr" ||
-    { echo "FAIL the instance counts of $hdr are not those tests/live_list_test.c uses (9990 plugins, 10 tools)"; fail=1; }
+limits=$(dirname "$hdr")/hosted_stage_limits.h; [ -f "$limits" ] || limits=src/hosted_stage_limits.h
+grep -q '^#define OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES *9990u\?\( \|$\)' "$limits" \
+    && grep -q '^#define OMX_HOSTED_STAGE_MAX_TOOL_INSTANCES *10u\?\( \|$\)' "$limits" ||
+    { echo "FAIL the instance counts of $limits are not those tests/live_list_test.c uses (9990 plugins, 10 tools)"; fail=1; }
+grep -q 'MAX_INSTANCES.*OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES.*OMX_HOSTED_STAGE_MAX_TOOL_INSTANCES' "$hdr" ||
+    { echo "FAIL $hdr does not derive MAX_INSTANCES from hosted_stage_limits.h's declared fields"; fail=1; }
 
 idle=$(sed -n '/^void effects_idle(void)/,/^}/p' "$src")
 printf '%s\n' "$idle" | grep -q 'LIVE_EACH_INSTANCE(' || { echo "FAIL effects_idle does not walk the live list"; fail=1; }

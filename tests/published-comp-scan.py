@@ -7,6 +7,11 @@
 #
 #   published-comp-scan.py <omx-clap-scan> <omx-comp.clap>
 #
+# The field dump (--fields, docs/formats.md of plugin-hostd reads it) carries the same values under the structures'
+# own member names: meter:<n> clap_meter_info.{id,name,kind,channel_count,min_value,max_value}, the kind by its enum
+# name; plugin omx_clap_plugin_param_contract_ext.{version,fingerprint}; param:<n>
+# omx_clap_param_contract_entry.{symbol,unit,scale,step}, unit and scale by their contract names.
+#
 # omx-comp declares four meters, in this order (its declaration's `meters`, the CLAP meter id the index): compGr, a
 # linked gain reduction; compIn and compOut, stereo levels; compKey, the key's level. Its contract states each
 # parameter's symbol, unit, scale and step. The scan must print both, as text and as JSON, with these values; a scan
@@ -79,6 +84,27 @@ def main(argv):
                f'expected {(symbol, unit, scale)}')
     expect(all(isinstance(q.get('contract'), dict) for q in p.get('params', [])),
            'json: a parameter clap.params lists has no contract entry (the contract is whole or absent)')
+
+    # the field dump: the same values under the structures' member names
+    fields = {}
+    for line in scan(prog, f'clap:{path}#{PLUGIN_ID}', '--fields').splitlines():
+        parts = line.split('\t')
+        if len(parts) == 3 and not line.startswith('#'):
+            fields.setdefault((parts[0], parts[1]), parts[2])
+    kinds = {'gain-reduction': 'CLAP_METER_KIND_GAIN_REDUCTION', 'level': 'CLAP_METER_KIND_LEVEL'}
+    for mid, name, kind, ch in METERS:
+        rec = f'meter:{mid}'
+        got = tuple(fields.get((rec, f'clap_meter_info.{k}')) for k in ('id', 'name', 'kind', 'channel_count'))
+        expect(got == (str(mid), name, kinds[kind], str(ch)),
+               f'fields: {rec} clap_meter_info id/name/kind/channel_count {got}, expected {(str(mid), name, kinds[kind], str(ch))}')
+    expect(re.fullmatch(r'[0-9a-f]{64}', fields.get(('plugin', 'omx_clap_plugin_param_contract_ext.fingerprint')) or ''),
+           'fields: no plugin omx_clap_plugin_param_contract_ext.fingerprint')
+    ids = {fields.get((r, 'clap_param_info.name')): r for (r, k) in fields if k == 'clap_param_info.name'}
+    for name, symbol, unit, scale in CONTRACT:
+        rec = ids.get(name)
+        got = tuple(fields.get((rec, f'omx_clap_param_contract_entry.{k}')) for k in ('symbol', 'unit', 'scale'))
+        expect(rec is not None and got == (symbol, unit, scale),
+               f'fields: {rec or name} omx_clap_param_contract_entry symbol/unit/scale {got}, expected {(symbol, unit, scale)}')
 
     # text: the same words, one line per meter and per parameter's contract
     text = scan(prog, path)

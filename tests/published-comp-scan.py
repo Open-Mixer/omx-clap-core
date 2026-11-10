@@ -8,7 +8,7 @@
 #   published-comp-scan.py <omx-clap-scan> <omx-comp.clap>
 #
 # The field dump (--fields, docs/formats.md of plugin-hostd reads it) carries the same values under the structures'
-# own member names: meter:<n> clap_meter_info.{id,name,kind,channel_count,min_value,max_value}, the kind by its enum
+# own member names: meter:<n> clap_meter_info.{id,name,kind,flags,channel_count,min_value,max_value}, the kind by its enum
 # name; plugin omx_clap_plugin_param_contract_ext.{version,fingerprint}; param:<n>
 # omx_clap_param_contract_entry.{symbol,unit,scale,step}, unit and scale by their contract names.
 #
@@ -26,8 +26,9 @@ PLUGIN_ID = 'org.openmixer.comp'
 # id, name, kind, channels: the meters as omx-comp declares them
 METERS = [(0, 'compGr', 'gain-reduction', 1), (1, 'compIn', 'level', 2), (2, 'compOut', 'level', 2),
           (3, 'compKey', 'level', 1)]
-# parameter name, contract symbol, unit, scale: the parameters the panel's dynamics roles read
-CONTRACT = [('Threshold', 'thresholdDb', 'db', 'stepped'), ('Ratio', 'ratio', 'none', 'linear'),
+# parameter name, contract symbol, unit, scale: the parameters the panel's dynamics roles read (Ratio's unit is ratio,
+# 258, from omx-plugins 0.19.3: before it the unit was none and the dynamics role withheld)
+CONTRACT = [('Threshold', 'thresholdDb', 'db', 'stepped'), ('Ratio', 'ratio', 'ratio', 'linear'),
             ('Attack', 'attackMs', 'ms', 'linear'), ('Release', 'releaseMs', 'ms', 'stepped')]
 
 failures = []

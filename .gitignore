@@ -13,6 +13,7 @@ tests/idle_hold_test
 tests/clap_chain_test
 tests/clap_chain_tsan
 tests/active_race_tsan
+tests/lv2_restart_race_tsan
 tests/clap_scan_test
 tests/crash.clap
 omx-clap-scan

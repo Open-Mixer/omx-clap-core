@@ -404,7 +404,7 @@ docs: $(CORE_HEADERS) Doxyfile
 	doxygen Doxyfile
 
 clean:
-	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test
+	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test tests/lv2_restart_race_tsan
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
@@ -509,10 +509,21 @@ tests/active_race_tsan: tests/active_race_test.c $(CORE_SRC) $(CORE_HEADERS)
 	$(CC) -Isrc $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \
 	    -Wno-tsan -fsanitize=thread -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $< $(CORE_SRC) $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
 
-test-transport-tsan: tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/fake.clap
+# the LV2 adapter's own restart bookkeeping (lv2/clap/lv2_clap.c: latency_active, latency_pending,
+# latency_held_frames, restart_requested), written by latency_watch on the cycle that calls process() and read and
+# written by plugin_activate/plugin_deactivate on the control thread that restarts it: the one path test-identity-lv2
+# exercises and no other e2e test does, so it is the LV2 adapter's sources compiled into the test, not the prebuilt
+# static library test-chain-host-tsan links (never built under ThreadSanitizer)
+tests/lv2_restart_race_tsan: tests/lv2_restart_race_test.c $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS)
+	$(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \
+	    -Wno-tsan -fsanitize=thread -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $< $(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) \
+	    $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+
+test-transport-tsan: tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/lv2_restart_race_tsan tests/fake.clap build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
 	TSAN_OPTIONS=halt_on_error=1 ./tests/transport_seqlock_tsan
 	TSAN_OPTIONS=halt_on_error=1 ./tests/active_race_tsan $(abspath tests/fake.clap)
 	TSAN_OPTIONS=halt_on_error=1 ./tests/cycle_gate_tsan $(abspath tests/fake.clap)
+	TSAN_OPTIONS=halt_on_error=1 ./tests/lv2_restart_race_tsan $(abspath build/lv2)
 
 tests/cycle_gate_tsan: tests/cycle_gate_test.c src/cycle_gate.h $(CORE_SRC) $(CORE_HEADERS)
 	$(CC) -Isrc $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \

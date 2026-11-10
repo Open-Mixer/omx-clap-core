@@ -76,6 +76,7 @@ tools/preset-census
 /fuzz/findings/
 tests/xrun_report_test
 tests/live_list_test
+tests/state_root_test
 tests/jack_xrun_shim.so
 tests/hosted_cost_bench
 tests/hosted_clamp_test

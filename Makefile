@@ -404,12 +404,12 @@ docs: $(CORE_HEADERS) Doxyfile
 	doxygen Doxyfile
 
 clean:
-	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test
+	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
+test: test-scan-json test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -638,6 +638,31 @@ test-live-list-sabotage: tests/live_list_test.c src/live_list.h tests/live_list_
 	        if ./tests/live_list_check.sh build/live-list-sabotage/effects.c > build/live-list-sabotage/$$arm.log 2>&1; then echo "sabotage $$arm: check stayed green"; exit 1; fi; \
 	        grep -q '^FAIL' build/live-list-sabotage/$$arm.log || { echo "sabotage $$arm: no FAIL line"; exit 1; }; \
 	    fi; \
+	    echo "sabotage $$arm: red as it should"; \
+	done
+
+# the state root a host enters at start (src/state_root.h, #2): made at 0700 (an existing, looser one brought to it as
+# well), a dead instance's lv2-<pid>-<n> directories and .saved copies pruned, the process's cwd moved into it
+test-state-root: tests/state_root_test
+	./tests/state_root_test
+
+tests/state_root_test: tests/state_root_test.c src/state_root.h
+	$(CC) -Isrc $(CFLAGS) -Werror -o $@ $<
+
+# the guards broken: a pid check that calls everything dead, a chmod dropped, a prune turned no-op
+test-state-root-sabotage: tests/state_root_test.c src/state_root.h
+	mkdir -p build/state-root-sabotage
+	for arm in nokill nochmod noprune; do \
+	    cp src/state_root.h build/state-root-sabotage/state_root.h; \
+	    case $$arm in \
+	    nokill) sed -i -e '/^static inline int state_root_pid_dead/,/^}/s|return pid > 0 && kill.*|return pid > 0;|' build/state-root-sabotage/state_root.h ;; \
+	    nochmod) sed -i -e '/chmod(root, 0700);/d' build/state-root-sabotage/state_root.h ;; \
+	    noprune) sed -i -e 's@nftw(path, state_root_remove_one, 16, FTW_DEPTH | FTW_PHYS);@(void)path;@' build/state-root-sabotage/state_root.h ;; \
+	    esac; \
+	    ! cmp -s src/state_root.h build/state-root-sabotage/state_root.h || { echo "sabotage $$arm changed nothing"; exit 1; }; \
+	    $(CC) -Ibuild/state-root-sabotage -Isrc $(CFLAGS) -Werror -o build/state-root-sabotage/test $<; \
+	    if ./build/state-root-sabotage/test > build/state-root-sabotage/$$arm.log 2>&1; then echo "sabotage $$arm: test stayed green"; exit 1; fi; \
+	    grep -q '^FAIL' build/state-root-sabotage/$$arm.log || { echo "sabotage $$arm: no FAIL line"; exit 1; }; \
 	    echo "sabotage $$arm: red as it should"; \
 	done
 

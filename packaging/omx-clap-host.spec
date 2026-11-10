@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.31.1
+Version:        0.31.2
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -200,6 +200,16 @@ make test-lv2
 %{_includedir}/omx-clap-lv2/
 
 %changelog
+* Wed Nov 11 2026 Pau Aliagas <linuxnow@gmail.com> - 0.31.2-1
+- omx-clap-scan states what a plugin exports through clap.meters/1 and
+  org.openmixer.param-contract/1: each meter, the contract's version and
+  fingerprint (or the rule it is not trusted by) and each parameter's contract
+  entry, in the text, --json and --fields
+- tests/published-comp-scan.py holds omx-plugins' published omx-comp to its
+  meters and contract by value (omx-plugins 0.19.3)
+- built against plugin-hostd-protocol >= 0.5.2 and < 0.6, plugin-db >= 0.3.1
+  and < 0.4, omx-dsp >= 0.32.0 and < 0.33, omx-contract >= 3.12.0 and < 4
+
 * Mon Nov 09 2026 Pau Aliagas <linuxnow@gmail.com> - 0.31.1-1
 - the instance data races: active and latency_published are atomic (#531)
 - every code's Catalan moves to catalogs/ca.json, the source sentence stays in

@@ -234,6 +234,9 @@ jobs:
       - name: Test what a plugin reports about its parameters under AddressSanitizer
         run: make test-untrusted-asan
 
+      - name: Test omx-clap-scan's directory walk and dump under AddressSanitizer, leaks included
+        run: make test-scan-asan
+
       # the published transport with an audio thread as its one writer and three readers, under ThreadSanitizer (#121)
       - name: Test the published transport under ThreadSanitizer
         run: make test-transport-tsan

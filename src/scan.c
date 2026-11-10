@@ -1188,6 +1188,16 @@ static void list_add(list_t *list, char *item)
     list->items[list->count++] = item;
 }
 
+/* every item main() strdup'd or asprintf'd into `list`, and the list's own array */
+static void list_free(list_t *list)
+{
+    size_t i;
+
+    for (i = 0; i < list->count; i++)
+        free(list->items[i]);
+    free(list->items);
+}
+
 static int compare_names(const void *a, const void *b)
 {
     return strcmp(*(char *const *)a, *(char *const *)b);
@@ -1325,7 +1335,7 @@ static void usage(const char *name)
 int main(int argc, char **argv)
 {
     list_t roots = { NULL, 0 }, files = { NULL, 0 }, failures = { NULL, 0 }, seen = { NULL, 0 };
-    int explicit_paths, readable = 0, first = 1, a;
+    int explicit_paths, readable = 0, first = 1, a, ret = 0;
     const char *fields = NULL;
     struct stat st;
     size_t i;
@@ -1339,12 +1349,13 @@ int main(int argc, char **argv)
         else if (strcmp(argv[a], "-h") == 0 || strcmp(argv[a], "--help") == 0)
         {
             usage(argv[0]);
-            return 0;
+            goto done;
         }
         else if (argv[a][0] == '-' && argv[a][1] != '\0')
         {
             usage(argv[0]);
-            return 2;
+            ret = 2;
+            goto done;
         }
         else
             list_add(&roots, strdup(argv[a]));
@@ -1361,7 +1372,8 @@ int main(int argc, char **argv)
         if (omx_clap_host_configure(&config) != 0)
         {
             fprintf(stderr, "can't configure the clap core\n");
-            return 2;
+            ret = 2;
+            goto done;
         }
     }
 
@@ -1371,9 +1383,11 @@ int main(int argc, char **argv)
         if (g_json || roots.count > 0)
         {
             usage(argv[0]);
-            return 2;
+            ret = 2;
+            goto done;
         }
-        return strcmp(fields, "--list") == 0 ? scan_fields_list() : scan_fields(fields);
+        ret = strcmp(fields, "--list") == 0 ? scan_fields_list() : scan_fields(fields);
+        goto done;
     }
 
     explicit_paths = roots.count > 0;
@@ -1445,7 +1459,13 @@ int main(int argc, char **argv)
     if (readable == 0)
     {
         fprintf(stderr, "%s: no path could be read\n", argv[0]);
-        return 1;
+        ret = 1;
     }
-    return 0;
+
+done:
+    list_free(&roots);
+    list_free(&files);
+    list_free(&failures);
+    list_free(&seen);
+    return ret;
 }

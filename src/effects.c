@@ -63,6 +63,7 @@
 #include "meter_reader.h"
 #include "cycle_gate.h"
 #include "hosted_stage_limits.h"
+#include "state_root.h"
 #include "host_transport.h"
 #include "host_verbs.h"
 #include "layout_pin.h"
@@ -2773,6 +2774,12 @@ static void configure_lv2(void)
         fprintf(stderr, "the state root %s is not a directory this host can write: state:makePath is not offered\n", root);
         root = NULL;
     }
+    if (root && state_root_enter(root) != 0)
+    {
+        fprintf(stderr, "the state root %s could not be made, chmod'd to 0700 or entered: state:makePath is not offered, "
+                        "and the host's cwd stays its start directory\n", root);
+        root = NULL;
+    }
     g_lv2_ready = configure_lv2_with(root, why) == 0;
     if (!g_lv2_ready && root && strcmp(why, "lv2.configure.state-root") == 0)
     {
@@ -3239,7 +3246,7 @@ int effects_remove(int effect_id)
     if (effect_id == REMOVE_ALL)
     {
         start = 0;
-        end = MAX_PLUGIN_INSTANCES;      // the tool instances are not plugins: remove-all leaves them
+        end = OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES;      // the tool instances are not plugins: remove-all leaves them
     }
     else
     {
@@ -4541,7 +4548,7 @@ int effects_state_save(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= MAX_PLUGIN_INSTANCES)
+        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         ret = clap_state_save(g_effects[i].clap, filename);
@@ -4560,7 +4567,7 @@ int effects_state_load(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= MAX_PLUGIN_INSTANCES)
+        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         if (access(filename, F_OK) != 0)

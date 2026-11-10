@@ -87,13 +87,15 @@
  * instance's audio_slot, omx_clap_host_name_slot; 19: the thread pool (#395), the instance's pool_use, pool_priority,
  * pool_held and pool_late, struct omx_clap_thread_pool_info, omx_clap_host_thread_pool_use, omx_clap_host_thread_pool and
  * omx_clap_host_thread_pool_late; 20: every call into the plugin through the guard (abi_guard.h), the instance's abi,
- * the stage's guard_off in its tail padding, and omx_clap_host_abi_clobber).
+ * the stage's guard_off in its tail padding, and omx_clap_host_abi_clobber; 21: the bypass dry-path delay (#1), the
+ * instance's bypass_delay after keeps_on, reached by the stage through guard_off as struct omx_clap_guard_tail lays it
+ * out).
  * configure accepts every ABI from OMX_CLAP_CORE_ABI_OLDEST up to its own, so a consumer of an older header keeps
  * working, and refuses a newer one: a consumer whose inline code reaches an appended field is refused by a library
  * whose instance lacks it. The soname-1 train runs 12 to 14 across the PRs of #92, OLDEST following ABI until the
  * first libomx-clap-core.so.1 release, which freezes it: nothing of the major is released, and the stage, embedded in
  * the instance, grows inside it. A removal or a reorder is a new major of the library. */
-#define OMX_CLAP_CORE_ABI               20u
+#define OMX_CLAP_CORE_ABI               21u
 #define OMX_CLAP_CORE_ABI_OLDEST        18u  ///< the oldest header ABI the library accepts: follows OMX_CLAP_CORE_ABI until
                                              ///< the first release of libomx-clap-core.so.1
 
@@ -628,6 +630,10 @@ struct omx_clap_instance
     // the sleep's read of the last status: kept here at the tail, outside struct omx_clap_sleep, which is embedded whole
     // above and keeps its size, so no member moves; written and read by the audio role only
     int keeps_on;               ///< 1 while the plugin's last process() said CLAP_PROCESS_CONTINUE (omx_clap_sleep_reads)
+
+    // ABI 21: the bypass dry-path delay (#1), after keeps_on so no field moves; the stage reaches it through guard_off,
+    // as struct omx_clap_guard_tail (clap_stage.h) lays out this tail from the guard on
+    struct omx_clap_bypass_delay bypass_delay;  ///< armed for the published latency by the control thread
 };
 
 
@@ -688,6 +694,10 @@ OMX_CLAP_EXPORT int omx_clap_host_abi_clobber(const struct omx_clap_instance *in
 #define OMX_ABI_GUARD_OF(in) ((struct omx_abi_guard *)&(in)->abi)
 /** The stage's guard_off in an instance (ABI 20): the bytes from its stage to its guard. */
 #define OMX_CLAP_GUARD_OFF ((uint32_t)(offsetof(struct omx_clap_instance, abi) - offsetof(struct omx_clap_instance, stage)))
+_Static_assert(offsetof(struct omx_clap_instance, keeps_on) - offsetof(struct omx_clap_instance, abi) == offsetof(struct omx_clap_guard_tail, keeps_on)
+                   && offsetof(struct omx_clap_instance, bypass_delay) - offsetof(struct omx_clap_instance, abi)
+                          == offsetof(struct omx_clap_guard_tail, bypass_delay),
+               "struct omx_clap_guard_tail lays out the instance's tail from its guard on");
 
 /** The version of the library at run time, major * 10000 + minor * 100 + patch. */
 OMX_CLAP_EXPORT uint32_t omx_clap_core_version(void);

@@ -350,7 +350,19 @@ struct rig {
   float in_l[MAXB], in_r[MAXB], out_l[MAXB], out_r[MAXB];
   struct omx_clap_param_record recs[OMX_HOSTED_STAGE_PARAM_QUEUE_DEPTH];
   struct fake f;
+  struct omx_clap_guard_tail tail; /* an instance's tail, for a rig that gives its stage one (rig_tail) */
 };
+
+/** The rig's stage given an instance's tail, as an instance's is: its guard and its bypass delay (ABI 21). */
+static void rig_tail(struct rig *g) {
+  g->st.guard_off = (uint32_t)(offsetof(struct rig, tail) - offsetof(struct rig, st));
+}
+
+/** Arm (frames, channels both non-zero) or disarm the rig's bypass delay as arm_bypass_delay (clap_host.c) does. */
+static void rig_arm_delay(struct rig *g, uint32_t channels, uint32_t frames) {
+  const size_t floats = omx_clap_bypass_delay_floats(channels, frames);
+  free(omx_clap_bypass_delay_set(omx_clap_stage_bypass_delay(&g->st), floats ? calloc(floats, sizeof(float)) : NULL, channels, frames));
+}
 
 /** Init, activate at g_rate, bind, publish the latency the ext reports — the control thread's
  *  part of §5 — and ARM; the first omx_clap_run then takes the audio role. */
@@ -467,8 +479,8 @@ static void t_bypass_reset(void) {
 /* ---- BYPASS DRY-PATH DELAY (#1): a commanded bypass's dry output lags the input by the published latency, so it
  * stays aligned with a wet path's own compensation. K_DELAY is a real sample delay of its own reported latency
  * (pad_latency_frames): an impulse through it engaged (wet) and the same impulse through a bypassed stage armed with
- * the ring (omx_clap_stage_arm_bypass_delay) land on the same sample; disarming (0 frames) drops back to the
- * immediate copy, following a later latency change as arm_bypass_delay (clap_host.c) would make it. */
+ * the ring (rig_arm_delay, as arm_bypass_delay in clap_host.c arms it) land on the same sample; disarming (0 frames)
+ * drops back to the immediate copy, following a later latency change. A stage of its own has no delay: the copy. */
 static void t_bypass_delay(void) {
   struct rig wet, dry;
   rig_up(&wet, K_DELAY, 2, QCAP);
@@ -477,9 +489,12 @@ static void t_bypass_delay(void) {
   float wl[MAXB], wr[MAXB], dl[MAXB], dr[MAXB];
   int i;
 
+  CHECK(omx_clap_stage_bypass_delay(&dry.st) == NULL, "a stage of its own has no bypass delay");
+  rig_tail(&dry);
+  CHECK(omx_clap_stage_bypass_delay(&dry.st) == &dry.tail.bypass_delay, "a stage with an instance's tail reaches its delay through guard_off");
   omx_clap_set_bypass(&dry.st, 1);      /* bypassed before the first block: the IDLE path from the start, no crossfade */
-  omx_clap_stage_arm_bypass_delay(&dry.st, 2, lat);
-  CHECK(dry.st.bypass_ring != NULL && dry.st.bypass_ring_frames == lat, "the ring is armed for the published latency (%u)", lat);
+  rig_arm_delay(&dry, 2, lat);
+  CHECK(dry.tail.bypass_delay.ring != NULL && dry.tail.bypass_delay.frames == lat, "the ring is armed for the published latency (%u)", lat);
 
   for (i = 0; i < 4; i++) { /* warm-up past the plugin's own fade-in, on silence: the ring holds only zeros either way */
     fill(wl, 64, 0.0f), fill(wr, 64, 0.0f);
@@ -499,7 +514,8 @@ static void t_bypass_delay(void) {
   CHECK(wl[lat] == 1.0f && dl[lat] == 1.0f, "@%.0f: both put the impulse exactly %u frames later (%g, %g)",
         (double)g_rate, lat, (double)wl[lat], (double)dl[lat]);
 
-  omx_clap_stage_arm_bypass_delay(&dry.st, 0, 0); /* a latency of 0 disarms it: the dry path is the immediate copy again */
+  rig_arm_delay(&dry, 0, 0); /* a latency of 0 disarms it: the dry path is the immediate copy again */
+  CHECK(dry.tail.bypass_delay.ring == NULL && dry.tail.bypass_delay.cap == 0u, "a latency of 0 disarms the ring");
   fill(dl, 64, 0.0f), fill(dr, 64, 0.0f);
   dl[0] = 1.0f, dr[0] = 1.0f;
   run(&dry, dl, dr, 64);
@@ -1588,26 +1604,18 @@ static void t_note_priority(void) {
   const size_t wide_end = offsetof(struct omx_clap_stage, wide) + sizeof NS.wide;
   const size_t pass_end = offsetof(struct omx_clap_stage, passthrough) + sizeof NS.passthrough;
   const size_t tail_end = offsetof(struct omx_clap_stage, guard_off) + sizeof NS.guard_off;
-  const size_t ring_at = (tail_end + ptr_align - 1) / ptr_align * ptr_align;
-  const size_t ring_end = offsetof(struct omx_clap_stage, bypass_ring_pos) + sizeof NS.bypass_ring_pos;
 
   /* releases_dropped (ABI 5) follows start_refused with no gap, the wide bounce (ABI 13) follows it, the two words after
-   * it (ABI 14 aux_bound_channels, ABI 15 passthrough) follow, the guard's offset (ABI 20) follows that, and the bypass
-   * delay ring (ABI 21, #1) closes the structure: every member before it keeps its offset and the size is the size of
-   * ABI 21. The ABI check cannot see the atomic ones (libabigail leaves _Atomic members out), so this is the check. */
+   * it (ABI 14 aux_bound_channels, ABI 15 passthrough) follow, and the guard's offset (ABI 20) closes the structure in
+   * what was its tail padding: every member before it keeps its offset and the size is the size of ABI 15. The ABI check cannot see the atomic ones (libabigail leaves _Atomic members
+   * out), so this is the check. */
   CHECK(offsetof(struct omx_clap_stage, releases_dropped) == before && offsetof(struct omx_clap_stage, wide_in) == wide_at &&
         offsetof(struct omx_clap_stage, aux_bound_channels) == wide_end &&
         offsetof(struct omx_clap_stage, passthrough) == wide_end + sizeof NS.aux_bound_channels &&
         offsetof(struct omx_clap_stage, guard_off) == pass_end &&
-        offsetof(struct omx_clap_stage, bypass_ring) == ring_at &&
-        offsetof(struct omx_clap_stage, bypass_ring_cap) == ring_at + sizeof NS.bypass_ring &&
-        offsetof(struct omx_clap_stage, bypass_ring_channels) == ring_at + sizeof NS.bypass_ring + sizeof NS.bypass_ring_cap &&
-        offsetof(struct omx_clap_stage, bypass_ring_frames) ==
-            ring_at + sizeof NS.bypass_ring + sizeof NS.bypass_ring_cap + sizeof NS.bypass_ring_channels &&
-        offsetof(struct omx_clap_stage, bypass_ring_pos) == ring_end - sizeof NS.bypass_ring_pos &&
-        sizeof(struct omx_clap_stage) == (ring_end + align - 1) / align * align,
-        "releases_dropped follows start_refused (%zu), the wide bounce follows it (%zu), the ABI 14, 15 and 20 words and the"
-        " ABI 21 ring close it, in the new size: %zu",
+        sizeof(struct omx_clap_stage) == (tail_end + align - 1) / align * align &&
+        sizeof(struct omx_clap_stage) == (pass_end + align - 1) / align * align,
+        "releases_dropped follows start_refused (%zu), the wide bounce follows it (%zu), the ABI 14 and 15 words and the ABI 20 offset close it, in the old size: %zu",
         offsetof(struct omx_clap_stage, releases_dropped), offsetof(struct omx_clap_stage, wide_in), sizeof(struct omx_clap_stage));
 
   for (d = 0; d < 3; d++) {

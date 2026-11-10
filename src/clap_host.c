@@ -1951,12 +1951,7 @@ static void drop_bounce(struct omx_clap_instance *in)
     in->bounce_map = NULL;
     free(in->recs);
     in->recs = NULL;
-    free(in->stage.bypass_ring);
-    in->stage.bypass_ring = NULL;
-    in->stage.bypass_ring_cap = 0u;
-    in->stage.bypass_ring_channels = 0u;
-    in->stage.bypass_ring_frames = 0u;
-    in->stage.bypass_ring_pos = 0u;
+    free(omx_clap_bypass_delay_set(&in->bypass_delay, NULL, 0u, 0u));
 }
 
 /* the ports, then the note ids over the stage's sink: every id free, held OMX_CLAP_NOTE_ID_HOLD_MS at the rate */
@@ -1972,19 +1967,26 @@ static int bind_stage(struct omx_clap_instance *in)
 /* control thread: (re)arm the bypass dry-path delay for the latency just published (#1) — a commanded bypass's dry
  * path is then delayed the same frames the wet path costs, so bypass does not shift alignment against the rest of
  * the chain's own compensation. Ringed per main output channel, sized frames + 1 so a full delay never reads the
- * sample just written; frames 0 disarms it, the dry path the immediate copy it always was. Swaps the ring while
- * holding the audio role, so the RT never sees a half-built one; the RT itself allocates nothing. */
+ * sample just written; frames 0 disarms it, the dry path the immediate copy it always was. The ring is allocated
+ * before the audio role is taken and the old one freed after it is released; the swap alone runs under the role, so
+ * the RT never sees a half-built ring and neither the RT nor the role's hold allocates. A failed allocation keeps the
+ * ring it had. */
 static void arm_bypass_delay(struct omx_clap_instance *in, uint32_t frames)
 {
-    struct omx_clap_stage *s = &in->stage;
+    struct omx_clap_bypass_delay *const d = &in->bypass_delay;
     const uint32_t channels = in->main_out.channels;
+    const size_t floats = omx_clap_bypass_delay_floats(channels, frames);
     struct omx_clap_role role;
+    float *ring = NULL, *old;
 
-    if (frames == s->bypass_ring_frames && channels == s->bypass_ring_channels)
+    if (floats ? frames == d->frames && channels == d->channels : d->ring == NULL)
         return;     // the ring already serves this latency: nothing to rearm
+    if (floats && !(ring = calloc(floats, sizeof(float))))
+        return;
     omx_clap_host_take_role(in, &role);
-    omx_clap_stage_arm_bypass_delay(s, channels, frames);
+    old = omx_clap_bypass_delay_set(d, ring, channels, frames);
     omx_clap_host_release_role(in, &role, role.state);
+    free(old);
 }
 
 static void publish_latency(struct omx_clap_instance *in)

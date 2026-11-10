@@ -276,22 +276,68 @@ struct omx_clap_stage
     // guard that records the first change is the instance's, guard_off bytes after the stage (omx_clap_host_abi_clobber)
     uint32_t guard_off;                                 ///< bytes from the stage to the instance's guard; 0: a stage of its own,
                                                         ///< whose calls are guarded and not recorded
-    // ABI 21, appended after guard_off: the bypass dry-path delay (#1) — a commanded bypass's dry output lags the
-    // input by the published latency, so bypass does not shift alignment against the rest of the chain's own
-    // compensation. Armed at activate, and rearmed on every later latency publish, by the control thread holding the
-    // audio role (arm_bypass_delay, clap_host.c); the RT only writes and reads the ring, no allocation, no lock.
-    float *bypass_ring;                                 ///< bypass_ring_channels rings of bypass_ring_cap frames each, back to
-                                                        ///< back; NULL while unarmed (no latency published, or the allocation failed)
-    uint32_t bypass_ring_cap;                           ///< frames each channel's ring holds, the latency plus one; 0 unarmed
-    uint32_t bypass_ring_channels;                      ///< channels the ring is sized for (the main output's)
-    uint32_t bypass_ring_frames;                        ///< the delay applied, the latency last published; < bypass_ring_cap
-    uint32_t bypass_ring_pos;                           ///< RT-owned: the next write slot, shared by every channel's ring
 };
 
 /** the guard that records the plugin's clobbers: the instance's, or NULL for a stage of its own (ABI 20) */
 static inline struct omx_abi_guard *omx_clap_stage_guard(const struct omx_clap_stage *s)
 {
     return s->guard_off ? (struct omx_abi_guard *)((char *)(uintptr_t)s + s->guard_off) : NULL;
+}
+
+/**
+ * The bypass dry-path delay (#1, ABI 21): a commanded bypass's dry output lags the input by the published latency, so
+ * bypass does not shift alignment against the rest of the chain's own compensation. One ring of `cap` frames per main
+ * output channel, back to back. It lives at the instance's tail, after its guard and keeps_on, so the stage and every
+ * field of the instance keep their offsets; the stage reaches it through guard_off (omx_clap_stage_bypass_delay). The
+ * control thread arms it holding the audio role (omx_clap_bypass_delay_set); the RT only writes and reads the ring.
+ */
+struct omx_clap_bypass_delay
+{
+    float *ring;        ///< `channels` rings of `cap` frames each, back to back; NULL while unarmed
+    uint32_t cap;       ///< frames each channel's ring holds, the delay plus one; 0 unarmed
+    uint32_t channels;  ///< channels the ring is sized for (the main output's)
+    uint32_t frames;    ///< the delay applied, the latency last published; < cap
+    uint32_t pos;       ///< RT-owned: the next write slot, shared by every channel's ring
+};
+
+/** The instance's tail from its guard on (ABI 20 and 21), as clap_host.h lays it out: where a stage finds its delay. */
+struct omx_clap_guard_tail
+{
+    struct omx_abi_guard abi;                     ///< the instance's guard, guard_off bytes after its stage
+    int keeps_on;                                 ///< the instance's keeps_on
+    struct omx_clap_bypass_delay bypass_delay;    ///< the instance's bypass dry-path delay
+};
+
+/** the bypass dry-path delay of the instance holding the stage, or NULL for a stage of its own (ABI 21) */
+static inline struct omx_clap_bypass_delay *omx_clap_stage_bypass_delay(const struct omx_clap_stage *s)
+{
+    return s->guard_off ? (struct omx_clap_bypass_delay *)((char *)(uintptr_t)s + s->guard_off
+                                                           + offsetof(struct omx_clap_guard_tail, bypass_delay))
+                        : NULL;
+}
+
+/** The floats a ring for `frames` of delay on `channels` channels holds: 0 when either is 0, the delay unarmed. */
+static inline size_t omx_clap_bypass_delay_floats(uint32_t channels, uint32_t frames)
+{
+    return frames && channels ? (size_t)(frames + 1u) * channels : 0u;
+}
+
+/**
+ * Control thread, holding the audio role: arm the delay on `ring`, omx_clap_bypass_delay_floats(channels, frames)
+ * zeroed floats the caller allocated, or disarm it with NULL. Returns the ring it held, which the caller frees once it
+ * has released the role. Allocates and frees nothing.
+ */
+static inline float *omx_clap_bypass_delay_set(struct omx_clap_bypass_delay *d, float *ring, uint32_t channels, uint32_t frames)
+{
+    float *const old = d->ring;
+    const int armed = ring != NULL && omx_clap_bypass_delay_floats(channels, frames) != 0u;
+
+    d->ring = armed ? ring : NULL;
+    d->cap = armed ? frames + 1u : 0u;
+    d->channels = armed ? channels : 0u;
+    d->frames = armed ? frames : 0u;
+    d->pos = 0u;
+    return old;
 }
 
 /**
@@ -1940,35 +1986,6 @@ static inline uint32_t omx_clap_main_in_channels(const struct omx_clap_stage *s)
     return !s->h.n_in ? 0 : s->passthrough ? s->ain.channel_count : s->proc.audio_inputs[0].channel_count;
 }
 
-/**
- * Control thread: (re)size the stage's bypass dry-path delay ring (#1) for `frames` of delay on `channels` channels
- * of main output. A no-op when the ring already serves this (frames, channels) pair. `frames` or `channels` 0 frees
- * the ring and leaves the dry path unarmed (the immediate copy, omx_clap_ports_dry). The caller (arm_bypass_delay,
- * clap_host.c) holds the audio role around this call, since the RT reads bypass_ring_cap/frames/channels with no
- * lock; a stage with no owning instance (a unit test) may call it directly, nothing else touching these fields
- * outside a block. Allocates (calloc, freed from the old ring): never called from the RT.
- */
-static inline void omx_clap_stage_arm_bypass_delay(struct omx_clap_stage *s, uint32_t channels, uint32_t frames)
-{
-    const uint32_t cap = frames && channels ? frames + 1u : 0u;
-    float *ring = NULL;
-
-    if (frames == s->bypass_ring_frames && channels == s->bypass_ring_channels)
-        return;     // the ring already serves this latency: nothing to rearm
-    if (cap)
-    {
-        ring = calloc((size_t)cap * channels, sizeof(float));
-        if (!ring)
-            return;     // the dry path falls back to the immediate copy sooner than crash over it
-    }
-    free(s->bypass_ring);
-    s->bypass_ring = ring;
-    s->bypass_ring_cap = ring ? cap : 0u;
-    s->bypass_ring_channels = ring ? channels : 0u;
-    s->bypass_ring_frames = ring ? frames : 0u;
-    s->bypass_ring_pos = 0u;
-}
-
 /** RT: the dry block of the wide path: output channel `c` is input channel c, the last input past them, silence for a
  * source. */
 static inline void omx_clap_ports_dry(const float *const *ins, uint32_t n_in, float *const *outs, uint32_t n_out, uint32_t n)
@@ -1993,15 +2010,16 @@ static inline void omx_clap_ports_dry(const float *const *ins, uint32_t n_in, fl
 
 /**
  * RT: the bypass dry-path delay (#1): each of the `n_out` channels gets `ins[c]` (the last input past n_in, silence
- * for a source, as omx_clap_ports_dry maps them) written into its own ring and the sample `bypass_ring_frames` behind
+ * for a source, as omx_clap_ports_dry maps them) written into its own ring and the sample the delay's `frames` behind
  * the one just written read back onto `outs[c]`, so a commanded bypass's dry path lags the input the same as the
  * published latency the wet path would cost. Falls back to the immediate copy (omx_clap_ports_dry) while the ring is
- * unarmed: no latency published, or arm_bypass_delay's allocation failed. `ins[c] == outs[c]` (an in-place lane) is
+ * unarmed (no latency published, or arm_bypass_delay's allocation failed) and for a stage of its own, which has none. `ins[c] == outs[c]` (an in-place lane) is
  * safe: the sample is read into a local before the ring it feeds is written.
  */
 static inline void omx_clap_bypass_dry(struct omx_clap_stage *s, const float *const *ins, uint32_t n_in, float *const *outs, uint32_t n_out, uint32_t n)
 {
-    const uint32_t cap = s->bypass_ring_cap, delay = s->bypass_ring_frames;
+    struct omx_clap_bypass_delay *const d = omx_clap_stage_bypass_delay(s);
+    const uint32_t cap = d ? d->cap : 0u, delay = d ? d->frames : 0u;
     uint32_t pos, c;
 
     if (cap == 0u || n_out == 0u)
@@ -2009,10 +2027,10 @@ static inline void omx_clap_bypass_dry(struct omx_clap_stage *s, const float *co
         omx_clap_ports_dry(ins, n_in, outs, n_out, n);
         return;
     }
-    pos = s->bypass_ring_pos;
-    for (c = 0; c < n_out && c < s->bypass_ring_channels; c++)
+    pos = d->pos;
+    for (c = 0; c < n_out && c < d->channels; c++)
     {
-        float *const ring = s->bypass_ring + (size_t)c * cap;
+        float *const ring = d->ring + (size_t)c * cap;
         const float *const in = n_in == 0 ? NULL : ins[c < n_in ? c : n_in - 1];
         uint32_t p = pos, i;
 
@@ -2028,7 +2046,7 @@ static inline void omx_clap_bypass_dry(struct omx_clap_stage *s, const float *co
             p = (p + 1u == cap) ? 0u : p + 1u;
         }
     }
-    s->bypass_ring_pos = (uint32_t)(((uint64_t)pos + n) % cap);
+    d->pos = (uint32_t)(((uint64_t)pos + n) % cap);
 }
 
 /* the two-leg body; 1 when the plugin wrote this block's auxiliary outputs usable, 0 when the caller silences them */

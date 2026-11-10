@@ -68,11 +68,15 @@
         "src/clap_host.c#wait_stopped",
         "src/effects.c#clap_state_save",
         "src/effects.c#configure_lv2_with",
-        "src/idle_hold.c#idle_hold_target_default"
+        "src/idle_hold.c#idle_hold_target_default",
+        "src/effects.h#g_effects",
+        "src/window.c#g_windows"
       ]
     },
-    "doc": "The numbers a hosted plugin's stage limits itself to: the warm-up before it is published, the blocks of non-finite output that strike it, the level its output is clamped at, the parameter queue and the events one block delivers, the polls and timeouts of the hand-over between threads, the ports the core accepts and the caps on a plugin's state, log and parameter count. These are the stage's safety numbers, not an operator's travel.",
+    "doc": "The numbers a hosted plugin's stage limits itself to: the warm-up before it is published, the blocks of non-finite output that strike it, the level its output is clamped at, the parameter queue and the events one block delivers, the polls and timeouts of the hand-over between threads, the ports the core accepts and the caps on a plugin's state, log and parameter count, and the instance table's own width. These are the stage's safety numbers, not an operator's travel.",
     "value": {
+      "maxPluginInstances": 9990,
+      "maxToolInstances": 10,
       "warmupBlocks": 64,
       "warmupLevelDbfs": -6,
       "nonFiniteStrikes": 3,
@@ -96,6 +100,8 @@
       "idleHoldUs": 10
     },
     "docs": {
+      "maxPluginInstances": "the widest instance id a plugin add is given; ids at or past it are the host's own tool instances",
+      "maxToolInstances": "the tool instances the host keeps beyond maxPluginInstances, addressed at maxPluginInstances and up",
       "warmupLevelDbfs": "the level of the warm-up signal, in dBFS",
       "nonFiniteStrikes": "the blocks of non-finite output that strike a stage",
       "clampDbfs": "the level the output is clamped at, in dBFS",

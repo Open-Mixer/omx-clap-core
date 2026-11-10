@@ -36,7 +36,7 @@
 /** the stage and the host: every number the core reads */
 #define OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES 9990u  ///< the widest instance id a plugin add is given; ids at or past it are the host's own tool instances
 #define OMX_HOSTED_STAGE_MAX_TOOL_INSTANCES 10u  ///< the tool instances the host keeps beyond maxPluginInstances, addressed at maxPluginInstances and up
-#define OMX_HOSTED_STAGE_WARMUP_BLOCKS 64u
+#define OMX_HOSTED_STAGE_WARMUP_BLOCKS 64u  ///< the blocks run through a plugin before it is published, the first half at the warm-up level and the rest silent
 #define OMX_HOSTED_STAGE_WARMUP_LEVEL_DBFS -6.0f  ///< the level of the warm-up signal, in dBFS
 #define OMX_HOSTED_STAGE_NON_FINITE_STRIKES 3u  ///< the blocks of non-finite output that strike a stage
 #define OMX_HOSTED_STAGE_CLAMP_DBFS 24.0f  ///< the level the output is clamped at, in dBFS

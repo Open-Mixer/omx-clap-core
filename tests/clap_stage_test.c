@@ -107,7 +107,7 @@ static int failures = 0;
   } while (0)
 
 /* ---- the fake plugins: one instance shape, behaviour chosen by kind ---- */
-enum kind { K_PAD, K_CLOBBER, K_NAN, K_HOT, K_ERROR, K_CONSTANT, K_ALLOC, K_TALK, K_NOTES };
+enum kind { K_PAD, K_CLOBBER, K_NAN, K_HOT, K_ERROR, K_CONSTANT, K_ALLOC, K_TALK, K_NOTES, K_DELAY };
 struct fake {
   clap_plugin_t plugin; /* first, so plugin_data may simply be the fake */
   enum kind kind;
@@ -138,7 +138,12 @@ struct fake {
   int aux_nan;           /* the auxiliary outputs written NaN instead, the main output still finite */
   int scribble;          /* after the block, its main input written over, as a plugin that processes in place without an
                           * in_place_pair does */
+  /* K_DELAY: a real sample delay of its own reported latency (pad_latency_frames), its ring past any RATES latency
+   * (FAKE_DELAY_CAP), so the wet reference and the bypass ring (#1) can be compared sample for sample */
+  float delay_ring[2][64];
+  uint32_t delay_pos;
 };
+#define FAKE_DELAY_CAP 64u
 
 #define PAD_GAIN 0.1f /* -20 dB, the fake's own definition */
 /* The fake's latency is a DURATION (1/6000 s) it reports in frames at its own rate, floored. */
@@ -265,10 +270,27 @@ static clap_process_status f_process_own(const clap_plugin_t *p, const clap_proc
         for (uint32_t i = 1; i < n; i++) out[i] = NAN;
         ao->constant_mask |= (uint64_t)1 << c;
         break;
+      case K_DELAY: {
+        /* a true sample delay of pad_latency_frames(rate): the wet reference the bypass ring (#1) is measured against */
+        const uint32_t lat = pad_latency_frames(f->rate), cap = FAKE_DELAY_CAP;
+        float *const ring = f->delay_ring[c < 2 ? c : 1];
+        uint32_t p = f->delay_pos;
+
+        for (uint32_t i = 0; i < n; i++) {
+          uint32_t read = p + cap - lat;
+
+          if (read >= cap) read -= cap;
+          out[i] = ring[read];
+          ring[p] = in[i];
+          p = (p + 1u == cap) ? 0u : p + 1u;
+        }
+        break;
+      }
       default:
         for (uint32_t i = 0; i < n; i++) out[i] = in[i] * PAD_GAIN;
     }
   }
+  if (f->kind == K_DELAY) f->delay_pos = (f->delay_pos + n) % FAKE_DELAY_CAP;
   if (f->kind == K_TALK && pr->out_events) {
     clap_event_param_value_t e;
     memset(&e, 0, sizeof e);
@@ -440,6 +462,48 @@ static void t_bypass_reset(void) {
   run(&g, l, r, 100);
   CHECK(g.f.resets == 0 && atomic_load(&g.st.resets) == 0, "the body never calls reset() (%u)", g.f.resets);
   CHECK(l[50] == dl[50] * PAD_GAIN, "wet again after re-engage");
+}
+
+/* ---- BYPASS DRY-PATH DELAY (#1): a commanded bypass's dry output lags the input by the published latency, so it
+ * stays aligned with a wet path's own compensation. K_DELAY is a real sample delay of its own reported latency
+ * (pad_latency_frames): an impulse through it engaged (wet) and the same impulse through a bypassed stage armed with
+ * the ring (omx_clap_stage_arm_bypass_delay) land on the same sample; disarming (0 frames) drops back to the
+ * immediate copy, following a later latency change as arm_bypass_delay (clap_host.c) would make it. */
+static void t_bypass_delay(void) {
+  struct rig wet, dry;
+  rig_up(&wet, K_DELAY, 2, QCAP);
+  rig_up(&dry, K_DELAY, 2, QCAP);
+  const uint32_t lat = pad_latency_frames((double)g_rate);
+  float wl[MAXB], wr[MAXB], dl[MAXB], dr[MAXB];
+  int i;
+
+  omx_clap_set_bypass(&dry.st, 1);      /* bypassed before the first block: the IDLE path from the start, no crossfade */
+  omx_clap_stage_arm_bypass_delay(&dry.st, 2, lat);
+  CHECK(dry.st.bypass_ring != NULL && dry.st.bypass_ring_frames == lat, "the ring is armed for the published latency (%u)", lat);
+
+  for (i = 0; i < 4; i++) { /* warm-up past the plugin's own fade-in, on silence: the ring holds only zeros either way */
+    fill(wl, 64, 0.0f), fill(wr, 64, 0.0f);
+    run(&wet, wl, wr, 64);
+    fill(dl, 64, 0.0f), fill(dr, 64, 0.0f);
+    run(&dry, dl, dr, 64);
+  }
+  fill(wl, 64, 0.0f), fill(wr, 64, 0.0f);
+  wl[0] = 1.0f, wr[0] = 1.0f;
+  run(&wet, wl, wr, 64);
+  fill(dl, 64, 0.0f), fill(dr, 64, 0.0f);
+  dl[0] = 1.0f, dr[0] = 1.0f;
+  run(&dry, dl, dr, 64);
+  CHECK(bytes_equal(wl, dl, 64) && bytes_equal(wr, dr, 64),
+        "@%.0f: an impulse through the plugin and through the bypass dry delay align at the sample (lat %u)",
+        (double)g_rate, lat);
+  CHECK(wl[lat] == 1.0f && dl[lat] == 1.0f, "@%.0f: both put the impulse exactly %u frames later (%g, %g)",
+        (double)g_rate, lat, (double)wl[lat], (double)dl[lat]);
+
+  omx_clap_stage_arm_bypass_delay(&dry.st, 0, 0); /* a latency of 0 disarms it: the dry path is the immediate copy again */
+  fill(dl, 64, 0.0f), fill(dr, 64, 0.0f);
+  dl[0] = 1.0f, dr[0] = 1.0f;
+  run(&dry, dl, dr, 64);
+  CHECK(dl[0] == 1.0f && dr[0] == 1.0f, "disarmed: the dry path is the immediate copy again (%g)", (double)dl[0]);
 }
 
 /* ---- 5. EVENT DRAIN: order, fields, two blocks, a full ring ---- */
@@ -1524,18 +1588,26 @@ static void t_note_priority(void) {
   const size_t wide_end = offsetof(struct omx_clap_stage, wide) + sizeof NS.wide;
   const size_t pass_end = offsetof(struct omx_clap_stage, passthrough) + sizeof NS.passthrough;
   const size_t tail_end = offsetof(struct omx_clap_stage, guard_off) + sizeof NS.guard_off;
+  const size_t ring_at = (tail_end + ptr_align - 1) / ptr_align * ptr_align;
+  const size_t ring_end = offsetof(struct omx_clap_stage, bypass_ring_pos) + sizeof NS.bypass_ring_pos;
 
   /* releases_dropped (ABI 5) follows start_refused with no gap, the wide bounce (ABI 13) follows it, the two words after
-   * it (ABI 14 aux_bound_channels, ABI 15 passthrough) follow, and the guard's offset (ABI 20) closes the structure in
-   * what was its tail padding: every member before it keeps its offset and the size is the size of ABI 15. The ABI check cannot see the atomic ones (libabigail leaves _Atomic members
-   * out), so this is the check. */
+   * it (ABI 14 aux_bound_channels, ABI 15 passthrough) follow, the guard's offset (ABI 20) follows that, and the bypass
+   * delay ring (ABI 21, #1) closes the structure: every member before it keeps its offset and the size is the size of
+   * ABI 21. The ABI check cannot see the atomic ones (libabigail leaves _Atomic members out), so this is the check. */
   CHECK(offsetof(struct omx_clap_stage, releases_dropped) == before && offsetof(struct omx_clap_stage, wide_in) == wide_at &&
         offsetof(struct omx_clap_stage, aux_bound_channels) == wide_end &&
         offsetof(struct omx_clap_stage, passthrough) == wide_end + sizeof NS.aux_bound_channels &&
         offsetof(struct omx_clap_stage, guard_off) == pass_end &&
-        sizeof(struct omx_clap_stage) == (tail_end + align - 1) / align * align &&
-        sizeof(struct omx_clap_stage) == (pass_end + align - 1) / align * align,
-        "releases_dropped follows start_refused (%zu), the wide bounce follows it (%zu), the ABI 14 and 15 words and the ABI 20 offset close it, in the old size: %zu",
+        offsetof(struct omx_clap_stage, bypass_ring) == ring_at &&
+        offsetof(struct omx_clap_stage, bypass_ring_cap) == ring_at + sizeof NS.bypass_ring &&
+        offsetof(struct omx_clap_stage, bypass_ring_channels) == ring_at + sizeof NS.bypass_ring + sizeof NS.bypass_ring_cap &&
+        offsetof(struct omx_clap_stage, bypass_ring_frames) ==
+            ring_at + sizeof NS.bypass_ring + sizeof NS.bypass_ring_cap + sizeof NS.bypass_ring_channels &&
+        offsetof(struct omx_clap_stage, bypass_ring_pos) == ring_end - sizeof NS.bypass_ring_pos &&
+        sizeof(struct omx_clap_stage) == (ring_end + align - 1) / align * align,
+        "releases_dropped follows start_refused (%zu), the wide bounce follows it (%zu), the ABI 14, 15 and 20 words and the"
+        " ABI 21 ring close it, in the new size: %zu",
         offsetof(struct omx_clap_stage, releases_dropped), offsetof(struct omx_clap_stage, wide_in), sizeof(struct omx_clap_stage));
 
   for (d = 0; d < 3; d++) {
@@ -2056,6 +2128,7 @@ int main(void) {
     t_pad();
     t_mono();
     t_bypass_reset();
+    t_bypass_delay();
     t_events();
     t_constant();
     t_discard(K_ERROR);

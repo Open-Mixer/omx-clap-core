@@ -1951,6 +1951,12 @@ static void drop_bounce(struct omx_clap_instance *in)
     in->bounce_map = NULL;
     free(in->recs);
     in->recs = NULL;
+    free(in->stage.bypass_ring);
+    in->stage.bypass_ring = NULL;
+    in->stage.bypass_ring_cap = 0u;
+    in->stage.bypass_ring_channels = 0u;
+    in->stage.bypass_ring_frames = 0u;
+    in->stage.bypass_ring_pos = 0u;
 }
 
 /* the ports, then the note ids over the stage's sink: every id free, held OMX_CLAP_NOTE_ID_HOLD_MS at the rate */
@@ -1963,10 +1969,31 @@ static int bind_stage(struct omx_clap_instance *in)
     return 0;
 }
 
+/* control thread: (re)arm the bypass dry-path delay for the latency just published (#1) — a commanded bypass's dry
+ * path is then delayed the same frames the wet path costs, so bypass does not shift alignment against the rest of
+ * the chain's own compensation. Ringed per main output channel, sized frames + 1 so a full delay never reads the
+ * sample just written; frames 0 disarms it, the dry path the immediate copy it always was. Swaps the ring while
+ * holding the audio role, so the RT never sees a half-built one; the RT itself allocates nothing. */
+static void arm_bypass_delay(struct omx_clap_instance *in, uint32_t frames)
+{
+    struct omx_clap_stage *s = &in->stage;
+    const uint32_t channels = in->main_out.channels;
+    struct omx_clap_role role;
+
+    if (frames == s->bypass_ring_frames && channels == s->bypass_ring_channels)
+        return;     // the ring already serves this latency: nothing to rearm
+    omx_clap_host_take_role(in, &role);
+    omx_clap_stage_arm_bypass_delay(s, channels, frames);
+    omx_clap_host_release_role(in, &role, role.state);
+}
+
 static void publish_latency(struct omx_clap_instance *in)
 {
     // a pass-through tool's latency applies to its notes alone: the audio it does not touch has none
-    omx_clap_publish_latency(&in->stage, in->latency && !in->passthrough ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "latency.get", in->latency->get, in->plugin) : 0u);
+    const uint32_t frames = in->latency && !in->passthrough ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "latency.get", in->latency->get, in->plugin) : 0u;
+
+    omx_clap_publish_latency(&in->stage, frames);
+    arm_bypass_delay(in, frames);
 }
 
 /* no cycle came to stop the stage: the control thread stops it in the cycle's place */

@@ -14,3 +14,8 @@ Lines for the next release; the release moves them into debian/changelog and the
 - `effects_monitor_output_off` stops reading an output. A monitor ends with the connection that set it. With nothing
   monitored the plugin is read zero times.
 - docs/meters.md: the plugin holds, the reader recovers.
+- The state root is made at 0700 (an existing, looser one is brought to it as well), a dead instance's
+  `lv2-<pid>-<n>` directories and `.saved` copies are pruned at the next start, and the process's cwd moves into the
+  root so a plugin that writes relative to its cwd (clap-protoplug) writes there and not wherever the host started.
+- `MAX_PLUGIN_INSTANCES`/`MAX_TOOL_INSTANCES` are read from the rendered contract header
+  (`OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES`/`_MAX_TOOL_INSTANCES`), not restated as a local `#define`.

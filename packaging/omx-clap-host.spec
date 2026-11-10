@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.31.0
+Version:        0.31.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -13,9 +13,9 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.0 with plugin-hostd-protocol-devel < 0.6)
+BuildRequires: (plugin-hostd-protocol-devel >= 0.5.2 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.3.0 with plugin-db-devel < 0.4)
+BuildRequires: (plugin-db-devel >= 0.3.1 with plugin-db-devel < 0.4)
 BuildRequires: (clap-devel >= 1.2.7 with clap-devel < 2)
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
@@ -35,7 +35,7 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.0 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.2 with plugin-hostd-protocol%{?_isa} < 0.6)
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -200,6 +200,16 @@ make test-lv2
 %{_includedir}/omx-clap-lv2/
 
 %changelog
+* Mon Nov 09 2026 Pau Aliagas <linuxnow@gmail.com> - 0.31.1-1
+- the instance data races: active and latency_published are atomic (#531)
+- every code's Catalan moves to catalogs/ca.json, the source sentence stays in
+  data (#532)
+- remote_pages, audio_ports, hide_external_ui, note_drops and note_out_drops
+  refuse an instance word that is no number (#533)
+- the ThreadSanitizer test program is a build product, no longer tracked (#534)
+- built against plugin-hostd-protocol >= 0.5.2 and < 0.6, plugin-db >= 0.3.1
+  and < 0.4, omx-dsp >= 0.32.0 and < 0.33, omx-contract >= 3.12.0 and < 4
+
 * Sun Nov 08 2026 Pau Aliagas <linuxnow@gmail.com> - 0.31.0-1
 - Held meters: a plugin that holds its block value until the host reads it is
   read at omx-dsp's host read rate, with a level meter's clip word;

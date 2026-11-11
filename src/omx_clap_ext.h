@@ -353,8 +353,8 @@ enum
 /** A property write: forged into the plugin's patch port as a patch:Set (a later step). */
 typedef struct omx_clap_event_property
 {
-    clap_event_header_t header;
-    clap_id property_id;
+    clap_event_header_t header;  ///< space_id the registry's answer for OMX_CLAP_EVENT_SPACE_PROPERTIES, type OMX_CLAP_EVENT_PROPERTY_SET
+    clap_id property_id;         ///< an omx_clap_property_info_t id
     uint32_t size;      ///< bytes at `value`, the terminating NUL included; 1..OMX_CLAP_PROPERTY_VALUE_MAX
     const char *value;  ///< UTF-8, NUL-terminated
 } omx_clap_event_property_t;

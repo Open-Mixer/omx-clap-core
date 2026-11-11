@@ -11,3 +11,7 @@ Lines for the next release; the release moves them into debian/changelog and the
   right after it wakes never replays the input from before the sleep.
 - The instance ABI is 21: `struct omx_clap_bypass_delay` added at the tail of `struct omx_clap_instance`. No field
   moves, the layout stays compatible under `libomx-clap-core.so.1`.
+- A bundle directory with a space in its name (the world writes it `file://` percent-encoded, `%20`) is matched and
+  a preset's file URI decoded by plugin-hostd-protocol's `phd_pin_path_decode`, not a hand loop that kept a stray `%`
+  or an escaped NUL. Built against plugin-hostd-protocol >= 0.5.2 and < 0.6, which already covers the decoder
+  (declared at 0.4.1).

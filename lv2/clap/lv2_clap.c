@@ -142,6 +142,7 @@ struct shim
     const clap_host_t *host;
     const clap_host_log_t *host_log;
     const clap_host_thread_check_t *host_thread;
+    bool properties_granted;        // the host's clap.event-registry answered org.openmixer.properties at init
     struct lv2_plugin *lv2;
     struct lv2_instance *in;
     int32_t *control_of_port;           // port index -> control index, -1 for a port that is not a control
@@ -923,7 +924,9 @@ static const omx_clap_plugin_param_contract_ext_t g_contract = { contract_versio
 static bool plugin_init(const clap_plugin_t *plugin)
 {
     struct shim *s = SHIM_OF(plugin);
+    const clap_host_event_registry_t *registry;
     char why[LV2_CORE_WHY_MAX];
+    uint16_t space = UINT16_MAX;
     uint32_t k;
 
     g_last_refusal[0] = '\0';
@@ -947,6 +950,10 @@ static bool plugin_init(const clap_plugin_t *plugin)
     if (s->host_thread && s->host_thread->is_audio_thread)
         lv2_instance_set_role(s->in, shim_is_audio, s);
     contract_make(s);
+    // org.openmixer.properties/1 needs the host's id for its event space: a host with no registry, or one that does not
+    // know the space, gets no property
+    registry = s->host->get_extension ? s->host->get_extension(s->host, CLAP_EXT_EVENT_REGISTRY) : NULL;
+    s->properties_granted = registry && registry->query && registry->query(s->host, OMX_CLAP_EVENT_SPACE_PROPERTIES, &space);
     return true;
 }
 
@@ -1479,8 +1486,59 @@ static bool hints_get(const clap_plugin_t *plugin, omx_resource_hints_t *hints)
 
 static const omx_clap_plugin_resource_hints_t g_resource_hints = { hints_get };
 
+/* org.openmixer.properties/1: the text patch:writable properties, one each, from the table the adapter's own text
+ * functions read. None where the host's event registry did not answer the space at init. */
+static uint32_t properties_count(const clap_plugin_t *plugin)
+{
+    const struct shim *s = SHIM_OF(plugin);
+
+    return s->properties_granted ? s->lv2->n_texts : 0;
+}
+
+static bool properties_get_info(const clap_plugin_t *plugin, uint32_t index, omx_clap_property_info_t *info)
+{
+    const struct shim *s = SHIM_OF(plugin);
+    const struct lv2_patch_text *t;
+
+    if (!info || index >= properties_count(plugin))
+        return false;
+    t = &s->lv2->texts[index];
+    memset(info, 0, sizeof(*info));
+    info->id = t->id;
+    snprintf(info->symbol, sizeof(info->symbol), "%s", t->symbol);
+    snprintf(info->name, sizeof(info->name), "%s", t->name);
+    info->kind = t->is_path ? OMX_CLAP_PROPERTY_PATH : OMX_CLAP_PROPERTY_STRING;
+    info->flags = OMX_CLAP_PROPERTY_IS_WRITABLE | (t->readable ? OMX_CLAP_PROPERTY_IS_READABLE : 0u);
+    return true;
+}
+
+static int32_t properties_get_value(const clap_plugin_t *plugin, clap_id id, char *value, uint32_t capacity)
+{
+    const struct shim *s = SHIM_OF(plugin);
+    const uint32_t n = properties_count(plugin);
+    char text[LV2_CORE_TEXT_MAX];
+    uint32_t j, len;
+
+    for (j = 0; j < n && s->lv2->texts[j].id != id; j++)
+        ;
+    if (j == n || !s->lv2->texts[j].readable || !s->in)
+        return -1;
+    len = lv2_instance_text_get(s->in, j, text, sizeof(text));
+    if (len >= sizeof(text))
+        len = sizeof(text) - 1u;
+    if (!value || len >= capacity)
+        return (int32_t)len;
+    memcpy(value, text, len);
+    value[len] = '\0';
+    return (int32_t)len;
+}
+
+static const omx_clap_plugin_properties_t g_properties = { properties_count, properties_get_info, properties_get_value };
+
 static const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 {
+    if (!strcmp(id, OMX_CLAP_EXT_PROPERTIES))
+        return &g_properties;
     if (!strcmp(id, OMX_CLAP_EXT_PARAM_CONTRACT))
         return SHIM_OF(plugin)->contracted ? &g_contract : NULL;
     if (!strcmp(id, OMX_CLAP_EXT_RESOURCE_HINTS_DRAFT))

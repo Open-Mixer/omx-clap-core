@@ -358,6 +358,9 @@ struct lv2_patch_text
     char *uri;                      // the property's URI, as the patch messages name it
     char *name;                     // rdfs:label, else the URI
     int is_path;                    // 1: atom:Path, 0: atom:String
+    char *symbol;                   // lv2:symbol, else the URI's tail in the parameter symbols' grammar
+    uint32_t id;                    // the port count plus its index among the patch:writable URIs: no parameter's id
+    int readable;                   // 1: the plugin lists it as patch:readable too
 };
 
 /* What the instance counts, read relaxed. */

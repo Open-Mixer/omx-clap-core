@@ -20,3 +20,9 @@ Lines for the next release; the release moves them into debian/changelog and the
 - `MAX_PLUGIN_INSTANCES`/`MAX_TOOL_INSTANCES` are read from the rendered contract header
   (`OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES`/`_MAX_TOOL_INSTANCES`), not restated as a local `#define`.
 - `omx-clap-scan` frees every path its walk and its argument list built before it exits, on every path out of `main`.
+- A bypassed plugin's dry path is delayed by the latency the plugin publishes: with none the input passes in the same
+  block, as before; with some it comes out that many frames later, so a bypass does not move the lane against the
+  latency the rest of the chain compensates for. The crossfades into and out of a bypass read the same delayed input,
+  on a lane and in a chain alike.
+- The instance ABI is 21: `struct omx_clap_bypass_delay` added at the tail of `struct omx_clap_instance`. No field
+  moves, the layout stays compatible under `libomx-clap-core.so.1`.

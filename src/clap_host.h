@@ -1300,7 +1300,8 @@ static inline int omx_clap_sleep_reads(const struct omx_clap_instance *in)
 
 /** The audio role, ahead of a block whose input is `silent` and whose transport record is `rec`: the transport kept for
  * the next block's comparison, and 1 when the plugin sleeps through this one (its clock moved on, its auxiliary outputs
- * silent, the lane left as it is), 0 when it runs, woken when it slept. */
+ * silent, the block's silence written into the bypass dry delay, the lane left as it is), 0 when it runs, woken when
+ * it slept. */
 static inline int omx_clap_host_sleep_skip(struct omx_clap_instance *in, const struct omx_clap_transport *rec, int silent, uint32_t n)
 {
     struct omx_clap_sleep *z = &in->sleep;
@@ -1320,6 +1321,9 @@ static inline int omx_clap_host_sleep_skip(struct omx_clap_instance *in, const s
             in->stage.steady_time += (int64_t)n;    // the plugin's clock moves on while it sleeps
             atomic_fetch_add_explicit(&z->skipped, 1u, memory_order_relaxed);
             omx_clap_aux_out_silence(&in->stage, n);    // a sleeping plugin writes nothing: its auxiliary outputs are silent
+            // the block slept through is silent input: the bypass dry delay holds it like any other block, so a bypass
+            // commanded within the latency of the waking reads silence for it, never the input from before the sleep
+            omx_clap_bypass_feed(&in->stage, NULL, 0u, in->stage.h.n_out, n);
             return 1;
         }
         z->asleep = 0;

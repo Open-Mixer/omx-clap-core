@@ -290,8 +290,9 @@ static inline struct omx_abi_guard *omx_clap_stage_guard(const struct omx_clap_s
  * output channel, back to back. It lives at the instance's tail, after its guard and keeps_on, so the stage and every
  * field of the instance keep their offsets; the stage reaches it through guard_off (omx_clap_stage_bypass_delay). The
  * control thread arms it holding the audio role (omx_clap_bypass_delay_set); the RT only writes and reads the ring.
- * The RT writes every block it processes into the ring, wet or dry (omx_clap_bypass_feed, omx_clap_bypass_side), so
- * the block a bypass is commanded on already finds the input of the frames before it there.
+ * The RT writes every block it processes into the ring, wet or dry (omx_clap_bypass_feed, omx_clap_bypass_side), and
+ * silence for every block a sleeping plugin skips (omx_clap_host_sleep_skip), so the block a bypass is commanded on
+ * already finds the input of the frames before it there.
  */
 struct omx_clap_bypass_delay
 {

@@ -1180,6 +1180,84 @@ static void t_layout_description(const char *path)
 }
 
 /*
+ * A plugin that sleeps and the bypass dry path (#1): the blocks slept through are silent input the dry delay must hold
+ * like any other, or a bypass commanded within the latency of the waking would read the input from before the sleep in
+ * their place. A ramp, one silent block processed (the quiet period, shorter than the latency), one slept through, then
+ * the bypass with the ramp resumed: the block it is commanded on fades from the plugin's output to the input of the
+ * latency before, and the steady blocks after it are that delayed input bit for bit, the slept block's silence in it.
+ */
+static void sleep_bypass_checks(const char *path, double rate)
+{
+    enum { N = 16, TOTAL = 20 * N };
+    struct omx_clap_instance *in = NULL;
+    char why[OMX_CLAP_WHY_MAX];
+    float hist[2][TOTAL], l[N], r[N], d[2][N], want[2][N], k = 1.0f;
+    uint32_t fed = 0, lat = 0;
+    uint64_t skipped = 0;
+    int at = -1, fade_at = -1, b;
+
+    setenv("FAKE_PROCESS_SLEEP", "1", 1);
+    CHECK(open_ok(path, FAKE_PASSTHROUGH, &in), "@%.0f: open %s answering SLEEP", rate, FAKE_PASSTHROUGH);
+    unsetenv("FAKE_PROCESS_SLEEP");
+    if (!in)
+        return;
+    CHECK(omx_clap_host_activate(in, rate, BLOCK, why) == 0, "@%.0f: and activate it", rate);
+    omx_clap_host_publish(in, pthread_self());
+    lat = omx_clap_host_latency(in);
+    in->sleep.quiet_min_frames = N;     // one silent block is the whole quiet period
+    for (b = 0; b < 16; b++)
+    {
+        const int sounds = b < 8 || b >= 10;    // blocks 8 and 9 are silent: 8 is processed, 9 slept through
+
+        if (b == 9)
+            skipped = atomic_load(&in->sleep.skipped);
+        if (b == 10)
+        {
+            CHECK(in->sleep.asleep && atomic_load(&in->sleep.skipped) == skipped + 1,
+                  "@%.0f: one silent block (%d frames, under the latency of %u) put it to sleep and the next was slept through (asleep %d, %llu skipped)",
+                  rate, N, lat, in->sleep.asleep, (unsigned long long)(atomic_load(&in->sleep.skipped) - skipped));
+            omx_clap_host_bypass(in, 1);    // commanded on the block that wakes it
+        }
+        for (int i = 0; i < N; i++, k += sounds ? 1.0f : 0.0f)
+        {
+            hist[0][fed + (uint32_t)i] = l[i] = sounds ? k : 0.0f;
+            hist[1][fed + (uint32_t)i] = r[i] = sounds ? -0.5f * k : 0.0f;
+        }
+        for (int c = 0; c < 2; c++)
+            for (uint32_t i = 0; i < N; i++)
+                d[c][i] = fed + i >= lat ? hist[c][fed + i - lat] : 0.0f;
+        fed += N;
+        if (b == 10)
+        {
+            omx_wetdry_xfade_block(want[0], l, d[0], N);    // the passthrough's output is the block itself
+            omx_wetdry_xfade_block(want[1], r, d[1], N);
+        }
+        omx_clap_host_run(in, l, r, N);
+        for (int i = 0; i < N; i++)
+        {
+            if (b == 10 && fade_at < 0 && (l[i] != want[0][i] || r[i] != want[1][i]))
+                fade_at = i;
+            if (b > 10 && at < 0 && (l[i] != d[0][i] || r[i] != d[1][i]))
+                at = (b - 11) * N + i;
+        }
+    }
+    CHECK(lat > N && lat < 5 * N, "@%.0f: the latency (%u frames) is longer than the quiet period and the sleep, and the bypassed blocks read past both", rate, lat);
+    CHECK(fade_at < 0, "@%.0f: the bypass commanded on the waking block fades to the input %u frames earlier, the slept block's silence in it (first frame off %d)",
+          rate, lat, fade_at);
+    CHECK(at < 0, "@%.0f: the steady bypass after a sleep is the input %u frames earlier bit for bit, the slept block's silence in it (first frame off %d)",
+          rate, lat, at);
+    omx_clap_host_close(in);
+}
+
+static void t_sleep_bypass(const char *path)
+{
+    static const int rates[] = OMX_ORACLE_FULL_RATES_INIT;
+
+    for (size_t r = 0; r < sizeof(rates) / sizeof(rates[0]); r++)
+        sleep_bypass_checks(path, (double)rates[r]);
+}
+
+/*
  * The bounce at the limits: 64 auxiliary inputs and 64 auxiliary outputs of 64 channels each, activated at blocks of
  * 4096 frames, map one silence block, one scratch block per auxiliary output channel and the four legs, once, at
  * activation; 64 blocks then run with no allocation anywhere in the process. The counter's witness: an open, which
@@ -3246,6 +3324,7 @@ int main(int argc, char **argv)
         fake_plugin_checks(fake_path);
         t_layout_description(fake_path);
         t_main_widths(fake_path);
+        t_sleep_bypass(fake_path);
         t_request_layout(fake_path);
         t_bounce_at_limits(fake_path);
         test_cycle_while_deactivated(fake_path);
@@ -3386,6 +3465,7 @@ int main(int argc, char **argv)
         fake_plugin_checks(fake_path);
         t_layout_description(fake_path);
         t_main_widths(fake_path);
+        t_sleep_bypass(fake_path);
         t_request_layout(fake_path);
         t_bounce_at_limits(fake_path);
     }

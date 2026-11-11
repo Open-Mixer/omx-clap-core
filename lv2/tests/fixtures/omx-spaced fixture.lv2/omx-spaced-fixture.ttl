@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+# omx-clap-core#16: a minimal plugin, mono in/out, in a bundle directory whose name holds a space.
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+
+<urn:openmixer:test:spaced-fixture>
+    a lv2:Plugin , lv2:UtilityPlugin ;
+    doap:name "openmixer spaced fixture" ;
+    doap:license <https://www.gnu.org/licenses/gpl-3.0.html> ;
+    lv2:port [
+        a lv2:AudioPort , lv2:InputPort ;
+        lv2:index 0 ;
+        lv2:symbol "in" ;
+        lv2:name "In"
+    ] , [
+        a lv2:AudioPort , lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "out" ;
+        lv2:name "Out"
+    ] .

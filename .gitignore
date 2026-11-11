@@ -13,6 +13,7 @@ tests/idle_hold_test
 tests/clap_chain_test
 tests/clap_chain_tsan
 tests/active_race_tsan
+tests/lv2_restart_race_tsan
 tests/clap_scan_test
 tests/crash.clap
 omx-clap-scan
@@ -58,6 +59,7 @@ tests/lv2_locate_test
 tests/param_contract_test
 tests/clap_untrusted_test
 tests/clap_untrusted_asan
+tests/clap_scan_asan
 lv2/tests/lv2_run_test
 lv2/tests/lv2_host_test
 lv2/tests/lv2_patch_test
@@ -76,6 +78,7 @@ tools/preset-census
 /fuzz/findings/
 tests/xrun_report_test
 tests/live_list_test
+tests/state_root_test
 tests/jack_xrun_shim.so
 tests/hosted_cost_bench
 tests/hosted_clamp_test

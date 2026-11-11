@@ -984,7 +984,8 @@ static inline int omx_clap_bind(struct omx_clap_stage *s, const clap_plugin_t *p
     return omx_clap_bind_ports(s, plugin, channels, channels);
 }
 
-/** Control -> RT: command bypass. The next block crossfades; the block after is bit-identical dry. */
+/** Control -> RT: command bypass. The next block crossfades; the block after is the dry input, bit for bit, delayed by
+ * the published latency in an instance (omx_clap_bypass_dry). */
 static inline void omx_clap_set_bypass(struct omx_clap_stage *s, int on)
 {
     atomic_store_explicit(&s->h.bypass, on ? 1u : 0u, memory_order_release);
@@ -2192,12 +2193,13 @@ static inline int omx_clap_run_locked_status(struct omx_clap_stage *s, float *l,
     usable = omx_clap_aux_out_guard(s, omx_clap_run_plugin_status(s, n, said), n);
     s->proc.transport = NULL;
     {
-        // the plugin has read the bounce's input legs: they are now only the dry the tail fades with, which a block
-        // fading into or out of a commanded bypass takes delayed, as the steady bypass delivers it
-        float *const dry[2] = { s->h.in_l, s->h.in_r };
-        const float *const ins[2] = { s->h.in_l, s->h.in_r };
+        // the lane still holds the dry block, which the plugin never sees: the ring is fed from it, as the steady
+        // bypass feeds it, and a block fading into or out of a commanded bypass has its dry delayed in place on the
+        // lane, where the tail takes the dry it fades with (and the dry an unusable block leaves) from
+        float *const lane[2] = { l, r };
+        const float *const ins[2] = { l, r };
 
-        omx_clap_bypass_side(s, ins, 2u, dry, 2u, n, atomic_load_explicit(&s->h.bypass, memory_order_acquire) != 0u);
+        omx_clap_bypass_side(s, ins, r ? 2u : 1u, lane, r ? 2u : 1u, n, atomic_load_explicit(&s->h.bypass, memory_order_acquire) != 0u);
     }
     omx_hosted_run_end_why(&s->h, usable, &s->process_errors, want_wet, l, r, n);
     return usable == OMX_HOSTED_BLOCK_USABLE;
@@ -2587,7 +2589,10 @@ static inline int omx_clap_run_direct_locked(struct omx_clap_stage *s, const flo
     usable = omx_clap_aux_out_guard(s, usable, n);
     if (usable != OMX_HOSTED_BLOCK_USABLE)
     {
-        omx_clap_direct_dry(s, ins, outs, n);
+        // the dry the fade would have read: the delayed one on a block fading into or out of a commanded bypass, as
+        // the two-leg body leaves it on its lane
+        for (c = 0; c < s->h.n_out; c++)
+            memcpy(outs[c], dry[c], n * sizeof(float));
         omx_hosted_run_end_why(&s->h, usable, &s->process_errors, 0u, NULL, NULL, n);  // counts, strikes, marks the body dry
         return 0;
     }

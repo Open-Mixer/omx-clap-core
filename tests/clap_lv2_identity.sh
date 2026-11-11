@@ -14,7 +14,8 @@
 #
 # Then every arm bypassed and compared with the input it passes: the lv2 arm by
 # its lv2:enabled port, as mod-host's clients bypass, the others by their
-# bypass verb. Runs in a PipeWire of its own like jack_e2e.sh; exit 0 only when
+# bypass verb. The lv2 arm passes it delayed by the latency the plugin
+# published (SETTLE_LATENCY), the dry path of omx-clap-host's instance. Runs in a PipeWire of its own like jack_e2e.sh; exit 0 only when
 # every comparison held.
 #
 # IDENTITY_FIXTURE=1 runs the fixture bundle of this tree (build/lv2,
@@ -225,6 +226,20 @@ compare() {
     index=$(( (byte - 1) / 4 ))
     step 1 "$what: first difference at sample $index of $(( $(stat -c %s "$a") / 4 )) ($(sample_at "$a" "$index") vs $(sample_at "$b" "$index"))"
 }
+# b is a delayed by d frames: omx-clap-host's instance delays the dry of a bypassed plugin by the latency it
+# published, so the bypass keeps the alignment of the plugin running. b's first d frames are the feeder's preroll.
+compare_delayed() {
+    local a=$1 b=$2 d=$3 what=$4 out byte index n
+    n=$(( $(stat -c %s "$a") / 4 - d ))
+    out=$(cmp -i "0:$(( d * 4 ))" -n "$(( n * 4 ))" "$a" "$b" 2>&1)
+    if [ -z "$out" ]; then
+        step 0 "$what delayed by its $d frames of latency: $n samples bit-identical"
+        return
+    fi
+    byte=$(echo "$out" | sed -n 's/.*byte \([0-9]*\).*/\1/p')
+    index=$(( (byte - 1) / 4 ))
+    step 1 "$what delayed by its $d frames of latency: first difference at sample $index of $n ($(sample_at "$a" "$index") vs $(sample_at "$b" "$(( index + d ))"))"
+}
 run_pass() {
     local name=$1 ready a files=()
     for a in "${order[@]}"; do files+=("$runtime/$name.$a"); done
@@ -295,7 +310,11 @@ expect lv2 "param_get 2 :bypass" "resp 0 1.0000"
 expect lv2 "param_get 2 $bypass_symbol" "resp 0 0.0000"
 run_pass bypass
 for a in "${order[@]}"; do
-    compare "$runtime/bypass.source" "$runtime/bypass.$a" "bypass: the input vs $a"
+    if [ "$a" = lv2 ] && [ -n "$settle" ]; then
+        compare_delayed "$runtime/bypass.source" "$runtime/bypass.$a" "$settle" "bypass: the input vs $a"
+    else
+        compare "$runtime/bypass.source" "$runtime/bypass.$a" "bypass: the input vs $a"
+    fi
 done
 
 has modhost && expect modhost "remove 0" "resp 0"

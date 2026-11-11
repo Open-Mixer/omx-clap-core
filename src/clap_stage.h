@@ -290,6 +290,8 @@ static inline struct omx_abi_guard *omx_clap_stage_guard(const struct omx_clap_s
  * output channel, back to back. It lives at the instance's tail, after its guard and keeps_on, so the stage and every
  * field of the instance keep their offsets; the stage reaches it through guard_off (omx_clap_stage_bypass_delay). The
  * control thread arms it holding the audio role (omx_clap_bypass_delay_set); the RT only writes and reads the ring.
+ * The RT writes every block it processes into the ring, wet or dry (omx_clap_bypass_feed, omx_clap_bypass_side), so
+ * the block a bypass is commanded on already finds the input of the frames before it there.
  */
 struct omx_clap_bypass_delay
 {
@@ -298,6 +300,7 @@ struct omx_clap_bypass_delay
     uint32_t channels;  ///< channels the ring is sized for (the main output's)
     uint32_t frames;    ///< the delay applied, the latency last published; < cap
     uint32_t pos;       ///< RT-owned: the next write slot, shared by every channel's ring
+    uint32_t lagged;    ///< RT-owned: 1 while the dry the stage delivered last was the delayed one
 };
 
 /** The instance's tail from its guard on (ABI 20 and 21), as clap_host.h lays it out: where a stage finds its delay. */
@@ -337,6 +340,7 @@ static inline float *omx_clap_bypass_delay_set(struct omx_clap_bypass_delay *d, 
     d->channels = armed ? channels : 0u;
     d->frames = armed ? frames : 0u;
     d->pos = 0u;
+    d->lagged = 0u;
     return old;
 }
 
@@ -2046,7 +2050,72 @@ static inline void omx_clap_bypass_dry(struct omx_clap_stage *s, const float *co
             p = (p + 1u == cap) ? 0u : p + 1u;
         }
     }
+    for (; c < n_out; c++)     // a channel the ring was not sized for passes undelayed rather than unwritten
+    {
+        const float *const in = n_in == 0 ? NULL : ins[c < n_in ? c : n_in - 1];
+
+        if (in == NULL)
+            memset(outs[c], 0, n * sizeof(float));
+        else if (outs[c] != in)
+            memcpy(outs[c], in, n * sizeof(float));
+    }
     d->pos = (uint32_t)(((uint64_t)pos + n) % cap);
+    d->lagged = 1u;
+}
+
+/**
+ * RT: a block that is not a commanded bypass's dry one written into the delay's ring, nothing read back: the input of
+ * each of the `n_out` channels as omx_clap_bypass_dry maps them. Every processed block passes here or through
+ * omx_clap_bypass_dry, so the ring always holds the last `frames` of input and a bypass commanded on any block reads
+ * the frames before it, not silence. Nothing to do while the ring is unarmed or for a stage of its own.
+ */
+static inline void omx_clap_bypass_feed(struct omx_clap_stage *s, const float *const *ins, uint32_t n_in, uint32_t n_out, uint32_t n)
+{
+    struct omx_clap_bypass_delay *const d = omx_clap_stage_bypass_delay(s);
+    const uint32_t cap = d ? d->cap : 0u;
+    uint32_t pos, c;
+
+    if (cap == 0u || n_out == 0u)
+        return;
+    pos = d->pos;
+    for (c = 0; c < n_out && c < d->channels; c++)
+    {
+        float *const ring = d->ring + (size_t)c * cap;
+        const float *const in = n_in == 0 ? NULL : ins[c < n_in ? c : n_in - 1];
+        uint32_t p = pos, i;
+
+        for (i = 0; i < n; i++)
+        {
+            ring[p] = in ? in[i] : 0.0f;
+            p = (p + 1u == cap) ? 0u : p + 1u;
+        }
+    }
+    d->pos = (uint32_t)(((uint64_t)pos + n) % cap);
+    d->lagged = 0u;
+}
+
+/**
+ * RT: the dry side of a block the plugin also ran, for its fade: 1 when the delayed dry was written onto `dry` (the
+ * block fades into a commanded bypass, `bypassed` nonzero, or out of one, the last dry delivered being the delayed
+ * one), so the fade reads the same dry the steady bypass delivers and no frame jumps at either end of it; 0 when the
+ * block was only fed to the ring and its dry is the input as it stands (a steady wet block, a fault's fade, the ring
+ * unarmed). `dry[c]` may be `ins[c]`.
+ */
+static inline int omx_clap_bypass_side(struct omx_clap_stage *s, const float *const *ins, uint32_t n_in, float *const *dry, uint32_t n_out,
+                                       uint32_t n, int bypassed)
+{
+    struct omx_clap_bypass_delay *const d = omx_clap_stage_bypass_delay(s);
+
+    if (d == NULL || d->cap == 0u)
+        return 0;
+    if (!bypassed && !d->lagged)
+    {
+        omx_clap_bypass_feed(s, ins, n_in, n_out, n);
+        return 0;
+    }
+    omx_clap_bypass_dry(s, ins, n_in, dry, n_out, n);
+    d->lagged = bypassed ? 1u : 0u;
+    return 1;
 }
 
 /* the two-leg body; 1 when the plugin wrote this block's auxiliary outputs usable, 0 when the caller silences them */
@@ -2105,6 +2174,12 @@ static inline int omx_clap_run_locked_status(struct omx_clap_stage *s, float *l,
 
                 omx_clap_bypass_dry(s, ins, r ? 2u : 1u, outs, r ? 2u : 1u, n);
             }
+            else
+            {
+                const float *const ins[2] = { l, r };
+
+                omx_clap_bypass_feed(s, ins, r ? 2u : 1u, r ? 2u : 1u, n);
+            }
             return 0;
         case OMX_HOSTED_GO:
             break;
@@ -2116,6 +2191,14 @@ static inline int omx_clap_run_locked_status(struct omx_clap_stage *s, float *l,
     }
     usable = omx_clap_aux_out_guard(s, omx_clap_run_plugin_status(s, n, said), n);
     s->proc.transport = NULL;
+    {
+        // the plugin has read the bounce's input legs: they are now only the dry the tail fades with, which a block
+        // fading into or out of a commanded bypass takes delayed, as the steady bypass delivers it
+        float *const dry[2] = { s->h.in_l, s->h.in_r };
+        const float *const ins[2] = { s->h.in_l, s->h.in_r };
+
+        omx_clap_bypass_side(s, ins, 2u, dry, 2u, n, atomic_load_explicit(&s->h.bypass, memory_order_acquire) != 0u);
+    }
     omx_hosted_run_end_why(&s->h, usable, &s->process_errors, want_wet, l, r, n);
     return usable == OMX_HOSTED_BLOCK_USABLE;
 }
@@ -2281,13 +2364,17 @@ static inline int omx_clap_run_ports_locked(struct omx_clap_stage *s, const floa
         if (bypassed)
             omx_clap_bypass_dry(s, ins, n_in, outs, n_out, n);
         else
+        {
+            omx_clap_bypass_feed(s, ins, n_in, n_out, n);
             omx_clap_ports_dry(ins, n_in, outs, n_out, n);
+        }
         atomic_store_explicit(&s->h.rendered_wet, 0, memory_order_release);
         s->need_reset = 1;  ///< a tail may be frozen: the control thread resets the plugin at re-engage, never this one
         return 0;
     }
     for (c = 0; c < n_in; c++)
         memcpy(s->wide_in[c], ins[c], n * sizeof(float));
+    omx_clap_bypass_feed(s, ins, n_in, n_out, n);   // the wide body switches hard: the ring only needs the input's history
     if (t && rec && rec->flags)
     {
         omx_clap_transport_fill(t, rec);
@@ -2418,6 +2505,7 @@ static inline int omx_clap_run_direct_locked(struct omx_clap_stage *s, const flo
     clap_audio_buffer_t *const main_in = s->passthrough ? &s->ain : (clap_audio_buffer_t *)(uintptr_t)s->proc.audio_inputs;
     float **const bounce_in = main_in->data32, **const bounce_out = s->aout[0].data32;
     float *const *wet;
+    const float *const *dry = ins;
     uint32_t want_wet, steady, c, moved = 0;
     int usable, bypassed;
 
@@ -2461,7 +2549,10 @@ static inline int omx_clap_run_direct_locked(struct omx_clap_stage *s, const flo
         if (bypassed)
             omx_clap_bypass_dry(s, ins, s->h.n_in, outs, s->h.n_out, n);
         else
+        {
+            omx_clap_bypass_feed(s, ins, s->h.n_in, s->h.n_out, n);
             omx_clap_direct_dry(s, ins, outs, n);
+        }
         s->need_reset = 1;  ///< a tail may be frozen: the control thread resets the plugin at re-engage, never this one
         return 0;
     }
@@ -2485,6 +2576,12 @@ static inline int omx_clap_run_direct_locked(struct omx_clap_stage *s, const flo
     s->proc.transport = NULL;
     main_in->data32 = bounce_in;
     s->aout[0].data32 = bounce_out;
+    // the plugin has run: a block fading into or out of a commanded bypass takes its dry delayed, written over the
+    // bounce's input legs, which on a change of body hold the copy the plugin read; any other block feeds the ring
+    if (steady)
+        omx_clap_bypass_feed(s, ins, s->h.n_in, s->h.n_out, n);
+    else if (omx_clap_bypass_side(s, ins, s->h.n_in, bounce_in, s->h.n_out, n, bypassed))
+        dry = (const float *const *)(uintptr_t)bounce_in;
     if (usable == OMX_HOSTED_BLOCK_USABLE && !omx_clap_outs_finite(s, wet, n))
         usable = OMX_HOSTED_BLOCK_NONFINITE;
     usable = omx_clap_aux_out_guard(s, usable, n);
@@ -2506,9 +2603,9 @@ static inline int omx_clap_run_direct_locked(struct omx_clap_stage *s, const flo
         for (c = 0; c < s->h.n_out; c++)
         {
             if (want_wet)
-                omx_wetdry_xfade_block(outs[c], ins[c], wet[c], n);
+                omx_wetdry_xfade_block(outs[c], dry[c], wet[c], n);
             else
-                omx_wetdry_xfade_block(outs[c], wet[c], ins[c], n);
+                omx_wetdry_xfade_block(outs[c], wet[c], dry[c], n);
         }
     else
         // the bounce keeps the plugin's last output, which the block after it fades from if the control thread holds

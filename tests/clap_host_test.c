@@ -1705,6 +1705,28 @@ static void t_main_widths(const char *path)
         omx_clap_host_bypass(in, 1);
         run_constant(in, l, r, 0.5f, 0.25f, 2);
         CHECK(legs_are(l, r, 0.5f, 0.25f), "bypassed: both legs dry (%g, %g)", (double)l[0], (double)r[0]);
+        {
+            /* a ramp through wet blocks, the block the bypass is commanded on and a bypassed one: each leg's dry is
+             * its input of the latency before, the first frames of the bypassed block those the block before it read */
+            const uint32_t lat = omx_clap_host_latency(in);
+            float k = 0.0f;
+            int at = -1;
+
+            omx_clap_host_bypass(in, 0);
+            for (int b = 0; b < 5; b++)
+            {
+                if (b == 3)
+                    omx_clap_host_bypass(in, 1);
+                for (int i = 0; i < BLOCK; i++, k += 1.0f)
+                    l[i] = k, r[i] = -k;
+                omx_clap_host_run(in, l, r, BLOCK);
+            }
+            for (int i = 0; i < BLOCK && at < 0; i++)
+                if (l[i] != 4.0f * BLOCK + (float)i - (float)lat || r[i] != -l[i])
+                    at = i;
+            CHECK(lat > 0 && lat < BLOCK && at < 0, "bypassed after wet blocks: each leg is its input %u frames back, across the block's edge (first frame off %d: %g, %g)",
+                  lat, at, (double)l[at < 0 ? 0 : at], (double)r[at < 0 ? 0 : at]);
+        }
         omx_clap_host_close(in);
     }
 }

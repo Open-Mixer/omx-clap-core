@@ -1974,7 +1974,8 @@ static int bind_stage(struct omx_clap_instance *in)
 static void arm_bypass_delay(struct omx_clap_instance *in, uint32_t frames)
 {
     struct omx_clap_bypass_delay *const d = &in->bypass_delay;
-    const uint32_t channels = in->main_out.channels;
+    // a ring for each leg of the two-leg lane too, which a mono main output still feeds both of
+    const uint32_t channels = in->main_out.channels > 2u ? in->main_out.channels : 2u;
     const size_t floats = omx_clap_bypass_delay_floats(channels, frames);
     struct omx_clap_role role;
     float *ring = NULL, *old;

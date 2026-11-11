@@ -142,6 +142,7 @@ struct shim
     const clap_host_t *host;
     const clap_host_log_t *host_log;
     const clap_host_thread_check_t *host_thread;
+    int properties_space;               // the host's clap.event-registry granted org.openmixer.properties at init
     struct lv2_plugin *lv2;
     struct lv2_instance *in;
     int32_t *control_of_port;           // port index -> control index, -1 for a port that is not a control
@@ -946,6 +947,13 @@ static bool plugin_init(const clap_plugin_t *plugin)
     s->host_thread = s->host->get_extension ? s->host->get_extension(s->host, CLAP_EXT_THREAD_CHECK) : NULL;
     if (s->host_thread && s->host_thread->is_audio_thread)
         lv2_instance_set_role(s->in, shim_is_audio, s);
+    {
+        const clap_host_event_registry_t *reg =
+            s->host->get_extension ? s->host->get_extension(s->host, CLAP_EXT_EVENT_REGISTRY) : NULL;
+        uint16_t space_id;
+
+        s->properties_space = reg && reg->query && reg->query(s->host, OMX_CLAP_EVENT_SPACE_PROPERTIES, &space_id);
+    }
     contract_make(s);
     return true;
 }
@@ -1479,12 +1487,90 @@ static bool hints_get(const clap_plugin_t *plugin, omx_resource_hints_t *hints)
 
 static const omx_clap_plugin_resource_hints_t g_resource_hints = { hints_get };
 
+/* org.openmixer.properties/1: one property per text patch:writable property, the adapter's own table (the shim and its
+ * patch helpers are defined past the factory); offered whether or not the host's registry granted the space, so that a
+ * host with none, or one that refuses it, still sees the extension, counting zero (§9.2). */
+static struct shim *shim_of_any(const clap_plugin_t *plugin);
+
+static void property_symbol(const char *uri, char out[OMX_CLAP_PARAM_SYMBOL_SIZE])
+{
+    const char *tail = strrchr(uri, '#');
+    const char *slash = strrchr(uri, '/');
+    size_t n, i, start = 0;
+
+    tail = tail ? tail + 1 : (slash ? slash + 1 : uri);
+    n = strlen(tail);
+    if (n > OMX_CLAP_PARAM_SYMBOL_SIZE - 2u)
+        n = OMX_CLAP_PARAM_SYMBOL_SIZE - 2u;
+    if (n > 0 && tail[0] >= '0' && tail[0] <= '9')
+        out[start++] = '_';
+    for (i = 0; i < n; i++)
+    {
+        const char c = tail[i];
+        out[start + i] = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ? c : '_';
+    }
+    out[start + n] = '\0';
+}
+
+static uint32_t properties_count(const clap_plugin_t *plugin)
+{
+    const struct shim *s = shim_of_any(plugin);
+
+    return s && s->properties_space ? s->lv2->n_texts : 0;
+}
+
+static bool properties_get_info(const clap_plugin_t *plugin, uint32_t index, omx_clap_property_info_t *info)
+{
+    const struct shim *s = shim_of_any(plugin);
+
+    if (!s || !info || !s->properties_space || index >= s->lv2->n_texts)
+        return false;
+    info->id = s->lv2->n_ports + s->lv2->n_patches + index;
+    property_symbol(s->lv2->texts[index].uri, info->symbol);
+    snprintf(info->name, sizeof(info->name), "%s", s->lv2->texts[index].name);
+    info->kind = s->lv2->texts[index].is_path ? OMX_CLAP_PROPERTY_PATH : OMX_CLAP_PROPERTY_STRING;
+    info->flags = OMX_CLAP_PROPERTY_IS_WRITABLE | OMX_CLAP_PROPERTY_IS_READABLE;
+    return true;
+}
+
+/* the text index of a property's clap_id (past the ports and the numeric patches), or -1 for an id no property has, or
+ * while the host's registry has not granted the space */
+static int32_t property_index_of_id(const struct shim *s, clap_id id)
+{
+    uint32_t base;
+
+    if (!s || !s->properties_space)
+        return -1;
+    base = s->lv2->n_ports + s->lv2->n_patches;
+    if (id < base || id - base >= s->lv2->n_texts)
+        return -1;
+    return (int32_t)(id - base);
+}
+
+static int32_t properties_get_value(const clap_plugin_t *plugin, clap_id id, char *value, uint32_t capacity)
+{
+    const struct shim *s = shim_of_any(plugin);
+    const int32_t j = property_index_of_id(s, id);
+    uint32_t len;
+
+    if (j < 0 || !s->in)
+        return -1;
+    len = lv2_instance_text_get(s->in, (uint32_t)j, NULL, 0);
+    if (value && capacity > len)
+        lv2_instance_text_get(s->in, (uint32_t)j, value, capacity);
+    return (int32_t)len;
+}
+
+static const omx_clap_plugin_properties_t g_properties = { properties_count, properties_get_info, properties_get_value };
+
 static const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 {
     if (!strcmp(id, OMX_CLAP_EXT_PARAM_CONTRACT))
         return SHIM_OF(plugin)->contracted ? &g_contract : NULL;
     if (!strcmp(id, OMX_CLAP_EXT_RESOURCE_HINTS_DRAFT))
         return !SHIM_OF(plugin)->lv2->hints_why && SHIM_OF(plugin)->lv2->hints.declared ? &g_resource_hints : NULL;
+    if (!strcmp(id, OMX_CLAP_EXT_PROPERTIES))
+        return &g_properties;
     if (!strcmp(id, CLAP_EXT_PARAMS))
         return &g_params;
     if (!strcmp(id, CLAP_EXT_LATENCY))

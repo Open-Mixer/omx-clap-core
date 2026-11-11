@@ -6,7 +6,7 @@
 # twice, as text and as JSON, and
 #   - the JSON validates against schema/omx-clap-scan.schema.json (the file the package installs);
 #   - the JSON holds the same data as the text: every plugin, parameter, port, note name, latency, voice figure, resource
-#     hint, panel count, preset and file failure the text lists, each with the same value.
+#     hint, panel count, meter, parameter contract, preset and file failure the text lists, each with the same value.
 # The fields only the JSON carries (description, url, remote controls, enum labels, the panel's tables, ports' ids) are
 # held by the schema alone.
 #
@@ -19,7 +19,7 @@
 import copy, json, math, os, re, subprocess, sys, tempfile
 
 LINE_KINDS = ('param', 'in ', 'out', 'passthrough', 'note ports', 'note name', 'latency', 'voices', 'resource hints',
-              'panel', 'preset', 'error')
+              'panel', 'meter', 'contract', 'preset', 'error')
 
 
 # ---- a validator for the part of JSON Schema the schema file uses ----
@@ -155,6 +155,19 @@ def parse_text(text):
                 m = re.match(r'param (\d+) (.*) \[(\S+) \.\. (\S+)\] default (\S+) (\S*)$', body)
                 plug['params'].append({'id': int(m.group(1)), 'name': m.group(2), 'min': num(m.group(3)), 'max': num(m.group(4)),
                                        'default': num(m.group(5)), 'flags': [f for f in m.group(6).split(',') if f]})
+            elif body.startswith('  contract '):
+                m = re.match(r'  contract (\S+) (\S+) (\S+) step (\S+)$', body)
+                plug['params'][-1]['contract'] = {'symbol': m.group(1), 'unit': m.group(2), 'scale': m.group(3), 'step': num(m.group(4))}
+            elif body.startswith('contract not trusted: '):
+                plug['param_contract'] = {'error': body[len('contract not trusted: '):]}
+            elif body.startswith('contract version '):
+                m = re.match(r'contract version (\d+) fingerprint ([0-9a-f]{64})$', body)
+                plug['param_contract'] = {'version': int(m.group(1)), 'fingerprint': m.group(2)}
+            elif body.startswith('meter '):
+                m = re.match(r'meter (\d+) "(.*)" (\S+) (\d+) channels? \[(\S+) \.\. (\S+)\](?: (\S+))?$', body)
+                plug.setdefault('meters', []).append({'id': int(m.group(1)), 'name': m.group(2), 'kind': int(m.group(3)) if m.group(3).isdigit() else m.group(3),
+                                                      'channels': int(m.group(4)), 'min': num(m.group(5)), 'max': num(m.group(6)),
+                                                      'flags': m.group(7).split(',') if m.group(7) else []})
             elif body.startswith(('in ', 'out ')):
                 side, port = text_port(body)
                 plug['inputs' if side == 'in' else 'outputs'].append(port)
@@ -235,6 +248,16 @@ def json_data(doc):
                     plug['params'].append({'id': q['id'], 'name': put_string(q['name']), 'min': math.inf if q['min'] is None else q['min'],
                                            'max': math.inf if q['max'] is None else q['max'],
                                            'default': math.inf if q['default'] is None else q['default'], 'flags': q['flags']})
+                    if 'contract' in q:
+                        c = q['contract']
+                        plug['params'][-1]['contract'] = {'symbol': put_string(c['symbol']), 'unit': c['unit'], 'scale': c['scale'],
+                                                          'step': math.inf if c['step'] is None else c['step']}
+                if p.get('param_contract'):
+                    plug['param_contract'] = p['param_contract']
+                if p.get('meters'):
+                    plug['meters'] = [{'id': m['id'], 'name': put_string(m['name']), 'kind': m['kind'], 'channels': m['channels'],
+                                       'min': math.inf if m['min'] is None else m['min'], 'max': math.inf if m['max'] is None else m['max'],
+                                       'flags': m['flags']} for m in p['meters']]
                 plug['inputs'] = [json_port(x) for x in p['audio_ports']['inputs']]
                 plug['outputs'] = [json_port(x) for x in p['audio_ports']['outputs']]
                 if 'passthrough' in p['audio_ports']:
@@ -352,6 +375,12 @@ def sabotages(doc):
         p = first_plugin(d, with_map)
         port = next(x for x in p['audio_ports']['inputs'] + p['audio_ports']['outputs'] if 'map' in x)
         port['map'][0] += 1
+    def with_meters(p): return p.get('meters')
+    def with_contract(p): return isinstance(p.get('param_contract'), dict) and 'version' in p['param_contract']
+    def a_meter_range(d): first_plugin(d, with_meters)['meters'][0].__setitem__('max', 99.5)
+    def a_meter_flag(d): first_plugin(d, with_meters)['meters'][0]['flags'].append('held')
+    def a_contract_version(d): first_plugin(d, with_contract)['param_contract'].__setitem__('version', 77)
+    def a_contract_unit(d): next(q for q in first_plugin(d, with_contract)['params'] if 'contract' in q)['contract'].__setitem__('unit', 'hz')
     def a_plugin_dropped(d): d['files'][0]['plugins'].pop()
     def an_unknown_field(d): first_plugin(d, with_params)['params'][0]['colour'] = 'red'
     def a_wrong_type(d): first_plugin(d, with_params)['params'][0]['id'] = '0'
@@ -362,7 +391,8 @@ def sabotages(doc):
         f['code'] = 'who-knows'
     return [('a parameter default', a_param_default), ('a parameter flag', a_param_flag), ('a port width', a_channel),
             ('a JACK name', a_jack_name), ('a latency', a_latency), ('a note name', a_note_name), ('a voice count', a_voice),
-            ('a resource hint', a_hint), ('a panel table', a_panel_row), ('a feature', a_feature), ('a surround map', a_map),
+            ('a resource hint', a_hint), ('a panel table', a_panel_row), ('a meter range', a_meter_range), ('a meter flag', a_meter_flag),
+            ('a contract version', a_contract_version), ('a contract unit', a_contract_unit), ('a feature', a_feature), ('a surround map', a_map),
             ('a plugin dropped', a_plugin_dropped), ('a field the schema does not declare', an_unknown_field),
             ('a field of the wrong type', a_wrong_type), ('a field the schema requires, gone', a_missing_field),
             ('the scanner word', a_scanner), ('a failure code outside the schema', a_failure_code)]

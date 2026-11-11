@@ -272,6 +272,10 @@ struct lv2_instance
     char *dir, *saved_dir;
     int dir_made;
     pthread_mutex_t dir_lock;
+    // held across lv2_instance_activate and across every lv2_instance_run_begin..run_end span, so a host whose
+    // first process() races its activate() (the restart path's own thread, or a non-conformant caller) serialises
+    // against it instead of touching in->handle, in->audio or the ring state while activate is still setting them up
+    pthread_mutex_t activate_lock;
     LV2_State_Make_Path make_path;
     // state:mapPath and state:freePath: a path under the state root is abstracted relative to it, any other kept whole
     LV2_State_Map_Path map_path;
@@ -1399,6 +1403,9 @@ static int buffers_make(struct lv2_instance *in)
     // a shared port carries the patch messages too: the MIDI buffers are at least the patch capacity
     if ((p->patch_in_shared || p->patch_out_shared) && patch_cap(p) > in->midi_bytes)
         in->midi_bytes = patch_cap(p);
+    // the plain MIDI port's own rsz:minimumSize, rounded up to the alignment every buffer here keeps
+    if (p->midi_min > in->midi_bytes)
+        in->midi_bytes = (p->midi_min + 7u) & ~7u;
     in->urid_sequence = lv2_urid_lookup(LV2_ATOM__Sequence);
     for (k = 0; k < 2; k++)
     {
@@ -1612,6 +1619,7 @@ struct lv2_instance *lv2_instance_new(const struct lv2_plugin *p)
     if (!in)
         return NULL;
     pthread_mutex_init(&in->dir_lock, NULL);
+    pthread_mutex_init(&in->activate_lock, NULL);
     in->plugin = p;
     // the audio blocks, one per channel in the order the buffer comment names
     in->at_out = p->main_in.n;
@@ -1757,13 +1765,16 @@ static int state_apply(struct lv2_instance *in)
 int lv2_instance_activate(struct lv2_instance *in, double rate, uint32_t min_frames, uint32_t max_frames, char why[LV2_CORE_WHY_MAX])
 {
     const struct lv2_core_config *config = lv2_core_config();
-    int created;
+    int created, rc = 0;
 
     if (!in || max_frames == 0 || min_frames > max_frames)
     {
         lv2_why_set(why, LV2_CODE_NO_REALISATION);
         return -1;
     }
+    // held for the whole call, and by lv2_instance_run_begin/run_end across every block: a host whose first run()
+    // reaches another thread before this returns waits here instead of racing in->handle, in->audio or the rings
+    pthread_mutex_lock(&in->activate_lock);
     if (in->lv2_active)
         lv2_instance_deactivate(in);
     // a block length that fits the buffers is told through the plugin's options:interface, if it has one, rather than
@@ -1781,30 +1792,37 @@ int lv2_instance_activate(struct lv2_instance *in, double rate, uint32_t min_fra
             || omx_msgring_init(&in->responses, in->ring_mem + config->worker_ring_bytes, config->worker_ring_bytes) != 0))
     {
         lv2_why_set(why, LV2_CODE_NO_REALISATION);
-        return -1;
+        rc = -1;
     }
-    created = in->handle == NULL;
-    if (created && instance_make(in, rate, min_frames, max_frames, why) != 0)
-        return -1;
+    created = rc == 0 && in->handle == NULL;
+    if (rc == 0 && created && instance_make(in, rate, min_frames, max_frames, why) != 0)
+        rc = -1;
     // the held state after the default state, before LV2 activate: on a new handle, and on one a load has changed since
-    if ((created || in->state_dirty) && in->state_text && state_apply(in) != 0)
+    if (rc == 0 && (created || in->state_dirty) && in->state_text && state_apply(in) != 0)
     {
         lv2_why_set(why, LV2_CODE_STATE_UNREADABLE);
-        return -1;
+        rc = -1;
     }
-    if (in->plugin->desc->activate)
-        omx_abi_g(&in->abi, "activate", (const void *)in->plugin->desc->activate, OMX_ABI_A(in->handle), 0, 0, 0, 0, 0);
-    in->lv2_active = 1;
-    if (worker_start(in) != 0)
+    if (rc == 0)
     {
-        lv2_instance_deactivate(in);
-        lv2_why_set(why, LV2_CODE_NO_REALISATION);
-        return -1;
+        if (in->plugin->desc->activate)
+            omx_abi_g(&in->abi, "activate", (const void *)in->plugin->desc->activate, OMX_ABI_A(in->handle), 0, 0, 0, 0, 0);
+        in->lv2_active = 1;
+        if (worker_start(in) != 0)
+        {
+            lv2_instance_deactivate(in);
+            lv2_why_set(why, LV2_CODE_NO_REALISATION);
+            rc = -1;
+        }
     }
-    in->min_frames = min_frames;
-    in->told_max_frames = max_frames;
-    lv2_why_set(why, "");
-    return 0;
+    if (rc == 0)
+    {
+        in->min_frames = min_frames;
+        in->told_max_frames = max_frames;
+        lv2_why_set(why, "");
+    }
+    pthread_mutex_unlock(&in->activate_lock);
+    return rc;
 }
 
 int lv2_instance_keep(const struct lv2_instance *in, double rate, uint32_t min_frames, uint32_t max_frames)
@@ -1871,6 +1889,7 @@ void lv2_instance_free(struct lv2_instance *in)
     free(in->dir);
     free(in->saved_dir);
     pthread_mutex_destroy(&in->dir_lock);
+    pthread_mutex_destroy(&in->activate_lock);
     free(in->audio);
     free(in->controls);
     free(in->shown);
@@ -2161,6 +2180,9 @@ void lv2_instance_run_begin(struct lv2_instance *in)
     const struct lv2_plugin *p = in->plugin;
     uint32_t k;
 
+    // paired with the unlock at the end of lv2_instance_run_end: activate() waits here rather than running beside
+    // this block's run(), and this block waits for an activate already in progress on another thread
+    pthread_mutex_lock(&in->activate_lock);
     worker_deliver(in);
     memset(in->patch_out_flag, 0, p->n_patches);
     // the output is offered with its capacity: the plugin reads that, clears the sequence and appends to it; an event
@@ -2220,6 +2242,7 @@ void lv2_instance_run_end(struct lv2_instance *in, uint32_t n)
     for (k = 0; k < p->n_controls; k++)
         if (p->controls[k].kind == LV2_CONTROL_OUTPUT)
             atomic_store_explicit(&in->shown[k], float_bits(in->controls[k]), memory_order_relaxed);
+    pthread_mutex_unlock(&in->activate_lock);
 }
 
 void lv2_instance_run(struct lv2_instance *in, uint32_t n)

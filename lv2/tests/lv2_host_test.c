@@ -253,7 +253,7 @@ static void t_one_bundle(void)
     struct lv2_bundle *f = lv2_bundle_ref(g_fixture, why), *w;
     struct lv2_plugin *p;
 
-    CHECK(f && lv2_bundle_count(f) == 15, "bundle: the fixture bundle lists its 15 plugins (%u)", lv2_bundle_count(f));
+    CHECK(f && lv2_bundle_count(f) == 20, "bundle: the fixture bundle lists its 20 plugins (%u)", lv2_bundle_count(f));
     p = f ? lv2_plugin_open(f, LV2_WORKER_GAIN_URI, why) : NULL;
     CHECK(!p && strcmp(why, "hosting.no-realisation") == 0, "bundle: LV2_PATH holds the worker gain, the fixture bundle does not know it: one bundle, never load_all (%s)", why);
     w = lv2_bundle_ref(g_wg, why);
@@ -264,7 +264,7 @@ static void t_one_bundle(void)
     lv2_plugin_close(p);
     p = f ? lv2_plugin_open(f, LV2_WORKER_GAIN_URI, why) : NULL;
     CHECK(!p, "bundle: with the worker gain's bundle loaded too, the fixture bundle still does not hold it: the plugin must be THAT bundle's (%s)", why);
-    CHECK(lv2_bundle_count(f) == 15, "bundle: and does not list it");
+    CHECK(lv2_bundle_count(f) == 20, "bundle: and does not list it");
     lv2_bundle_unref(w);
     lv2_bundle_unref(f);
 }
@@ -613,6 +613,170 @@ static void t_layouts(void)
         CHECK(!q && strcmp(rwhy, refused[i].code) == 0, "layout refusal: %s is refused %s (got '%s')", refused[i].uri, refused[i].code, rwhy);
         lv2_plugin_close(q);
     }
+}
+
+/* ---- the port shapes of omx-clap-core#3: mixed, CV, side chain, atom, latency-only, aux-only, each asserting the
+ * classified port set read_ports and read_roles produce, from the TTL alone except the rsz arm, which needs a run */
+
+/* aux-only: the only output is lv2:isSideChain, so read_side finds no main output; the port must stay auxiliary
+ * (p->n_aux_out, p->aux_out[0]) and the plugin admitted passthrough (p->passthrough, p->legs the input's), never
+ * refused hosting.no-audio-output for lacking a main pair it was never going to have */
+static void t_shape_aux_only(void)
+{
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct lv2_plugin *p = open_plugin(g_fixture, FIXTURE_URI "#aux-only", why);
+
+    CHECK(p != NULL, "shape aux-only: admitted, not refused for lacking a main output (%s)", why);
+    if (!p)
+        return;
+    CHECK(p->main_out.n == 0, "shape aux-only: no main output (%u)", p->main_out.n);
+    CHECK(p->n_aux_out == 1 && p->aux_out[0].n == 1 && p->aux_out[0].port[0] == 1,
+          "shape aux-only: the side-chain output is kept as one auxiliary output, port 1 (%u aux, port %u)",
+          p->n_aux_out, p->n_aux_out ? p->aux_out[0].port[0] : 99u);
+    CHECK(p->passthrough && p->legs == p->in_legs, "shape aux-only: hosted passthrough, legs the input's (%d, %u, %u)",
+          p->passthrough, p->legs, p->in_legs);
+    CHECK(p->roles[0].role == LV2_ROLE_MAIN_IN, "shape aux-only: port 0 reads as the main input");
+    CHECK(p->roles[1].role == LV2_ROLE_AUX_OUT, "shape aux-only: port 1 reads as an auxiliary output, not dropped");
+    lv2_plugin_close(p);
+}
+
+/* latency-only: the sole control port is the one lv2:latency designates, read as p->latency_port and never counted
+ * among p->controls; no gain, no meter, nothing else a mixed twin would also carry */
+static void t_shape_latency_only(void)
+{
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct lv2_plugin *p = open_plugin(g_fixture, FIXTURE_URI "#latency-only", why);
+
+    CHECK(p != NULL, "shape latency-only: admitted (%s)", why);
+    if (!p)
+        return;
+    CHECK(p->n_controls == 0, "shape latency-only: the latency port is never one of p->controls (%u)", p->n_controls);
+    CHECK(p->latency_port == 2, "shape latency-only: port 2 is the latency port (%d)", p->latency_port);
+    CHECK(p->main_in.n == 1 && p->main_out.n == 1, "shape latency-only: a plain main pair beside it (%u in, %u out)", p->main_in.n, p->main_out.n);
+    CHECK(p->roles[2].role == LV2_ROLE_LATENCY, "shape latency-only: port 2 reads as LV2_ROLE_LATENCY");
+    lv2_plugin_close(p);
+}
+
+/* CV: a main pair and one CV input, read as p->cv_in and never folded into the main or auxiliary count */
+static void t_shape_cv(void)
+{
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct lv2_plugin *p = open_plugin(g_fixture, FIXTURE_URI "#cv", why);
+
+    CHECK(p != NULL, "shape CV: admitted (%s)", why);
+    if (!p)
+        return;
+    CHECK(p->main_in.n == 1 && p->main_out.n == 1, "shape CV: a plain main pair (%u in, %u out)", p->main_in.n, p->main_out.n);
+    CHECK(p->n_cv_in == 1 && p->cv_in[0] == 2, "shape CV: port 2 is the CV input (%u)", p->n_cv_in);
+    CHECK(p->roles[0].role == LV2_ROLE_MAIN_IN && p->roles[1].role == LV2_ROLE_MAIN_OUT && p->roles[2].role == LV2_ROLE_CV_IN,
+          "shape CV: every port's role matches its own type (%d %d %d)", p->roles[0].role, p->roles[1].role, p->roles[2].role);
+    lv2_plugin_close(p);
+}
+
+/* side chain: a grouped stereo main pair (pg:mainInput) and a grouped stereo side chain beside it, each auxiliary
+ * input channel read as p->aux_in, outside the main pair it is never folded into */
+static void t_shape_sidechain(void)
+{
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct lv2_plugin *p = open_plugin(g_sc, SC_URI, why);
+
+    CHECK(p != NULL, "shape side-chain: admitted (%s)", why);
+    if (!p)
+        return;
+    CHECK(p->main_in.n == 2 && p->main_out.n == 2, "shape side-chain: the grouped main pair, 2 in and 2 out (%u, %u)", p->main_in.n, p->main_out.n);
+    CHECK(p->n_aux_in == 1 && p->aux_in[0].n == 2 && p->aux_in[0].port[0] == 4 && p->aux_in[0].port[1] == 5,
+          "shape side-chain: ports 4 and 5, the grouped side chain, are one stereo auxiliary input (%u ports, %u channels)",
+          p->n_aux_in, p->aux_in[0].n);
+    CHECK(p->roles[0].role == LV2_ROLE_MAIN_IN && p->roles[1].role == LV2_ROLE_MAIN_IN && p->roles[2].role == LV2_ROLE_MAIN_OUT
+              && p->roles[3].role == LV2_ROLE_MAIN_OUT && p->roles[4].role == LV2_ROLE_AUX_IN && p->roles[5].role == LV2_ROLE_AUX_IN,
+          "shape side-chain: every port's role matches its own type (%d %d %d %d %d %d)",
+          p->roles[0].role, p->roles[1].role, p->roles[2].role, p->roles[3].role, p->roles[4].role, p->roles[5].role);
+    lv2_plugin_close(p);
+}
+
+/* atom: a main pair and an atom:Sequence input that takes no MIDI, fed an empty sequence and read as p->atom_in,
+ * never mistaken for the MIDI input (that refusal/admission path is MIDI's alone, exercised by #mixed and #atom) */
+static void t_shape_atom(void)
+{
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct lv2_plugin *p = open_plugin(g_fixture, FIXTURE_URI "#atom-shape", why);
+
+    CHECK(p != NULL, "shape atom: admitted (%s)", why);
+    if (!p)
+        return;
+    CHECK(p->main_in.n == 1 && p->main_out.n == 1, "shape atom: a plain main pair (%u in, %u out)", p->main_in.n, p->main_out.n);
+    CHECK(p->midi_in_port < 0, "shape atom: no MIDI input (%d)", p->midi_in_port);
+    CHECK(p->n_atom_in == 1 && p->atom_in[0] == 2, "shape atom: port 2 is the atom input, fed empty (%u)", p->n_atom_in);
+    CHECK(p->roles[0].role == LV2_ROLE_MAIN_IN && p->roles[1].role == LV2_ROLE_MAIN_OUT && p->roles[2].role == LV2_ROLE_ATOM_IN,
+          "shape atom: every port's role matches its own type (%d %d %d)", p->roles[0].role, p->roles[1].role, p->roles[2].role);
+    lv2_plugin_close(p);
+}
+
+/* mixed: a main pair, a CV input, a side-chain input outside the main group, a control input, the latency output and
+ * a plain MIDI input, every kind on one plugin; read_ports classifies each port by its own type, not by whichever
+ * kind the plugin's first port happened to be */
+static void t_shape_mixed(void)
+{
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct lv2_plugin *p = open_plugin(g_fixture, FIXTURE_URI "#mixed", why);
+
+    CHECK(p != NULL, "shape mixed: admitted (%s)", why);
+    if (!p)
+        return;
+    CHECK(p->main_in.n == 1 && p->main_in.port[0] == 0, "shape mixed: port 0 is the main input");
+    CHECK(p->main_out.n == 1 && p->main_out.port[0] == 1, "shape mixed: port 1 is the main output");
+    CHECK(p->n_cv_in == 1 && p->cv_in[0] == 2, "shape mixed: port 2 is the CV input, not folded into the main or auxiliary count (%u)", p->n_cv_in);
+    CHECK(p->n_aux_in == 1 && p->aux_in[0].port[0] == 3, "shape mixed: port 3, the side chain, is one auxiliary input (%u)", p->n_aux_in);
+    CHECK(p->n_controls == 1 && p->controls[0].port == 4, "shape mixed: port 4 is the one control, the CV and latency ports are not counted among them (%u)", p->n_controls);
+    CHECK(p->latency_port == 5, "shape mixed: port 5 is the latency port (%d)", p->latency_port);
+    CHECK(p->midi_in_port == 6, "shape mixed: port 6 is the MIDI input (%d)", p->midi_in_port);
+    CHECK(p->roles[0].role == LV2_ROLE_MAIN_IN && p->roles[1].role == LV2_ROLE_MAIN_OUT && p->roles[2].role == LV2_ROLE_CV_IN
+              && p->roles[3].role == LV2_ROLE_AUX_IN && p->roles[4].role == LV2_ROLE_CONTROL && p->roles[5].role == LV2_ROLE_LATENCY
+              && p->roles[6].role == LV2_ROLE_MIDI_IN,
+          "shape mixed: every port's role matches its own type, independent of the others (%d %d %d %d %d %d %d)",
+          p->roles[0].role, p->roles[1].role, p->roles[2].role, p->roles[3].role, p->roles[4].role, p->roles[5].role, p->roles[6].role);
+    lv2_plugin_close(p);
+}
+
+/* the MIDI rsz twin: rsz:minimumSize 8192 on the plain (non-patch) MIDI input, well past the 1024-byte floor; 100
+ * 3-byte messages (2400 bytes of body) overflow the 1016-byte default body (42 fit, #1106) but not an 8184-byte one
+ * (341 fit): a host that ignores the port's own rsz:minimumSize drops 58, one that honours it drops none */
+static void t_shape_midi_rsz(void)
+{
+    static const uint8_t note[3] = { 0x90, 0x3c, 0x64 };
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct lv2_plugin *p = open_plugin(g_fixture, FIXTURE_URI "#midi-rsz", why);
+    struct lv2_instance *in = p && lv2_plugin_load(p, why) == 0 ? lv2_instance_new(p) : NULL;
+    struct lv2_counters before, after;
+    uint32_t i;
+
+    CHECK(p && p->midi_min == 8192, "shape midi-rsz: the plain MIDI input's rsz:minimumSize is read (%u)", p ? p->midi_min : 0u);
+    CHECK(in && lv2_instance_activate(in, 48000.0, 1, BLOCK, why) == 0, "shape midi-rsz: instantiates and activates (%s)", why);
+    if (!in)
+    {
+        lv2_plugin_close(p);
+        return;
+    }
+    lv2_instance_counters(in, &before);
+    for (i = 0; i < 100u; i++)
+        lv2_instance_midi_in_add(in, i, note, 3);
+    lv2_instance_counters(in, &after);
+    CHECK(after.midi_in_dropped == before.midi_in_dropped,
+          "shape midi-rsz: 100 messages fit the rsz:minimumSize buffer, none dropped (%u dropped)", after.midi_in_dropped - before.midi_in_dropped);
+    lv2_instance_deactivate(in);
+    lv2_instance_free(in);
+    lv2_plugin_close(p);
+}
+
+static void t_port_shapes(void)
+{
+    t_shape_aux_only();
+    t_shape_latency_only();
+    t_shape_mixed();
+    t_shape_midi_rsz();
+    t_shape_cv();
+    t_shape_sidechain();
+    t_shape_atom();
 }
 
 /* The open of a plugin with two side chains when the allocator refuses the name of the second: the open is refused as
@@ -2212,6 +2376,7 @@ int main(int argc, char **argv)
     t_sidechains();
     t_sidechain_names_oom();
     t_layouts();
+    t_port_shapes();
     t_cv();
     t_cv_many();
     for (r = 0; r < N_RATES; r++)

@@ -1438,8 +1438,22 @@ test-lv2-drain-sabotage: lv2/tests/lv2_host_test.c $(LV2_CORE_SRC) lv2/core/lv2_
 	! grep '^FAIL' $(LV2_DRAIN_SAB)/log | grep -qv 'worker drain'
 .PHONY: test-lv2-drain-sabotage
 
+# omx-clap-core#3: lv2_instance_activate and lv2_instance_run_begin/run_end share activate_lock across the first
+# run after an activate; raced from two threads under the thread sanitizer, a report of a race on in->handle,
+# in->audio or the worker rings fails the build instead of passing silently
+LV2_TSAN_DIR = build/lv2-tsan
+LV2_TSAN_FLAGS = -fsanitize=thread -fno-omit-frame-pointer -g -O1 -fPIC -D_GNU_SOURCE -std=gnu99 -Wall -Wextra -Werror -Wno-tsan -ffp-contract=off $(LV2_CFLAGS) $(DSP_CFLAGS)
+
+$(LV2_TSAN_DIR)/lv2_activate_run_race_test: lv2/tests/lv2_activate_run_race_test.c $(LV2_CORE_SRC) lv2/core/lv2_core.h
+	@mkdir -p $(@D)
+	$(CC) $(LV2_TSAN_FLAGS) -Isrc -Ilv2/core -o $@ $< $(LV2_CORE_SRC) src/abi_guard.S -ldl -lpthread -lm
+
+test-lv2-tsan: $(LV2_TSAN_DIR)/lv2_activate_run_race_test $(LV2_BUNDLES)
+	TSAN_OPTIONS=halt_on_error=1 ./$(LV2_TSAN_DIR)/lv2_activate_run_race_test build/lv2
+.PHONY: test-lv2-tsan
+
 .PHONY: test-lv2 test-lv2-core test-lv2-clap test-lv2-link install-lv2
-test-lv2: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-asan test-lv2-drain-sabotage
+test-lv2: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-asan test-lv2-drain-sabotage test-lv2-tsan
 
 lv2/tests/lv2_clap_test: lv2/tests/lv2_clap_test.c $(LV2_LIB) $(CORE_SO) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_direct_fixture.h $(LV2_FIXTURE_DIR)/lv2_fakes.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h $(LV2_FIXTURE_DIR)/lv2_hints_fixture.h
 	$(CC) $(LV2_TEST_CFLAGS) $(CLAP_CFLAGS) -o $@ $< $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK_TEST) $(LV2_WRAP) -Wl,--wrap=pthread_create -ldl -lpthread -lm

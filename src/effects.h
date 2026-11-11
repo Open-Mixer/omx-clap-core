@@ -38,6 +38,7 @@
 #include <stdint.h>
 
 #include "host-errors.h"
+#include "hosted_stage_limits.h"
 
 
 /*
@@ -46,9 +47,9 @@
 ************************************************************************************************************************
 */
 
-#define MAX_PLUGIN_INSTANCES    9990
-#define MAX_TOOL_INSTANCES      10
-#define MAX_INSTANCES           (MAX_PLUGIN_INSTANCES + MAX_TOOL_INSTANCES)
+/* the instance table's width is the contract's (data/hosting.json HOSTED_STAGE_LIMITS), spelled once in
+ * hosted_stage_limits.h; MAX_INSTANCES is this tree's own derived total, not a declared field */
+#define MAX_INSTANCES           (OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES + OMX_HOSTED_STAGE_MAX_TOOL_INSTANCES)
 
 
 /*

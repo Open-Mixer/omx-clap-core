@@ -87,7 +87,7 @@ struct window
 };
 
 /* a slot per plugin instance, never freed: a plugin's thread that calls the host reads a slot that stays */
-static struct window g_windows[MAX_PLUGIN_INSTANCES];
+static struct window g_windows[OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES];
 static _Atomic uint32_t g_high;     // the slots ever claimed: the calls look no further
 
 static struct window *window_of(const struct omx_clap_instance *in)
@@ -418,7 +418,7 @@ static struct window *window_claim(struct omx_clap_instance *in, const clap_plug
     for (i = 0; i < high && !w; i++)
         if (!atomic_load_explicit(&g_windows[i].in, memory_order_relaxed))
             w = &g_windows[i];
-    if (!w && high < MAX_PLUGIN_INSTANCES)
+    if (!w && high < OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
         w = &g_windows[high];
     if (!w)
         return NULL;

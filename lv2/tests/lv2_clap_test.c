@@ -3604,6 +3604,21 @@ static void t_atom_properties(double rate)
           "properties %.0f: a capacity too small writes nothing and returns the length (%d)", rate, n);
 
     rig_down(&g);
+
+    // sabotage: a host whose registry does not answer the space gets no property, and the write above reads as unknown
+    g_registry_grants_properties = 0;
+    if (rig_up(&g, g_atom, LV2_ATOM_FIXTURE_URI, rate, BLOCK) != 0)
+    {
+        g_registry_grants_properties = 1;
+        return;
+    }
+    g_registry_grants_properties = 1;
+    props = g.plugin->get_extension(g.plugin, OMX_CLAP_EXT_PROPERTIES);
+    CHECK(props && props->count(g.plugin) == 0 && omx_clap_lv2_patch_text_count(g.plugin) == 2,
+          "properties %.0f: a registry that does not answer org.openmixer.properties leaves count() at 0", rate);
+    CHECK(props && !props->get_info(g.plugin, 0, &past) && props->get_value(g.plugin, file_id, buf, sizeof(buf)) == -1,
+          "properties %.0f: with no property, get_info is false and get_value is -1", rate);
+    rig_down(&g);
 }
 
 /* one process() call of the MIDI-and-time plugin: `tr` its transport (NULL: none), `events` its input */

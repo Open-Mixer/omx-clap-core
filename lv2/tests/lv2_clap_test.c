@@ -185,6 +185,24 @@ static bool th_is_audio(const clap_host_t *host)
 static const clap_host_log_t TH_LOG = { th_log };
 static const clap_host_thread_check_t TH_THREAD = { th_is_main, th_is_audio };
 
+// whether the test host's clap.event-registry grants org.openmixer.properties: a plugin created while this is 0 sees no
+// registry answer for that space, as a host with no registry at all would leave it (the sabotage arm of t_atom_properties)
+static int g_registry_grants_properties = 1;
+
+static bool th_event_registry_query(const clap_host_t *host, const char *space_name, uint16_t *space_id)
+{
+    (void)host;
+    if (g_registry_grants_properties && !strcmp(space_name, OMX_CLAP_EVENT_SPACE_PROPERTIES))
+    {
+        *space_id = 1;
+        return true;
+    }
+    *space_id = UINT16_MAX;
+    return false;
+}
+
+static const clap_host_event_registry_t TH_EVENT_REGISTRY = { th_event_registry_query };
+
 static const void *th_get_extension(const clap_host_t *host, const char *id)
 {
     (void)host;
@@ -192,6 +210,8 @@ static const void *th_get_extension(const clap_host_t *host, const char *id)
         return &TH_LOG;
     if (!strcmp(id, CLAP_EXT_THREAD_CHECK))
         return &TH_THREAD;
+    if (!strcmp(id, CLAP_EXT_EVENT_REGISTRY))
+        return &TH_EVENT_REGISTRY;
     return NULL;
 }
 
@@ -3533,6 +3553,59 @@ static void t_atom_text(double rate)
     rig_down(&g);
 }
 
+/* org.openmixer.properties/1: one property per text patch parameter of the atom fixture, the file (atom:Path) and the
+ * name (atom:String), through a test host whose clap.event-registry grants org.openmixer.properties. */
+static void t_atom_properties(double rate)
+{
+    char why[OMX_CLAP_LV2_WHY_MAX] = "";
+    omx_clap_property_info_t file_info, name_info, past;
+    clap_param_info_t pi;
+    const omx_clap_plugin_properties_t *props;
+    char buf[16], guard[4];
+    clap_id file_id, name_id;
+    int32_t n;
+    struct rig g;
+
+    if (rig_up(&g, g_atom, LV2_ATOM_FIXTURE_URI, rate, BLOCK) != 0)
+        return;
+    props = g.plugin->get_extension(g.plugin, OMX_CLAP_EXT_PROPERTIES);
+    CHECK(props != NULL, "properties %.0f: org.openmixer.properties/1 is offered", rate);
+    if (!props)
+    {
+        rig_down(&g);
+        return;
+    }
+    CHECK(props->count(g.plugin) == omx_clap_lv2_patch_text_count(g.plugin) && props->count(g.plugin) == 2,
+          "properties %.0f: one property per text patch parameter (%u)", rate, props->count(g.plugin));
+    CHECK(props->get_info(g.plugin, 0, &file_info) && props->get_info(g.plugin, 1, &name_info)
+              && !props->get_info(g.plugin, 2, &past),
+          "properties %.0f: get_info fills index < count, false past it", rate);
+    CHECK(!strcmp(file_info.symbol, "file") && !strcmp(file_info.name, "File") && file_info.kind == OMX_CLAP_PROPERTY_PATH
+              && file_info.flags == (uint32_t)(OMX_CLAP_PROPERTY_IS_WRITABLE | OMX_CLAP_PROPERTY_IS_READABLE),
+          "properties %.0f: the file property (%s, %s, kind %u, flags %#x)", rate, file_info.symbol, file_info.name,
+          file_info.kind, file_info.flags);
+    CHECK(!strcmp(name_info.symbol, "name") && !strcmp(name_info.name, "Name") && name_info.kind == OMX_CLAP_PROPERTY_STRING
+              && name_info.flags == (uint32_t)(OMX_CLAP_PROPERTY_IS_WRITABLE | OMX_CLAP_PROPERTY_IS_READABLE),
+          "properties %.0f: the name property (%s, %s, kind %u, flags %#x)", rate, name_info.symbol, name_info.name,
+          name_info.kind, name_info.flags);
+    file_id = file_info.id;
+    name_id = name_info.id;
+    CHECK(file_id != name_id && !info_of(&g, file_id, &pi) && !info_of(&g, name_id, &pi),
+          "properties %.0f: the property ids are distinct and no params id (%u, %u)", rate, file_id, name_id);
+
+    CHECK(omx_clap_lv2_patch_text_set(g.plugin, ATOM_FILE, "/tmp/x", why) == 0, "properties %.0f: write the file (%s)", rate, why);
+    memset(buf, 'Z', sizeof(buf));
+    n = props->get_value(g.plugin, file_id, buf, sizeof(buf));
+    CHECK(n == 6 && !strcmp(buf, "/tmp/x"), "properties %.0f: get_value reads the same bytes back (%d, %s)", rate, n, buf);
+    CHECK(props->get_value(g.plugin, CLAP_INVALID_ID, buf, sizeof(buf)) == -1, "properties %.0f: an unknown id is -1", rate);
+    memset(guard, 'Z', sizeof(guard));
+    n = props->get_value(g.plugin, file_id, guard, 3);
+    CHECK(n == 6 && guard[0] == 'Z' && guard[1] == 'Z' && guard[2] == 'Z',
+          "properties %.0f: a capacity too small writes nothing and returns the length (%d)", rate, n);
+
+    rig_down(&g);
+}
+
 /* one process() call of the MIDI-and-time plugin: `tr` its transport (NULL: none), `events` its input */
 static clap_process_status mt_process(struct rig *g, float *in, float *out, const clap_event_transport_t *tr, const clap_input_events_t *events)
 {
@@ -4870,6 +4943,7 @@ int main(int argc, char **argv)
         t_generator(RATES[r]);
         t_time(RATES[r]);
         t_atom_text(RATES[r]);
+        t_atom_properties(RATES[r]);
         t_atom_midi_time(RATES[r]);
         t_atom_ui(RATES[r]);
         t_sidechain(RATES[r]);

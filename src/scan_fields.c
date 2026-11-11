@@ -50,6 +50,8 @@
 #include "scan_fields.h"
 #include "scan_panel.h"
 
+#include <plugin-hostd/protocol.h>
+
 
 /*
 ************************************************************************************************************************
@@ -868,15 +870,21 @@ static void lv2_uri_text(const char *uri, char *buf, size_t size)
 
     if (g_bundle_dir && strncmp(uri, "file://", 7) == 0)
     {
-        const char *path = uri + 7, *base;
+        char path[PATH_MAX];
+        const char *base;
 
-        n = strlen(g_bundle_dir);
-        if (strncmp(path, g_bundle_dir, n) == 0 && path[n] == '/')
+        // the world writes a file: URI's path percent-encoded (a space %20); the bundle directory is not, so the
+        // match needs the path decoded first (plugin-hostd-protocol's phd_pin_path_decode)
+        if (phd_pin_path_decode(uri + 7, path, sizeof(path)) == 0)
         {
-            for (base = g_bundle_dir + n; base > g_bundle_dir && base[-1] != '/'; base--)
-                ;
-            snprintf(buf, size, "%s%s", base, path + n);
-            return;
+            n = strlen(g_bundle_dir);
+            if (strncmp(path, g_bundle_dir, n) == 0 && path[n] == '/')
+            {
+                for (base = g_bundle_dir + n; base > g_bundle_dir && base[-1] != '/'; base--)
+                    ;
+                snprintf(buf, size, "%s%s", base, path + n);
+                return;
+            }
         }
     }
     for (i = 0; i < sizeof(g_prefixes) / sizeof(g_prefixes[0]); i++)

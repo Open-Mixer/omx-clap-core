@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+# A bundle directory with a space (omx-clap-core#16): the world writes its files' file: URIs with the space as %20.
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<urn:openmixer:test:spaced-fixture>
+    a lv2:Plugin ;
+    lv2:binary <omx-spaced-fixture.so> ;
+    rdfs:seeAlso <omx-spaced-fixture.ttl> .

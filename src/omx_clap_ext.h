@@ -276,6 +276,90 @@ typedef struct omx_clap_plugin_panel_description_ext
 } omx_clap_plugin_panel_description_ext_t;
 
 
+/*
+************************************************************************************************************************
+*           org.openmixer.properties/1
+************************************************************************************************************************
+*/
+
+/*
+ * CLAP has no text parameter: a plugin's string and path values (LV2's patch:writable patch:Parameter of range
+ * atom:String or atom:Path) are properties instead, one per such parameter, readable too when it is also listed
+ * patch:readable. The symbol is the property's lv2:symbol, else the text after the last '#' (else the last '/') of its
+ * URI, every character outside [A-Za-z0-9_] written '_', a leading digit prefixed '_': the same grammar as a param
+ * contract's symbol, and unique across both. A plugin's values are carried on its own patch port: the set event below
+ * forges a patch:Set there (a later step; this one only declares the extension and reads the values main-thread side).
+ */
+
+/** The parameter contract's symbol grammar, shared with a property's. */
+#define OMX_CLAP_PARAM_SYMBOL_SIZE OMX_CLAP_PARAM_CONTRACT_SYMBOL_SIZE
+
+/** The properties extension id. */
+static const char OMX_CLAP_EXT_PROPERTIES[] = "org.openmixer.properties/1";
+
+/** The clap.event-registry space of an omx_clap_event_property_t: queried at init; a host with no registry or that
+ * answers false for it offers no properties. */
+static const char OMX_CLAP_EVENT_SPACE_PROPERTIES[] = "org.openmixer.properties";
+
+/** The longest value's bytes, the terminating NUL included. */
+#define OMX_CLAP_PROPERTY_VALUE_MAX 4096
+
+/** A property's value type. */
+enum omx_clap_property_kind
+{
+    OMX_CLAP_PROPERTY_PATH = 0,     ///< atom:Path
+    OMX_CLAP_PROPERTY_STRING = 1,   ///< atom:String
+};
+
+/** A property's flags, set independently (a property may be both). */
+enum omx_clap_property_flags
+{
+    OMX_CLAP_PROPERTY_IS_WRITABLE = 1u << 0,
+    OMX_CLAP_PROPERTY_IS_READABLE = 1u << 1,
+};
+
+/** One property, as get_info fills it. */
+typedef struct omx_clap_property_info
+{
+    clap_id id;                              ///< stable for the plugin's version; never a params id
+    char symbol[OMX_CLAP_PARAM_SYMBOL_SIZE];  ///< the parameter contract's grammar; unique across params and properties
+    char name[CLAP_NAME_SIZE];               ///< display text (LV2 rdfs:label)
+    uint32_t kind;                           ///< an omx_clap_property_kind
+    uint32_t flags;                          ///< omx_clap_property_flags
+} omx_clap_property_info_t;
+
+/** The org.openmixer.properties/1 extension a plugin offers. */
+typedef struct omx_clap_plugin_properties
+{
+    /** [main-thread] The property count. */
+    uint32_t (CLAP_ABI *count)(const clap_plugin_t *plugin);
+
+    /** [main-thread] Fills `*info` for index < count; false past the end. */
+    bool (CLAP_ABI *get_info)(const clap_plugin_t *plugin, uint32_t index, omx_clap_property_info_t *info);
+
+    /** [main-thread] Copies the value into value[capacity], NUL-terminated; returns its length without the NUL; -1 for
+     * an unknown or unreadable id; a value that does not fit writes nothing and returns its length; an unset value is
+     * "" (0). */
+    int32_t (CLAP_ABI *get_value)(const clap_plugin_t *plugin, clap_id id, char *value, uint32_t capacity);
+} omx_clap_plugin_properties_t;
+
+/** The one event org.openmixer.properties/1 carries on its clap.event-registry space: a property write, host to
+ * plugin. */
+enum
+{
+    OMX_CLAP_EVENT_PROPERTY_SET = 0,
+};
+
+/** A property write: forged into the plugin's patch port as a patch:Set (a later step). */
+typedef struct omx_clap_event_property
+{
+    clap_event_header_t header;
+    clap_id property_id;
+    uint32_t size;      ///< bytes at `value`, the terminating NUL included; 1..OMX_CLAP_PROPERTY_VALUE_MAX
+    const char *value;  ///< UTF-8, NUL-terminated
+} omx_clap_event_property_t;
+
+
 #ifdef __cplusplus
 }
 #endif

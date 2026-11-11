@@ -331,10 +331,23 @@ install-contract:
 PLUGIN_HOSTD_TABLES ?=
 # omx-clap-scan --json is the program interface (docs/scan.md): it validates against schema/omx-clap-scan.schema.json, the file
 # the package installs, and holds the data the text lists, on the fixtures that between them list every kind of line
-SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_panel.clap tests/fake_tool.clap tests/crash.clap
+# (FAKE_CONTRACT=good: fake.clap offers its parameter contract, so the contract lines are among them)
+SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_compressor.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_panel.clap tests/fake_tool.clap tests/crash.clap
+# omx-plugins' omx-comp, as its package installs it: the scan states its clap.meters/1 meters and its
+# org.openmixer.param-contract/1 entries by value (tests/published-comp-scan.py). A desk without omx-plugins-clap skips
+# by name; CI, where the package is installed, never does.
+CLAP_COMP_PLUGIN ?= /usr/lib/clap/omx-comp.clap
+.PHONY: test-published-comp
+test-published-comp: $(SCAN_PROG)
+	@if [ ! -e "$(CLAP_COMP_PLUGIN)" ] && [ -z "$$CI" ]; then \
+		echo "skip: $(CLAP_COMP_PLUGIN) not found (install omx-plugins-clap or set CLAP_COMP_PLUGIN)"; \
+	else \
+		python3 -I tests/published-comp-scan.py ./$(SCAN_PROG) $(CLAP_COMP_PLUGIN); \
+	fi
+
 .PHONY: test-scan-json
 test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
-	python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
+	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
 
 .PHONY: test-fields
 test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap
@@ -409,7 +422,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
+test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth

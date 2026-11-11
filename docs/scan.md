@@ -43,7 +43,9 @@ A `plugin` is its descriptor, `id`, `name`, `vendor`, `version`, `description`, 
 
 | field | what it holds |
 | --- | --- |
-| `params` | each `{id, name, module, min, max, default, flags}`; a bound the plugin leaves open is `null`; `flags` are the CLAP parameter flags by name; an enum parameter has `labels`, `[{value, label}]`, the plugin's own text at every whole value of its range (none when the range is open or wider than 1024) |
+| `params` | each `{id, name, module, min, max, default, flags}`; a bound the plugin leaves open is `null`; `flags` are the CLAP parameter flags by name; an enum parameter has `labels`, `[{value, label}]`, the plugin's own text at every whole value of its range (none when the range is open or wider than 1024); a parameter of a trusted contract has `contract`, `{symbol, unit, scale, step}`, unit and scale by omx-contract's names |
+| `param_contract` | the plugin's `org.openmixer.param-contract/1` as the core judged it at open: `null` when it offers none, `{error}` naming the rule it broke (then no parameter has `contract`: a contract is trusted whole or not at all), else `{version, fingerprint}`; absent for a plugin the host refuses, which is never opened |
+| `meters` | the meters the plugin declares through `clap.meters/1` (docs/meters.md), as the core read them at open: each `{id, name, kind, flags, channels, min, max}`, `kind` `other`, `gain-reduction` or `level` (its number for a kind the core does not name), `flags` `coherent`, `held`, `clip`, `min` and `max` the display range the plugin suggests; `[]` with none read whole; absent for a plugin the host refuses |
 | `remote_controls` | the plugin's remote-control pages, each `{id, section, name, params:[8 ids, null for an empty slot], forPreset}` |
 | `audio_ports` | `{inputs, outputs}`, each port `{id, name, role: main or aux, channels, kind, jack}`; `kind` is mono, stereo, surround, ambisonic or unknown; a surround port has `map`, the channel ids; an ambisonic one `ordering` and `normalization`, and `assumed` when the plugin did not say; `jack` holds the port names omx-clap-host registers for it, and is absent for a plugin the host refuses. `passthrough: "host"` is present for a tool with no audio port, which the host places as a pass-through |
 | `note_ports` | `{inputs, outputs}`, counts |
@@ -62,8 +64,9 @@ The same data as the text
 
 Every line of the text listing has its field in the JSON, with the same value, and the check holds it: `make
 test-scan-json` runs the scanner as text and as JSON over a set of fixture plugins (`tests/fake.clap`, `fake_synth.clap`,
-`fake_ext.clap`, `fake_panel.clap`, `fake_tool.clap` and a plugin that crashes), parses the text back to data, and fails when
-a parameter, a port, a note name, a latency, a voice figure, a resource hint, a panel count, a preset, a failure or a
-plugin differs, or when the JSON does not validate. `--self-test` breaks each of seventeen things in the JSON after the scan and
+`fake_ext.clap`, `fake_panel.clap`, `fake_tool.clap`, `fake_compressor.clap` and a plugin that crashes; `fake.clap` with
+its contract offered), parses the text back to data, and fails when a parameter, a parameter's contract entry, the
+contract, a meter, a port, a note name, a latency, a voice figure, a resource hint, a panel count, a preset, a failure or a
+plugin differs, or when the JSON does not validate. `--self-test` breaks each of twenty-one things in the JSON after the scan and
 requires the check to name each. What only the JSON carries (`description`, `url`, `remote_controls`, enum `labels`, the
 panel's tables, a port's `id`) is held by the schema alone.

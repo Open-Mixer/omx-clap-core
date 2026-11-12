@@ -26,6 +26,8 @@ id=org.omx-clap-host.test.passthrough
 uri="clap:$fake#$id"
 
 : "${OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP:?}" "${OMX_HOST_EVENTS_REMOTE_PAGES_CHANGED:?}"
+: "${PHD_NODE_METADATA_PRETTY_NAME_KEY:?}" "${PHD_NODE_METADATA_PRETTY_NAME_FORMAT:?}"
+: "${PHD_NODE_METADATA_INSTANCE_KEY:?}" "${PHD_NODE_METADATA_INSTANCE_FORMAT:?}"
 
 if [ -z "${JACK_E2E_INSIDE:-}" ]; then
     for f in "$host" "$fake"; do
@@ -62,7 +64,11 @@ trap cleanup EXIT
 
 ip link set lo up
 
-pipewire >"$runtime/pw.log" 2>&1 &
+# the default metadata a session manager creates (WirePlumber), where JACK metadata lives: a hosted node's name
+mkdir -p "$runtime/config/pipewire/pipewire.conf.d"
+echo 'context.objects = [ { factory = metadata args = { metadata.name = default } } ]' \
+    >"$runtime/config/pipewire/pipewire.conf.d/default-metadata.conf"
+XDG_CONFIG_HOME=$runtime/config pipewire >"$runtime/pw.log" 2>&1 &
 pids+=($!)
 for _ in $(seq 50); do [ -S "$runtime/pipewire-0" ] && break; sleep 0.1; done
 [ -S "$runtime/pipewire-0" ] || { echo "pipewire did not come up" >&2; cat "$runtime/pw.log" >&2; exit 2; }
@@ -93,6 +99,17 @@ last_track() { grep "^$id track_info " "$log" | tail -1 | cut -d' ' -f3-; }
 changed() { grep -c -x "$OMX_HOST_EVENTS_REMOTE_PAGES_CHANGED $1" "$feedback"; }
 
 expect "add $uri 0" "resp 0"
+
+# the node keeps its client's name, and carries the protocol's node metadata: the plugin's name and the instance
+meta() { jack_property --client -l effect_0 "$1" 2>/dev/null; }
+# shellcheck disable=SC2059
+want=$(printf "$PHD_NODE_METADATA_PRETTY_NAME_FORMAT" passthrough 0)
+for _ in $(seq 30); do [ "$(meta "$PHD_NODE_METADATA_PRETTY_NAME_KEY")" = "$want" ] && break; sleep 0.1; done
+[ "$(meta "$PHD_NODE_METADATA_PRETTY_NAME_KEY")" = "$want" ]
+step $? "effect_0 is named $want for every graph client: $(meta "$PHD_NODE_METADATA_PRETTY_NAME_KEY")"
+# shellcheck disable=SC2059
+[ "$(meta "$PHD_NODE_METADATA_INSTANCE_KEY")" = "$(printf "$PHD_NODE_METADATA_INSTANCE_FORMAT" 0)" ]
+step $? "effect_0 carries the instance key a client matches it on: $(meta "$PHD_NODE_METADATA_INSTANCE_KEY")"
 
 # track_info reaches the plugin byte for byte: one changed, and the host's get answers name, colour and flags
 name='Kick \"In\" ñ'

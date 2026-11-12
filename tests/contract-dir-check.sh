@@ -25,7 +25,7 @@ work=$(dirname "$dir")
 
 # omx-contract's own package, less its reader's table (codes.json) and its golden vectors (scale-vectors.json), as omx-contract installs itself
 ocv=$(sed -n 's/^  "version": "\([0-9.]*\)",$/\1/p' "$oc/package.json")
-sh "$oc/tools/install-contract-dir.sh" -x codes.json -x scale-vectors.json omx-contract "$ocv" 3 "$oc/data" "$dir" data
+sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" -x codes.json -x scale-vectors.json omx-contract "$ocv" 3 "$oc/data" "$dir" data
 
 $tool validate --contract-dir "$dir" --needs "omx-clap-core@>= $version" --catalogs catalogs
 

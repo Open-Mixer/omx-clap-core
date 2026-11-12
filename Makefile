@@ -432,10 +432,10 @@ test-scan: $(SCAN_PROG) tests/clap_scan_test tests/fake.clap tests/crash.clap te
 # the scanner's sources and the core compiled directly into the test, bypassing the shared library so the whole walk
 # carries AddressSanitizer's instrumentation: a directory of real .clap files listed, then everything main() built
 # (roots, files, failures, seen) must be off the heap again. Needs libasan; CI runs it, the package builds do not
-tests/clap_scan_asan: src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c src/layout_pin.h $(CORE_SRC) $(CORE_HEADERS) $(LV2_LIB) src/abi_guard.S
-	$(CC) -Isrc -Ilv2/core $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror -fno-omit-frame-pointer \
+tests/clap_scan_asan: src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c src/layout_pin.h $(CORE_SRC) $(CORE_HEADERS) $(LV2_LIB) src/abi_guard.S $(PROTOCOL_LIB)
+	$(CC) -Isrc -Ilv2/core $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) $(PROTOCOL_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror -fno-omit-frame-pointer \
 	    -fsanitize=address,undefined -fno-sanitize-recover=all -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u \
-	    -o $@ src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c $(CORE_SRC) $(LV2_LIB) $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+	    -o $@ src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c $(CORE_SRC) $(LV2_LIB) $(CRYPTO_LIBS) src/abi_guard.S $(PROTOCOL_LIBS) -ldl -lpthread -lm
 
 test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 	ASAN_OPTIONS=detect_leaks=1 ./tests/clap_scan_asan $(abspath tests/fake.clap) $(abspath tests/crash.clap) >/dev/null

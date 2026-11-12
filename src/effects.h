@@ -92,6 +92,8 @@ int effects_monitor_output(int effect_id, const char *symbol);
 /* the rate the instance runs at, Hz, for the curve verbs: the graph's at the add, then at each change it applied;
  * ERR_INSTANCE_NON_EXISTS */
 int effects_sample_rate(int effect_id, double *rate);
+/* node_label: a client's label on the node's pretty-name; "" clears it (plugin-hostd#35) */
+int effects_node_label(int effect_id, const char *label);
 /* monitor_output_off: the output is no longer read; a monitor also ends with the connection that set it */
 int effects_monitor_output_off(int effect_id, const char *symbol);
 /* the descriptor of the connection the command being run came in on, given before each command */

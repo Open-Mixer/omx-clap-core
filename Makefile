@@ -355,11 +355,11 @@ test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.c
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 	python3 tests/resource-hints-check.py --self-test ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 
+# the numbers the host answers, plugin-hostd-protocol's host-errors.h (tests/host-reply-codes-check.py)
+HOST_ERRORS_H = $(firstword $(wildcard $(addsuffix /host-errors.h,$(patsubst -I%,%,$(filter -I%,$(PROTOCOL_CFLAGS))))))
 # omx-contract's install-contract-dir.sh: a checkout's (OMX_CONTRACT_DIR/tools), else the installed package's, so
 # OMX_CONTRACT_DIR may be a checkout or the installed /usr/lib/omx-contract (CI takes it from the staging channel)
 OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh) $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh))
-# the numbers the host answers, plugin-hostd-protocol's host-errors.h (tests/host-reply-codes-check.py)
-HOST_ERRORS_H = $(firstword $(wildcard $(addsuffix /host-errors.h,$(patsubst -I%,%,$(filter -I%,$(PROTOCOL_CFLAGS))))))
 test-contract:
 	rm -rf build/contract
 	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)

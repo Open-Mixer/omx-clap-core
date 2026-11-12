@@ -4034,6 +4034,15 @@ int effects_preset_get(int effect_id, int index, char *reply, size_t size)
     return SUCCESS;
 }
 
+/* what a preset load of the host library answers, as the backend's preset_load does: applied, taken and not applied
+ * yet when the wait ran out (plugin-hostd-protocol's PRESET_NOT_APPLIED, never 0: omx-clap-core#24), or refused */
+static int preset_loaded(int r)
+{
+    if (r == 0)
+        return SUCCESS;
+    return r == OMX_CLAP_HOST_NOT_APPLIED ? OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_APPLIED_RESP : ERR_LV2_INVALID_PRESET_URI;
+}
+
 int effects_preset_load(int effect_id, const char *location)
 {
     struct omx_clap_instance *clap;
@@ -4060,13 +4069,12 @@ int effects_preset_load(int effect_id, const char *location)
         lv2_uri_canonical(key, want, sizeof(want));
         m.want = want;
         omx_clap_host_entry_presets(g_effects[effect_id].lv2_entry, lv2_preset_match, &m);
-        return omx_clap_host_preset_load_key(clap, CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN, NULL, m.found[0] ? m.found : key) == 0
-            ? SUCCESS : ERR_LV2_INVALID_PRESET_URI;
+        return preset_loaded(omx_clap_host_preset_load_key(clap, CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN, NULL, m.found[0] ? m.found : key));
     }
     // a key of preset_get: plugin:<key>, file:<path> or file:<path>#<key> (a path that exists whole is a file)
     if (!strncmp(key, HOST_PRESET_KEY_PLUGIN, strlen(HOST_PRESET_KEY_PLUGIN)))
-        return omx_clap_host_preset_load_key(clap, CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN, NULL,
-                                             key + strlen(HOST_PRESET_KEY_PLUGIN)) == 0 ? SUCCESS : ERR_LV2_INVALID_PRESET_URI;
+        return preset_loaded(omx_clap_host_preset_load_key(clap, CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN, NULL,
+                                                           key + strlen(HOST_PRESET_KEY_PLUGIN)));
     if (!strncmp(key, HOST_PRESET_KEY_FILE, strlen(HOST_PRESET_KEY_FILE)))
     {
         char *path = key + strlen(HOST_PRESET_KEY_FILE);
@@ -4077,10 +4085,9 @@ int effects_preset_load(int effect_id, const char *location)
             *mark = '\0';
             inner = mark + 1;
         }
-        return omx_clap_host_preset_load_key(clap, CLAP_PRESET_DISCOVERY_LOCATION_FILE, path, inner) == 0
-            ? SUCCESS : ERR_LV2_INVALID_PRESET_URI;
+        return preset_loaded(omx_clap_host_preset_load_key(clap, CLAP_PRESET_DISCOVERY_LOCATION_FILE, path, inner));
     }
-    return omx_clap_host_preset_load(clap, key) == 0 ? SUCCESS : ERR_LV2_INVALID_PRESET_URI;
+    return preset_loaded(omx_clap_host_preset_load(clap, key));
 }
 
 /* a preset verb's refusal: "resp -104 <code>", the code one of plugin-hostd's preset refusals (docs/presets.md) */
@@ -4298,7 +4305,7 @@ static int preset_file_load(effect_t *effect, const char *path, char *reply, siz
     struct pj doc, *plugin, *params, *state;
     const char *format, *carries, *pid, *version;
     char fingerprint[96];
-    int v2, ret;
+    int v2, ret, applied;
     uint32_t i;
 
     memset(&doc, 0, sizeof(doc));
@@ -4338,8 +4345,8 @@ static int preset_file_load(effect_t *effect, const char *path, char *reply, siz
 
         if (!body)
             ret = preset_refuse(reply, size, PRESET_CODE_INVALID);
-        else if (omx_clap_host_state_load_context(effect->clap, CLAP_STATE_CONTEXT_FOR_PRESET, body, len) != 0)
-            ret = preset_refuse(reply, size, PRESET_CODE_LOAD_REFUSED);
+        else if ((applied = omx_clap_host_state_load_context(effect->clap, CLAP_STATE_CONTEXT_FOR_PRESET, body, len)) != 0)
+            ret = preset_refuse(reply, size, applied == OMX_CLAP_HOST_NOT_APPLIED ? PRESET_CODE_NOT_APPLIED : PRESET_CODE_LOAD_REFUSED);
         free(body);
     }
     for (i = 0; ret == SUCCESS && params && i < params->n; i++)
@@ -4393,6 +4400,8 @@ int effects_preset_load_reply(int effect_id, const char *location, char *reply, 
         return ret;
     if (ret == ERR_LV2_INVALID_PRESET_URI || ret == ERR_INVALID_OPERATION)
         return preset_refuse(reply, size, PRESET_CODE_NOT_OFFERED);
+    if (ret == OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_APPLIED_RESP)
+        return preset_refuse(reply, size, PRESET_CODE_NOT_APPLIED);
     if (ret == SUCCESS)
         snprintf(reply, size, "resp 0");
     return ret;

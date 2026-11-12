@@ -54,6 +54,7 @@
 #define OMX_HOSTED_STAGE_LOG_BYTES 256u  ///< the size of a plugin log message, in bytes
 #define OMX_HOSTED_STAGE_ROLE_POLL_US 1000u  ///< the poll interval while the audio role is taken, in microseconds
 #define OMX_HOSTED_STAGE_ROLE_TIMEOUT_US 200000u  ///< the wait for the audio role past which a stop gives up or take_role says so, in microseconds
+#define OMX_HOSTED_STAGE_PRESET_APPLIED_WAIT_US 1000000u  ///< the wait, after a preset or a state load of an instance that was processing, for its plugin to run once more and so apply it, in microseconds: two blocks of the largest quantum at the lowest rate fit in it; past it the load answers that the preset is not applied yet
 #define OMX_HOSTED_STAGE_PARAM_COUNT_MAX 2048u  ///< the widest parameter count the core trusts
 #define OMX_HOSTED_STAGE_LATENCY_HOLD_MS 250u  ///< the hold before a hosted stage's new latency takes effect, in milliseconds
 #define OMX_HOSTED_STAGE_IDLE_HOLD_US 10u  ///< the latency the library holds /dev/cpu_dma_latency at while an instance is active, in microseconds: 10 keeps the cores in C1

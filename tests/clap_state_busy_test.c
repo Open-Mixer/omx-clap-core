@@ -81,13 +81,16 @@ int main(int argc, char **argv)
     CHECK(omx_clap_host_state_load(in, &saved, sizeof(saved)) == 0 && value_of(in) == saved && atomic_load(&in->stage.state) == OMX_CLAP_IDLE,
           "active, not armed, it loads and is left as it was");
     omx_clap_arm(&in->stage);
-    CHECK(omx_clap_host_state_load(in, &other, sizeof(other)) == 0 && value_of(in) == other && atomic_load(&in->stage.state) == OMX_CLAP_ARMED,
-          "armed, it loads and stays armed");
+    // armed, no cycle has run it since: the plugin took the state and the load says it is not applied yet (#24)
+    CHECK(omx_clap_host_state_load(in, &other, sizeof(other)) == OMX_CLAP_HOST_NOT_APPLIED && value_of(in) == other &&
+          atomic_load(&in->stage.state) == OMX_CLAP_ARMED, "armed, no cycle coming, it takes the state, answers not applied and stays armed");
     cycle(in);
     CHECK(atomic_load(&in->stage.state) == OMX_CLAP_PROCESSING, "a cycle runs it");
 
-    // no cycle comes: the control thread stands in for it, and the next cycle runs the plugin again
-    CHECK(omx_clap_host_state_load(in, &saved, sizeof(saved)) == 0 && value_of(in) == saved, "processing, no cycle coming, it loads");
+    // no cycle comes: the control thread stands in for it, the plugin takes the state, and with no cycle after it the load
+    // answers that it is not applied yet; the next cycle runs the plugin again
+    CHECK(omx_clap_host_state_load(in, &saved, sizeof(saved)) == OMX_CLAP_HOST_NOT_APPLIED && value_of(in) == saved,
+          "processing, no cycle coming, it takes the state and answers not applied");
     CHECK(atomic_load(&in->stage.state) == OMX_CLAP_ARMED, "and it is armed again");
     cycle(in);
     CHECK(atomic_load(&in->stage.state) == OMX_CLAP_PROCESSING, "and the next cycle runs it");
@@ -98,12 +101,13 @@ int main(int argc, char **argv)
     CHECK(atomic_load(&in->stage.state) == OMX_CLAP_PROCESSING && value_of(in) == saved, "and the plugin runs on with what it had");
 
     // a preset's load is the same call on the same thread
-    CHECK(omx_clap_host_preset_load_key(in, CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN, NULL, "any") == 0 && value_of(in) == 9.0, "processing, a preset loads");
+    CHECK(omx_clap_host_preset_load_key(in, CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN, NULL, "any") == OMX_CLAP_HOST_NOT_APPLIED &&
+          value_of(in) == 9.0, "processing, no cycle coming, a preset is taken and answers not applied");
     CHECK(atomic_load(&in->stage.state) == OMX_CLAP_ARMED, "and it is armed again");
     cycle(in);
     CHECK(atomic_load(&in->stage.state) == OMX_CLAP_PROCESSING, "and the next cycle runs it");
 
-    // cycles coming all along: every load reaches the plugin
+    // cycles coming all along: every load reaches the plugin and answers 0, once a cycle has run it
     pthread_create(&thread, NULL, audio, in);
     for (i = 0; i < LOADS; i++)
     {

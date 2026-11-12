@@ -95,15 +95,24 @@ jobs:
     name: make docs (the public headers are fully documented)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # in a container like the other jobs that install packages: apt on the runner host could not resolve the Ubuntu
+    # mirrors (2026-11-11, four runs in a row) while the container jobs of the same runs installed theirs
+    container:
+      image: ubuntu:26.04
+    env:
+      PIPX_BIN_DIR: /usr/local/bin
     steps:
+      # git before the checkout, so the checkout is a clone with its history and not an archive
+      - name: Install git, doxygen and lizard
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends ca-certificates git make gcc libc6-dev pkgconf python3 perl doxygen pipx
+          pipx install lizard==1.24.1
+          git config --global --add safe.directory '*'
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install doxygen and lizard
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends doxygen
-          pipx install lizard==1.24.1
 
       - name: make docs
         run: make docs
@@ -198,6 +207,11 @@ jobs:
 
       - name: Test the plugin lifecycle and the scanner against the fake plugins
         run: make test-fake
+
+      # the meter reader of effects.c built with -Werror and driven by its test, and each of its rules broken, red: in
+      # make test and in no job until it failed to build on main unseen (int against the unsigned instance limits)
+      - name: Test the meter reader and its sabotage
+        run: make test-effects-meter test-effects-meter-sabotage
 
       # org.openmixer.panel-description/1 as omx_clap_ext.h states it, against omx-plugins' header, the ABI (#337)
       - name: The panel description's structures are the ABI's

@@ -185,6 +185,11 @@ static void midi_two_connect_port(LV2_Handle h, uint32_t port, void *data)
 }
 static const LV2_Descriptor MIDI_TWO_TWIN = {FIXTURE_URI "#midi-two", midi_two_instantiate, midi_two_connect_port, NULL, fixed_run, NULL, fixed_cleanup, NULL};
 
+/* the MIDI rsz twin (#midi-rsz, omx-clap-core#3): the same shape as #midi-two (audio in to out, the MIDI input fed
+ * to nothing), its own descriptor only because a plugin needs one to be instantiated through at all; its TTL's
+ * rsz:minimumSize is what the test is about, not this handle */
+static const LV2_Descriptor MIDI_RSZ_TWIN = {FIXTURE_URI "#midi-rsz", midi_two_instantiate, midi_two_connect_port, NULL, fixed_run, NULL, fixed_cleanup, NULL};
+
 /* the analyser twin (#no-out): one audio input and a control output, the block's peak; no audio output at all */
 struct analyser { const float *in; float *peak; };
 static LV2_Handle analyser_instantiate(const LV2_Descriptor *d, double rate, const char *path, const LV2_Feature *const *f)
@@ -317,5 +322,5 @@ LV2_SYMBOL_EXPORT const LV2_Descriptor *lv2_descriptor(uint32_t index)
 {
     return index == 0 ? &DESCRIPTOR : index == 1 ? &FIXED_TWIN : index == 2 ? &INPLACE_TWIN : index == 3 ? &MIDI_TWO_TWIN
          : index == 4 ? &ANALYSER_TWIN : index == 5 ? &GENERATOR_TWIN : index == 6 ? &WIDE_TWIN : index == 7 ? &CTL_ALONE_TWIN
-         : index == 8 ? &CTL_ONLY_TWIN : NULL;
+         : index == 8 ? &CTL_ONLY_TWIN : index == 9 ? &MIDI_RSZ_TWIN : NULL;
 }

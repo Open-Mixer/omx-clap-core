@@ -105,7 +105,12 @@ static void fault_path(char *out, size_t cap, int mode) { snprintf(out, cap, "%s
 static void t_abi(void) {
   struct omx_clap_host_config config;
   omx_clap_host_config_default(&config);
-  CHECK(config.abi == 20u && OMX_CLAP_CORE_ABI_OLDEST == 18u, "this header is ABI 20, the oldest accepted 18 (%u)", config.abi);
+  CHECK(config.abi == 21u && OMX_CLAP_CORE_ABI_OLDEST == 18u, "this header is ABI 21, the oldest accepted 18 (%u)", config.abi);
+  /* ABI 21 appends the bypass dry-path delay after keeps_on: no field of ABI 20 moves, and the stage finds it through
+   * guard_off as struct omx_clap_guard_tail lays out the tail */
+  CHECK(offsetof(struct omx_clap_instance, bypass_delay) >= offsetof(struct omx_clap_instance, keeps_on) + sizeof ((struct omx_clap_instance *)0)->keeps_on &&
+            offsetof(struct omx_clap_instance, bypass_delay) - offsetof(struct omx_clap_instance, abi) == offsetof(struct omx_clap_guard_tail, bypass_delay),
+        "the bypass delay follows every field of ABI 20, where the guard's tail says (%zu)", offsetof(struct omx_clap_instance, bypass_delay));
   /* ABI 20 appends the plugin's guard to the instance, after the thread pool's gate of ABI 19; the stage reaches it
    * through guard_off, in its tail padding */
   CHECK(offsetof(struct omx_clap_instance, abi) >= offsetof(struct omx_clap_instance, pool_late) + sizeof ((struct omx_clap_instance *)0)->pool_late,
@@ -167,12 +172,13 @@ static void t_abi(void) {
             offsetof(struct omx_clap_instance, pool_late) > offsetof(struct omx_clap_instance, pool_held) &&
             offsetof(struct omx_clap_instance, abi) > offsetof(struct omx_clap_instance, pool_late),
         "the thread pool's gate follows the named slot, the guard follows the gate (%zu)", offsetof(struct omx_clap_instance, abi));
-  /* the sleep's last status is appended after the guard, the instance's last: struct omx_clap_sleep, embedded whole
-   * before the layout extensions, does not grow, so none of them moves */
+  /* the sleep's last status is appended after the guard: struct omx_clap_sleep, embedded whole before the layout
+   * extensions, does not grow, so none of them moves; the bypass dry-path delay (ABI 21) follows it, the instance's last */
   CHECK(offsetof(struct omx_clap_instance, keeps_on) >= offsetof(struct omx_clap_instance, abi) + sizeof(struct omx_abi_guard) &&
-            sizeof(struct omx_clap_instance) - offsetof(struct omx_clap_instance, keeps_on) - sizeof(int)
+            offsetof(struct omx_clap_instance, bypass_delay) >= offsetof(struct omx_clap_instance, keeps_on) + sizeof(int) &&
+            sizeof(struct omx_clap_instance) - offsetof(struct omx_clap_instance, bypass_delay) - sizeof(struct omx_clap_bypass_delay)
                 < _Alignof(struct omx_clap_instance),
-        "the sleep's last status follows the guard, the instance's last (%zu)", offsetof(struct omx_clap_instance, keeps_on));
+        "the sleep's last status follows the guard and the bypass delay closes the instance (%zu)", offsetof(struct omx_clap_instance, bypass_delay));
   config.abi = 0;
   CHECK(omx_clap_host_configure(&config) == -1, "ABI 0 is refused");
   config.abi = 11;

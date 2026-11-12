@@ -1,3 +1,28 @@
+omx-clap-host (0.31.2) unstable; urgency=medium
+
+  * omx-clap-scan states what a plugin exports through clap.meters/1 and
+    org.openmixer.param-contract/1: each meter with its kind, channels,
+    range and flags, the contract's version and fingerprint (or the rule it
+    is not trusted by) and each parameter's contract entry, in the text,
+    in --json (meters, param_contract, each parameter's contract) and in
+    --fields.
+  * tests/published-comp-scan.py holds omx-plugins' published omx-comp to
+    its meters and contract by value (omx-plugins 0.19.3).
+  * The state root is made at 0700 (a looser one is brought to it), a dead
+    instance's lv2-<pid>-<n> directories and .saved copies are pruned at the
+    next start, and the process's cwd moves into the root.
+  * MAX_PLUGIN_INSTANCES and MAX_TOOL_INSTANCES are read from the rendered
+    contract header, not restated.
+  * omx-clap-scan frees every path its walk and its argument list built
+    before it exits.
+  * tests: the LV2 adapter's restart bookkeeping against a cycle thread
+    under ThreadSanitizer.
+  * Built against plugin-hostd-protocol >= 0.5.2 and < 0.6, plugin-db
+    >= 0.3.1 and < 0.4, omx-dsp >= 0.32.0 and < 0.33, omx-contract
+    >= 3.12.0 and < 4.
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Wed, 11 Nov 2026 00:45:00 +0000
+
 omx-clap-host (0.31.1) unstable; urgency=medium
 
   * The instance data races: active and latency_published are atomic (#531).

@@ -98,7 +98,7 @@ _Static_assert(HOST_REMOTE_PAGE_SLOTS == CLAP_REMOTE_CONTROLS_COUNT, "a remote p
 // the note output events one take reads off the library's ring on the audio thread
 #define NOTES_OUT_CHUNK         64u
 #define STATE_FILE_SUFFIX       ".clapstate"
-#define INSTANCE_IS_VALID(id)   ((id) >= 0 && (id) < MAX_INSTANCES)
+#define INSTANCE_IS_VALID(id)   ((id) >= 0 && (unsigned)(id) < MAX_INSTANCES)
 #define REQUESTED_CLIENT_NAME_BUF_SIZE  256
 
 // a write waits for the next cycle this long before the control thread delivers it itself
@@ -221,6 +221,8 @@ typedef struct EFFECT_T {
     struct host_transport_intent intent;    // the host's transport as this instance's audio thread last read it whole
     struct omx_clap_transport_src transport_src;  // the record the audio thread works out each block and the plugin reads
     int own_active;                         // its own client is active: it can carry the host's xruns and frame clock
+    char layout[PHD_SHA256_HEX_LEN + 1];    // its layout's digest after init, before activate: the plugin a pin and a
+                                            // preset name, never its patched state ("" when it could not be read)
 } effect_t;
 
 static void presets_forget(effect_t *effect);
@@ -481,7 +483,7 @@ static void named_apply(effect_t *effect)
  * g_chain_members was held, applied under it. A name published after the flag is taken sets it again, for the next. */
 static void chain_members_reconcile(void)
 {
-    int i;
+    unsigned i;
 
     if (!atomic_exchange(&g_named_pending, 0u))
         return;
@@ -1971,22 +1973,24 @@ static void state_filename(char *buffer, size_t size, const char *dir, int insta
 }
 
 
-/* one-contract 10.1 step 3: the layout of an instance after init and before activate against its pin; 0 when it
- * matches, or when no pin was expected */
-static int layout_check(effect_t *effect, const char *pin, const char *id)
+/* one-contract 10.1 step 3: the layout of an instance after init and before activate, recorded on it, against its pin;
+ * 0 when it matches or no pin was expected. The record is what the instance's presets and pin_layout name it by: the
+ * plugin, which a patch it loads later does not change (plugin-hostd#27: a plugin may rename its parameters with its
+ * patch). A layout that cannot be read is refused only when a pin was expected. */
+static int layout_record(effect_t *effect, const char *pin, const char *id)
 {
-    char hex[PHD_SHA256_HEX_LEN + 1];
-
-    if (!pin[0])
-        return 0;
-    if (layout_pin_write(OMX_ABI_GUARD_OF(effect->clap), effect->clap->plugin, effect->clap->params, NULL, NULL, hex) != 0)
+    if (layout_pin_write(OMX_ABI_GUARD_OF(effect->clap), effect->clap->plugin, effect->clap->params, NULL, NULL,
+                         effect->layout) != 0)
     {
+        effect->layout[0] = '\0';
+        if (!pin[0])
+            return 0;
         fprintf(stderr, "%s: its parameter layout cannot be read\n", id);
         return -1;
     }
-    if (strcmp(hex, pin) != 0)
+    if (pin[0] && strcmp(effect->layout, pin) != 0)
     {
-        fprintf(stderr, "%s: layout %s:%s, pinned %s:%s\n", id, PHD_PIN_LAYOUT_SCHEME, hex, PHD_PIN_LAYOUT_SCHEME, pin);
+        fprintf(stderr, "%s: layout %s:%s, pinned %s:%s\n", id, PHD_PIN_LAYOUT_SCHEME, effect->layout, PHD_PIN_LAYOUT_SCHEME, pin);
         return -1;
     }
     return 0;
@@ -3072,7 +3076,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
         error = ERR_LV2_INSTANTIATION;
         goto error;
     }
-    if (layout_check(effect, pin, id) != 0)
+    if (layout_record(effect, pin, id) != 0)
     {
         error = OMX_REPLY_HOST_PIN_LAYOUT_MISMATCH_RESP;
         goto error;
@@ -3668,7 +3672,7 @@ static int uri_path_char(unsigned char c)
  * directory that does not resolve, or one that does not fit. */
 static int lv2_uri_canonical(const char *uri, char *out, size_t size)
 {
-    char path[PATH_MAX], dir[PATH_MAX], whole[2 * PATH_MAX], *slash, *o = path;
+    char word[PATH_MAX], path[PATH_MAX], dir[PATH_MAX], whole[2 * PATH_MAX], *slash;
     const char *p, *frag;
     size_t n;
 
@@ -3676,21 +3680,16 @@ static int lv2_uri_canonical(const char *uri, char *out, size_t size)
     if (strncmp(uri, "file:///", 8))
         return -1;
     frag = strchr(uri + 7, '#');
-    // the path, decoded
-    for (p = uri + 7; *p && p != frag && o < path + sizeof(path) - 1; p++)
-    {
-        unsigned int c;
-
-        if (p[0] == '%' && isxdigit((unsigned char)p[1]) && isxdigit((unsigned char)p[2]) && sscanf(p + 1, "%2x", &c) == 1)
-        {
-            *o++ = (char)c;
-            p += 2;
-        }
-        else
-            *o++ = *p;
-    }
-    *o = '\0';
-    if ((p != frag && *p) || !(slash = strrchr(path, '/')) || slash == path)
+    n = frag ? (size_t)(frag - (uri + 7)) : strlen(uri + 7);
+    if (n >= sizeof(word))
+        return -1;
+    memcpy(word, uri + 7, n);
+    word[n] = '\0';
+    // the path, decoded by plugin-hostd-protocol's rule: an escape not followed by two hex digits, or an escaped
+    // NUL, refuses rather than keeping the '%' or the NUL
+    if (phd_pin_path_decode(word, path, sizeof(path)) != 0)
+        return -1;
+    if (!(slash = strrchr(path, '/')) || slash == path)
         return -1;
     *slash = '\0';
     if (!realpath(path, dir) || (size_t)snprintf(whole, sizeof(whole), "%s/%s", dir, slash + 1) >= sizeof(whole))
@@ -4099,17 +4098,16 @@ static int pj_set_string(struct pj *obj, const char *key, const char *text)
     return pj_string(&v, text) != 0 || pj_set(obj, key, &v) != 0 ? -1 : 0;
 }
 
-/* the instance's plugin as a preset file names it: its id, its descriptor's version, and its layout's fingerprint
- * (omx-layout/1:<sha256>, plugin-hostd's pin) */
+/* the instance's plugin as a preset file names it: its id, its descriptor's version, and the fingerprint of the layout
+ * it had after init (omx-layout/1:<sha256>, plugin-hostd's pin), recorded at its add: a preset belongs to the binary,
+ * not to the state a patch left it in */
 static int preset_identity(const effect_t *effect, const char **id, const char **version, char *fingerprint, size_t size)
 {
-    char hex[PHD_SHA256_HEX_LEN + 1];
-
     *id = effect->clap->desc->id;
     *version = effect->clap->desc->version ? effect->clap->desc->version : "";
-    if (layout_pin_write(OMX_ABI_GUARD_OF(effect->clap), effect->clap->plugin, effect->clap->params, NULL, NULL, hex) != 0)
+    if (!effect->layout[0])
         return -1;
-    snprintf(fingerprint, size, "%s:%s", PHD_PIN_LAYOUT_SCHEME, hex);
+    snprintf(fingerprint, size, "%s:%s", PHD_PIN_LAYOUT_SCHEME, effect->layout);
     return 0;
 }
 
@@ -4548,7 +4546,7 @@ int effects_state_save(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
+        if ((unsigned)i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         ret = clap_state_save(g_effects[i].clap, filename);
@@ -4567,7 +4565,7 @@ int effects_state_load(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
+        if ((unsigned)i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         if (access(filename, F_OK) != 0)

@@ -318,7 +318,7 @@ static void tick_with_burst(float burst, int ids[], int n)
 static double g_now;
 static void tick(void)
 {
-    int i;
+    unsigned i;
 
     g_now += 1.0 / METER_READ_HZ;
     for (i = 0; i < MAX_INSTANCES; i++)

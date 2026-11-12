@@ -50,6 +50,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <jack/jack.h>
+#include <jack/metadata.h>
+#include <jack/uuid.h>
 #include <jack/midiport.h>
 #include <jack/thread.h>
 #include <clap/ext/draft/gain-adjustment-metering.h>
@@ -432,6 +434,40 @@ static jack_client_t *open_jack_client(int instance, const char *client_name, ch
         jack_client = open_as(effect_name, JackNoStartServer, &jack_status, given, given_size);
 
     return jack_client;
+}
+
+/**
+ * Names an effect's own client for every graph client, in the JACK metadata on the client's uuid that the protocol
+ * declares (PHD_NODE_METADATA): the pretty name and the instance key. The client's name stays the one it opened under. A server that
+ * keeps no metadata (a PipeWire with no session manager) refuses both; the node keeps its name and stderr says so once.
+ * Called after each activation of the client, which on PipeWire makes a new node.
+ */
+static void client_name_node(jack_client_t *client, const effect_t *effect)
+{
+    static bool said;
+    const char *plugin = effect->clap && effect->clap->desc && effect->clap->desc->name && effect->clap->desc->name[0]
+                       ? effect->clap->desc->name : "effect";
+    char pretty[256], instance[16];
+    char *text = jack_get_uuid_for_client_name(client, effect->client_name);
+    jack_uuid_t uuid;
+    int failed;
+
+    if (!text)
+        return;
+    failed = jack_uuid_parse(text, &uuid) != 0;
+    jack_free(text);
+    snprintf(pretty, sizeof(pretty), PHD_NODE_METADATA_PRETTY_NAME_FORMAT, plugin, effect->instance);
+    snprintf(instance, sizeof(instance), PHD_NODE_METADATA_INSTANCE_FORMAT, effect->instance);
+    if (!failed)
+        failed = jack_set_property(client, uuid, PHD_NODE_METADATA_PRETTY_NAME_KEY, pretty, "text/plain") != 0;
+    if (!failed)
+        failed = jack_set_property(client, uuid, PHD_NODE_METADATA_INSTANCE_KEY, instance, "text/plain") != 0;
+    if (failed && !said)
+    {
+        said = true;
+        fprintf(stderr, "effect_%d: the server keeps no metadata; hosted nodes carry no name but their client's\n",
+                effect->instance);
+    }
 }
 
 /* the chains' members as JACK's buffer-size callback walks them: the control thread changes a chain's members, and
@@ -2102,6 +2138,7 @@ static int client_take(effect_t *effect, own_client_t *own)
         memset(effect->output_ports, 0, sizeof(effect->output_ports));
         return ERR_JACK_CLIENT_ACTIVATION;
     }
+    client_name_node(effect->jack_client, effect);
     client_started(effect);
     publish_latency(effect);
     return SUCCESS;
@@ -2381,6 +2418,7 @@ static void members_start(int id, stopped_t *stopped, uint32_t n)
             links_forget(again);
             continue;
         }
+        client_name_node(client, again->effect);
         client_started(again->effect);
         for (k = 0; k < again->n_links; k++)
         {
@@ -3192,6 +3230,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
     }
     else
     {
+        client_name_node(effect->jack_client, effect);
         client_started(effect);
         publish_latency(effect);
     }

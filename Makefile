@@ -1090,7 +1090,7 @@ test-jack-pin: $(PROG) tests/fake.clap tests/clap_layout_pin
 # track_info, remote pages and param_info over jack in the same kind of namespace: what the plugin's clap.track-info
 # reads, its two remote pages, remote_pages_changed on the feedback socket, every call on the thread that ran init
 test-jack-info: $(PROG) tests/fake.clap
-	$(HOST_INFO_DECLARED) ./tests/jack_info_e2e.sh
+	$(HOST_INFO_DECLARED) $(PHD_NODE_DECLARED) ./tests/jack_info_e2e.sh
 
 # --thread-pool over jack (#395): on makes one helper per core but one and they run the plugin's tasks, qualified (the
 # default) and off make none, and removing the plugin ends them
@@ -1173,6 +1173,7 @@ HOST_VERBS_DECLARED = PHD_PIN_LAYOUT_SCHEME='$(call host_declared,PHD_PIN_LAYOUT
 # what the tests behind plugin-hostd read of the daemon's protocol, from the header of the checkout they run
 phd_declared = $(shell printf '$(HASH)include <plugin-hostd/protocol.h>\n$(HASH)include <plugin-db/pin.h>\n%s\n' $(1) | $(CC) $(PROTOCOL_CFLAGS) $(PIN_CFLAGS) -E -P - | tail -n 1 | sed -e 's/^[("]//' -e 's/[)"]$$//')
 PHD_CHAIN_DECLARED = $(foreach n,PHD_READY_LINE OMX_VERB_CHAIN PHD_EVENT_CHAIN_FORMED PHD_EVENT_INSTANCE_QUARANTINED OMX_VERB_WORKER_LIST PHD_PLACE_CHAIN_PREFIX,$(n)='$(call phd_declared,$(n))')
+PHD_NODE_DECLARED = $(foreach n,PHD_NODE_METADATA_PRETTY_NAME_KEY PHD_NODE_METADATA_PRETTY_NAME_FORMAT PHD_NODE_METADATA_INSTANCE_KEY PHD_NODE_METADATA_INSTANCE_FORMAT,$(n)='$(call phd_declared,$(n))')
 PHD_DECLARED = $(foreach n,OMX_REPLY_HOST_PIN_ABSENT_RESP OMX_REPLY_PLUGIN_HOSTD_PIN_BINARY_MISMATCH_RESP OMX_REPLY_HOST_PIN_LAYOUT_MISMATCH_RESP OMX_VERB_PIN_EXPECT OMX_VERB_PIN_SET OMX_VERB_PIN_CLEAR PHD_PIN_LAYOUT_SCHEME PHD_READY_LINE OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP PHD_EVENT_REMOTE_PAGES_CHANGED PHD_PIN_MODE_STRICT,$(n)='$(call phd_declared,$(n))')
 
 tests/jack_meter_source: tests/jack_meter_source.c

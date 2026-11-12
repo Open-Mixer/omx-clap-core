@@ -15,7 +15,9 @@ BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
 BuildRequires: (plugin-hostd-protocol-devel >= 0.5.6 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.3.1 with plugin-db-devel < 0.5)
+BuildRequires: (plugin-db-devel >= 0.4.0 with plugin-db-devel < 0.5)
+# the CLAP headers this is built and tested against on Fedora, Fedora 44's own clap-devel 1.2.7; debian/control's
+# floor is 1.2.10, the clap-headers a Debian build gets from the release wave, as Debian has none this new
 BuildRequires: (clap-devel >= 1.2.7 with clap-devel < 2)
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
@@ -289,7 +291,8 @@ the English source sentence.
   (<instance>), at once and after each activation; no words clears it; a label
   over 64 bytes or not UTF-8 is refused -545 and the label stays. Built against
   plugin-hostd-protocol >= 0.5.6, which declares it.
-- A build takes plugin-db below 0.5 (the channel serves 0.4.0).
+- A build takes plugin-db >= 0.4.0 and below 0.5: the release the channel
+  serves, which both builds are built and tested against.
 
 * Thu Nov 12 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.1-1
 - Every number the host answers has its code in HOST_REPLY_CODES, with its

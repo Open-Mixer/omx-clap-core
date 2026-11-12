@@ -159,6 +159,7 @@ typedef struct EFFECT_T {
     int instance;
     jack_client_t *jack_client;             // a chain member's is its head's, borrowed: the frame clock, the rate, the block
     char client_name[REQUESTED_CLIENT_NAME_BUF_SIZE];   // its own client's name as JACK gave it, for a member that leaves
+    char node_label[PHD_NODE_LABEL_MAX + 1];            // a client's label on its pretty-name (node_label), "" for none
     /* the chain (docs/chain.md): the one this instance is in, the head too, and its id in the library's chain, NULL
      * for an instance in a client of its own (the control thread's); the one a head's cycle runs instead of the
      * instance alone, changed only with chain_gate closed, which the cycle enters around reading it */
@@ -438,7 +439,8 @@ static jack_client_t *open_jack_client(int instance, const char *client_name, ch
 
 /**
  * Names an effect's own client for every graph client, in the JACK metadata on the client's uuid that the protocol
- * declares (PHD_NODE_METADATA): the pretty name and the instance key. The client's name stays the one it opened under. A server that
+ * declares (PHD_NODE_METADATA): the pretty name, labelled when a client gave the node a label (node_label), and the
+ * instance key. The client's name stays the one it opened under. A server that
  * keeps no metadata (a PipeWire with no session manager) refuses both; the node keeps its name and stderr says so once.
  * Called after each activation of the client, which on PipeWire makes a new node.
  */
@@ -456,7 +458,11 @@ static void client_name_node(jack_client_t *client, const effect_t *effect)
         return;
     failed = jack_uuid_parse(text, &uuid) != 0;
     jack_free(text);
-    snprintf(pretty, sizeof(pretty), PHD_NODE_METADATA_PRETTY_NAME_FORMAT, plugin, effect->instance);
+    if (effect->node_label[0])
+        snprintf(pretty, sizeof(pretty), PHD_NODE_METADATA_LABELLED_NAME_FORMAT, effect->node_label, plugin,
+                 effect->instance);
+    else
+        snprintf(pretty, sizeof(pretty), PHD_NODE_METADATA_PRETTY_NAME_FORMAT, plugin, effect->instance);
     snprintf(instance, sizeof(instance), PHD_NODE_METADATA_INSTANCE_FORMAT, effect->instance);
     if (!failed)
         failed = jack_set_property(client, uuid, PHD_NODE_METADATA_PRETTY_NAME_KEY, pretty, "text/plain") != 0;
@@ -5209,6 +5215,29 @@ int effects_monitor_output(int effect_id, const char *symbol)
 
 /* monitor_output_off: 0 once `symbol` is no longer monitored, whoever set it; nothing reads it from then on. An output
  * that was not monitored stays so, and an unknown symbol is refused as monitor_output refuses it */
+/**
+ * node_label (plugin-hostd#35): the label a client gives the node, its pretty-name the labelled form from now on and
+ * after each activation; "" clears it, back to the plain form. The label stays as it was when refused.
+ * @param effect_id the instance
+ * @param label the label, its words joined by one space, or "" for none
+ * @return SUCCESS; ERR_INSTANCE_NON_EXISTS for an instance with no node; OMX_REPLY_PLUGIN_HOSTD_LABEL_INVALID_RESP for
+ *         a label over PHD_NODE_LABEL_MAX bytes or not UTF-8
+ */
+int effects_node_label(int effect_id, const char *label)
+{
+    effect_t *effect;
+
+    if (!instance_exist(effect_id))
+        return ERR_INSTANCE_NON_EXISTS;
+    if (strlen(label) > PHD_NODE_LABEL_MAX || !phd_string_valid(label))
+        return OMX_REPLY_PLUGIN_HOSTD_LABEL_INVALID_RESP;
+    effect = &g_effects[effect_id];
+    snprintf(effect->node_label, sizeof(effect->node_label), "%s", label);
+    if (effect->jack_client)
+        client_name_node(effect->jack_client, effect);
+    return SUCCESS;
+}
+
 int effects_monitor_output_off(int effect_id, const char *symbol)
 {
     effect_t *effect;

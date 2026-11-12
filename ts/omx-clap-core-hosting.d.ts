@@ -27,6 +27,7 @@ export declare const HOSTED_STAGE_LIMITS: {
   readonly logBytes: 256;
   readonly rolePollUs: 1000;
   readonly roleTimeoutUs: 200000;
+  readonly presetAppliedWaitUs: 1000000;
   readonly paramCountMax: 2048;
   readonly latencyHoldMs: 250;
   readonly idleHoldUs: 10;

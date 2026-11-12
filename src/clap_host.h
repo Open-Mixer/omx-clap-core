@@ -891,16 +891,23 @@ OMX_CLAP_EXPORT int omx_clap_host_param_value(struct omx_clap_instance *in, clap
 /** state.save into `buf` (at most `cap` bytes): 0 with `*len`; -1 when the plugin has no state extension, wrote past `cap`
  * (refused, never truncated) or refused. state.load from `buf`, before activate or after. */
 OMX_CLAP_EXPORT int omx_clap_host_state_save(struct omx_clap_instance *in, void *buf, size_t cap, size_t *len);
-/** Load the plugin state from `buf`, `len` bytes: 0, or -1 when the plugin has no state extension or refuses it. */
+/** What a load answers when the plugin took the preset or the state and had not run once since, so had not applied it,
+ * when OMX_HOSTED_STAGE_PRESET_APPLIED_WAIT_US ran out: an instance that was processing is answered only once its
+ * plugin ran again (omx-clap-core#24). */
+#define OMX_CLAP_HOST_NOT_APPLIED (-3)
+
+/** Load the plugin state from `buf`, `len` bytes: 0 once applied, -1 when the plugin has no state extension or refuses
+ * it, OMX_CLAP_HOST_NOT_APPLIED when it took it and had not run since by the wait's end. */
 OMX_CLAP_EXPORT int omx_clap_host_state_load(struct omx_clap_instance *in, const void *buf, size_t len);
 
-/** preset-load from a file location; -1 when the plugin has no such extension or refuses. */
+/** preset-load from a file location: 0 once applied; -1 when the plugin has no such extension or refuses;
+ * OMX_CLAP_HOST_NOT_APPLIED when it took it and had not run since by the wait's end. */
 OMX_CLAP_EXPORT int omx_clap_host_preset_load(struct omx_clap_instance *in, const char *location);
 
 /** preset-load of a preset omx_clap_host_presets listed, by its location kind, location and load key: a FILE location
  * names its file (`load_key` NULL for a file that holds one preset, the key for one inside a container), a PLUGIN
- * location none (`location` is not read) and its key. -1 when the plugin has no such extension, refuses, or a FILE
- * location has no path. Control thread. */
+ * location none (`location` is not read) and its key. 0 once applied; -1 when the plugin has no such extension,
+ * refuses, or a FILE location has no path; OMX_CLAP_HOST_NOT_APPLIED as omx_clap_host_preset_load. Control thread. */
 OMX_CLAP_EXPORT int omx_clap_host_preset_load_key(struct omx_clap_instance *in, uint32_t location_kind, const char *location,
                                                   const char *load_key);
 
@@ -1006,7 +1013,8 @@ OMX_CLAP_EXPORT int omx_clap_resource_hint_figure(const omx_resource_hints_t *hi
  * Control thread. */
 OMX_CLAP_EXPORT int omx_clap_host_state_save_context(struct omx_clap_instance *in, uint32_t context, void *buf, size_t cap, size_t *len);
 
-/** state-context's load, the same way: the plain state load for a plugin without the extension. Control thread. */
+/** state-context's load, the same way (OMX_CLAP_HOST_NOT_APPLIED included): the plain state load for a plugin without
+ * the extension. Control thread. */
 OMX_CLAP_EXPORT int omx_clap_host_state_load_context(struct omx_clap_instance *in, uint32_t context, const void *buf, size_t len);
 
 /** Tell the plugin how it is rendered (clap.render): CLAP_RENDER_REALTIME, or CLAP_RENDER_OFFLINE before a render that is

@@ -66,6 +66,7 @@ export OMX_CLAP_SCAN=$runtime/scan-standin.sh
 export FAKE_MOVER_AT=1000000000
 
 pipewire >"$runtime/pw.log" 2>&1 &
+pwpid=$!
 for _ in $(seq 50); do [ -S "$runtime/pipewire-0" ] && break; sleep 0.1; done
 [ -S "$runtime/pipewire-0" ] || { echo "pipewire did not come up" >&2; cat "$runtime/pw.log" >&2; exit 2; }
 
@@ -344,4 +345,62 @@ sys.exit(1 if failed else 0)
 PY
 [ $? -eq 0 ] || status=1
 kill -0 "$rpid" 2>/dev/null || { echo "FAIL the renaming omx-clap-host is gone:"; tail -5 "$runtime/host-rename.log"; status=1; }
+
+# a preset a plugin applies on its audio thread is applied when preset_load answers (omx-clap-core#24): a host of its
+# own, whose fake_mover offers preset-load (FAKE_MOVER_PRESET=1), says loaded() at once and takes the key's trim only in
+# its next process(), as Surge XT does; the reply comes after that process(), so trim read at once is the preset's
+FAKE_MOVER_PRESET=1 FAKE_MOVER_AT=1000000000 LV2_PATH=$runtime/world "$host" -n -p $((port + 2)) >"$runtime/host-applied.log" 2>&1 &
+apid=$!
+for _ in $(seq 100); do grep -q 'ready!' "$runtime/host-applied.log" && break; sleep 0.1; done
+grep -q 'ready!' "$runtime/host-applied.log" || { echo "omx-clap-host did not come up" >&2; cat "$runtime/host-applied.log" >&2; exit 2; }
+python3 -I - $((port + 2)) "$fixtures/fake_mover.clap" "$pwpid" "$root/data/hosting.json" <<'PY'
+import json, os, signal, socket, sys, time
+port, mover, pwpid = int(sys.argv[1]), sys.argv[2], int(sys.argv[3])
+wait_us = json.load(open(sys.argv[4]))['HOSTED_STAGE_LIMITS']['value']['presetAppliedWaitUs']
+s = socket.create_connection(('127.0.0.1', port), timeout=20)
+def ask(line):
+    s.sendall(line.encode() + b'\0')
+    buf = b''
+    while not buf.endswith(b'\0'):
+        chunk = s.recv(65536)
+        if not chunk:
+            raise SystemExit('FAIL the host closed the socket after: ' + line)
+        buf += chunk
+    return buf.rstrip(b'\0').decode()
+failed = 0
+def check(ok, what):
+    global failed
+    print(('ok   ' if ok else 'FAIL ') + what)
+    failed += not ok
+trim = lambda: float(ask('param_get 1 3').split()[-1])
+check(ask('add clap:%s#org.omx-clap-host.test.mover 1' % mover) == 'resp 1', 'the mover that applies its presets in process() is added')
+check(ask('param_set 1 3 0.1') == 'resp 0', 'trim set to 0.1')
+end = time.monotonic() + 10
+while abs(trim() - 0.1) > 1e-6 and time.monotonic() < end:
+    time.sleep(0.05)
+check(abs(trim() - 0.1) < 1e-6, 'and trim reads 0.1')
+for key in ('0.625', '0.25'):
+    r = ask('preset_load 1 plugin:' + key)
+    got = trim()
+    check(r == 'resp 0' and abs(got - float(key)) < 1e-6, 'preset_load plugin:%s answers when it is applied: trim read at once is %s (%s, %s)' % (key, key, r, got))
+check(ask('preset_load 1 plugin:loud') != 'resp 0', 'a key the plugin refuses is not answered resp 0')
+# with the graph stopped no cycle runs the plugin: the load waits presetAppliedWaitUs and answers that the preset is not
+# applied yet, never resp 0; the graph running again, the plugin takes it at its next block
+os.kill(pwpid, signal.SIGSTOP)
+try:
+    t0 = time.monotonic()
+    r = ask('preset_load 1 plugin:0.5')
+    took = time.monotonic() - t0
+finally:
+    os.kill(pwpid, signal.SIGCONT)
+check(r == 'resp -104 PRESET_NOT_APPLIED', 'a preset the plugin cannot run to apply answers PRESET_NOT_APPLIED (%s)' % r)
+check(took >= wait_us / 1e6, 'after the declared wait of %d us (%.3f s)' % (wait_us, took))
+end = time.monotonic() + 10
+while abs(trim() - 0.5) > 1e-6 and time.monotonic() < end:
+    time.sleep(0.05)
+check(abs(trim() - 0.5) < 1e-6, 'and the graph running again, the plugin applies it (%s)' % trim())
+sys.exit(1 if failed else 0)
+PY
+[ $? -eq 0 ] || status=1
+kill -0 "$apid" 2>/dev/null || { echo "FAIL the omx-clap-host of the applied presets is gone:"; tail -5 "$runtime/host-applied.log"; status=1; }
 exit $status

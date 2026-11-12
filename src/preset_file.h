@@ -56,6 +56,7 @@
 #define PRESET_CODE_NEEDS_STATE     "PRESET_NEEDS_STATE"
 #define PRESET_CODE_PLUGIN_CHANGED  "PRESET_PLUGIN_CHANGED"
 #define PRESET_CODE_LOAD_REFUSED    "LOAD_REFUSED"
+#define PRESET_CODE_NOT_APPLIED     "PRESET_NOT_APPLIED"
 
 /* the largest preset file read, in bytes: a state body of OMX_HOSTED_STAGE_STATE_MAX_BYTES in base64 and its parameters */
 #define PRESET_FILE_MAX_BYTES (3u * 1024u * 1024u)

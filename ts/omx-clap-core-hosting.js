@@ -27,6 +27,7 @@ export const HOSTED_STAGE_LIMITS = {
   "logBytes": 256,
   "rolePollUs": 1000,
   "roleTimeoutUs": 200000,
+  "presetAppliedWaitUs": 1000000,
   "paramCountMax": 2048,
   "latencyHoldMs": 250,
   "idleHoldUs": 10

@@ -65,7 +65,7 @@
         "src/clap_host.c#describe_ports",
         "src/clap_host.c#param_count_of",
         "src/clap_host.c#host_preset_on_error",
-        "src/clap_host.c#wait_stopped",
+        "src/clap_host.c#wait_stopped", "src/clap_host.c#state_load_done",
         "src/effects.c#clap_state_save",
         "src/effects.c#configure_lv2_with",
         "src/idle_hold.c#idle_hold_target_default",
@@ -95,6 +95,7 @@
       "logBytes": 256,
       "rolePollUs": 1000,
       "roleTimeoutUs": 200000,
+      "presetAppliedWaitUs": 1000000,
       "paramCountMax": 2048,
       "latencyHoldMs": 250,
       "idleHoldUs": 10
@@ -120,6 +121,7 @@
       "logBytes": "the size of a plugin log message, in bytes",
       "rolePollUs": "the poll interval while the audio role is taken, in microseconds",
       "roleTimeoutUs": "the wait for the audio role past which a stop gives up or take_role says so, in microseconds",
+      "presetAppliedWaitUs": "the wait, after a preset or a state load of an instance that was processing, for its plugin to run once more and so apply it, in microseconds: two blocks of the largest quantum at the lowest rate fit in it; past it the load answers that the preset is not applied yet",
       "paramCountMax": "the widest parameter count the core trusts",
       "latencyHoldMs": "the hold before a hosted stage's new latency takes effect, in milliseconds",
       "idleHoldUs": "the latency the library holds /dev/cpu_dma_latency at while an instance is active, in microseconds: 10 keeps the cores in C1"

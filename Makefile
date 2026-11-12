@@ -1148,7 +1148,8 @@ PROTOCOL_VERSION = $(shell sed -n 's/^Version: *//p' $(PROTOCOL_CONTRACT_DIR)/pa
 .PHONY: test-host-verbs test-host-verbs-sabotage host-verbs-contract
 host-verbs-contract:
 	rm -rf $(HOST_VERBS_CONTRACT)
-	$(MAKE) --no-print-directory install-contract DESTDIR= CONTRACTDIR=$(HOST_VERBS_CONTRACT)
+	@# the catalogs go into the build tree too, as test-contract's do: the test runs as any user, never root
+	$(MAKE) --no-print-directory install-contract DESTDIR= CONTRACTDIR=$(HOST_VERBS_CONTRACT) DATADIR=$(abspath $(HOST_VERBS_CONTRACT))-share
 	@# every other package that names omx-clap-host in its verbs file (plugin-hostd-protocol's: chain, preset_list, ...) is read too
 	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_CONTRACT_DIR)/data/verbs.json && test -n "$(PROTOCOL_VERSION)" || { echo "host-verbs-contract: no plugin-hostd-protocol checkout at $(PROTOCOL_CONTRACT_DIR) (PROTOCOL_CONTRACT_DIR), whose verbs file declares chain of omx-clap-host" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) plugin-hostd-protocol $(PROTOCOL_VERSION) $(CONTRACT_SCHEMA_MAJOR) $(PROTOCOL_CONTRACT_DIR)/data $(HOST_VERBS_CONTRACT) data

@@ -355,10 +355,13 @@ test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.c
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 	python3 tests/resource-hints-check.py --self-test ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 
+# omx-contract's install-contract-dir.sh: a checkout's (OMX_CONTRACT_DIR/tools), else the installed package's, so
+# OMX_CONTRACT_DIR may be a checkout or the installed /usr/lib/omx-contract (CI takes it from the staging channel)
+OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh) $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh))
 test-contract:
 	rm -rf build/contract
-	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh
-	sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
+	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)
+	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src

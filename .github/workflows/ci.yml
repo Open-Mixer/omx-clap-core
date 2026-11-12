@@ -209,6 +209,13 @@ jobs:
       - name: The stage bench builds and runs
         run: make bench-stage
 
+      # a package build's tests (the spec's %check, debian/rules' dh_auto_test) are the plain tier: the sanitizer tiers
+      # run in this workflow's jobs, which have their environment, never in a package build (#32)
+      - name: The package builds' tests build no sanitizer
+        run: |
+          tests/package-check-plain.sh --self-test
+          tests/package-check-plain.sh
+
       - name: Test the plugin lifecycle and the scanner against the fake plugins
         run: make test-fake
 

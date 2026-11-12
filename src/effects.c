@@ -221,6 +221,8 @@ typedef struct EFFECT_T {
     struct host_transport_intent intent;    // the host's transport as this instance's audio thread last read it whole
     struct omx_clap_transport_src transport_src;  // the record the audio thread works out each block and the plugin reads
     int own_active;                         // its own client is active: it can carry the host's xruns and frame clock
+    char layout[PHD_SHA256_HEX_LEN + 1];    // its layout's digest after init, before activate: the plugin a pin and a
+                                            // preset name, never its patched state ("" when it could not be read)
 } effect_t;
 
 static void presets_forget(effect_t *effect);
@@ -1971,22 +1973,24 @@ static void state_filename(char *buffer, size_t size, const char *dir, int insta
 }
 
 
-/* one-contract 10.1 step 3: the layout of an instance after init and before activate against its pin; 0 when it
- * matches, or when no pin was expected */
-static int layout_check(effect_t *effect, const char *pin, const char *id)
+/* one-contract 10.1 step 3: the layout of an instance after init and before activate, recorded on it, against its pin;
+ * 0 when it matches or no pin was expected. The record is what the instance's presets and pin_layout name it by: the
+ * plugin, which a patch it loads later does not change (plugin-hostd#27: a plugin may rename its parameters with its
+ * patch). A layout that cannot be read is refused only when a pin was expected. */
+static int layout_record(effect_t *effect, const char *pin, const char *id)
 {
-    char hex[PHD_SHA256_HEX_LEN + 1];
-
-    if (!pin[0])
-        return 0;
-    if (layout_pin_write(OMX_ABI_GUARD_OF(effect->clap), effect->clap->plugin, effect->clap->params, NULL, NULL, hex) != 0)
+    if (layout_pin_write(OMX_ABI_GUARD_OF(effect->clap), effect->clap->plugin, effect->clap->params, NULL, NULL,
+                         effect->layout) != 0)
     {
+        effect->layout[0] = '\0';
+        if (!pin[0])
+            return 0;
         fprintf(stderr, "%s: its parameter layout cannot be read\n", id);
         return -1;
     }
-    if (strcmp(hex, pin) != 0)
+    if (pin[0] && strcmp(effect->layout, pin) != 0)
     {
-        fprintf(stderr, "%s: layout %s:%s, pinned %s:%s\n", id, PHD_PIN_LAYOUT_SCHEME, hex, PHD_PIN_LAYOUT_SCHEME, pin);
+        fprintf(stderr, "%s: layout %s:%s, pinned %s:%s\n", id, PHD_PIN_LAYOUT_SCHEME, effect->layout, PHD_PIN_LAYOUT_SCHEME, pin);
         return -1;
     }
     return 0;
@@ -3072,7 +3076,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
         error = ERR_LV2_INSTANTIATION;
         goto error;
     }
-    if (layout_check(effect, pin, id) != 0)
+    if (layout_record(effect, pin, id) != 0)
     {
         error = OMX_REPLY_HOST_PIN_LAYOUT_MISMATCH_RESP;
         goto error;
@@ -4094,17 +4098,16 @@ static int pj_set_string(struct pj *obj, const char *key, const char *text)
     return pj_string(&v, text) != 0 || pj_set(obj, key, &v) != 0 ? -1 : 0;
 }
 
-/* the instance's plugin as a preset file names it: its id, its descriptor's version, and its layout's fingerprint
- * (omx-layout/1:<sha256>, plugin-hostd's pin) */
+/* the instance's plugin as a preset file names it: its id, its descriptor's version, and the fingerprint of the layout
+ * it had after init (omx-layout/1:<sha256>, plugin-hostd's pin), recorded at its add: a preset belongs to the binary,
+ * not to the state a patch left it in */
 static int preset_identity(const effect_t *effect, const char **id, const char **version, char *fingerprint, size_t size)
 {
-    char hex[PHD_SHA256_HEX_LEN + 1];
-
     *id = effect->clap->desc->id;
     *version = effect->clap->desc->version ? effect->clap->desc->version : "";
-    if (layout_pin_write(OMX_ABI_GUARD_OF(effect->clap), effect->clap->plugin, effect->clap->params, NULL, NULL, hex) != 0)
+    if (!effect->layout[0])
         return -1;
-    snprintf(fingerprint, size, "%s:%s", PHD_PIN_LAYOUT_SCHEME, hex);
+    snprintf(fingerprint, size, "%s:%s", PHD_PIN_LAYOUT_SCHEME, effect->layout);
     return 0;
 }
 

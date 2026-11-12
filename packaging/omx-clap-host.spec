@@ -16,7 +16,7 @@ BuildRequires: pkgconfig
 BuildRequires: (plugin-hostd-protocol-devel >= 0.5.5 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
 BuildRequires: (plugin-db-devel >= 0.3.1 with plugin-db-devel < 0.4)
-BuildRequires: (clap-devel >= 1.2.7 with clap-devel < 2)
+BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
@@ -80,7 +80,7 @@ Its documentation is on openmixer.org.
 Summary: Build a program that hosts CLAP plugins on omx-clap-core
 License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.7 with clap-devel < 2)
+Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
@@ -114,7 +114,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.7 with clap-devel < 2)
+Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig

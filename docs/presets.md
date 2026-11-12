@@ -14,7 +14,7 @@ Verbs
     preset_list <N>                    resp <count>
     preset_get <N> <index>             resp 0 <load_key> <name>
     preset_load <N> <load_key | file>  resp 0
-    preset_save <N> <file> <name>      resp 0
+    preset_save <N> <dir> <file> <label>  resp 0
     preset_show <N> <load_key | file>  resp 0 <json>
 
 - `preset_list` counts the plugin's own presets: a CLAP plugin's through its file's `clap.preset-discovery-factory`
@@ -39,9 +39,11 @@ Verbs
   A load is answered `resp 0` only when the plugin's `from_location` answered true and the plugin reported no error
   through the host's `clap.preset-load` `on_error` during the call (Surge XT answers true for a file it cannot open and
   reports it there); either failure answers `-104`. A `%20` or `%25` in a bare path is decoded as in a key.
-- `preset_save` writes the instance into the file at `<file>` with the display name `<name>` (the rest of the line, or
-  one quoted word). An existing preset file at that path keeps its `id`, `createdAt` and every field this host does not
-  write; anything else at that path is refused.
+- `preset_save` takes mod-host's own four words (`EFFECT_PRESET_SAVE`, the form plugin-hostd-protocol's table declares):
+  it writes the instance into the file `<file>` in the absolute directory `<dir>`, with the display name `<label>`, each
+  one word, quoted when it holds a space. A relative directory and a file name that is empty or holds a `/` are refused.
+  An existing preset file at that path keeps its `id`, `createdAt` and every field this host does not write; anything
+  else at that path is refused.
 - `preset_show` answers what a load would apply, on one line of JSON: for a file, the document with each state body's
   `bytes` replaced by its decoded `size`; for a listed preset, its `name`, `loadKey` and `location`.
 

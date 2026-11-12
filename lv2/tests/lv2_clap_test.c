@@ -68,8 +68,8 @@
  *
  * Through libomx-clap-core's CLAP body, the arms that belong to the CLAP body:
  * the warm-up (64 blocks, the live counters untouched, a non-finite plugin refused), the first block fading in, the mono
- * mirror, the bypass crossfade and the steady bypass bit-identical, the non-finite strikes and the fault, the clamp,
- * the oversize block, and the warm-up run at the activated block size, bit-identical with a plain LV2 loop after it,
+ * mirror, the bypass crossfade and the steady bypass the input delayed by the latency bit for bit, the non-finite
+ * strikes and the fault, the clamp, the oversize block, and the warm-up run at the activated block size, bit-identical with a plain LV2 loop after it,
  * activated at the live block size and at twice it.
  *
  *   lv2_clap_test <build/lv2 directory>
@@ -476,7 +476,7 @@ static void t_entry(void)
 
     CHECK(a && a == b, "the entry of a bundle, the same entry for a second reference");
     CHECK(a && a->init(g_fixture) && clap_version_is_compatible(a->clap_version), "its init answers and its CLAP version is compatible");
-    CHECK(fa && fa->get_plugin_count(fa) == 15, "its factory lists the fixture bundle's 15 plugins (%u)", fa ? fa->get_plugin_count(fa) : 0);
+    CHECK(fa && fa->get_plugin_count(fa) == 20, "its factory lists the fixture bundle's 20 plugins (%u)", fa ? fa->get_plugin_count(fa) : 0);
     CHECK(fa && has_plugin(fa, FIXTURE_URI, &name) && name && strcmp(name, "openmixer host fixture") == 0,
           "descriptor id = the LV2 URI, name = doap:name (%s), features: audio-effect only", name ? name : "");
     CHECK(a && a->get_factory("clap.no-such-factory") == NULL, "no factory but the plugin factory");
@@ -491,7 +491,7 @@ static void t_entry(void)
     omx_clap_lv2_entry_release(w);
     a = omx_clap_lv2_entry(g_fixture, why);
     fa = a ? a->get_factory(CLAP_PLUGIN_FACTORY_ID) : NULL;
-    CHECK(fa && fa->get_plugin_count(fa) == 15, "after the last release the bundle is loaded afresh for the next entry");
+    CHECK(fa && fa->get_plugin_count(fa) == 20, "after the last release the bundle is loaded afresh for the next entry");
     omx_clap_lv2_entry_release(a);
 }
 
@@ -4003,16 +4003,27 @@ static void t_cv_core(double rate)
     omx_clap_lv2_entry_release(entry);
 }
 
+/* the reference of the bypass dry path: `x`, a block about to be run, joins the input history `hist` (`*fed` frames
+ * so far, every block since the stage was published), and `d` is the same `n` frames as they stood `lat` frames
+ * earlier, silence before the first frame run: the ring is fed by every block, the ones before the bypass too */
+static void core_delayed(float *hist, uint32_t *fed, const float *x, uint32_t n, uint32_t lat, float *d)
+{
+    memcpy(hist + *fed, x, n * sizeof(float));
+    for (uint32_t i = 0; i < n; i++)
+        d[i] = *fed + i >= lat ? hist[*fed + i - lat] : 0.0f;
+    *fed += n;
+}
+
 static void t_core(double rate)
 {
     char why[OMX_CLAP_LV2_WHY_MAX] = "", cwhy[OMX_CLAP_WHY_MAX] = "";
     const clap_plugin_entry_t *entry = omx_clap_lv2_entry(g_fakes, why);
     struct omx_clap_instance *in, *bad = NULL;
-    float l[64], r[64], x[64], want[64], worst = 0.0f;
+    float l[64], r[64], x[64], want[64], d[64], hist[9 * 64], worst = 0.0f;
     static float big[MAXB + 1], bx[MAXB + 1];
     struct fake *f;
-    uint32_t i, k, runs, acts, deacts, resets;
-    int blk, all;
+    uint32_t i, k, runs, acts, deacts, resets, fed = 0, lat;
+    int blk, all, moved;
 
     // the warm-up, the first block, the latency taken at the restart after the warm-up
     in = entry ? core_open(entry, FAKE_PAD, rate, cwhy) : NULL;
@@ -4023,10 +4034,12 @@ static void t_core(double rate)
     CHECK(f->runs == OMX_HOSTED_STAGE_WARMUP_BLOCKS && atomic_load(&in->stage.h.runs) == 0, "core %.0f: the warm-up ran %u blocks, the live counters untouched", rate, f->runs);
     CHECK(in->stage.h.in_l[0] == 0.0f, "core %.0f: the warm-up ends silent", rate);
     CHECK(omx_clap_host_latency(in) == pad_latency_frames(rate), "core %.0f: the latency the restart after the warm-up took: %u frames", rate, omx_clap_host_latency(in));
+    lat = omx_clap_host_latency(in);
     CHECK(f->activations == 3 && f->deactivations == 2,
           "core %.0f: the warm-up's reset and the restart after it are both LV2's, whether or not the latency hold ran out inside the warm-up (%u activations, %u deactivations)",
           rate, f->activations, f->deactivations);
     tone(x, 64, 0.5f, 0);
+    core_delayed(hist, &fed, x, 64, lat, d);
     memcpy(l, x, sizeof(l));
     core_run(in, l, NULL, 64);
     CHECK(l[0] == x[0], "core %.0f: the first block opens dry", rate);
@@ -4034,25 +4047,32 @@ static void t_core(double rate)
         worst = fmaxf(worst, fabsf(l[i] - (x[i] + (x[i] * PAD_GAIN - x[i]) * ((float)i / 64.0f))));
     CHECK(worst < 1e-7f, "core %.0f: and fades in on the ramp (worst %g)", rate, worst);
 
-    // bypass: the closed-form crossfade, then bit-identical and never run, then the fade back
+    // bypass: the dry path is the input delayed by the published latency, so a bypass does not shift the lane against
+    // the latency the rest of the chain compensates for. The crossfade into it, the steady blocks (bit for bit, the
+    // plugin never run) and the fade back all read that delayed dry: `d`, the input history `lat` frames back
+    core_delayed(hist, &fed, x, 64, lat, d);
     memcpy(l, x, sizeof(l));
     core_run(in, l, NULL, 64);
     omx_clap_host_bypass(in, 1);
+    core_delayed(hist, &fed, x, 64, lat, d);
     memcpy(l, x, sizeof(l));
     core_run(in, l, NULL, 64);
     worst = 0.0f;
     for (i = 0; i < 64; i++)
-        worst = fmaxf(worst, fabsf(l[i] - (x[i] * PAD_GAIN + (x[i] - x[i] * PAD_GAIN) * ((float)i / 64.0f))));
-    CHECK(worst < 1e-7f, "core %.0f: the bypass transition is the closed-form crossfade, worst %g", rate, worst);
+        worst = fmaxf(worst, fabsf(l[i] - (x[i] * PAD_GAIN + (d[i] - x[i] * PAD_GAIN) * ((float)i / 64.0f))));
+    CHECK(worst < 1e-7f, "core %.0f: the bypass transition is the closed-form crossfade from the plugin's output to the input %u frames earlier, worst %g", rate, lat, worst);
     runs = f->runs;
-    for (blk = 0, all = 1; blk < 5; blk++)
+    for (blk = 0, all = 1, moved = 1; blk < 5; blk++)
     {
         tone(x, 64, 0.5f, (uint32_t)blk * 64u);
+        core_delayed(hist, &fed, x, 64, lat, d);
         memcpy(l, x, sizeof(l));
         core_run(in, l, NULL, 64);
-        all &= bits_equal(l, x, 64);
+        all &= bits_equal(l, d, 64);
+        moved &= !bits_equal(d, x, 64);    // the delayed input is not the block's own: the law is not met by an undelayed copy
     }
-    CHECK(all && f->runs == runs, "core %.0f: steady bypass is bit-identical and never runs the plugin", rate);
+    CHECK(lat > 0 && moved, "core %.0f: the pad publishes a latency (%u frames) and every steady block's delayed input differs from the block itself", rate, lat);
+    CHECK(all && f->runs == runs, "core %.0f: steady bypass is the input delayed by the published latency (%u frames) bit for bit and never runs the plugin", rate, lat);
     acts = f->activations;
     deacts = f->deactivations;
     resets = atomic_load(&in->stage.resets);
@@ -4062,9 +4082,13 @@ static void t_core(double rate)
           "core %.0f: the bypass-off verb resets the plugin itself, before any process(): LV2 deactivate %u -> %u, activate %u -> %u",
           rate, deacts, f->deactivations, acts, f->activations);
     tone(x, 64, 0.5f, 0);
+    core_delayed(hist, &fed, x, 64, lat, d);
     memcpy(l, x, sizeof(l));
     core_run(in, l, NULL, 64);
-    CHECK(fabsf(l[0] - x[0]) < 1e-7f && fabsf(l[63] - (x[63] + (x[63] * PAD_GAIN - x[63]) * 63.0f / 64.0f)) < 1e-7f, "core %.0f: un-bypass fades dry -> wet over one block", rate);
+    worst = 0.0f;
+    for (i = 0; i < 64; i++)
+        worst = fmaxf(worst, fabsf(l[i] - (d[i] + (x[i] * PAD_GAIN - d[i]) * ((float)i / 64.0f))));
+    CHECK(l[0] == d[0] && worst < 1e-7f, "core %.0f: un-bypass fades from the input %u frames earlier to the plugin's output over one block, worst %g", rate, lat, worst);
 
     // a 1x1 plugin on a stereo lane returns its L on both legs
     for (blk = 0; blk < 2; blk++)

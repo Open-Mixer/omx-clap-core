@@ -278,6 +278,8 @@ struct lv2_plugin
                                     // midi:MidiEvent, or an llext:MidiPort), -1: none
     int midi_time;                  // the MIDI input also supports time:Position: the transport is forged into it
     int32_t midi_out_port;          // the one MIDI output port, -1: none
+    uint32_t midi_min;              // the largest rsz:minimumSize of the plain (non-patch-shared) MIDI in and out
+                                    // ports, 0: none; the patch-shared case's own size is in atom_min (patch_cap)
     int midi_in_event;              // the MIDI input is an ev:EventPort: an LV2_Event_Buffer, not an atom sequence
     int midi_out_event;             // the MIDI output is an ev:EventPort
     int midi_in_ll;                 // the MIDI input is an llext:MidiPort (ll-plugins' MIDI port, zynadd's): an LV2_MIDI

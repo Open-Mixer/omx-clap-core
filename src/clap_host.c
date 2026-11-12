@@ -1951,6 +1951,7 @@ static void drop_bounce(struct omx_clap_instance *in)
     in->bounce_map = NULL;
     free(in->recs);
     in->recs = NULL;
+    free(omx_clap_bypass_delay_set(&in->bypass_delay, NULL, 0u, 0u));
 }
 
 /* the ports, then the note ids over the stage's sink: every id free, held OMX_CLAP_NOTE_ID_HOLD_MS at the rate */
@@ -1963,10 +1964,39 @@ static int bind_stage(struct omx_clap_instance *in)
     return 0;
 }
 
+/* control thread: (re)arm the bypass dry-path delay for the latency just published (#1) — a commanded bypass's dry
+ * path is then delayed the same frames the wet path costs, so bypass does not shift alignment against the rest of
+ * the chain's own compensation. Ringed per main output channel, sized frames + 1 so a full delay never reads the
+ * sample just written; frames 0 disarms it, the dry path the immediate copy it always was. The ring is allocated
+ * before the audio role is taken and the old one freed after it is released; the swap alone runs under the role, so
+ * the RT never sees a half-built ring and neither the RT nor the role's hold allocates. A failed allocation keeps the
+ * ring it had. */
+static void arm_bypass_delay(struct omx_clap_instance *in, uint32_t frames)
+{
+    struct omx_clap_bypass_delay *const d = &in->bypass_delay;
+    // a ring for each leg of the two-leg lane too, which a mono main output still feeds both of
+    const uint32_t channels = in->main_out.channels > 2u ? in->main_out.channels : 2u;
+    const size_t floats = omx_clap_bypass_delay_floats(channels, frames);
+    struct omx_clap_role role;
+    float *ring = NULL, *old;
+
+    if (floats ? frames == d->frames && channels == d->channels : d->ring == NULL)
+        return;     // the ring already serves this latency: nothing to rearm
+    if (floats && !(ring = calloc(floats, sizeof(float))))
+        return;
+    omx_clap_host_take_role(in, &role);
+    old = omx_clap_bypass_delay_set(d, ring, channels, frames);
+    omx_clap_host_release_role(in, &role, role.state);
+    free(old);
+}
+
 static void publish_latency(struct omx_clap_instance *in)
 {
     // a pass-through tool's latency applies to its notes alone: the audio it does not touch has none
-    omx_clap_publish_latency(&in->stage, in->latency && !in->passthrough ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "latency.get", in->latency->get, in->plugin) : 0u);
+    const uint32_t frames = in->latency && !in->passthrough ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "latency.get", in->latency->get, in->plugin) : 0u;
+
+    omx_clap_publish_latency(&in->stage, frames);
+    arm_bypass_delay(in, frames);
 }
 
 /* no cycle came to stop the stage: the control thread stops it in the cycle's place */

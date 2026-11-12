@@ -1312,12 +1312,15 @@ static const char *read_ports(struct lv2_plugin *p, const LilvPlugin *pl)
             }
             continue;
         }
-        if (L.lilv_port_is_a(pl, port, g.node[N_EVENT]))
+        if (L.lilv_port_is_a(pl, port, g.node[N_EVENT]) && !L.lilv_port_is_a(pl, port, g.node[N_ATOM]))
         {
             // an ev:EventPort (the event extension, atom's predecessor: ll-plugins' rudolf556 and control2midi) that
             // supports midi:MidiEvent is a MIDI port as the atom one is, over an LV2_Event_Buffer: the first each way
             // is the note path's, one after it is fed an empty buffer every block or offered one and never read. One
             // that supports no midi:MidiEvent carries events no buffer here writes or reads
+            // a port carries more than one kind when a plugin declares both the deprecated ev:EventPort and its
+            // successor atom:AtomPort on the same port (a transitional declaration some hosts' generators still
+            // emit): the atom arm below reads it, the modern buffer this host ever offers it
             uint32_t *count = input ? &p->n_event_in : &p->n_event_out;
 
             if (!L.lilv_port_supports_event(pl, port, g.node[N_MIDI_EVENT]))
@@ -1401,8 +1404,17 @@ static const char *read_ports(struct lv2_plugin *p, const LilvPlugin *pl)
                 p->atom_min = rsz_max(rsz, p->atom_min);
                 L.lilv_nodes_free(rsz);
             }
-            else if (input)
-                p->midi_time = L.lilv_port_supports_event(pl, port, g.node[N_TIME_POSITION]) ? 1 : 0;
+            else
+            {
+                // the plain MIDI port, not shared with the patch port: its own rsz:minimumSize, read here since
+                // this is the only arm that ever sees the first MIDI port before deciding what it is
+                LilvNodes *rsz = L.lilv_port_get_value(pl, port, g.node[N_RSZ_MIN]);
+
+                p->midi_min = rsz_max(rsz, p->midi_min);
+                L.lilv_nodes_free(rsz);
+                if (input)
+                    p->midi_time = L.lilv_port_supports_event(pl, port, g.node[N_TIME_POSITION]) ? 1 : 0;
+            }
             if (input)
                 p->midi_in_port = (int32_t)i;
             else
@@ -1511,7 +1523,11 @@ static const char *read_ports(struct lv2_plugin *p, const LilvPlugin *pl)
     }
     else if (p->main_out.n == 0)
     {
-        return LV2_CODE_NO_AUDIO_OUTPUT;    // every output a side chain: no main output to carry
+        // every audio output is a side chain or an aux group: read_side already filled p->aux_out with them (rule 4
+        // and the grouping above never depend on a main port existing), so there is nothing to refuse here, only
+        // nothing to call the main pair; host it like a plugin with no audio output at all, and keep the aux outputs
+        p->passthrough = 1;
+        p->legs = p->in_legs;
     }
     if (p->patch_in >= 0)
         return read_patches(p, pl);     // a property is writable only through an input port

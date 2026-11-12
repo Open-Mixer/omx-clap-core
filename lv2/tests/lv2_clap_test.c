@@ -493,10 +493,12 @@ static void t_entry(void)
     const clap_plugin_factory_t *fa = a ? a->get_factory(CLAP_PLUGIN_FACTORY_ID) : NULL;
     const clap_plugin_factory_t *fw = w ? w->get_factory(CLAP_PLUGIN_FACTORY_ID) : NULL;
     const char *name = NULL;
+    int n_fixture = manifest_plugin_count(g_fixture);
 
     CHECK(a && a == b, "the entry of a bundle, the same entry for a second reference");
     CHECK(a && a->init(g_fixture) && clap_version_is_compatible(a->clap_version), "its init answers and its CLAP version is compatible");
-    CHECK(fa && fa->get_plugin_count(fa) == 20, "its factory lists the fixture bundle's 20 plugins (%u)", fa ? fa->get_plugin_count(fa) : 0);
+    CHECK(n_fixture > 0 && fa && fa->get_plugin_count(fa) == (uint32_t)n_fixture,
+          "its factory lists the fixture bundle's %d plugins (%u)", n_fixture, fa ? fa->get_plugin_count(fa) : 0);
     CHECK(fa && has_plugin(fa, FIXTURE_URI, &name) && name && strcmp(name, "openmixer host fixture") == 0,
           "descriptor id = the LV2 URI, name = doap:name (%s), features: audio-effect only", name ? name : "");
     CHECK(a && a->get_factory("clap.no-such-factory") == NULL, "no factory but the plugin factory");
@@ -511,7 +513,7 @@ static void t_entry(void)
     omx_clap_lv2_entry_release(w);
     a = omx_clap_lv2_entry(g_fixture, why);
     fa = a ? a->get_factory(CLAP_PLUGIN_FACTORY_ID) : NULL;
-    CHECK(fa && fa->get_plugin_count(fa) == 20, "after the last release the bundle is loaded afresh for the next entry");
+    CHECK(fa && fa->get_plugin_count(fa) == (uint32_t)n_fixture, "after the last release the bundle is loaded afresh for the next entry");
     omx_clap_lv2_entry_release(a);
 }
 

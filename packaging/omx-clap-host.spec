@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.1
+Version:        0.32.2
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -283,6 +283,14 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.2-1
+- node_label <instance> [<label word> ...] (plugin-hostd#35): a client's label
+  joins the hosted node's pretty-name in JACK metadata, <label>: <plugin name>
+  (<instance>), at once and after each activation; no words clears it; a label
+  over 64 bytes or not UTF-8 is refused -545 and the label stays. Built against
+  plugin-hostd-protocol >= 0.5.6, which declares it.
+- A build takes plugin-db below 0.5 (the channel serves 0.4.0).
+
 * Thu Nov 12 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.1-1
 - Every number the host answers has its code in HOST_REPLY_CODES, with its
   English sentence and its Catalan: -2 (the instance number already taken),

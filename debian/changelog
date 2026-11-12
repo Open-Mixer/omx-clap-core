@@ -1,3 +1,15 @@
+omx-clap-host (0.32.2) unstable; urgency=medium
+
+  * node_label <instance> [<label word> ...] (plugin-hostd#35): a client's
+    label joins the hosted node's pretty-name in JACK metadata, <label>:
+    <plugin name> (<instance>), at once and after each activation; no words
+    clears it; a label over 64 bytes or not UTF-8 is refused -545 and the
+    label stays. Built against plugin-hostd-protocol >= 0.5.6, which declares
+    it.
+  * A build takes plugin-db below 0.5 (the channel serves 0.4.0).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Fri, 13 Nov 2026 01:00:00 +0000
+
 omx-clap-host (0.32.1) unstable; urgency=medium
 
   * Every number the host answers has its code in HOST_REPLY_CODES, with its

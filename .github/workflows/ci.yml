@@ -101,7 +101,7 @@ jobs:
           base: omx-clap-core-contract
           owner: omx-clap-core
           spec: packaging/omx-clap-host.spec
-          moved: ca:0.32.1
+          moved: ca:0.32.2
 
   docs:
     name: make docs (the public headers are fully documented)
@@ -309,8 +309,11 @@ jobs:
 
       # The LV2 adapter: lv2/core against the fixture bundles through lilv, the CLAP face and libomx-clap-core's body
       # around it, and a program linked through the installed pkg-config file alone
-      # a pull request runs the adapter's plain tier; its address and thread sanitizer tiers run on push, tags and dispatch
+      # a pull request runs the adapter's plain tier at 48 kHz alone (LV2_CLAP_RATES); every rate and the address and
+      # thread sanitizer tiers run on push, tags and dispatch
       - name: Test the LV2 adapter
+        env:
+          LV2_CLAP_RATES: ${{ github.event_name == 'pull_request' && '48000' || '' }}
         run: make ${{ github.event_name == 'pull_request' && 'test-lv2-plain' || 'test-lv2' }}
 
       - name: What the LV2 adapter costs per process() call

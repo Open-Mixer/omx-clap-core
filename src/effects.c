@@ -98,7 +98,7 @@ _Static_assert(HOST_REMOTE_PAGE_SLOTS == CLAP_REMOTE_CONTROLS_COUNT, "a remote p
 // the note output events one take reads off the library's ring on the audio thread
 #define NOTES_OUT_CHUNK         64u
 #define STATE_FILE_SUFFIX       ".clapstate"
-#define INSTANCE_IS_VALID(id)   ((id) >= 0 && (id) < MAX_INSTANCES)
+#define INSTANCE_IS_VALID(id)   ((id) >= 0 && (unsigned)(id) < MAX_INSTANCES)
 #define REQUESTED_CLIENT_NAME_BUF_SIZE  256
 
 // a write waits for the next cycle this long before the control thread delivers it itself
@@ -483,7 +483,7 @@ static void named_apply(effect_t *effect)
  * g_chain_members was held, applied under it. A name published after the flag is taken sets it again, for the next. */
 static void chain_members_reconcile(void)
 {
-    int i;
+    unsigned i;
 
     if (!atomic_exchange(&g_named_pending, 0u))
         return;
@@ -4555,7 +4555,7 @@ int effects_state_save(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
+        if ((unsigned)i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         ret = clap_state_save(g_effects[i].clap, filename);
@@ -4574,7 +4574,7 @@ int effects_state_load(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
+        if ((unsigned)i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         if (access(filename, F_OK) != 0)

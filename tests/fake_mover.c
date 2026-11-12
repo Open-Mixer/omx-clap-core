@@ -35,9 +35,14 @@
  * no unit, linear): with "keep" the rename of "info" changes only level's name, display text, and the contract stays
  * the same; with "follow" level's symbol follows it to "gain", with the fingerprint of the new lines, so the contract
  * the rescan finds is another one (R3).
+ * FAKE_MOVER_PRESET=1 offers clap.preset-load as a plugin whose preset lands on the audio thread, as Surge XT's does: a
+ * PLUGIN location's key that reads as a number 0..1 is answered true with the host's loaded() at once, and trim takes
+ * that value only in the next process(); any other key is refused.
  * Every environment variable is read at create, never on the audio thread. FAKE_LOG names a file each instance appends
  * "<id> host gesture begin|end <param>" to as the host's gestures arrive, and "<id> mod <param> <amount>". */
 
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,6 +72,9 @@ typedef struct MOVER_T {
     // what the audio thread saw, written to the log on the main thread: never a file from process()
     char lines[LOG_LINES][64];
     uint32_t n_lines;
+    int preset;                     // FAKE_MOVER_PRESET: clap.preset-load offered
+    _Atomic int preset_pending;     // a loaded preset's trim the next process() takes
+    double preset_trim;
 } mover_t;
 
 static const char *const g_features[] = { CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, NULL };
@@ -349,6 +357,8 @@ static clap_process_status plugin_process(const clap_plugin_t *plugin, const cla
     uint32_t c, i;
 
     take_events(m, process->in_events);
+    if (atomic_exchange(&m->preset_pending, 0))
+        m->trim = m->preset_trim;
     if (++m->blocks == m->move_at)
     {
         push_gesture(process->out_events, CLAP_EVENT_PARAM_GESTURE_BEGIN, 0);
@@ -369,6 +379,25 @@ static clap_process_status plugin_process(const clap_plugin_t *plugin, const cla
     return CLAP_PROCESS_CONTINUE;
 }
 
+/* clap.preset-load: the key's trim is taken on the audio thread, loaded() said at once (FAKE_MOVER_PRESET) */
+static bool preset_from_location(const clap_plugin_t *plugin, uint32_t location_kind, const char *location, const char *load_key)
+{
+    mover_t *m = plugin->plugin_data;
+    const clap_host_preset_load_t *hp = m->host->get_extension(m->host, CLAP_EXT_PRESET_LOAD);
+    char *end = NULL;
+    double v = load_key ? strtod(load_key, &end) : -1.0;
+
+    if (location_kind != CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN || !load_key || end == load_key || *end || v < 0.0 || v > 1.0)
+        return false;
+    m->preset_trim = v;
+    atomic_store(&m->preset_pending, 1);
+    if (hp && hp->loaded)
+        hp->loaded(m->host, location_kind, location, load_key);
+    return true;
+}
+
+static const clap_plugin_preset_load_t g_preset_load = { preset_from_location };
+
 static const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 {
     const mover_t *m = plugin->plugin_data;
@@ -379,6 +408,8 @@ static const void *plugin_get_extension(const clap_plugin_t *plugin, const char 
         return &g_params;
     if (!strcmp(id, OMX_CLAP_EXT_PARAM_CONTRACT) && m->contract[0])
         return &g_contract;
+    if (!strcmp(id, CLAP_EXT_PRESET_LOAD) && m->preset)
+        return &g_preset_load;
     return NULL;
 }
 
@@ -415,7 +446,7 @@ static const clap_plugin_t *factory_create_plugin(const clap_plugin_factory_t *f
 {
     const char *at = getenv("FAKE_MOVER_AT"), *action = getenv("FAKE_MOVER"), *flood = getenv("FAKE_MOVER_FLOOD");
     const char *held = getenv("FAKE_MOVER_HELD"), *contract = getenv("FAKE_MOVER_CONTRACT");
-    const char *log = getenv("FAKE_LOG");
+    const char *log = getenv("FAKE_LOG"), *preset = getenv("FAKE_MOVER_PRESET");
     mover_t *m;
 
     (void)factory;
@@ -426,6 +457,7 @@ static const clap_plugin_t *factory_create_plugin(const clap_plugin_factory_t *f
     m->move_at = at && *at ? (uint32_t)atoi(at) : MOVE_AT;
     m->flood = flood && *flood ? (uint32_t)atoi(flood) : 0;
     m->held = held && !strcmp(held, "1");
+    m->preset = preset && !strcmp(preset, "1");
     snprintf(m->contract, sizeof(m->contract), "%s", contract ? contract : "");
     snprintf(m->action, sizeof(m->action), "%s", action ? action : "");
     snprintf(m->log_path, sizeof(m->log_path), "%s", log ? log : "");

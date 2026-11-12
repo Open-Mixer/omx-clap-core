@@ -121,4 +121,24 @@ static inline int abs_dir(const char *rel, char out[PATH_MAX])
     return snprintf(out, PATH_MAX, "%s/", buf) < PATH_MAX ? 0 : -1;
 }
 
+/* how many lv2:Plugin a bundle's manifest.ttl declares, counted off the file itself rather than carried as a
+ * number the fixture and the test can drift apart on */
+static inline int manifest_plugin_count(const char *bundle_dir)
+{
+    char path[PATH_MAX + 32];
+    char line[1024];
+    FILE *f;
+    int n = 0;
+
+    snprintf(path, sizeof(path), "%smanifest.ttl", bundle_dir);
+    f = fopen(path, "r");
+    if (!f)
+        return -1;
+    while (fgets(line, sizeof(line), f))
+        if (strstr(line, "a lv2:Plugin"))
+            n++;
+    fclose(f);
+    return n;
+}
+
 #endif

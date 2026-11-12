@@ -449,8 +449,15 @@ test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
 	python3 tests/no_hostd_build_dep.py .
 
-test: test-no-hostd-build-dep
-test-fake: test-no-hostd-build-dep
+# the rpm spec's clap-devel and debian/control's clap-headers name the same CLAP headers: a build from one
+# packaging must not take a floor or ceiling the other refuses (#14)
+.PHONY: test-clap-floor-parity
+test-clap-floor-parity:
+	python3 tests/clap_floor_parity.py --self-test
+	python3 tests/clap_floor_parity.py .
+
+test: test-no-hostd-build-dep test-clap-floor-parity
+test-fake: test-no-hostd-build-dep test-clap-floor-parity
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)

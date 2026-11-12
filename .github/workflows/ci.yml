@@ -208,6 +208,11 @@ jobs:
       - name: Test the plugin lifecycle and the scanner against the fake plugins
         run: make test-fake
 
+      # the meter reader of effects.c built with -Werror and driven by its test, and each of its rules broken, red: in
+      # make test and in no job until it failed to build on main unseen (int against the unsigned instance limits)
+      - name: Test the meter reader and its sabotage
+        run: make test-effects-meter test-effects-meter-sabotage
+
       # org.openmixer.panel-description/1 as omx_clap_ext.h states it, against omx-plugins' header, the ABI (#337)
       - name: The panel description's structures are the ABI's
         run: make test-panel-abi

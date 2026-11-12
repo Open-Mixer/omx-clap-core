@@ -99,6 +99,7 @@ A refused preset verb answers `resp -104 <code>`, the code one of plugin-hostd's
 | `PRESET_NEEDS_STATE` | the file carries state and the plugin has no `clap.state` to take it |
 | `PRESET_PLUGIN_CHANGED` | the file's plugin id, version or fingerprint is not the instance's; an unknown format version also answers it with `PRESET_INVALID` |
 | `LOAD_REFUSED` | the plugin refused the load (or the save) of its state or preset |
+| `PRESET_NOT_APPLIED` | the plugin took the preset (or a preset file's state) and had not run once since when the wait for that ran out (`presetAppliedWaitUs` of `data/hosting.json`): its values may still be the previous ones. An instance that was processing is answered only once its plugin has run since the load, so a value read after `resp 0` is the preset's |
 
 An unknown instance answers mod-host's `-1`.
 

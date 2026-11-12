@@ -3938,24 +3938,42 @@ static int state_load_begin(struct omx_clap_instance *in)
     return stopped;
 }
 
-static void state_load_done(struct omx_clap_instance *in, int stopped)
+/* the instance taken out of processing for a load runs again, and the load is applied once its plugin has run once since:
+ * a plugin may take a preset or a state and apply it on its audio thread (Surge XT does, its loaded() said at once). The
+ * plugin is woken, so a sleeping one runs the next block, and armed; the first cycle after that turns it PROCESSING and
+ * calls process(), so PROCESSING with no cycle under way is that cycle done. 0 when it was, or when the instance was not
+ * processing (nothing runs it until it is, and nothing here can tell); OMX_CLAP_HOST_NOT_APPLIED when
+ * OMX_HOSTED_STAGE_PRESET_APPLIED_WAIT_US passed first (omx-clap-core#24). */
+static int state_load_done(struct omx_clap_instance *in, int stopped)
 {
-    if (stopped)
-        omx_clap_arm(&in->stage);
+    unsigned waited = 0;
+
+    if (!stopped)
+        return 0;
+    atomic_store_explicit(&in->sleep.wake, 1u, memory_order_relaxed);
+    omx_clap_arm(&in->stage);
+    while (atomic_load(&in->stage.state) != OMX_CLAP_PROCESSING || atomic_load(&in->stage.in_cycle))
+    {
+        if (waited >= OMX_HOSTED_STAGE_PRESET_APPLIED_WAIT_US)
+            return OMX_CLAP_HOST_NOT_APPLIED;
+        usleep(OMX_HOSTED_STAGE_ROLE_POLL_US);
+        waited += OMX_HOSTED_STAGE_ROLE_POLL_US;
+    }
+    return 0;
 }
 
 int omx_clap_host_state_load(struct omx_clap_instance *in, const void *buf, size_t len)
 {
     struct bounded_stream b = { NULL, buf, len, len, 0, 0 };
     const clap_istream_t is = { &b, istream_read };
-    int stopped, ok;
+    int stopped, ok, applied;
 
     if (!in->state || !buf)
         return -1;
     stopped = state_load_begin(in);
     ok = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "state.load", in->state->load, in->plugin, &is);
-    state_load_done(in, stopped);
-    return ok ? 0 : -1;
+    applied = state_load_done(in, stopped);
+    return !ok ? -1 : applied;
 }
 
 int omx_clap_host_state_save_context(struct omx_clap_instance *in, uint32_t context, void *buf, size_t cap, size_t *len)
@@ -3979,7 +3997,7 @@ int omx_clap_host_state_load_context(struct omx_clap_instance *in, uint32_t cont
     struct bounded_stream b = { NULL, buf, len, len, 0, 0 };
     const clap_istream_t is = { &b, istream_read };
     const clap_plugin_state_context_t *ext = in ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_STATE_CONTEXT) : NULL;
-    int stopped, ok;
+    int stopped, ok, applied;
 
     if (!in || !buf || context < CLAP_STATE_CONTEXT_FOR_PRESET || context > CLAP_STATE_CONTEXT_FOR_PROJECT)
         return -1;
@@ -3987,8 +4005,8 @@ int omx_clap_host_state_load_context(struct omx_clap_instance *in, uint32_t cont
         return omx_clap_host_state_load(in, buf, len);
     stopped = state_load_begin(in);
     ok = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ext.load", ext->load, in->plugin, &is, context);
-    state_load_done(in, stopped);
-    return ok ? 0 : -1;
+    applied = state_load_done(in, stopped);
+    return !ok ? -1 : applied;
 }
 
 int omx_clap_host_set_render(struct omx_clap_instance *in, int32_t mode)
@@ -4008,18 +4026,19 @@ uint32_t omx_clap_host_tail(const struct omx_clap_instance *in)
 }
 
 /* from_location answers true for a load a plugin refuses later or says it could not do through the host's on_error
- * (Surge XT does for a file it cannot open): the load is done only when it answered true and reported no error */
+ * (Surge XT does for a file it cannot open): the load is done only when it answered true and reported no error, and
+ * applied once the plugin has run since (state_load_done) */
 static int preset_from_location(struct omx_clap_instance *in, uint32_t location_kind, const char *location, const char *load_key)
 {
-    int ok, stopped;
+    int ok, stopped, applied;
 
     g_preset_failed = 0;
     g_preset_loading = in;
     stopped = state_load_begin(in);
     ok = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "preset_load.from_location", in->preset_load->from_location, in->plugin, location_kind, location, load_key);
-    state_load_done(in, stopped);
+    applied = state_load_done(in, stopped);
     g_preset_loading = NULL;
-    return ok && !g_preset_failed ? 0 : -1;
+    return !ok || g_preset_failed ? -1 : applied;
 }
 
 int omx_clap_host_preset_load(struct omx_clap_instance *in, const char *location)

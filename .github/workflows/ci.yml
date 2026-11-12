@@ -201,7 +201,7 @@ jobs:
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
 
       - name: Install plugin-db's header, which the build reads
-        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.4'
+        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.5'
 
       - name: Build
         run: make
@@ -649,7 +649,7 @@ jobs:
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
 
       - name: Install plugin-db's header, which the build reads
-        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.4'
+        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.5'
 
       - name: Build
         run: make

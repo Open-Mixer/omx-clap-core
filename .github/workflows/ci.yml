@@ -71,28 +71,37 @@ jobs:
   contract:
     name: data/ read back through omx-contract's reader, the committed headers and ts module its render
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    container:
+      image: fedora:44
     steps:
+      - name: The tools
+        run: dnf install -y --setopt=install_weak_deps=False git make nodejs python3 pkgconf-pkg-config diffutils
+
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      # omx-contract from the staging channel, above the real one: 3.16.0 (catalog provenance, the language list,
+      # translate) is staged and not yet served (#30); its installed tree is what test-contract reads
+      - name: Add the OpenMixer channel
+        uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
         with:
-          node-version: 22
-
-      - name: Fetch omx-contract at OMX_CONTRACT_REF
-        run: |
-          set -eu
-          case $OMX_CONTRACT_REF in
-            v[0-9]*.[0-9]*.[0-9]*) ref=refs/tags/$OMX_CONTRACT_REF ;;
-            *) echo "OMX_CONTRACT_REF is $OMX_CONTRACT_REF: pin a release tag" >&2; exit 1 ;;
-          esac
-          git init -q /tmp/omx-contract
-          git -C /tmp/omx-contract fetch -q --depth 1 https://github.com/Open-Mixer/omx-contract "$ref"
-          git -C /tmp/omx-contract checkout -q FETCH_HEAD
-          npm ci --prefix /tmp/omx-contract --omit=dev
+          staging: 'true'
+      - name: omx-contract
+        run: dnf install -y --setopt=install_weak_deps=False 'omx-contract >= 3.16.0' 'omx-contract < 4' 'omx-contract-devel >= 3.16.0' 'omx-contract-devel < 4'
 
       - name: make test-contract
-        run: make test-contract OMX_CONTRACT_DIR=/tmp/omx-contract
+        run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
+
+      # one pack per listed language from the spec and debian/control, and the catalogs through omx-contract's release
+      # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30)
+      - name: The language packs
+        uses: Open-Mixer/.github/.github/actions/langpacks@openmixer-v1
+        with:
+          name: omx-clap-host
+          base: omx-clap-core-contract
+          owner: omx-clap-core
+          spec: packaging/omx-clap-host.spec
+          moved: ca:0.32.1
 
   docs:
     name: make docs (the public headers are fully documented)
@@ -163,7 +172,7 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.12.0' 'plugin-hostd-protocol-devel >= 0.5.0' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.4' cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0' 'plugin-hostd-protocol-devel >= 0.5.0' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.4' cjson-devel mod-host omx-plugins-devel
           pkg-config --atleast-version=0.5.0 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
@@ -620,7 +629,7 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.12.0' 'plugin-hostd-protocol-devel >= 0.5.0' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.4' cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0' 'plugin-hostd-protocol-devel >= 0.5.0' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.3.0' 'plugin-db-devel < 0.4' cjson-devel mod-host omx-plugins-devel
           pkg-config --atleast-version=0.5.0 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
@@ -681,7 +690,7 @@ jobs:
       - name: Install omx-dsp-devel and omx-contract-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.12.0'
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0'
           pkg-config --atleast-version=0.32.0 omxdsp
 
       - name: The sabotage of the no-copy LV2 adapter

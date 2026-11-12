@@ -101,7 +101,7 @@ jobs:
           base: omx-clap-core-contract
           owner: omx-clap-core
           spec: packaging/omx-clap-host.spec
-          moved: ca:0.32.1
+          moved: ca:0.32.2
 
   docs:
     name: make docs (the public headers are fully documented)

@@ -31,6 +31,9 @@ env:
   # plugin-hostd-protocol's verbs file (plugin-hostd's verbs, chain of omx-clap-host among them), from this release tag
   PROTOCOL_REF: v0.5.2
 
+# Two tiers (owner ruling 2026-11-09: heavy workflows on tags, pull requests quick). A pull request runs the plain test
+# tier and one package arm (fc44 x86_64, trixie amd64). The sanitizer tiers (address, thread), every sabotage of a guard,
+# the full package matrix and the release dry run run on push to main, on tags and on dispatch, before a release.
 jobs:
   # The packages (and the jobs that need this one) run only on workflow_dispatch: a pull request or a push runs the tests
   # alone (owner 2026-11-09). release.yml builds on a v* tag; fast-release dispatches this workflow on a release head.
@@ -222,7 +225,7 @@ jobs:
       # the meter reader of effects.c built with -Werror and driven by its test, and each of its rules broken, red: in
       # make test and in no job until it failed to build on main unseen (int against the unsigned instance limits)
       - name: Test the meter reader and its sabotage
-        run: make test-effects-meter test-effects-meter-sabotage
+        run: make test-effects-meter ${{ github.event_name != 'pull_request' && 'test-effects-meter-sabotage' || '' }}
 
       # org.openmixer.panel-description/1 as omx_clap_ext.h states it, against omx-plugins' header, the ABI (#337)
       - name: The panel description's structures are the ABI's
@@ -230,52 +233,64 @@ jobs:
 
       # each rule of the audio layouts broken in a copy of the sources, the test that guards it red (#92)
       - name: The sabotage of the audio layouts
+        if: github.event_name != 'pull_request'
         run: make test-layouts-sabotage
 
       # the chain's cycles on a thread of their own while the control thread changes it, under ThreadSanitizer (#311)
       - name: Test the chain under ThreadSanitizer
+        if: github.event_name != 'pull_request'
         run: make test-chain-tsan
 
       # an abandoned omx_clap_host_open_timed under ThreadSanitizer: the caller's strings freed, the list of binaries
       # changed on its thread meanwhile, the instance the late open makes closed
       - name: Test an abandoned timed open under ThreadSanitizer
+        if: github.event_name != 'pull_request'
         run: make test-open-timed
 
       # each guard of the chain broken in a copy of the sources, tests/clap_chain_test red on it (#311)
       - name: The sabotage of the chain's guards
+        if: github.event_name != 'pull_request'
         run: make test-chain-sabotage
 
       # the sabotage of the no-copy LV2 adapter runs in a job of its own beside this one: lv2-direct-sabotage below
 
       # each guard of the resource hints broken in a copy of the sources, the test that holds it red (#323)
       - name: The sabotage of the resource hints' guards
+        if: github.event_name != 'pull_request'
         run: make test-resource-hints-sabotage
 
       # abi-check.sh's reading of abidiff against a fixture library: a pointee grown reads ok, a function pointer, a
       # retyped pointer and a reorder each FAIL (#323)
       - name: The sabotage of the ABI check's report reading
+        if: github.event_name != 'pull_request'
         run: make test-abi-sabotage
 
       - name: Test what a plugin reports about its parameters under AddressSanitizer
+        if: github.event_name != 'pull_request'
         run: make test-untrusted-asan
 
       - name: Test omx-clap-scan's directory walk and dump under AddressSanitizer, leaks included
+        if: github.event_name != 'pull_request'
         run: make test-scan-asan
 
       # the published transport with an audio thread as its one writer and three readers, under ThreadSanitizer (#121)
       - name: Test the published transport under ThreadSanitizer
+        if: github.event_name != 'pull_request'
         run: make test-transport-tsan
 
       # the cycle gate's sabotage: a gate that never closes must race the deactivate under ThreadSanitizer
       - name: Sabotage the cycle gate under ThreadSanitizer
+        if: github.event_name != 'pull_request'
         run: make test-cycle-gate-sabotage
 
       # the thread pool's helpers, hand-out word and completion count against the audio and control threads (#395)
       - name: Test the thread pool under ThreadSanitizer
+        if: github.event_name != 'pull_request'
         run: make test-thread-pool-tsan
 
       # the thread pool's completion wait removed in a copy of the sources, tests/thread_pool_test red on it (#395)
       - name: The sabotage of the thread pool's completion wait
+        if: github.event_name != 'pull_request'
         run: make test-thread-pool-sabotage
 
       # a chain costs no more on silence than on the tone: the host reads a block for silence only for a plugin that can
@@ -285,8 +300,9 @@ jobs:
 
       # The LV2 adapter: lv2/core against the fixture bundles through lilv, the CLAP face and libomx-clap-core's body
       # around it, and a program linked through the installed pkg-config file alone
+      # a pull request runs the adapter's plain tier; its address and thread sanitizer tiers run on push, tags and dispatch
       - name: Test the LV2 adapter
-        run: make test-lv2
+        run: make ${{ github.event_name == 'pull_request' && 'test-lv2-plain' || 'test-lv2' }}
 
       - name: What the LV2 adapter costs per process() call
         run: make lv2-cost
@@ -399,6 +415,7 @@ jobs:
 
       # and its sabotage: each guard of the xruns line broken in a copy of the tree, the test red on the check that names it
       - name: The sabotage of the xruns line's guards
+        if: github.event_name != 'pull_request'
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-jack-xruns-sabotage
@@ -455,6 +472,7 @@ jobs:
       # the host-ready wait test-jack-params relies on (#191), sabotaged: a host that never logs ready!, a port a
       # listener already held, a host merely slow. No jack, PipeWire or namespace needed, so this always runs.
       - name: Test the host-ready wait's two causes, sabotaged
+        if: github.event_name != 'pull_request'
         run: make test-jack-params-ready-sabotage
 
       # An LV2 plugin through the host: the fixture bundles on LV2_PATH, add lv2:<uri>, the adapter's refusals with their
@@ -537,6 +555,7 @@ jobs:
       # The chain's members walked on JACK's thread while the control thread joins, frees and lets go of members, the
       # host under ThreadSanitizer: no data race in src/effects.c (#104)
       - name: Test the host's chain under ThreadSanitizer
+        if: github.event_name != 'pull_request'
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-chain-host-tsan
@@ -565,6 +584,7 @@ jobs:
   # hour of host runs, in a job of its own beside build and test, on the same container and the same setup.
   chain-host-sabotage:
     name: the sabotage of the host's chain guards
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     # the arms run side by side, as many as the runner has processors (CHAIN_SABOTAGE_PARALLEL), each in copies of
     # one build: a few minutes, with room for an arm stopped once at CHAIN_SABOTAGE_ARM_SECONDS and tried again
@@ -635,6 +655,7 @@ jobs:
   # builds the tree it breaks itself, so it starts when build and test does and waits for nothing.
   lv2-direct-sabotage:
     name: the sabotage of the no-copy LV2 adapter
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
@@ -951,7 +972,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [bookworm, trixie]
+        suite: ${{ fromJSON(github.event_name == 'pull_request' && '["trixie"]' || '["bookworm", "trixie"]') }}
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
     defaults:
       run:
@@ -1103,7 +1124,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [bookworm, trixie]
+        suite: ${{ fromJSON(github.event_name == 'pull_request' && '["trixie"]' || '["bookworm", "trixie"]') }}
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
     # nothing but the distribution: a dependency the package forgot to declare is missing here
     defaults:
@@ -1167,7 +1188,7 @@ jobs:
   release-dry-run:
     name: release workflow, dry run
     needs: changes
-    if: needs.changes.outputs.packages == 'true'
+    if: needs.changes.outputs.packages == 'true' && github.event_name != 'pull_request'
     permissions:
       contents: write
       issues: write

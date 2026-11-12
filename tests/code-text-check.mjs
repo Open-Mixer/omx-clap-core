@@ -53,7 +53,9 @@ function checkFile(path, messages, seen = new Set()) {
       seen.add(c.code);
       if (!c.text.en) problems.push(`${where}: no text.en`);
       if (Object.keys(c.text).some((k) => k !== 'en')) problems.push(`${where}: text holds ${Object.keys(c.text).join(', ')}; the source sentence en alone, a translation is catalogs/<lang>.json`);
-      const caText = messages[c.code];
+      // an entry is the sentence, or {text, by[, model, source]} with its provenance (omx-contract 3.16.0)
+      const entry = messages[c.code];
+      const caText = typeof entry === 'string' || entry === undefined ? entry : entry.text;
       if (caText === undefined) problems.push(`${where}: no Catalan in catalogs/ca.json`);
       if (!c.text.en || caText === undefined) continue;
       const en = placeholders(c.text.en).sort();

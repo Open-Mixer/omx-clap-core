@@ -355,6 +355,8 @@ test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.c
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 	python3 tests/resource-hints-check.py --self-test ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 
+# the numbers the host answers, plugin-hostd-protocol's host-errors.h (tests/host-reply-codes-check.py)
+HOST_ERRORS_H = $(firstword $(wildcard $(addsuffix /host-errors.h,$(patsubst -I%,%,$(filter -I%,$(PROTOCOL_CFLAGS))))))
 test-contract:
 	rm -rf build/contract
 	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh
@@ -363,8 +365,8 @@ test-contract:
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
 	node tests/code-text-check.mjs
-	python3 tests/host-reply-codes-check.py
-	python3 tests/host-reply-codes-check.py --self-test
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H)
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H) --self-test
 	node tests/code-text-check.mjs --self-test
 
 install: install-lib install-lv2 install-tests install_man install-contract

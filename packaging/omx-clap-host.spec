@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.0
+Version:        0.32.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -286,6 +286,25 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 12 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.1-1
+- Every number the host answers has its code in HOST_REPLY_CODES, with its
+  English sentence and its Catalan: -2 (the instance number already taken),
+  -101, -102, -104, -105, the audio server's -201 to -207 and -404 (#34);
+  tests/host-reply-codes-check.py holds every number the sources answer to a
+  code.
+- preset_save takes mod-host's own form, <instance> <dir> <file name> <label>,
+  the form plugin-hostd-protocol's table declares, and writes <dir>/<file name>
+  (plugin-hostd#38).
+- Language packs: omx-clap-host-langpack-<lang> (rpm) and
+  omx-clap-host-l10n-<lang> (deb), one per language omx-contract lists (ca, es,
+  fr, de, it, pt), each owning /usr/share/omx-clap-core/catalogs/<lang>.json;
+  omx-clap-core-contract keeps the directory, and the Catalan deb takes over its
+  catalog (#30). Catalan is a person's, the other languages are made by
+  omx-contract translate.
+- A package build runs the plain test tier (test-package); the sanitizer tiers
+  run in CI (#32). make test-host-verbs runs as any user.
+- Built against omx-contract >= 3.16.0 and plugin-hostd-protocol >= 0.5.5.
+
 * Thu Nov 12 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.0-1
 - A bypassed plugin's dry path is delayed by the latency the plugin publishes,
   so a bypass does not move the lane against the latency the rest of the chain

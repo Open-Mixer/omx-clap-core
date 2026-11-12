@@ -99,7 +99,7 @@ for _ in $(seq 100); do grep -q 'ready!' "$runtime/host.log" && break; sleep 0.1
 grep -q 'ready!' "$runtime/host.log" || { echo "omx-clap-host did not come up" >&2; cat "$runtime/host.log" >&2; exit 2; }
 
 python3 -I - "$port" "$fixtures/fake_synth.clap" "$runtime" "$fixtures/fake_mover.clap" "$fixtures/fake_ext.clap" "$pid" <<'PY'
-import base64, json, socket, sys
+import base64, json, os, socket, sys
 port, synth, runtime, mover, ext, host_pid = int(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
 s = socket.create_connection(('127.0.0.1', port), timeout=20)
 def ask(line):
@@ -112,6 +112,11 @@ def ask(line):
         buf += chunk
     return buf.rstrip(b'\0').decode()
 failed = 0
+def save(n, path, label):
+    """preset_save in mod-host's form: <instance> <dir> <file name> <label>, each word quoted"""
+    return ask('preset_save %d "%s" "%s" "%s"' % (n, os.path.dirname(path), os.path.basename(path), label))
+
+
 def check(ok, what):
     global failed
     print(('ok   ' if ok else 'FAIL ') + what)
@@ -226,8 +231,9 @@ check(ask('preset_load 2 %s-preset:none' % lv2) != 'resp 0', 'an LV2 key the bun
 check(ask('add clap:%s#org.omx-clap-host.test.mover 3' % mover) == 'resp 3', 'the mover is added')
 saved = runtime + '/user presets/my pad.json'
 check(ask('param_set 3 0 0.3125') == 'resp 0', 'level set to 0.3125')
-r = ask('preset_save 3 "%s" My Pad' % saved)
-check(r == 'resp 0', 'preset_save writes the file at a path with a space, named by the rest of the line (%s)' % r)
+r = save(3, saved, 'My Pad')
+check(r == 'resp 0', "preset_save in mod-host's form writes <dir>/<file name>, labelled, a directory with a space quoted (%s)" % r)
+check(ask('preset_save 3 "%s" My Pad' % saved) not in ('resp 0',), "the form that took a file and the rest of the line as its name is mod-host's no longer: it is not taken")
 try:
     doc = json.load(open(saved))
 except (OSError, ValueError) as e:
@@ -249,7 +255,7 @@ check(r == 'resp 0' and ask('param_get 3 0').split()[-1] in ('0.3125', '0.312500
 doc['bank'] = 'Mine'
 json.dump(doc, open(saved, 'w'))
 first_id = doc.get('id')
-check(ask('preset_save 3 "%s" My Pad 2' % saved) == 'resp 0', 'a save over the file')
+check(save(3, saved, 'My Pad 2') == 'resp 0', 'a save over the file')
 again = json.load(open(saved))
 check(again.get('id') == first_id and again.get('bank') == 'Mine' and again.get('createdAt') == doc.get('createdAt')
       and again.get('name') == 'My Pad 2', 'a rewrite keeps the id, createdAt and a member this host does not write, and takes the new name')
@@ -267,8 +273,9 @@ refused(lambda d: d.__setitem__('state', {'encoding': 'base64', 'context': 'pres
 refused(lambda d: d.__setitem__('format', 'org.openmixer.preset/9'), 'PRESET_INVALID', 'an unknown format version')
 open(runtime + '/junk.json', 'w').write('not json')
 check(ask('preset_load 3 %s/junk.json' % runtime) == 'resp -104 PRESET_INVALID', 'a file that is not JSON answers PRESET_INVALID')
-check(ask('preset_save 3 %s/junk.json X' % runtime) == 'resp -104 PRESET_INVALID', 'a save over a file that is not a preset is refused')
-check(ask('preset_save 3 relative.json X') == 'resp -104 PRESET_INVALID', 'a relative path is refused')
+check(save(3, runtime + '/junk.json', 'X') == 'resp -104 PRESET_INVALID', 'a save over a file that is not a preset is refused')
+check(ask('preset_save 3 relative junk.json X') == 'resp -104 PRESET_INVALID', 'a relative directory is refused')
+check(ask('preset_save 3 %s sub/x.json X' % runtime) == 'resp -104 PRESET_INVALID', 'a file name holding a / is refused')
 check(ask('preset_load 3 plugin:none') == 'resp -104 PRESET_NOT_OFFERED', 'a key the plugin does not offer answers PRESET_NOT_OFFERED')
 r = ask('preset_load 3 urn:no:such:preset')
 check(r == 'resp -902', "a location in mod-host's form is answered as mod-host answers it, with no code word: a CLAP plugin with no clap.preset-load the bare -902 (%s)" % r)
@@ -276,7 +283,7 @@ check(r == 'resp -902', "a location in mod-host's form is answered as mod-host a
 # fake_ext: a state body, saved in the preset context
 check(ask('add clap:%s#org.omx-clap-host.test.ext 4' % ext) == 'resp 4', 'fake_ext is added')
 withstate = runtime + '/ext.json'
-check(ask('preset_save 4 %s Ext' % withstate) == 'resp 0', 'preset_save of a plugin with state')
+check(save(4, withstate, 'Ext') == 'resp 0', 'preset_save of a plugin with state')
 d = json.load(open(withstate))
 st = d.get('state', {})
 check(d.get('carries') == 'params+state' and st.get('context') == 'preset' and base64.b64decode(st.get('bytes', '')) == b'preset',
@@ -304,7 +311,7 @@ rpid=$!
 for _ in $(seq 100); do grep -q 'ready!' "$runtime/host-rename.log" && break; sleep 0.1; done
 grep -q 'ready!' "$runtime/host-rename.log" || { echo "omx-clap-host did not come up" >&2; cat "$runtime/host-rename.log" >&2; exit 2; }
 python3 -I - $((port + 1)) "$fixtures/fake_mover.clap" "$runtime" "$root/data/verbs.json" <<'PY'
-import json, socket, sys, time
+import json, os, socket, sys, time
 port, mover, runtime = int(sys.argv[1]), sys.argv[2], sys.argv[3]
 no_contract = 'resp %d' % json.load(open(sys.argv[4]))['HOST_REPLY_CODES']['codes']['noParamContract']['resp']
 s = socket.create_connection(('127.0.0.1', port), timeout=20)
@@ -318,6 +325,11 @@ def ask(line):
         buf += chunk
     return buf.rstrip(b'\0').decode()
 failed = 0
+def save(n, path, label):
+    """preset_save in mod-host's form: <instance> <dir> <file name> <label>, each word quoted"""
+    return ask('preset_save %d "%s" "%s" "%s"' % (n, os.path.dirname(path), os.path.basename(path), label))
+
+
 def check(ok, what):
     global failed
     print(('ok   ' if ok else 'FAIL ') + what)
@@ -333,7 +345,7 @@ check(ask('add clap:%s#org.omx-clap-host.test.mover 1' % mover) == 'resp 1', 'th
 saved = runtime + '/renamed.json'
 check(ask('param_set 1 0 0.3125') == 'resp 0', 'level set to 0.3125')
 before = ask('pin_layout 1')
-check(ask('preset_save 1 %s Before' % saved) == 'resp 0', 'its preset is saved before it renames level')
+check(save(1, saved, 'Before') == 'resp 0', 'its preset is saved before it renames level')
 level = lambda: float(ask('param_get 1 0').split()[-1])
 check(until(lambda: abs(level() - 0.75) < 1e-6, 20), 'the mover moves level to 0.75 itself')
 check(until(lambda: ask('param_info 1 0') == no_contract), 'and renames it: its contract followed, param_info answers %s (%s)' % (no_contract, ask('param_info 1 0')))
@@ -368,6 +380,11 @@ def ask(line):
         buf += chunk
     return buf.rstrip(b'\0').decode()
 failed = 0
+def save(n, path, label):
+    """preset_save in mod-host's form: <instance> <dir> <file name> <label>, each word quoted"""
+    return ask('preset_save %d "%s" "%s" "%s"' % (n, os.path.dirname(path), os.path.basename(path), label))
+
+
 def check(ok, what):
     global failed
     print(('ok   ' if ok else 'FAIL ') + what)

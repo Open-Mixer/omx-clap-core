@@ -1461,8 +1461,14 @@ test-lv2-tsan: $(LV2_TSAN_DIR)/lv2_activate_run_race_test $(LV2_BUNDLES)
 	TSAN_OPTIONS=halt_on_error=1 ./$(LV2_TSAN_DIR)/lv2_activate_run_race_test build/lv2
 .PHONY: test-lv2-tsan
 
-.PHONY: test-lv2 test-lv2-core test-lv2-clap test-lv2-link install-lv2
-test-lv2: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-asan test-lv2-drain-sabotage test-lv2-tsan
+.PHONY: test-lv2 test-lv2-plain test-package test-lv2-core test-lv2-clap test-lv2-link install-lv2
+# the LV2 adapter's plain tier, and with it its sanitizer tiers (address, thread), which CI runs in a job with their
+# environment
+test-lv2-plain: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-drain-sabotage
+test-lv2: test-lv2-plain test-lv2-asan test-lv2-tsan
+# what a package build runs (the spec's %check, debian/rules' dh_auto_test): the plain tier, no sanitizer; a package
+# build has no libtsan and may not map ThreadSanitizer's address space (#32, tests/package-check-plain.sh)
+test-package: test-fake test-lv2-plain
 
 lv2/tests/lv2_clap_test: lv2/tests/lv2_clap_test.c $(LV2_LIB) $(CORE_SO) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_direct_fixture.h $(LV2_FIXTURE_DIR)/lv2_fakes.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h $(LV2_FIXTURE_DIR)/lv2_hints_fixture.h
 	$(CC) $(LV2_TEST_CFLAGS) $(CLAP_CFLAGS) -o $@ $< $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK_TEST) $(LV2_WRAP) -Wl,--wrap=pthread_create -ldl -lpthread -lm

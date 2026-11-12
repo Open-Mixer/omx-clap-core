@@ -461,7 +461,7 @@ static void preset_get_cb(proto_t *proto)
         protocol_response_int(resp, proto);
 }
 
-/* preset_load <N> <file | key> and preset_save <N> <file> <name>: a refusal answers "resp -104 <code>" */
+/* preset_load <N> <file | key> and preset_save <N> <dir> <file name> <label>: a refusal answers "resp -104 <code>" */
 static void preset_load_cb(proto_t *proto)
 {
     char reply[SOCKET_MSG_BUFFER_SIZE];
@@ -493,17 +493,19 @@ static void preset_show_cb(proto_t *proto)
     free(reply);
 }
 
+/* preset_save <N> <dir> <file name> <label>, mod-host's own form (include/mod-host.h EFFECT_PRESET_SAVE): the file is
+ * <dir>/<file name>, the label the preset's name. A file name that is empty or holds a / is no file of <dir>, and a
+ * relative <dir> no file at all: effects_preset_save refuses both with PRESET_INVALID (plugin-hostd#38) */
 static void preset_save_cb(proto_t *proto)
 {
-    char reply[SOCKET_MSG_BUFFER_SIZE], name[SOCKET_MSG_BUFFER_SIZE];
-    size_t used = 0;
-    int i, resp;
+    char reply[SOCKET_MSG_BUFFER_SIZE], path[PATH_MAX];
+    const char *dir = proto->list[2], *file = proto->list[3];
+    int resp, n = -1;
 
-    // the name is the rest of the line, or one quoted word
-    name[0] = '\0';
-    for (i = 3; i < (int)proto->list_count && used < sizeof(name); i++)
-        used += snprintf(name + used, sizeof(name) - used, i > 3 ? " %s" : "%s", proto->list[i]);
-    resp = effects_preset_save(atoi(proto->list[1]), proto->list[2], name, reply, sizeof(reply));
+    if (file[0] && !strchr(file, '/'))
+        n = snprintf(path, sizeof(path), "%s/%s", dir, file);
+    resp = effects_preset_save(atoi(proto->list[1]), n > 0 && (size_t)n < sizeof(path) ? path : NULL, proto->list[4], reply,
+                               sizeof(reply));
     if (resp == SUCCESS || resp == ERR_LV2_INVALID_PRESET_URI)
         protocol_response(reply, proto);
     else
@@ -618,7 +620,7 @@ static int host_init(int socket_port, int feedback_port)
     protocol_add_command(EFFECT_ADD, add_cb);
     // preset_load and preset_save as docs/presets.md has them, before the dispatch's and the unsupported list's
     protocol_add_command(EFFECT_PRESET_LOAD, preset_load_cb);
-    protocol_add_command("preset_save %i %s ...", preset_save_cb);
+    protocol_add_command(EFFECT_PRESET_SAVE, preset_save_cb);
     protocol_add_command(PRESET_SHOW_INSTANCE, preset_show_cb);
     host_dispatch_register(&g_clap_backend);
     host_dispatch_register_curve(&g_clap_curve);

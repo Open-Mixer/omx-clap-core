@@ -4824,6 +4824,19 @@ static void t_warmup_block(double rate, uint32_t act, uint32_t n)
           first == UINT32_MAX ? 0.0 : (double)want[first]);
 }
 
+/* the rates of RATES this run takes (LV2_CLAP_RATES), and the first of them, where the rate-free checks run once */
+static int g_rate_wanted[N_RATES];
+
+static size_t first_wanted(void)
+{
+    size_t r;
+
+    for (r = 0; r < N_RATES; r++)
+        if (g_rate_wanted[r])
+            return r;
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     omx_clap_lv2_config_t config = { omx_clap_lv2_provided, 1000u, 4096u, 1000u, HOLD_MS, NULL, NULL };
@@ -4927,6 +4940,42 @@ int main(int argc, char **argv)
             return g_failures == 0 ? 0 : 1;
         }
     }
+    // LV2_CLAP_RATES=<rate>[,<rate>...]: these of RATES alone, a pull request's tier (one rate); unset, every rate. A
+    // rate that is not one of RATES is refused rather than leave the run empty
+    {
+        const char *want = getenv("LV2_CLAP_RATES");
+
+        if (want && *want)
+        {
+            char list[128], *tok, *save = NULL;
+            int n = 0;
+
+            snprintf(list, sizeof(list), "%s", want);
+            for (tok = strtok_r(list, ",", &save); tok; tok = strtok_r(NULL, ",", &save))
+            {
+                size_t k;
+                int found = 0;
+
+                for (k = 0; k < N_RATES; k++)
+                    if (atof(tok) == RATES[k])
+                        g_rate_wanted[k] = found = 1;
+                if (!found)
+                {
+                    printf("FAIL LV2_CLAP_RATES=%s: %s is not one of the rates this test runs\n", want, tok);
+                    return 1;
+                }
+                n++;
+            }
+            if (n == 0)
+            {
+                printf("FAIL LV2_CLAP_RATES=%s names no rate\n", want);
+                return 1;
+            }
+        }
+        else
+            for (r = 0; r < N_RATES; r++)
+                g_rate_wanted[r] = 1;
+    }
     t_entry();
     t_refusals();
     t_midi_refusal();
@@ -4936,6 +4985,8 @@ int main(int argc, char **argv)
     {
         const int before = g_failures;
 
+        if (!g_rate_wanted[r])
+            continue;
         t_fixture(RATES[r]);
         t_state(RATES[r]);
         t_preset(RATES[r]);
@@ -4964,11 +5015,11 @@ int main(int argc, char **argv)
         t_atom_midi_time(RATES[r]);
         t_atom_ui(RATES[r]);
         t_sidechain(RATES[r]);
-        if (r == 0)
+        if (r == first_wanted())
             t_sidechain_limits();
         t_sidechain_core(RATES[r]);
         t_layouts(RATES[r]);
-        if (r == 0)
+        if (r == first_wanted())
             t_layouts_kinds();
         t_make_path(RATES[r]);
         t_make_path_escape(RATES[r]);

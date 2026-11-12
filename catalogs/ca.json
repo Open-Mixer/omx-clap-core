@@ -89,6 +89,7 @@
     "hosting.window.unsupported": "Aquest plugin no té finestra, o no en té cap en una forma que aquest amfitrió pugui mostrar, encastada o flotant. Feu-lo anar sense finestra.",
     "hosting.worker.nonconforming": "El worker d’aquest plugin no compleix el que ha de fer un worker. No confieu en el seu worker.",
     "reply.host.instance-invalid": "Aquest número d’instància no és cap de l’amfitrió. Useu una instància que l’amfitrió tingui de veritat.",
+    "reply.host.instance-already-exists": "Aquest número d’instància ja està ocupat. Afegiu el plugin amb un número que l’amfitrió encara no tingui.",
     "reply.host.instance-non-exists": "Cap ordre add ha creat aquesta instància. Creeu-la amb add abans d’utilitzar-la.",
     "reply.host.invalid-operation": "Aquesta paraula no forma part d’aquesta ordre, o l’amfitrió la rebutja expressament. Comproveu la gramàtica de l’ordre i envieu una paraula que accepti.",
     "reply.host.memory-allocation": "L’amfitrió s’ha quedat sense memòria en construir la resposta. Torneu-ho a provar quan hi hagi memòria lliure.",

@@ -641,6 +641,14 @@ export declare const HOST_REPLY_CODES: {
       readonly en: "That instance number is not one of the host’s. Use an instance the host actually has.";
     };
   };
+  readonly instanceAlreadyExists: {
+    readonly code: "reply.host.instance-already-exists";
+    readonly resp: -2;
+    readonly doc: "mod-host's ERR_INSTANCE_ALREADY_EXISTS: add asked for an instance number the host already has";
+    readonly text: {
+      readonly en: "That instance number is already taken. Add the plugin under a number the host does not have yet.";
+    };
+  };
   readonly instanceNonExists: {
     readonly code: "reply.host.instance-non-exists";
     readonly resp: -3;

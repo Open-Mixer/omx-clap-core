@@ -208,6 +208,9 @@
 #define OMX_REPLY_HOST_INSTANCE_INVALID "reply.host.instance-invalid" ///< mod-host's ERR_INSTANCE_INVALID: an instance number outside the host's table
 #define OMX_REPLY_HOST_INSTANCE_INVALID_RESP (-1)
 #define OMX_REPLY_HOST_INSTANCE_INVALID_TEXT_EN "That instance number is not one of the host\342\200\231s. Use an instance the host actually has."
+#define OMX_REPLY_HOST_INSTANCE_ALREADY_EXISTS "reply.host.instance-already-exists" ///< mod-host's ERR_INSTANCE_ALREADY_EXISTS: add asked for an instance number the host already has
+#define OMX_REPLY_HOST_INSTANCE_ALREADY_EXISTS_RESP (-2)
+#define OMX_REPLY_HOST_INSTANCE_ALREADY_EXISTS_TEXT_EN "That instance number is already taken. Add the plugin under a number the host does not have yet."
 #define OMX_REPLY_HOST_INSTANCE_NON_EXISTS "reply.host.instance-non-exists" ///< mod-host's ERR_INSTANCE_NON_EXISTS: an instance no add made
 #define OMX_REPLY_HOST_INSTANCE_NON_EXISTS_RESP (-3)
 #define OMX_REPLY_HOST_INSTANCE_NON_EXISTS_TEXT_EN "No add ever created that instance. Add it before using it."

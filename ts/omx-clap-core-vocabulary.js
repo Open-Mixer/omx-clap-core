@@ -641,6 +641,14 @@ export const HOST_REPLY_CODES = {
       "en": "That instance number is not one of the host’s. Use an instance the host actually has."
     }
   },
+  "instanceAlreadyExists": {
+    "code": "reply.host.instance-already-exists",
+    "resp": -2,
+    "doc": "mod-host's ERR_INSTANCE_ALREADY_EXISTS: add asked for an instance number the host already has",
+    "text": {
+      "en": "That instance number is already taken. Add the plugin under a number the host does not have yet."
+    }
+  },
   "instanceNonExists": {
     "code": "reply.host.instance-non-exists",
     "resp": -3,

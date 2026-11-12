@@ -363,6 +363,8 @@ test-contract:
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
 	node tests/code-text-check.mjs
+	python3 tests/host-reply-codes-check.py
+	python3 tests/host-reply-codes-check.py --self-test
 	node tests/code-text-check.mjs --self-test
 
 install: install-lib install-lv2 install-tests install_man install-contract

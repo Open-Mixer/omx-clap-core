@@ -43,11 +43,14 @@
 #include <unistd.h>
 
 #include "clap_host.h"
+#include "clap_meters.h"
 #include "hosted_stage_limits.h"
 #include "lv2_core.h"
 #include "lv2_locate.h"
 #include "scan_fields.h"
 #include "scan_panel.h"
+
+#include <plugin-hostd/protocol.h>
 
 
 /*
@@ -481,10 +484,90 @@ static const char *named(const named_t *table, size_t n, const char *value)
 ************************************************************************************************************************
 */
 
+/* a code by the name its table gives it, as its number when it has none */
+static void record_named_code(const char *scope, const char *field, const char *name, uint32_t code)
+{
+    if (name)
+        record(scope, field, name);
+    else
+        record_number(scope, field, code);
+}
+
+/* the plugin's org.openmixer.param-contract/1 as it states it, unjudged: version and fingerprint under plugin */
+static const omx_clap_plugin_param_contract_ext_t *clap_contract(const struct omx_clap_instance *in)
+{
+    const clap_plugin_t *p = in->plugin;
+    const omx_clap_plugin_param_contract_ext_t *ext =
+        OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", p->get_extension, p, OMX_CLAP_EXT_PARAM_CONTRACT);
+
+    if (!ext)
+        return NULL;
+    if (ext->version)
+        record_number("plugin", "omx_clap_plugin_param_contract_ext.version",
+                      OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "contract.version", ext->version, p));
+    if (ext->fingerprint)
+        record_text("plugin", "omx_clap_plugin_param_contract_ext.fingerprint",
+                    OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "contract.fingerprint", ext->fingerprint, p));
+    return ext->get ? ext : NULL;
+}
+
+/* one parameter's contract entry as the plugin states it, under the parameter's scope; none when get answers false */
+static void clap_contract_entry(const struct omx_clap_instance *in, const omx_clap_plugin_param_contract_ext_t *ext,
+                                const char *scope, clap_id id)
+{
+    omx_clap_param_contract_entry_t e;
+
+    memset(&e, 0, sizeof(e));
+    if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "contract.get", ext->get, in->plugin, id, &e))
+        return;
+    e.symbol[sizeof(e.symbol) - 1] = '\0';
+    record_text(scope, "omx_clap_param_contract_entry.symbol", e.symbol);
+    record_named_code(scope, "omx_clap_param_contract_entry.unit", omx_clap_param_unit_name(e.unit), e.unit);
+    record_named_code(scope, "omx_clap_param_contract_entry.scale", omx_clap_param_scale_name(e.scale), e.scale);
+    record_number(scope, "omx_clap_param_contract_entry.step", e.step);
+}
+
+static const bit_name_t g_meter_flags[] = {
+    { CLAP_METER_IS_COHERENT, "CLAP_METER_IS_COHERENT" },
+    { OMX_CLAP_METER_IS_HELD, "OMX_CLAP_METER_IS_HELD" },
+    { OMX_CLAP_METER_HAS_CLIP, "OMX_CLAP_METER_HAS_CLIP" },
+    { 0, NULL },
+};
+
+/* the meters the plugin declares through clap.meters/1, as it states them, under meter:<index>; the kind by its enum name */
+static void clap_meters(const struct omx_clap_instance *in)
+{
+    static const char *const kinds[] = { "CLAP_METER_KIND_OTHER", "CLAP_METER_KIND_GAIN_REDUCTION", "CLAP_METER_KIND_LEVEL" };
+    const clap_plugin_t *p = in->plugin;
+    const clap_plugin_meters_t *ext = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", p->get_extension, p, CLAP_EXT_METERS);
+    const uint32_t count = ext && ext->count && ext->get_info ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "meters.count", ext->count, p) : 0;
+    uint32_t i;
+
+    for (i = 0; i < count; i++)
+    {
+        clap_meter_info_t m;
+        char scope[32];
+
+        memset(&m, 0, sizeof(m));
+        if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "meters.get_info", ext->get_info, p, i, &m))
+            continue;
+        m.name[sizeof(m.name) - 1] = '\0';
+        snprintf(scope, sizeof(scope), "meter:%u", i);
+        record_number(scope, "clap_meter_info.id", m.id);
+        record_text(scope, "clap_meter_info.name", m.name);
+        record_named_code(scope, "clap_meter_info.kind", m.kind < 3 ? kinds[m.kind] : NULL, m.kind);
+        record_bits(scope, "clap_meter_info.flags", m.flags, g_meter_flags);
+        record_number(scope, "clap_meter_info.channel_count", m.channel_count);
+        record_number(scope, "clap_meter_info.min_value", m.min_value);
+        record_number(scope, "clap_meter_info.max_value", m.max_value);
+    }
+}
+
 static void clap_params(const struct omx_clap_instance *in)
 {
     const clap_plugin_params_t *params = in->params;
     const uint32_t count = params ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "params.count", params->count, in->plugin) : 0;
+    const omx_clap_plugin_param_contract_ext_t *contract = clap_contract(in);
     uint32_t i;
 
     for (i = 0; i < count; i++)
@@ -505,6 +588,8 @@ static void clap_params(const struct omx_clap_instance *in)
         record_number(scope, "clap_param_info.max_value", info.max_value);
         record_number(scope, "clap_param_info.default_value", info.default_value);
         record_bits(scope, "clap_param_info.flags", info.flags, g_param_flags);
+        if (contract)
+            clap_contract_entry(in, contract, scope, info.id);
         // an enumeration's values, each with the text the plugin gives it: what the host lists it by
         if ((info.flags & CLAP_PARAM_IS_ENUM) && (info.flags & CLAP_PARAM_IS_STEPPED) && params->value_to_text &&
             isfinite(info.min_value) && isfinite(info.max_value) && info.max_value - info.min_value < FIELDS_ENUM_MAX)
@@ -755,6 +840,7 @@ static int fields_clap(const char *path, const char *id)
         if (OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, *f))
             record("plugin", "clap_plugin.get_extension", *f);
     clap_params(in);
+    clap_meters(in);
     clap_audio_ports(in, true);
     clap_audio_ports(in, false);
     clap_note_ports(in, true);
@@ -784,15 +870,21 @@ static void lv2_uri_text(const char *uri, char *buf, size_t size)
 
     if (g_bundle_dir && strncmp(uri, "file://", 7) == 0)
     {
-        const char *path = uri + 7, *base;
+        char path[PATH_MAX];
+        const char *base;
 
-        n = strlen(g_bundle_dir);
-        if (strncmp(path, g_bundle_dir, n) == 0 && path[n] == '/')
+        // the world writes a file: URI's path percent-encoded (a space %20); the bundle directory is not, so the
+        // match needs the path decoded first (plugin-hostd-protocol's phd_pin_path_decode)
+        if (phd_pin_path_decode(uri + 7, path, sizeof(path)) == 0)
         {
-            for (base = g_bundle_dir + n; base > g_bundle_dir && base[-1] != '/'; base--)
-                ;
-            snprintf(buf, size, "%s%s", base, path + n);
-            return;
+            n = strlen(g_bundle_dir);
+            if (strncmp(path, g_bundle_dir, n) == 0 && path[n] == '/')
+            {
+                for (base = g_bundle_dir + n; base > g_bundle_dir && base[-1] != '/'; base--)
+                    ;
+                snprintf(buf, size, "%s%s", base, path + n);
+                return;
+            }
         }
     }
     for (i = 0; i < sizeof(g_prefixes) / sizeof(g_prefixes[0]); i++)

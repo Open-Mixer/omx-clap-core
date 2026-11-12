@@ -4,13 +4,14 @@
 
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
-- The host reads a plugin's meters at the rate omx-dsp declares for it (50 Hz, `hostReadHz`), taken from the installed
-  omx-dsp definitions at build time; `IDLE_INTERVAL_MS` is no number of its own.
-- A meter flagged `OMX_CLAP_METER_IS_HELD` is one the plugin holds until it is read; a burst of 10 ms between two reads
-  reaches `output_set`. A meter that holds nothing is named unheld.
-- A gain reduction is stepped by `omx_meter_gr_step` over the time elapsed between reads, on the deepest value since the last one.
-- A level meter flagged `OMX_CLAP_METER_HAS_CLIP` carries a clip word after its channels; the host sends it as `<name> clip`,
-  keeps it lit until it is cleared, and never reads it for a stopped monitor.
-- `effects_monitor_output_off` stops reading an output. A monitor ends with the connection that set it. With nothing
-  monitored the plugin is read zero times.
-- docs/meters.md: the plugin holds, the reader recovers.
+- A bypassed plugin's dry path is delayed by the latency the plugin publishes: with none the input passes in the same
+  block, as before; with some it comes out that many frames later, so a bypass does not move the lane against the
+  latency the rest of the chain compensates for. The crossfades into and out of a bypass read the same delayed input,
+  on a lane and in a chain alike. The blocks a sleeping plugin skips count as the silence they are: a bypass commanded
+  right after it wakes never replays the input from before the sleep.
+- The instance ABI is 21: `struct omx_clap_bypass_delay` added at the tail of `struct omx_clap_instance`. No field
+  moves, the layout stays compatible under `libomx-clap-core.so.1`.
+- A bundle directory with a space in its name (the world writes it `file://` percent-encoded, `%20`) is matched and
+  a preset's file URI decoded by plugin-hostd-protocol's `phd_pin_path_decode`, not a hand loop that kept a stray `%`
+  or an escaped NUL. Built against plugin-hostd-protocol >= 0.5.2 and < 0.6, which already covers the decoder
+  (declared at 0.4.1).

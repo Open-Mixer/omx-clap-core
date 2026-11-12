@@ -111,7 +111,7 @@ enum
 {
     N_AUDIO, N_CONTROL, N_CV, N_ATOM, N_EVENT, N_INPUT, N_OUTPUT, N_DESIGNATION, N_ENABLED, N_LATENCY,
     N_REPORTS_LATENCY, N_INTEGER, N_TOGGLED, N_ENUMERATION, N_NOT_ON_GUI, N_TRIGGER, N_LOGARITHMIC,
-    N_SUPPORTS, N_BUFFER_TYPE, N_SEQUENCE, N_PATCH_MESSAGE, N_RSZ_MIN, N_PATCH_WRITABLE, N_PATCH_PARAMETER,
+    N_SUPPORTS, N_BUFFER_TYPE, N_SEQUENCE, N_PATCH_MESSAGE, N_RSZ_MIN, N_PATCH_WRITABLE, N_PATCH_READABLE, N_PATCH_PARAMETER,
     N_RDF_TYPE, N_RDFS_RANGE, N_RDFS_LABEL, N_SYMBOL, N_MINIMUM, N_MAXIMUM, N_DEFAULT,
     N_ATOM_FLOAT, N_ATOM_DOUBLE, N_ATOM_INT, N_ATOM_LONG, N_ATOM_BOOL, N_ATOM_STRING, N_ATOM_PATH, N_MIDI_EVENT, N_TIME_POSITION,
     N_IS_SIDECHAIN, N_PG_GROUP, N_PG_SIDECHAIN_OF, N_PG_MAIN_INPUT, N_PG_MAIN_OUTPUT, N_NAME, N_LABEL, N_PSET_PRESET, N_APPLIES_TO, N_UNIT,
@@ -143,6 +143,7 @@ static const char *const NODE_URIS[N_COUNT] =
     [N_PATCH_MESSAGE] = LV2_PATCH__Message,
     [N_RSZ_MIN] = LV2_RESIZE_PORT__minimumSize,
     [N_PATCH_WRITABLE] = LV2_PATCH__writable,
+    [N_PATCH_READABLE] = LV2_PATCH__readable,
     [N_PATCH_PARAMETER] = LV2_CORE_PREFIX "Parameter",
     [N_RDF_TYPE] = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
     [N_RDFS_RANGE] = "http://www.w3.org/2000/01/rdf-schema#range",
@@ -790,11 +791,13 @@ static int node_text_cmp(const void *a, const void *b)
 /* The numeric patch:writable properties of the plugin, and its text ones, in the order of their URIs: patch:writable is
  * a set, and lilv lists it in no stable order, so the order is the URIs' own. A numeric property's id is the port count
  * plus its index in that order, counting every entry, so a string property does not move the ids of the numeric ones,
- * and the same plugin gets the same ids in every instance and every process. Versions before this one gave them in
+ * and the same plugin gets the same ids in every instance and every process. A text property's id is given the same
+ * way, so it is no parameter's id either. Versions before this one gave them in
  * lilv's order, so a plugin with two or more such properties may have had other ids there. */
 static const char *read_patches(struct lv2_plugin *p, const LilvPlugin *pl)
 {
     LilvNodes *writable = L.lilv_plugin_get_value(pl, g.node[N_PATCH_WRITABLE]);
+    LilvNodes *readable = L.lilv_plugin_get_value(pl, g.node[N_PATCH_READABLE]);
     const uint32_t n = nodes_count(writable);
     const LilvNode **order = calloc(n ? n : 1u, sizeof(*order));
     uint32_t i = 0, k = 0;
@@ -806,6 +809,7 @@ static const char *read_patches(struct lv2_plugin *p, const LilvPlugin *pl)
     {
         free(order);
         L.lilv_nodes_free(writable);
+        L.lilv_nodes_free(readable);
         return LV2_CODE_NO_REALISATION;
     }
     for (it = writable ? L.lilv_nodes_begin(writable) : NULL; writable && !L.lilv_nodes_is_end(writable, it); it = L.lilv_nodes_next(writable, it))
@@ -826,13 +830,19 @@ static const char *read_patches(struct lv2_plugin *p, const LilvPlugin *pl)
 
             t->uri = strdup(uri);
             t->is_path = is_path;
+            t->id = p->n_ports + i;
+            t->readable = readable && L.lilv_nodes_contains(readable, prop) ? 1 : 0;
+            t->symbol = world_string(prop, N_SYMBOL);
+            if (!t->symbol)
+                t->symbol = symbol_of_uri(uri);
             t->name = world_string(prop, N_RDFS_LABEL);
             if (!t->name)
                 t->name = strdup(uri);
-            if (!t->uri || !t->name)
+            if (!t->uri || !t->name || !t->symbol)
             {
                 free(order);
                 L.lilv_nodes_free(writable);
+                L.lilv_nodes_free(readable);
                 return LV2_CODE_NO_REALISATION;     // counted, so lv2_plugin_close frees what it holds
             }
             continue;
@@ -868,12 +878,14 @@ static const char *read_patches(struct lv2_plugin *p, const LilvPlugin *pl)
         {
             free(order);
             L.lilv_nodes_free(writable);
+            L.lilv_nodes_free(readable);
             return LV2_CODE_NO_REALISATION;     // the entry is counted, so lv2_plugin_close frees what it holds
         }
         k++;
     }
     free(order);
     L.lilv_nodes_free(writable);
+    L.lilv_nodes_free(readable);
     p->n_patches = k;
     return NULL;
 }
@@ -1700,6 +1712,7 @@ void lv2_plugin_close(struct lv2_plugin *p)
     {
         free(p->texts[k].uri);
         free(p->texts[k].name);
+        free(p->texts[k].symbol);
     }
     free(p->texts);
     free(p->roles);

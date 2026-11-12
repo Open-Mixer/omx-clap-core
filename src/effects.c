@@ -63,6 +63,7 @@
 #include "meter_reader.h"
 #include "cycle_gate.h"
 #include "hosted_stage_limits.h"
+#include "state_root.h"
 #include "host_transport.h"
 #include "host_verbs.h"
 #include "layout_pin.h"
@@ -2773,6 +2774,12 @@ static void configure_lv2(void)
         fprintf(stderr, "the state root %s is not a directory this host can write: state:makePath is not offered\n", root);
         root = NULL;
     }
+    if (root && state_root_enter(root) != 0)
+    {
+        fprintf(stderr, "the state root %s could not be made, chmod'd to 0700 or entered: state:makePath is not offered, "
+                        "and the host's cwd stays its start directory\n", root);
+        root = NULL;
+    }
     g_lv2_ready = configure_lv2_with(root, why) == 0;
     if (!g_lv2_ready && root && strcmp(why, "lv2.configure.state-root") == 0)
     {
@@ -3239,7 +3246,7 @@ int effects_remove(int effect_id)
     if (effect_id == REMOVE_ALL)
     {
         start = 0;
-        end = MAX_PLUGIN_INSTANCES;      // the tool instances are not plugins: remove-all leaves them
+        end = OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES;      // the tool instances are not plugins: remove-all leaves them
     }
     else
     {
@@ -3661,7 +3668,7 @@ static int uri_path_char(unsigned char c)
  * directory that does not resolve, or one that does not fit. */
 static int lv2_uri_canonical(const char *uri, char *out, size_t size)
 {
-    char path[PATH_MAX], dir[PATH_MAX], whole[2 * PATH_MAX], *slash, *o = path;
+    char word[PATH_MAX], path[PATH_MAX], dir[PATH_MAX], whole[2 * PATH_MAX], *slash;
     const char *p, *frag;
     size_t n;
 
@@ -3669,21 +3676,16 @@ static int lv2_uri_canonical(const char *uri, char *out, size_t size)
     if (strncmp(uri, "file:///", 8))
         return -1;
     frag = strchr(uri + 7, '#');
-    // the path, decoded
-    for (p = uri + 7; *p && p != frag && o < path + sizeof(path) - 1; p++)
-    {
-        unsigned int c;
-
-        if (p[0] == '%' && isxdigit((unsigned char)p[1]) && isxdigit((unsigned char)p[2]) && sscanf(p + 1, "%2x", &c) == 1)
-        {
-            *o++ = (char)c;
-            p += 2;
-        }
-        else
-            *o++ = *p;
-    }
-    *o = '\0';
-    if ((p != frag && *p) || !(slash = strrchr(path, '/')) || slash == path)
+    n = frag ? (size_t)(frag - (uri + 7)) : strlen(uri + 7);
+    if (n >= sizeof(word))
+        return -1;
+    memcpy(word, uri + 7, n);
+    word[n] = '\0';
+    // the path, decoded by plugin-hostd-protocol's rule: an escape not followed by two hex digits, or an escaped
+    // NUL, refuses rather than keeping the '%' or the NUL
+    if (phd_pin_path_decode(word, path, sizeof(path)) != 0)
+        return -1;
+    if (!(slash = strrchr(path, '/')) || slash == path)
         return -1;
     *slash = '\0';
     if (!realpath(path, dir) || (size_t)snprintf(whole, sizeof(whole), "%s/%s", dir, slash + 1) >= sizeof(whole))
@@ -4541,7 +4543,7 @@ int effects_state_save(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= MAX_PLUGIN_INSTANCES)
+        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         ret = clap_state_save(g_effects[i].clap, filename);
@@ -4560,7 +4562,7 @@ int effects_state_load(const char *dir)
 
     LIVE_EACH_INSTANCE(i)
     {
-        if (i >= MAX_PLUGIN_INSTANCES)
+        if (i >= OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES)
             break;     // the tool instances keep no state
         state_filename(filename, sizeof(filename), dir, i);
         if (access(filename, F_OK) != 0)

@@ -305,7 +305,84 @@ static void put_remote_controls(FILE *out, const struct omx_clap_instance *insta
     fputc(']', out);
 }
 
-static void put_params(FILE *out, const struct omx_clap_instance *instance)
+/* the fingerprint of a trusted contract as the plugin states it: the open held it to the one the host computes (R4), so
+ * it is that one; "" when the plugin answers none */
+static void contract_fingerprint(const struct omx_clap_instance *instance, char hex[65])
+{
+    const clap_plugin_t *p = instance->plugin;
+    const omx_clap_plugin_param_contract_ext_t *ext =
+        OMX_ABI_CALL(OMX_ABI_GUARD_OF(instance), "get_extension", p->get_extension, p, OMX_CLAP_EXT_PARAM_CONTRACT);
+    const char *stated = ext && ext->fingerprint ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(instance), "contract.fingerprint", ext->fingerprint, p) : NULL;
+
+    snprintf(hex, 65, "%.64s", stated ? stated : "");
+}
+
+/* the plugin's org.openmixer.param-contract/1 as the open judged it, for an opened instance only: JSON
+ * "param_contract", null when the plugin offers none, {"error":why} when it broke a rule, else {version, fingerprint};
+ * text one line before the parameters, none when the plugin offers none */
+static void put_param_contract(FILE *out, struct omx_clap_instance *instance)
+{
+    uint32_t version = 0;
+    const char *why = NULL;
+    char hex[65];
+    const int trusted = omx_clap_host_param_contract(instance, &version, &why) == 1;
+    const int absent = !trusted && (!why || !why[0] || strcmp(why, "absent") == 0);
+
+    if (trusted)
+        contract_fingerprint(instance, hex);
+    if (g_json)
+    {
+        if (absent)
+            fputs(",\"param_contract\":null", out);
+        else if (!trusted)
+        {
+            fputs(",\"param_contract\":{\"error\":", out);
+            put_string(out, why);
+            fputc('}', out);
+        }
+        else
+            fprintf(out, ",\"param_contract\":{\"version\":%u,\"fingerprint\":\"%s\"}", version, hex);
+    }
+    else if (!trusted && !absent)
+    {
+        fputs("    contract not trusted: ", out);
+        put_string(out, why);
+        fputc('\n', out);
+    }
+    else if (trusted)
+        fprintf(out, "    contract version %u fingerprint %s\n", version, hex);
+}
+
+/* one parameter's contract entry, when the plugin's contract is trusted: JSON ,"contract":{symbol, unit, scale, step};
+ * text a line under the parameter's, "contract <symbol> <unit> <scale> step <step>" */
+static void put_param_entry(FILE *out, struct omx_clap_instance *instance, clap_id id)
+{
+    struct omx_clap_param_meaning m;
+    const char *unit, *scale;
+
+    if (omx_clap_host_param_meaning(instance, id, &m) != 0)
+        return;
+    unit = omx_clap_param_unit_name(m.unit);
+    scale = omx_clap_param_scale_name(m.scale);
+    if (g_json)
+    {
+        fputs(",\"contract\":{\"symbol\":", out);
+        put_string(out, m.symbol);
+        fprintf(out, ",\"unit\":\"%s\",\"scale\":\"%s\",\"step\":", unit ? unit : "", scale ? scale : "");
+        put_number(out, m.step);
+        fputc('}', out);
+    }
+    else
+    {
+        fputs("      contract ", out);
+        put_string(out, m.symbol);
+        fprintf(out, " %s %s step ", unit ? unit : "", scale ? scale : "");
+        put_number(out, m.step);
+        fputc('\n', out);
+    }
+}
+
+static void put_params(FILE *out, struct omx_clap_instance *instance, bool opened)
 {
     const clap_plugin_params_t *params = instance->params;
     clap_param_info_t info;
@@ -315,6 +392,8 @@ static void put_params(FILE *out, const struct omx_clap_instance *instance)
 
     if (g_json)
         fputs("\"params\":[", out);
+    else if (opened)
+        put_param_contract(out, instance);
     for (i = 0; i < count; i++)
     {
         memset(&info, 0, sizeof(info));
@@ -338,6 +417,8 @@ static void put_params(FILE *out, const struct omx_clap_instance *instance)
             put_flags(out, info.flags);
             if (info.flags & CLAP_PARAM_IS_ENUM)
                 put_enum_labels(out, instance, &info);
+            if (opened)
+                put_param_entry(out, instance, info.id);
             fputc('}', out);
         }
         else
@@ -353,11 +434,104 @@ static void put_params(FILE *out, const struct omx_clap_instance *instance)
             fputc(' ', out);
             put_flags(out, info.flags);
             fputc('\n', out);
+            if (opened)
+                put_param_entry(out, instance, info.id);
         }
         first = 0;
     }
     if (g_json)
+    {
         fputs(first ? "]" : "\n]", out);
+        if (opened)
+            put_param_contract(out, instance);
+    }
+}
+
+static const char *meter_kind_name(uint32_t kind)
+{
+    switch (kind)
+    {
+    case OMX_CLAP_METER_KIND_OTHER: return "other";
+    case OMX_CLAP_METER_KIND_GAIN_REDUCTION: return "gain-reduction";
+    case OMX_CLAP_METER_KIND_LEVEL: return "level";
+    default: return NULL;
+    }
+}
+
+static const flag_name_t g_meter_flags[] = {
+    { OMX_CLAP_METER_IS_COHERENT, "coherent" },
+    { OMX_CLAP_METER_IS_HELD, "held" },
+    { OMX_CLAP_METER_HAS_CLIP, "clip" },
+};
+
+/* the meters an opened instance read through clap.meters/1 (docs/meters.md): JSON ,"meters":[{id, name, kind, flags,
+ * channels, min, max}], a kind the core does not name by its number; text one line each, "meter <id> "<name>" <kind>
+ * <n> channel(s) [<min> .. <max>]" and its flags */
+static void put_meters(FILE *out, const struct omx_clap_instance *instance)
+{
+    const uint32_t count = omx_clap_host_meter_count(instance);
+    struct omx_clap_meter m;
+    uint32_t i;
+    size_t k;
+
+    if (g_json)
+        fputs(",\"meters\":[", out);
+    for (i = 0; i < count; i++)
+    {
+        const char *kind;
+        int first = 1;
+
+        if (omx_clap_host_meter_info(instance, i, &m) != 0)
+            continue;
+        m.name[sizeof(m.name) - 1] = '\0';
+        kind = meter_kind_name(m.kind);
+        if (g_json)
+        {
+            fprintf(out, "%s\n{\"id\":%u,\"name\":", i ? "," : "", m.id);
+            put_string(out, m.name);
+            if (kind)
+                fprintf(out, ",\"kind\":\"%s\"", kind);
+            else
+                fprintf(out, ",\"kind\":%u", m.kind);
+            fputs(",\"flags\":[", out);
+        }
+        else
+        {
+            fprintf(out, "    meter %u \"", m.id);
+            put_string(out, m.name);
+            fputs("\" ", out);
+            if (kind)
+                fputs(kind, out);
+            else
+                fprintf(out, "%u", m.kind);
+            fprintf(out, " %u channel%s [", m.channel_count, m.channel_count == 1 ? "" : "s");
+            put_number(out, m.min_value);
+            fputs(" .. ", out);
+            put_number(out, m.max_value);
+            fputc(']', out);
+        }
+        for (k = 0; k < sizeof(g_meter_flags) / sizeof(g_meter_flags[0]); k++)
+            if (m.flags & g_meter_flags[k].bit)
+            {
+                if (g_json)
+                    fprintf(out, "%s\"%s\"", first ? "" : ",", g_meter_flags[k].name);
+                else
+                    fprintf(out, "%c%s", first ? ' ' : ',', g_meter_flags[k].name);
+                first = 0;
+            }
+        if (g_json)
+        {
+            fprintf(out, "],\"channels\":%u,\"min\":", m.channel_count);
+            put_number(out, m.min_value);
+            fputs(",\"max\":", out);
+            put_number(out, m.max_value);
+            fputc('}', out);
+        }
+        else
+            fputc('\n', out);
+    }
+    if (g_json)
+        fputs(count ? "\n]" : "]", out);
 }
 
 /* a port's kind as the description names it: its CLAP port type when the core knows it, else unknown */
@@ -893,7 +1067,9 @@ static void put_plugin(FILE *out, const char *path, struct omx_clap_binary *bina
 
     if (g_json)
         fputc(',', out);
-    put_params(out, instance);
+    put_params(out, instance, accepted);
+    if (accepted)
+        put_meters(out, instance);
     if (g_json)
     {
         fputc(',', out);
@@ -1188,6 +1364,16 @@ static void list_add(list_t *list, char *item)
     list->items[list->count++] = item;
 }
 
+/* every item main() strdup'd or asprintf'd into `list`, and the list's own array */
+static void list_free(list_t *list)
+{
+    size_t i;
+
+    for (i = 0; i < list->count; i++)
+        free(list->items[i]);
+    free(list->items);
+}
+
 static int compare_names(const void *a, const void *b)
 {
     return strcmp(*(char *const *)a, *(char *const *)b);
@@ -1325,7 +1511,7 @@ static void usage(const char *name)
 int main(int argc, char **argv)
 {
     list_t roots = { NULL, 0 }, files = { NULL, 0 }, failures = { NULL, 0 }, seen = { NULL, 0 };
-    int explicit_paths, readable = 0, first = 1, a;
+    int explicit_paths, readable = 0, first = 1, a, ret = 0;
     const char *fields = NULL;
     struct stat st;
     size_t i;
@@ -1339,12 +1525,13 @@ int main(int argc, char **argv)
         else if (strcmp(argv[a], "-h") == 0 || strcmp(argv[a], "--help") == 0)
         {
             usage(argv[0]);
-            return 0;
+            goto done;
         }
         else if (argv[a][0] == '-' && argv[a][1] != '\0')
         {
             usage(argv[0]);
-            return 2;
+            ret = 2;
+            goto done;
         }
         else
             list_add(&roots, strdup(argv[a]));
@@ -1361,7 +1548,8 @@ int main(int argc, char **argv)
         if (omx_clap_host_configure(&config) != 0)
         {
             fprintf(stderr, "can't configure the clap core\n");
-            return 2;
+            ret = 2;
+            goto done;
         }
     }
 
@@ -1371,9 +1559,11 @@ int main(int argc, char **argv)
         if (g_json || roots.count > 0)
         {
             usage(argv[0]);
-            return 2;
+            ret = 2;
+            goto done;
         }
-        return strcmp(fields, "--list") == 0 ? scan_fields_list() : scan_fields(fields);
+        ret = strcmp(fields, "--list") == 0 ? scan_fields_list() : scan_fields(fields);
+        goto done;
     }
 
     explicit_paths = roots.count > 0;
@@ -1445,7 +1635,13 @@ int main(int argc, char **argv)
     if (readable == 0)
     {
         fprintf(stderr, "%s: no path could be read\n", argv[0]);
-        return 1;
+        ret = 1;
     }
-    return 0;
+
+done:
+    list_free(&roots);
+    list_free(&files);
+    list_free(&failures);
+    list_free(&seen);
+    return ret;
 }

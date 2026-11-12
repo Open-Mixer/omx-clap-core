@@ -95,15 +95,24 @@ jobs:
     name: make docs (the public headers are fully documented)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # in a container like the other jobs that install packages: apt on the runner host could not resolve the Ubuntu
+    # mirrors (2026-11-11, four runs in a row) while the container jobs of the same runs installed theirs
+    container:
+      image: ubuntu:26.04
+    env:
+      PIPX_BIN_DIR: /usr/local/bin
     steps:
+      # git before the checkout, so the checkout is a clone with its history and not an archive
+      - name: Install git, doxygen and lizard
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends ca-certificates git make gcc libc6-dev pkgconf python3 perl doxygen pipx
+          pipx install lizard==1.24.1
+          git config --global --add safe.directory '*'
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install doxygen and lizard
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends doxygen
-          pipx install lizard==1.24.1
 
       - name: make docs
         run: make docs
@@ -233,6 +242,9 @@ jobs:
 
       - name: Test what a plugin reports about its parameters under AddressSanitizer
         run: make test-untrusted-asan
+
+      - name: Test omx-clap-scan's directory walk and dump under AddressSanitizer, leaks included
+        run: make test-scan-asan
 
       # the published transport with an audio thread as its one writer and three readers, under ThreadSanitizer (#121)
       - name: Test the published transport under ThreadSanitizer

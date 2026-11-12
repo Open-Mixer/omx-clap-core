@@ -368,8 +368,6 @@ test-contract:
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
 	node tests/code-text-check.mjs
-	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H)
-	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H) --self-test
 	node tests/code-text-check.mjs --self-test
 
 install: install-lib install-lv2 install-tests install_man install-contract
@@ -470,9 +468,14 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 # every verb data/verbs.json declares is an OMX_VERB_ macro of src/omx_clap_core_host_verbs.h, every reply number of
 # src/host_verbs.h the declared one (tests/host-verbs-check.sh, with its sabotage arms)
 .PHONY: test-codes test-verbs-source
+# every number the host answers has a code (#34): it reads plugin-hostd-protocol's host-errors.h, so it runs where the
+# protocol's headers are, the build's jobs, never test-contract's (which has omx-contract alone)
 test-codes: test-verbs-source
 	bash tests/hosting-codes-check.sh
 	bash tests/hosting-codes-check.sh --self-test
+	@test -n "$(HOST_ERRORS_H)" || { echo "test-codes: no host-errors.h in PROTOCOL_CFLAGS ($(PROTOCOL_CFLAGS)): install plugin-hostd-protocol-devel" >&2; exit 1; }
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H)
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H) --self-test
 test-verbs-source:
 	bash tests/host-verbs-check.sh
 	bash tests/host-verbs-check.sh --self-test

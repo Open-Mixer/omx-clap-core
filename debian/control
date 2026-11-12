@@ -120,8 +120,8 @@ Package: omx-clap-host-l10n-ca
 Section: localization
 Architecture: all
 Depends: omx-clap-core-contract (= ${source:Version}), ${misc:Depends}
-Breaks: omx-clap-core-contract (<< 0.32.2~)
-Replaces: omx-clap-core-contract (<< 0.32.2~)
+Breaks: omx-clap-core-contract (<< 0.32.1~)
+Replaces: omx-clap-core-contract (<< 0.32.1~)
 Description: ca catalog of omx-clap-host's codes
  The sentences of omx-clap-host's codes in the language ca, read by every
  surface that shows them on a host in that locale; without it a surface shows

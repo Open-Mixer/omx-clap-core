@@ -140,7 +140,7 @@ jobs:
       - name: Install the build tools
         run: |
           dnf install -y --setopt=install_weak_deps=False git gcc make python3 perl-interpreter diffutils pkgconf-pkg-config clap-devel openssl-devel \
-            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jq iproute util-linux procps-ng libasan libubsan libtsan libabigail \
+            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jack-tools jq iproute util-linux procps-ng libasan libubsan libtsan libabigail \
             python3-numpy python3-lilv \
             libxcb-devel xorg-x11-server-Xvfb xdotool wayland-devel wayland-protocols-devel weston \
             dnf5-plugins
@@ -151,7 +151,7 @@ jobs:
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
         with:
-          # the staging channel, above the real one: plugin-hostd-protocol 0.5.4, which declares PRESET_NOT_APPLIED
+          # the staging channel, above the real one: plugin-hostd-protocol 0.5.5, which declares PRESET_NOT_APPLIED and node_metadata
           # (#24), is staged and not yet served
           staging: 'true'
 
@@ -581,7 +581,7 @@ jobs:
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
         with:
-          # the staging channel, above the real one: plugin-hostd-protocol 0.5.4, which declares PRESET_NOT_APPLIED
+          # the staging channel, above the real one: plugin-hostd-protocol 0.5.5, which declares PRESET_NOT_APPLIED and node_metadata
           # (#24), is staged and not yet served
           staging: 'true'
 
@@ -641,7 +641,7 @@ jobs:
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
         with:
-          # the staging channel, above the real one: plugin-hostd-protocol 0.5.4, which declares PRESET_NOT_APPLIED
+          # the staging channel, above the real one: plugin-hostd-protocol 0.5.5, which declares PRESET_NOT_APPLIED and node_metadata
           # (#24), is staged and not yet served
           staging: 'true'
 
@@ -688,7 +688,7 @@ jobs:
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
         with:
-          # the staging channel, above the real one: plugin-hostd-protocol 0.5.4, which declares PRESET_NOT_APPLIED
+          # the staging channel, above the real one: plugin-hostd-protocol 0.5.5, which declares PRESET_NOT_APPLIED and node_metadata
           # (#24), is staged and not yet served
           staging: 'true'
 
@@ -967,7 +967,7 @@ jobs:
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
         with:
-          # the staging channel, above the real one: plugin-hostd-protocol 0.5.4, which declares PRESET_NOT_APPLIED
+          # the staging channel, above the real one: plugin-hostd-protocol 0.5.5, which declares PRESET_NOT_APPLIED and node_metadata
           # (#24), is staged and not yet served
           staging: 'true'
 
@@ -1169,5 +1169,5 @@ jobs:
     with:
       publish: false
       arm: false  # aarch64/arm64 build at release only
-      staging: true  # plugin-hostd-protocol 0.5.4 is staged and not yet served (#24)
+      staging: true  # plugin-hostd-protocol 0.5.5 is staged and not yet served (#24, plugin-hostd#33)
 

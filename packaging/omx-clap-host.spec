@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.31.2
+Version:        0.32.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -13,7 +13,7 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.4 with plugin-hostd-protocol-devel < 0.6)
+BuildRequires: (plugin-hostd-protocol-devel >= 0.5.5 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
 BuildRequires: (plugin-db-devel >= 0.3.1 with plugin-db-devel < 0.4)
 BuildRequires: (clap-devel >= 1.2.7 with clap-devel < 2)
@@ -35,7 +35,7 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.4 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.5 with plugin-hostd-protocol%{?_isa} < 0.6)
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -200,6 +200,32 @@ make test-lv2
 %{_includedir}/omx-clap-lv2/
 
 %changelog
+* Thu Nov 12 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.0-1
+- A bypassed plugin's dry path is delayed by the latency the plugin publishes,
+  so a bypass does not move the lane against the latency the rest of the chain
+  compensates for; the crossfades read the same delayed input, on a lane and in
+  a chain alike, and a sleeping plugin's skipped blocks count as silence.
+- The instance ABI is 21: struct omx_clap_bypass_delay added at the tail of
+  struct omx_clap_instance; no field moves, libomx-clap-core.so.1 stays.
+- A preset load answers once the plugin has applied the preset (it has run once
+  since), or PRESET_NOT_APPLIED (-544) when the host's wait for that,
+  presetAppliedWaitUs, runs out (#24).
+- A preset's identity is the plugin's layout recorded at add, so a plugin that
+  renames its parameters later still loads the presets saved under that layout.
+- Each instance's own client carries the JACK metadata plugin-hostd-protocol
+  declares (node_metadata): the pretty name '<plugin name> (<instance>)' and the
+  instance key a graph client matches it on; its name stays effect_<instance>
+  (plugin-hostd#33).
+- The LV2 adapter answers org.openmixer.properties/1, read only; a bundle
+  directory with a space and a preset's file URI are decoded by
+  plugin-hostd-protocol's phd_pin_path_decode.
+- The LV2 adapter classifies CV, side-chain and atom ports by their shape, gives
+  an instrument the inputs a CLAP instrument has, and serialises activate
+  against the first run.
+- The meter test and the state walks compare unsigned with unsigned, and CI
+  builds the meter test and its sabotage.
+- Built against plugin-hostd-protocol >= 0.5.5 and < 0.6.
+
 * Wed Nov 11 2026 Pau Aliagas <linuxnow@gmail.com> - 0.31.2-1
 - omx-clap-scan states what a plugin exports through clap.meters/1 and
   org.openmixer.param-contract/1: each meter, the contract's version and

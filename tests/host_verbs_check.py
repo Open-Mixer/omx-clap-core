@@ -40,7 +40,7 @@ HOST = 'omx-clap-host'
 OWNER = 'omx-clap-core'
 # a verb this host answers whose declaration belongs to another package's lane, and the package (FreeMixer/plugin-hostd#131);
 # once any installed package declares it, the socket checks it as declared
-# (preset_save is registered in plugin-hostd#131's form, <N> <file> <name...>, not mod-host's four-word one)
+# (preset_save is registered in mod-host's four-word form, <N> <dir> <file name> <label>, plugin-hostd#38)
 AWAITING = {'preset_list': 'plugin-hostd-protocol', 'preset_get': 'plugin-hostd-protocol', 'preset_save': 'plugin-hostd-protocol', 'preset_show': 'plugin-hostd-protocol'}
 
 # per verb: the words after the verb of a well-formed line, and malformed lines with the code each must answer.

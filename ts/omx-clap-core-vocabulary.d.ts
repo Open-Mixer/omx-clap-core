@@ -657,12 +657,108 @@ export declare const HOST_REPLY_CODES: {
       readonly en: "No add ever created that instance. Add it before using it.";
     };
   };
+  readonly uriInvalid: {
+    readonly code: "reply.host.uri-invalid";
+    readonly resp: -101;
+    readonly doc: "mod-host's ERR_LV2_INVALID_URI: add named a plugin the host does not find";
+    readonly text: {
+      readonly en: "The host finds no plugin by that name. Check the plugin is installed and its name is spelt as the scan lists it.";
+    };
+  };
+  readonly instantiationFailed: {
+    readonly code: "reply.host.instantiation-failed";
+    readonly resp: -102;
+    readonly doc: "mod-host's ERR_LV2_INSTANTIATION: the plugin refused to start";
+    readonly text: {
+      readonly en: "The plugin was found but would not start. Try it again, or choose another plugin if it keeps refusing.";
+    };
+  };
   readonly paramSymbolInvalid: {
     readonly code: "reply.host.param-symbol-invalid";
     readonly resp: -103;
     readonly doc: "mod-host's ERR_LV2_INVALID_PARAM_SYMBOL: a symbol that is not a parameter param_set takes, the plugin's own bypass included";
     readonly text: {
       readonly en: "That symbol is not one of this plugin’s parameters, not even its bypass. Ask the plugin for its parameter list and use one of those symbols.";
+    };
+  };
+  readonly presetUriInvalid: {
+    readonly code: "reply.host.preset-uri-invalid";
+    readonly resp: -104;
+    readonly doc: "mod-host's ERR_LV2_INVALID_PRESET_URI: a preset this plugin does not have, or a file it cannot take";
+    readonly text: {
+      readonly en: "That preset is not one this plugin can load. Choose a preset from the plugin’s own list.";
+    };
+  };
+  readonly stateLoadFailed: {
+    readonly code: "reply.host.state-load-failed";
+    readonly resp: -105;
+    readonly doc: "mod-host's ERR_LV2_CANT_LOAD_STATE: the plugin refused its saved state";
+    readonly text: {
+      readonly en: "The plugin would not take its saved state back. Load another preset, or set its values again.";
+    };
+  };
+  readonly jackClientCreation: {
+    readonly code: "reply.host.jack-client-creation";
+    readonly resp: -201;
+    readonly doc: "mod-host's ERR_JACK_CLIENT_CREATION: no audio client could be made for the plugin";
+    readonly text: {
+      readonly en: "The host could not connect the plugin to the audio server. Check the audio server is running, then add the plugin again.";
+    };
+  };
+  readonly jackClientActivation: {
+    readonly code: "reply.host.jack-client-activation";
+    readonly resp: -202;
+    readonly doc: "mod-host's ERR_JACK_CLIENT_ACTIVATION: the plugin's audio client would not start";
+    readonly text: {
+      readonly en: "The plugin’s audio connection would not start. Check the audio server is running, then add the plugin again.";
+    };
+  };
+  readonly jackClientDeactivation: {
+    readonly code: "reply.host.jack-client-deactivation";
+    readonly resp: -203;
+    readonly doc: "mod-host's ERR_JACK_CLIENT_DEACTIVATION: the plugin's audio client would not stop";
+    readonly text: {
+      readonly en: "The plugin’s audio connection would not stop. Remove the plugin, or restart the audio server if it stays.";
+    };
+  };
+  readonly jackPortRegister: {
+    readonly code: "reply.host.jack-port-register";
+    readonly resp: -204;
+    readonly doc: "mod-host's ERR_JACK_PORT_REGISTER: a port of the plugin could not be made";
+    readonly text: {
+      readonly en: "The host could not make one of the plugin’s audio ports. Remove some plugins, then add this one again.";
+    };
+  };
+  readonly jackPortConnection: {
+    readonly code: "reply.host.jack-port-connection";
+    readonly resp: -205;
+    readonly doc: "mod-host's ERR_JACK_PORT_CONNECTION: two ports could not be connected";
+    readonly text: {
+      readonly en: "Those two ports could not be connected. Check both ports exist and carry the same kind of signal.";
+    };
+  };
+  readonly jackPortDisconnection: {
+    readonly code: "reply.host.jack-port-disconnection";
+    readonly resp: -206;
+    readonly doc: "mod-host's ERR_JACK_PORT_DISCONNECTION: two ports could not be disconnected";
+    readonly text: {
+      readonly en: "Those two ports could not be disconnected. Check they are connected to each other.";
+    };
+  };
+  readonly valueOutOfRange: {
+    readonly code: "reply.host.value-out-of-range";
+    readonly resp: -207;
+    readonly doc: "mod-host's ERR_JACK_VALUE_OUT_OF_RANGE: a tempo or a beats-per-bar the transport does not take";
+    readonly text: {
+      readonly en: "That tempo or beats per bar is outside what the host accepts. Choose a value within the host’s range.";
+    };
+  };
+  readonly externalUiUnavailable: {
+    readonly code: "reply.host.external-ui-unavailable";
+    readonly resp: -404;
+    readonly doc: "mod-host's ERR_EXTERNAL_UI_UNAVAILABLE: the plugin has no window of its own to show";
+    readonly text: {
+      readonly en: "This plugin has no window of its own to show. Use the host’s controls for it instead.";
     };
   };
   readonly memoryAllocation: {

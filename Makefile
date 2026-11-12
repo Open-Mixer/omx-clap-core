@@ -358,6 +358,8 @@ test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.c
 # omx-contract's install-contract-dir.sh: a checkout's (OMX_CONTRACT_DIR/tools), else the installed package's, so
 # OMX_CONTRACT_DIR may be a checkout or the installed /usr/lib/omx-contract (CI takes it from the staging channel)
 OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh) $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh))
+# the numbers the host answers, plugin-hostd-protocol's host-errors.h (tests/host-reply-codes-check.py)
+HOST_ERRORS_H = $(firstword $(wildcard $(addsuffix /host-errors.h,$(patsubst -I%,%,$(filter -I%,$(PROTOCOL_CFLAGS))))))
 test-contract:
 	rm -rf build/contract
 	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)
@@ -466,9 +468,14 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 # every verb data/verbs.json declares is an OMX_VERB_ macro of src/omx_clap_core_host_verbs.h, every reply number of
 # src/host_verbs.h the declared one (tests/host-verbs-check.sh, with its sabotage arms)
 .PHONY: test-codes test-verbs-source
+# every number the host answers has a code (#34): it reads plugin-hostd-protocol's host-errors.h, so it runs where the
+# protocol's headers are, the build's jobs, never test-contract's (which has omx-contract alone)
 test-codes: test-verbs-source
 	bash tests/hosting-codes-check.sh
 	bash tests/hosting-codes-check.sh --self-test
+	@test -n "$(HOST_ERRORS_H)" || { echo "test-codes: no host-errors.h in PROTOCOL_CFLAGS ($(PROTOCOL_CFLAGS)): install plugin-hostd-protocol-devel" >&2; exit 1; }
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H)
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H) --self-test
 test-verbs-source:
 	bash tests/host-verbs-check.sh
 	bash tests/host-verbs-check.sh --self-test
@@ -1151,7 +1158,8 @@ PROTOCOL_VERSION = $(shell sed -n 's/^Version: *//p' $(PROTOCOL_CONTRACT_DIR)/pa
 .PHONY: test-host-verbs test-host-verbs-sabotage host-verbs-contract
 host-verbs-contract:
 	rm -rf $(HOST_VERBS_CONTRACT)
-	$(MAKE) --no-print-directory install-contract DESTDIR= CONTRACTDIR=$(HOST_VERBS_CONTRACT)
+	@# the catalogs go into the build tree too, as test-contract's do: the test runs as any user, never root
+	$(MAKE) --no-print-directory install-contract DESTDIR= CONTRACTDIR=$(HOST_VERBS_CONTRACT) DATADIR=$(abspath $(HOST_VERBS_CONTRACT))-share
 	@# every other package that names omx-clap-host in its verbs file (plugin-hostd-protocol's: chain, preset_list, ...) is read too
 	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_CONTRACT_DIR)/data/verbs.json && test -n "$(PROTOCOL_VERSION)" || { echo "host-verbs-contract: no plugin-hostd-protocol checkout at $(PROTOCOL_CONTRACT_DIR) (PROTOCOL_CONTRACT_DIR), whose verbs file declares chain of omx-clap-host" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) plugin-hostd-protocol $(PROTOCOL_VERSION) $(CONTRACT_SCHEMA_MAJOR) $(PROTOCOL_CONTRACT_DIR)/data $(HOST_VERBS_CONTRACT) data
@@ -1456,8 +1464,14 @@ test-lv2-tsan: $(LV2_TSAN_DIR)/lv2_activate_run_race_test $(LV2_BUNDLES)
 	TSAN_OPTIONS=halt_on_error=1 ./$(LV2_TSAN_DIR)/lv2_activate_run_race_test build/lv2
 .PHONY: test-lv2-tsan
 
-.PHONY: test-lv2 test-lv2-core test-lv2-clap test-lv2-link install-lv2
-test-lv2: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-asan test-lv2-drain-sabotage test-lv2-tsan
+.PHONY: test-lv2 test-lv2-plain test-package test-lv2-core test-lv2-clap test-lv2-link install-lv2
+# the LV2 adapter's plain tier, and with it its sanitizer tiers (address, thread), which CI runs in a job with their
+# environment
+test-lv2-plain: test-lv2-core test-lv2-clap test-lv2-link test-lv2-validate test-lv2-drain-sabotage
+test-lv2: test-lv2-plain test-lv2-asan test-lv2-tsan
+# what a package build runs (the spec's %check, debian/rules' dh_auto_test): the plain tier, no sanitizer; a package
+# build has no libtsan and may not map ThreadSanitizer's address space (#32, tests/package-check-plain.sh)
+test-package: test-fake test-lv2-plain
 
 lv2/tests/lv2_clap_test: lv2/tests/lv2_clap_test.c $(LV2_LIB) $(CORE_SO) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_direct_fixture.h $(LV2_FIXTURE_DIR)/lv2_fakes.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h $(LV2_FIXTURE_DIR)/lv2_hints_fixture.h
 	$(CC) $(LV2_TEST_CFLAGS) $(CLAP_CFLAGS) -o $@ $< $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK_TEST) $(LV2_WRAP) -Wl,--wrap=pthread_create -ldl -lpthread -lm

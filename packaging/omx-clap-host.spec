@@ -24,8 +24,6 @@ BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 BuildRequires: (omx-contract-devel >= 3.12.0 with omx-contract-devel < 4)
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
-# make test-lv2 runs the MIDI output path under AddressSanitizer
-BuildRequires: libasan
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
 # hand-typed verbs with python (tests/host-verbs-check.sh)
 BuildRequires: perl-interpreter
@@ -151,8 +149,7 @@ sed -i 's,LDFLAGS += -s,LDFLAGS +=,g' Makefile
 
 %check
 
-make test-fake
-make test-lv2
+make test-package
 
 %files
 %license COPYING

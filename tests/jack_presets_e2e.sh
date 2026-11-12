@@ -294,6 +294,58 @@ PY
 status=$?
 kill -0 "$pid" 2>/dev/null || { echo "FAIL omx-clap-host is gone:"; tail -5 "$runtime/host.log"; status=1; }
 
+# a preset the instance saved loads back after the plugin renamed a parameter of its own (plugin-hostd#27): a host of
+# its own, whose fake_mover moves level on its 200th process() (some seconds in) and then renames it to "gain" (params.rescan INFO), as a
+# plugin whose names follow its patch does (FAKE_MOVER_CONTRACT=follow: its contract follows the rename, so the host
+# no longer holds one for level and param_info says so); the preset and pin_layout name the plugin as it was after
+# init, not the names it has now
+FAKE_MOVER=info FAKE_MOVER_AT=200 FAKE_MOVER_CONTRACT=follow LV2_PATH=$runtime/world "$host" -n -p $((port + 1)) >"$runtime/host-rename.log" 2>&1 &
+rpid=$!
+for _ in $(seq 100); do grep -q 'ready!' "$runtime/host-rename.log" && break; sleep 0.1; done
+grep -q 'ready!' "$runtime/host-rename.log" || { echo "omx-clap-host did not come up" >&2; cat "$runtime/host-rename.log" >&2; exit 2; }
+python3 -I - $((port + 1)) "$fixtures/fake_mover.clap" "$runtime" "$root/data/verbs.json" <<'PY'
+import json, socket, sys, time
+port, mover, runtime = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+no_contract = 'resp %d' % json.load(open(sys.argv[4]))['HOST_REPLY_CODES']['codes']['noParamContract']['resp']
+s = socket.create_connection(('127.0.0.1', port), timeout=20)
+def ask(line):
+    s.sendall(line.encode() + b'\0')
+    buf = b''
+    while not buf.endswith(b'\0'):
+        chunk = s.recv(65536)
+        if not chunk:
+            raise SystemExit('FAIL the host closed the socket after: ' + line)
+        buf += chunk
+    return buf.rstrip(b'\0').decode()
+failed = 0
+def check(ok, what):
+    global failed
+    print(('ok   ' if ok else 'FAIL ') + what)
+    failed += not ok
+def until(cond, ceiling=10.0):
+    end = time.monotonic() + ceiling
+    while not cond():
+        if time.monotonic() > end:
+            return False
+        time.sleep(0.05)
+    return True
+check(ask('add clap:%s#org.omx-clap-host.test.mover 1' % mover) == 'resp 1', 'the renaming mover is added')
+saved = runtime + '/renamed.json'
+check(ask('param_set 1 0 0.3125') == 'resp 0', 'level set to 0.3125')
+before = ask('pin_layout 1')
+check(ask('preset_save 1 %s Before' % saved) == 'resp 0', 'its preset is saved before it renames level')
+level = lambda: float(ask('param_get 1 0').split()[-1])
+check(until(lambda: abs(level() - 0.75) < 1e-6, 20), 'the mover moves level to 0.75 itself')
+check(until(lambda: ask('param_info 1 0') == no_contract), 'and renames it: its contract followed, param_info answers %s (%s)' % (no_contract, ask('param_info 1 0')))
+check(ask('pin_layout 1') == before, 'pin_layout still names the layout it had after init (%s, was %s)' % (ask('pin_layout 1'), before))
+r = ask('preset_load 1 %s' % saved)
+check(r == 'resp 0', 'the preset it saved loads back into the same instance after the rename (%s)' % r)
+check(until(lambda: abs(level() - 0.3125) < 1e-6), 'and level is back at 0.3125 (%s)' % ask('param_get 1 0'))
+sys.exit(1 if failed else 0)
+PY
+[ $? -eq 0 ] || status=1
+kill -0 "$rpid" 2>/dev/null || { echo "FAIL the renaming omx-clap-host is gone:"; tail -5 "$runtime/host-rename.log"; status=1; }
+
 # a preset a plugin applies on its audio thread is applied when preset_load answers (omx-clap-core#24): a host of its
 # own, whose fake_mover offers preset-load (FAKE_MOVER_PRESET=1), says loaded() at once and takes the key's trim only in
 # its next process(), as Surge XT does; the reply comes after that process(), so trim read at once is the preset's

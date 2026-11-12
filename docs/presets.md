@@ -75,8 +75,10 @@ valid; a file with a state body is `org.openmixer.preset/2`. Any other version i
 - `plugin.id` is the CLAP id, or the LV2 plugin's URI. `plugin.version` is the descriptor's version (for LV2 the
   adapter's `<lv2:minorVersion>.<lv2:microVersion>`). `plugin.fingerprint` is the plugin's parameter layout digest,
   the `omx-layout/1` digest of a plugin's pin (`plugin-db/pin.h`): every parameter `clap.params` gives, its id,
-  name, range, default and flags. A file whose id, version or fingerprint differs from the instance's is refused with
-  `PRESET_PLUGIN_CHANGED` and nothing of it is applied.
+  name, range, default and flags, as the instance had them after `init()`, recorded at its `add`. A preset belongs to
+  the plugin's binary, not to the state a patch left it in: a plugin whose parameter names follow its patch (Surge XT)
+  keeps its fingerprint across patches. A file whose id, version or fingerprint differs from the instance's is refused
+  with `PRESET_PLUGIN_CHANGED` and nothing of it is applied.
 - `id` is minted by the consumer; a save that finds none writes one (the plugin id and the save's time).
 - `carries` is `params` when the plugin has only declared parameters (no `clap.state`), otherwise `params+state`: the
   values and the state body are both read. A `/1` file, or a `/2` that carries `params`, has no `state`.

@@ -1,3 +1,14 @@
+omx-clap-host (0.32.3) unstable; urgency=medium
+
+  * The rpm spec's CLAP floor is 1.2.10, the Debian control's: the two
+    packagings state one floor for the same headers (#50).
+  * fuzz: the seed corpus follows the test fixtures again, so make
+    fuzz-corpus-check passes (#55).
+  * A build takes plugin-db >= 0.4.1 and below 0.5, the newest the channel
+    serves.
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Fri, 13 Nov 2026 05:20:00 +0000
+
 omx-clap-host (0.32.2) unstable; urgency=medium
 
   * node_label <instance> [<label word> ...] (plugin-hostd#35): a client's

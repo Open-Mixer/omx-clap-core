@@ -781,7 +781,7 @@ jobs:
             diff -u expected.txt files.txt
             rpm -qp --requires "$rpm" | tee requires.txt
             grep -q 'libplugin-hostd-protocol.so.0' requires.txt
-            grep -qx '(plugin-hostd-protocol(.*) >= 0.5.8 with plugin-hostd-protocol(.*) < 0.6)' requires.txt
+            grep -qx '(plugin-hostd-protocol(.*) >= 0.5.9 with plugin-hostd-protocol(.*) < 0.6)' requires.txt
             grep -q 'libomx-clap-core.so.1' requires.txt
             grep -q 'omx-clap-core.* = ' requires.txt
             # the window links libxcb, so the package requires it (#180)

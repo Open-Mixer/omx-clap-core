@@ -133,6 +133,8 @@
 #define OMX_HOSTING_RT_SAFETY_NOTES_UNMEASURED_TEXT_EN "The plugin\342\200\231s real-time safety while playing notes has not been measured. Measure it before relying on it."
 #define OMX_HOSTING_RT_SAFETY_VIOLATIONS_UNDER_NOTES "hosting.rt-safety.violations-under-notes"
 #define OMX_HOSTING_RT_SAFETY_VIOLATIONS_UNDER_NOTES_TEXT_EN "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes."
+#define OMX_HOSTING_RT_SAFETY_OWN_THREADS "hosting.rt-safety.own-threads"
+#define OMX_HOSTING_RT_SAFETY_OWN_THREADS_TEXT_EN "The plugin starts threads of its own beside its audio. It is real-time safe, and it can share a worker; its threads share the cores with the audio."
 #define OMX_HOSTING_RT_SAFETY_UNMEASURED "hosting.rt-safety.unmeasured"
 #define OMX_HOSTING_RT_SAFETY_UNMEASURED_TEXT_EN "The plugin\342\200\231s real-time safety has not been measured. Measure it before relying on it."
 #define OMX_HOSTING_RT_SAFETY_VIOLATIONS_IN_RUN "hosting.rt-safety.violations-in-run"

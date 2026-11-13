@@ -396,6 +396,12 @@ export declare const HOSTING_RT_SAFETY_CODES: {
       readonly en: "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes.";
     };
   };
+  readonly rtSafetyOwnThreads: {
+    readonly code: "hosting.rt-safety.own-threads";
+    readonly text: {
+      readonly en: "The plugin starts threads of its own beside its audio. It is real-time safe, and it can share a worker; its threads share the cores with the audio.";
+    };
+  };
   readonly rtSafetyUnmeasured: {
     readonly code: "hosting.rt-safety.unmeasured";
     readonly text: {

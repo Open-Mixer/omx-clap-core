@@ -111,6 +111,7 @@
     "reply.host.preset-uri-invalid": { "text": "Esse preset não é um que este plugin pode carregar. Escolha um preset da própria lista do plugin.", "by": "machine", "model": "draft-prose", "source": "582370a6a0a159df9550abe0e4f150880dd4240a17a8bb1d7acba101aa1b493d" },
     "reply.host.state-load-failed": { "text": "O plugin não conseguiu restaurar seu estado salvo. Carregue outro preset ou defina seus valores novamente.", "by": "machine", "model": "draft-prose", "source": "e1d980057e22f88d4988baa7a3c71f1624308dbd4f380c706fcbaa32c9932d31" },
     "reply.host.uri-invalid": { "text": "O host não encontrou um plugin com esse nome. Verifique se o plugin está instalado e se o nome está escrito como aparece na lista de leitura.", "by": "machine", "model": "draft-prose", "source": "fe279f1a0b70c86d6a1146098e0f8133b9004481dbb5961db7cb5c7d477bfff1" },
-    "reply.host.value-out-of-range": { "text": "Esse tempo ou batidas por compasso estão fora do intervalo aceito pelo host. Escolha um valor dentro da faixa do host.", "by": "machine", "model": "draft-prose", "source": "7df95eead66eec155a56891e478d6953035a2c76bdc05225db13440c7b984fa3" }
+    "reply.host.value-out-of-range": { "text": "Esse tempo ou batidas por compasso estão fora do intervalo aceito pelo host. Escolha um valor dentro da faixa do host.", "by": "machine", "model": "draft-prose", "source": "7df95eead66eec155a56891e478d6953035a2c76bdc05225db13440c7b984fa3" },
+    "hosting.rt-safety.own-threads": { "text": "O plugin inicia threads próprios além do áudio. É seguro para tempo real e pode compartilhar um worker; seus threads compartilham os núcleos com o áudio.", "by": "machine", "model": "draft-prose", "source": "0ba232126dedd28ba3bb418a33b73dd617e72653a672673d0382b43f49d26aae" }
   }
 }

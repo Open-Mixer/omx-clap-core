@@ -620,7 +620,7 @@ static __attribute__((noinline)) int check_as_written(const uint8_t *data, size_
     /* The reader refuses a file the grammar reads, or reads one it refuses.
      * mutant: src/preset_file.c:157 `cp == 0` -> `cp == 1`
      * input: refuse-u0000
-     * mutant: src/preset_file.h:63 `32` -> `31`
+     * mutant: src/preset_file.h:64 `32` -> `31`
      * input: deepest */
     if ((rc == 0) != (want >= 0))
         abort();

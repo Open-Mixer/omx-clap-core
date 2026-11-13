@@ -81,6 +81,7 @@ tests/live_list_test
 tests/state_root_test
 tests/jack_xrun_shim.so
 tests/hosted_cost_bench
+tests/hosted_cost_bench_lv2
 tests/hosted_clamp_test
 __pycache__/
 tests/fake_tool.clap

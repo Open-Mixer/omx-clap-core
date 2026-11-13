@@ -4,9 +4,7 @@ Source: omx-clap-host
 Section: sound
 Priority: optional
 Maintainer: Pau Aliagas <linuxnow@gmail.com>
-# clap-headers: the version a Debian build is built and tested against, 1.2.10 from the release wave (Debian has
-# none this new); the spec's floor is Fedora 44's own clap-devel 1.2.7, which the Fedora build is built and tested
-# against
+# clap-headers: 1.2.10, the channel's one CLAP floor for every distribution, served by the channel (Debian has none)
 Build-Depends: debhelper-compat (= 13),
                clap-headers (>= 1.2.10~), clap-headers (<< 2~),
                liblilv-dev,

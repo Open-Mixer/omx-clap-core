@@ -458,16 +458,23 @@ jobs:
       # its registration table; then the guard's sabotage: a format and what the host owes a verb changed in the
       # declaration, a handler deleted and a verb with no declaration registered in the host, each red
       - name: Test the verbs the declarations name for this host
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             # plugin-hostd-protocol's verbs file (chain of omx-clap-host), from the build the headers come from: a staged
-            # build names its commit in its release (.git[<time>.]<sha>), checked out of main's history; a release is its tag
+            # build names its commit in its release (.git[<time>.]<sha>), which may be a pull request's head and on no
+            # branch: its full sha, from the API (a fetch takes no short one), fetched alone; a release is its tag
             version=$(rpm -q --qf '%{VERSION}' plugin-hostd-protocol-devel)
             commit=$(rpm -q --qf '%{RELEASE}' plugin-hostd-protocol-devel | sed -n 's/.*\.git\([0-9]*\.\)\{0,1\}\([0-9a-f]\{7,40\}\)\..*/\2/p')
             git init -q /tmp/plugin-hostd-protocol
             if [ -n "$commit" ]; then
-              git -C /tmp/plugin-hostd-protocol fetch -q --depth 400 https://github.com/Open-Mixer/plugin-hostd-protocol refs/heads/main
-              git -C /tmp/plugin-hostd-protocol checkout -q "$commit"
+              full=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
+                "https://api.github.com/repos/Open-Mixer/plugin-hostd-protocol/commits/$commit" |
+                sed -n 's/^  "sha": "\([0-9a-f]\{40\}\)",$/\1/p')
+              [ -n "$full" ] || { echo "::error::plugin-hostd-protocol has no commit $commit"; exit 1; }
+              git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "$full"
+              git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD
             else
               git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "refs/tags/v$version"
               git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD

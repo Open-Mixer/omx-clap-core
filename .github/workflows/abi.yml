@@ -15,7 +15,7 @@ jobs:
   abi:
     name: ABI of libomx-clap-core against its baseline
     runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     container:
       image: fedora:44
     steps:
@@ -30,7 +30,7 @@ jobs:
       - name: Install omx-dsp-devel and omx-contract-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.12.0'
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0'
 
       - uses: actions/checkout@v4
 

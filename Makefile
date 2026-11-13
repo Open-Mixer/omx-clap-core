@@ -357,10 +357,13 @@ test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.c
 
 # the numbers the host answers, plugin-hostd-protocol's host-errors.h (tests/host-reply-codes-check.py)
 HOST_ERRORS_H = $(firstword $(wildcard $(addsuffix /host-errors.h,$(patsubst -I%,%,$(filter -I%,$(PROTOCOL_CFLAGS))))))
+# omx-contract's install-contract-dir.sh: a checkout's (OMX_CONTRACT_DIR/tools), else the installed package's, so
+# OMX_CONTRACT_DIR may be a checkout or the installed /usr/lib/omx-contract (CI takes it from the staging channel)
+OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh) $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh))
 test-contract:
 	rm -rf build/contract
-	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh
-	sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
+	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)
+	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
@@ -1178,7 +1181,7 @@ HOST_VERBS_DECLARED = PHD_PIN_LAYOUT_SCHEME='$(call host_declared,PHD_PIN_LAYOUT
 # what the tests behind plugin-hostd read of the daemon's protocol, from the header of the checkout they run
 phd_declared = $(shell printf '$(HASH)include <plugin-hostd/protocol.h>\n$(HASH)include <plugin-db/pin.h>\n%s\n' $(1) | $(CC) $(PROTOCOL_CFLAGS) $(PIN_CFLAGS) -E -P - | tail -n 1 | sed -e 's/^[("]//' -e 's/[)"]$$//')
 PHD_CHAIN_DECLARED = $(foreach n,PHD_READY_LINE OMX_VERB_CHAIN PHD_EVENT_CHAIN_FORMED PHD_EVENT_INSTANCE_QUARANTINED OMX_VERB_WORKER_LIST PHD_PLACE_CHAIN_PREFIX,$(n)='$(call phd_declared,$(n))')
-PHD_NODE_DECLARED = $(foreach n,PHD_NODE_METADATA_PRETTY_NAME_KEY PHD_NODE_METADATA_PRETTY_NAME_FORMAT PHD_NODE_METADATA_INSTANCE_KEY PHD_NODE_METADATA_INSTANCE_FORMAT,$(n)='$(call phd_declared,$(n))')
+PHD_NODE_DECLARED = $(foreach n,PHD_NODE_METADATA_PRETTY_NAME_KEY PHD_NODE_METADATA_PRETTY_NAME_FORMAT PHD_NODE_METADATA_INSTANCE_KEY PHD_NODE_METADATA_INSTANCE_FORMAT PHD_NODE_METADATA_LABELLED_NAME_FORMAT PHD_NODE_LABEL_MAX OMX_VERB_NODE_LABEL OMX_REPLY_PLUGIN_HOSTD_LABEL_INVALID_RESP,$(n)='$(call phd_declared,$(n))')
 PHD_DECLARED = $(foreach n,OMX_REPLY_HOST_PIN_ABSENT_RESP OMX_REPLY_PLUGIN_HOSTD_PIN_BINARY_MISMATCH_RESP OMX_REPLY_HOST_PIN_LAYOUT_MISMATCH_RESP OMX_VERB_PIN_EXPECT OMX_VERB_PIN_SET OMX_VERB_PIN_CLEAR PHD_PIN_LAYOUT_SCHEME PHD_READY_LINE OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP PHD_EVENT_REMOTE_PAGES_CHANGED PHD_PIN_MODE_STRICT,$(n)='$(call phd_declared,$(n))')
 
 tests/jack_meter_source: tests/jack_meter_source.c

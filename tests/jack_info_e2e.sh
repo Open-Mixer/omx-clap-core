@@ -27,6 +27,8 @@ uri="clap:$fake#$id"
 
 : "${OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP:?}" "${OMX_HOST_EVENTS_REMOTE_PAGES_CHANGED:?}"
 : "${PHD_NODE_METADATA_PRETTY_NAME_KEY:?}" "${PHD_NODE_METADATA_PRETTY_NAME_FORMAT:?}"
+: "${PHD_NODE_METADATA_LABELLED_NAME_FORMAT:?}" "${PHD_NODE_LABEL_MAX:?}" "${OMX_VERB_NODE_LABEL:?}" \
+  "${OMX_REPLY_PLUGIN_HOSTD_LABEL_INVALID_RESP:?}"
 : "${PHD_NODE_METADATA_INSTANCE_KEY:?}" "${PHD_NODE_METADATA_INSTANCE_FORMAT:?}"
 
 if [ -z "${JACK_E2E_INSIDE:-}" ]; then
@@ -110,6 +112,24 @@ step $? "effect_0 is named $want for every graph client: $(meta "$PHD_NODE_METAD
 # shellcheck disable=SC2059
 [ "$(meta "$PHD_NODE_METADATA_INSTANCE_KEY")" = "$(printf "$PHD_NODE_METADATA_INSTANCE_FORMAT" 0)" ]
 step $? "effect_0 carries the instance key a client matches it on: $(meta "$PHD_NODE_METADATA_INSTANCE_KEY")"
+
+# node_label (plugin-hostd#35): a client's label joins the pretty-name, a label too long is refused and changes nothing,
+# no words clears it, and an instance with no node is refused
+named() {
+    for _ in $(seq 30); do [ "$(meta "$PHD_NODE_METADATA_PRETTY_NAME_KEY")" = "$1" ] && break; sleep 0.1; done
+    [ "$(meta "$PHD_NODE_METADATA_PRETTY_NAME_KEY")" = "$1" ]
+    step $? "$2: $(meta "$PHD_NODE_METADATA_PRETTY_NAME_KEY")"
+}
+# shellcheck disable=SC2059
+labelled=$(printf "$PHD_NODE_METADATA_LABELLED_NAME_FORMAT" "Vocal 1" passthrough 0)
+expect "$OMX_VERB_NODE_LABEL 0 Vocal 1" "resp 0"
+named "$labelled" "effect_0 is labelled $labelled"
+long=$(head -c "$((PHD_NODE_LABEL_MAX + 1))" /dev/zero | tr '\0' x)
+expect "$OMX_VERB_NODE_LABEL 0 $long" "resp $OMX_REPLY_PLUGIN_HOSTD_LABEL_INVALID_RESP"
+named "$labelled" "a label of $((PHD_NODE_LABEL_MAX + 1)) bytes leaves it labelled"
+expect "$OMX_VERB_NODE_LABEL 0" "resp 0"
+named "$want" "no words clears the label"
+expect "$OMX_VERB_NODE_LABEL 9 x" "resp -3"
 
 # track_info reaches the plugin byte for byte: one changed, and the host's get answers name, colour and flags
 name='Kick \"In\" ñ'

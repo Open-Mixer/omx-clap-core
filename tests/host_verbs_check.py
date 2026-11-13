@@ -86,6 +86,8 @@ EXAMPLES = {
     'curve_points': (['{fx}', '0', '9'], []),
     # monitor_output_off (plugin-hostd-protocol 0.5.0): an output this connection never monitored is refused by its code
     'monitor_output_off': (['{fx}', 'out'], [(['x', 'out'], 'invalidOperation')]),
+    # node_label (plugin-hostd-protocol 0.5.6, plugin-hostd#35): a label of two words; an instance that is no number
+    'node_label': (['{fx}', 'Strip', '1'], [(['x', 'Strip'], 'invalidOperation')]),
 }
 
 # a verb a package declares of this host that the host answers in an open change, with that change: the check names it

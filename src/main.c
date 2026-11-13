@@ -361,6 +361,33 @@ static void track_info_cb(proto_t *proto)
     protocol_response_int(resp, proto);
 }
 
+/* node_label <instance> [<label word> ...]: the words joined by one space are the label, none clears it; a label that
+ * does not fit PHD_NODE_LABEL_MAX is refused here, before it is joined whole, and an instance that is no number is an
+ * invalid operation (plugin-hostd#35) */
+static void node_label_cb(proto_t *proto)
+{
+    char label[PHD_NODE_LABEL_MAX + 2];
+    size_t used = 0;
+    unsigned i;
+    int resp = SUCCESS;
+
+    label[0] = '\0';
+    if (!isdigit((unsigned char)proto->list[1][0]) || strspn(proto->list[1], "0123456789") != strlen(proto->list[1]))
+        resp = ERR_INVALID_OPERATION;
+    for (i = 2; i < proto->list_count && resp == SUCCESS; i++)
+    {
+        size_t n = strlen(proto->list[i]);
+
+        if (used + (i > 2) + n > PHD_NODE_LABEL_MAX)
+            resp = OMX_REPLY_PLUGIN_HOSTD_LABEL_INVALID_RESP;
+        else
+            used += (size_t)snprintf(label + used, sizeof(label) - used, "%s%s", i > 2 ? " " : "", proto->list[i]);
+    }
+    if (resp == SUCCESS)
+        resp = effects_node_label(atoi(proto->list[1]), label);
+    protocol_response_int(resp, proto);
+}
+
 /* a word of the chain line: a non-negative decimal number below `limit` */
 static int chain_word(const char *word, long limit, int *out)
 {
@@ -631,6 +658,7 @@ static int host_init(int socket_port, int feedback_port)
     protocol_add_command(OMX_VERB_PIN_EXPECT_FMT, pin_expect_cb);
     protocol_add_command(OMX_VERB_CHAIN_EXPECT_FMT, chain_expect_cb);
     protocol_add_command(OMX_VERB_TRACK_INFO_FMT, track_info_cb);
+    protocol_add_command(OMX_VERB_NODE_LABEL_FMT, node_label_cb);
     // ahead of the unsupported list, which answers them -902 for a host that has no patch property
     protocol_add_command(EFFECT_PATCH_SET, patch_set_cb);
     protocol_add_command(EFFECT_PATCH_GET, patch_get_cb);

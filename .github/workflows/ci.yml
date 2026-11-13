@@ -170,8 +170,8 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.7' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
-          pkg-config --atleast-version=0.5.7 plugin-hostd-protocol
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.8' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
+          pkg-config --atleast-version=0.5.8 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
           pkg-config --modversion omxplugins
@@ -644,8 +644,8 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.7' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
-          pkg-config --atleast-version=0.5.7 plugin-hostd-protocol
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.8' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
+          pkg-config --atleast-version=0.5.8 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
           pkg-config --modversion omxplugins
@@ -781,7 +781,7 @@ jobs:
             diff -u expected.txt files.txt
             rpm -qp --requires "$rpm" | tee requires.txt
             grep -q 'libplugin-hostd-protocol.so.0' requires.txt
-            grep -qx '(plugin-hostd-protocol(.*) >= 0.5.7 with plugin-hostd-protocol(.*) < 0.6)' requires.txt
+            grep -qx '(plugin-hostd-protocol(.*) >= 0.5.8 with plugin-hostd-protocol(.*) < 0.6)' requires.txt
             grep -q 'libomx-clap-core.so.1' requires.txt
             grep -q 'omx-clap-core.* = ' requires.txt
             # the window links libxcb, so the package requires it (#180)

@@ -13,7 +13,7 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.7 with plugin-hostd-protocol-devel < 0.6)
+BuildRequires: (plugin-hostd-protocol-devel >= 0.5.8 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
 BuildRequires: (plugin-db-devel >= 0.4.2 with plugin-db-devel < 0.5)
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
@@ -35,7 +35,7 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.7 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.8 with plugin-hostd-protocol%{?_isa} < 0.6)
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -286,9 +286,10 @@ the English source sentence.
 
 %changelog
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
-- Built against omx-contract >= 3.18.0 and below 4, and plugin-db >= 0.4.2 and
-  below 0.5: every dependency at its newest served version, with its ceiling
-  (D30). The installed omx-clap-core.pc names the same omx-contract floor.
+- Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and
+  below 0.5, and plugin-hostd-protocol >= 0.5.8 and below 0.6: every dependency
+  at its newest served version, with its ceiling (D30). The installed
+  omx-clap-core.pc names the same omx-contract floor.
 - The organisation's name: FreeMixer becomes Open-Mixer and OpenMixer (#69).
 - ci: an ordinary run builds against the channel, not the staging channel; the
   seed corpus check runs on every pull request, with the rtSafetyOwnThreads

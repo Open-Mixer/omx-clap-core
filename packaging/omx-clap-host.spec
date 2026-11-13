@@ -293,6 +293,12 @@ the English source sentence.
   plugin-hostd-protocol >= 0.5.6, which declares it.
 - A build takes plugin-db >= 0.4.0 and below 0.5: the release the channel
   serves, which both builds are built and tested against.
+- The Debian libomx-clap-core-dev depends on clap-headers >= 1.2.10 and below
+  2, so pkg-config omx-clap-core resolves on a clean trixie or bookworm system
+  (#52); the devel package here already required clap-devel.
+- No change to the packages: the tree ignores the LV2 build of the hosted cost
+  bench (#51), and the host-verbs check in CI fetches the commit of the staged
+  protocol build it installs (#53).
 
 * Thu Nov 12 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.1-1
 - Every number the host answers has its code in HOST_REPLY_CODES, with its

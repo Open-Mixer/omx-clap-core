@@ -196,6 +196,12 @@
       "text": "La seguretat en temps real del plugin mentre toca notes no s’ha mesurat. Mesureu-la abans de confiar-hi.",
       "by": "human"
     },
+    "hosting.rt-safety.own-threads": {
+      "text": "El plugin engega fils propis al costat del seu àudio. És segur en temps real i pot compartir un treballador; els seus fils comparteixen els nuclis amb l’àudio.",
+      "by": "machine",
+      "model": "draft-prose",
+      "source": "0ba232126dedd28ba3bb418a33b73dd617e72653a672673d0382b43f49d26aae"
+    },
     "hosting.rt-safety.unmeasured": {
       "text": "La seguretat en temps real del plugin no s’ha mesurat. Mesureu-la abans de confiar-hi.",
       "by": "human"

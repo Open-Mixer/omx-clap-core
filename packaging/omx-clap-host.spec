@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.2
+Version:        0.32.3
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -13,9 +13,9 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.6 with plugin-hostd-protocol-devel < 0.6)
+BuildRequires: (plugin-hostd-protocol-devel >= 0.5.7 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.4.0 with plugin-db-devel < 0.5)
+BuildRequires: (plugin-db-devel >= 0.4.1 with plugin-db-devel < 0.5)
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
 # distribution's own is older)
 BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
@@ -35,7 +35,7 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.6 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.7 with plugin-hostd-protocol%{?_isa} < 0.6)
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -285,6 +285,16 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.3-1
+- The rpm spec's CLAP floor is 1.2.10, the Debian control's: the two packagings
+  state one floor for the same headers (#50).
+- fuzz: the seed corpus follows the test fixtures again, so make
+  fuzz-corpus-check passes (#55).
+- tests: the identity feeder's recorder counts from the cycle the source started
+  in, not one cycle early (#56, #58).
+- A build takes plugin-db >= 0.4.1 and below 0.5 and plugin-hostd-protocol >=
+  0.5.7 and below 0.6, the newest the channel serves.
+
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.2-1
 - node_label <instance> [<label word> ...] (plugin-hostd#35): a client's label
   joins the hosted node's pretty-name in JACK metadata, <label>: <plugin name>

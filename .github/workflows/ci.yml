@@ -68,15 +68,22 @@ jobs:
 
   contract:
     name: data/ read back through omx-contract's reader, the committed headers and ts module its render
-    runs-on: ubuntu-latest
+    # the cluster's runner, where the router answers, for this repository's own runs; a fork's stay on GitHub's
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
+    # the language packs step pushes the catalog entries it makes to the pull request's branch
+    permissions:
+      contents: write
     container:
       image: fedora:44
     steps:
       - name: The tools
-        run: dnf install -y --setopt=install_weak_deps=False git make nodejs python3 pkgconf-pkg-config diffutils
+        run: dnf install -y --setopt=install_weak_deps=False git make nodejs python3 pkgconf-pkg-config diffutils gnupg2
 
+      # the pull request's head, not the merge: the entries the step makes are committed on it
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       # the channel, as consumers get it; its installed omx-contract tree is what test-contract reads
       - name: Add the OpenMixer channel
@@ -95,10 +102,14 @@ jobs:
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
       # one pack per listed language from the spec and debian/control, and the catalogs through omx-contract's release
-      # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30)
+      # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30). The
+      # entries a pull request's new code or changed sentence leaves missing are made through the cluster's router and
+      # pushed to its branch, or named (Open-Mixer/.github#46)
       - name: The language packs
-        uses: Open-Mixer/.github/.github/actions/langpacks@openmixer-v1
+        uses: Open-Mixer/.github/.github/actions/langpacks@lane/github-46-langpacks-fill
         with:
+          router-key: ${{ secrets.OMX_ROUTER_KEY }}
+          signing-key: ${{ secrets.OPENMIXER_CI_SIGNING_KEY }}
           name: omx-clap-host
           base: omx-clap-core-contract
           owner: omx-clap-core

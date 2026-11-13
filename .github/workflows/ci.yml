@@ -188,6 +188,11 @@ jobs:
       - name: No copy of plugin-hostd-protocol's tables, headers or rendered verbs
         run: make check-no-protocol-copy
 
+      # the fuzz workflow runs on a tag only, so a fixture changed in a pull request reaches the committed seed corpus
+      # here; the generator is plain C and gcc writes the bytes clang does
+      - name: The seed corpus is what the fixtures give
+        run: make fuzz-corpus-check FUZZ_CC=gcc
+
       - name: Install plugin-hostd's headers and build its daemon
         run: |
           set -euo pipefail

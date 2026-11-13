@@ -427,7 +427,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
+test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -1268,9 +1268,14 @@ test-parity-self:
 test-clap-coverage-self:
 	python3 -I tests/clap_coverage.py --self-test
 
+# beside other tests (make -j4): free_port answers a port whose feed port is free too, and a sabotaged run that dies
+# is named broken, never green (tests/clap_coverage_ports_test.py)
+test-clap-coverage-ports:
+	python3 -I tests/clap_coverage_ports_test.py
+
 # docs/clap-compatibility.md against the installed CLAP headers and this tree: every id they spell a row, every cell that
 # says supported naming a test that exists (tests/clap_doc_check.sh, with its sabotage arms)
-.PHONY: test-clap-doc-check
+.PHONY: test-clap-doc-check test-clap-coverage-ports
 test-clap-doc-check:
 	bash tests/clap_doc_check.sh
 	bash tests/clap_doc_check.sh --self-test

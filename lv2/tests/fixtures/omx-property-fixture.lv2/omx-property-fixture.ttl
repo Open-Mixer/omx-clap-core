@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+# lv2_property_fixture.c's plugin: a gain read from a file a path property names, through the worker, and a text
+# property; both writable and readable on the patch ports, both kept by its state.
+@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap:  <http://usefulinc.com/ns/doap#> .
+@prefix lv2:   <http://lv2plug.in/ns/lv2core#> .
+@prefix patch: <http://lv2plug.in/ns/ext/patch#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rsz:   <http://lv2plug.in/ns/ext/resize-port#> .
+@prefix state: <http://lv2plug.in/ns/ext/state#> .
+@prefix urid:  <http://lv2plug.in/ns/ext/urid#> .
+@prefix work:  <http://lv2plug.in/ns/ext/worker#> .
+@prefix fx:    <urn:openmixer:test:property-fixture#> .
+
+fx:gainfile
+    a lv2:Parameter ;
+    rdfs:range atom:Path ;
+    rdfs:label "Gain file" .
+
+fx:label
+    a lv2:Parameter ;
+    rdfs:range atom:String ;
+    rdfs:label "Label" .
+
+<urn:openmixer:test:property-fixture>
+    a lv2:Plugin , lv2:AmplifierPlugin ;
+    doap:name "openmixer property fixture" ;
+    doap:license <https://www.gnu.org/licenses/gpl-3.0.html> ;
+    lv2:requiredFeature urid:map , work:schedule ;
+    lv2:optionalFeature state:mapPath ;
+    lv2:extensionData work:interface , state:interface ;
+    patch:writable fx:gainfile , fx:label ;
+    patch:readable fx:gainfile , fx:label ;
+    lv2:port [
+        a lv2:AudioPort , lv2:InputPort ; lv2:index 0 ; lv2:symbol "in" ; lv2:name "In"
+    ] , [
+        a lv2:AudioPort , lv2:OutputPort ; lv2:index 1 ; lv2:symbol "out" ; lv2:name "Out"
+    ] , [
+        a atom:AtomPort , lv2:InputPort ; atom:bufferType atom:Sequence ; atom:supports patch:Message ;
+        rsz:minimumSize 8192 ; lv2:designation lv2:control ; lv2:index 2 ; lv2:symbol "patch_in" ; lv2:name "Patch in"
+    ] , [
+        a atom:AtomPort , lv2:OutputPort ; atom:bufferType atom:Sequence ; atom:supports patch:Message ;
+        rsz:minimumSize 8192 ; lv2:designation lv2:control ; lv2:index 3 ; lv2:symbol "patch_out" ; lv2:name "Patch out"
+    ] .

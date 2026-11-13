@@ -4009,6 +4009,38 @@ int omx_clap_host_state_load_context(struct omx_clap_instance *in, uint32_t cont
     return !ok ? -1 : applied;
 }
 
+uint32_t omx_clap_host_property_count(struct omx_clap_instance *in)
+{
+    (void)in;
+    return 0;
+}
+
+int omx_clap_host_property_info(struct omx_clap_instance *in, uint32_t index, omx_clap_property_info_t *info)
+{
+    (void)in;
+    (void)index;
+    (void)info;
+    return -1;
+}
+
+int32_t omx_clap_host_property_get(struct omx_clap_instance *in, clap_id id, char *value, uint32_t capacity)
+{
+    (void)in;
+    (void)id;
+    (void)value;
+    (void)capacity;
+    return -1;
+}
+
+int omx_clap_host_property_set(struct omx_clap_instance *in, clap_id id, const char *value, char why[OMX_CLAP_WHY_MAX])
+{
+    (void)in;
+    (void)id;
+    (void)value;
+    snprintf(why, OMX_CLAP_WHY_MAX, "no such property");
+    return -1;
+}
+
 int omx_clap_host_set_render(struct omx_clap_instance *in, int32_t mode)
 {
     const clap_plugin_render_t *ext = in ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_RENDER) : NULL;

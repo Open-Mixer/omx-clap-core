@@ -544,6 +544,16 @@ tests/active_race_tsan: tests/active_race_test.c $(CORE_SRC) $(CORE_HEADERS)
 # written by plugin_activate/plugin_deactivate on the control thread that restarts it: the one path test-identity-lv2
 # exercises and no other e2e test does, so it is the LV2 adapter's sources compiled into the test, not the prebuilt
 # static library test-chain-host-tsan links (never built under ThreadSanitizer)
+# org.openmixer.properties/1 through this host and the LV2 adapter, the stage 3 oracle (lv2-as-clap-adapter spec §10.3, #15)
+tests/clap_properties_test: tests/clap_properties_test.c $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS)
+	$(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O2 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \
+	    -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $< $(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) \
+	    $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+
+.PHONY: test-properties
+test-properties: tests/clap_properties_test build/lv2/omx-property-fixture.lv2/omx-property-fixture.so
+	./tests/clap_properties_test $(abspath build/lv2)
+
 tests/lv2_restart_race_tsan: tests/lv2_restart_race_test.c $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS)
 	$(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \
 	    -Wno-tsan -fsanitize=thread -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $< $(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) \
@@ -1299,6 +1309,7 @@ LV2_FIXTURE_DIR = lv2/tests/fixtures
 LV2_FIXTURE_CFLAGS = -O2 -g -Wall -Wextra -Werror -std=gnu99 -fPIC -shared -D_GNU_SOURCE -pthread -ffp-contract=off $(LV2_CFLAGS)
 LV2_BUNDLES = build/lv2/omx-host-fixture.lv2/omx-host-fixture.so build/lv2/omx-worker-gain.lv2/omx-worker-gain.so \
               build/lv2/omx-lv2-fakes.lv2/omx-lv2-fakes.so build/lv2/omx-patch-fixture.lv2/omx-patch-fixture.so \
+              build/lv2/omx-property-fixture.lv2/omx-property-fixture.so \
               build/lv2/omx-midi-echo.lv2/omx-midi-echo.so \
               build/lv2/omx-time-probe.lv2/omx-time-probe.so \
               build/lv2/omx-sidechain-fixture.lv2/omx-sidechain-fixture.so \
@@ -1393,6 +1404,12 @@ build/lv2/omx-lv2-fakes.lv2/omx-lv2-fakes.so: $(LV2_FIXTURE_DIR)/lv2_fakes.c $(L
 build/lv2/omx-patch-fixture.lv2/omx-patch-fixture.so: $(LV2_FIXTURE_DIR)/lv2_patch_fixture.c $(wildcard $(LV2_FIXTURE_DIR)/omx-patch-fixture.lv2/*.ttl)
 	@mkdir -p $(@D)
 	cp $(LV2_FIXTURE_DIR)/omx-patch-fixture.lv2/*.ttl $(@D)/
+	$(CC) $(LV2_FIXTURE_CFLAGS) -o $@ $< -lm
+
+# the file and text properties of stage 3 (lv2-as-clap-adapter spec §10.3, #15)
+build/lv2/omx-property-fixture.lv2/omx-property-fixture.so: $(LV2_FIXTURE_DIR)/lv2_property_fixture.c $(wildcard $(LV2_FIXTURE_DIR)/omx-property-fixture.lv2/*.ttl)
+	@mkdir -p $(@D)
+	cp $(LV2_FIXTURE_DIR)/omx-property-fixture.lv2/*.ttl $(@D)/
 	$(CC) $(LV2_FIXTURE_CFLAGS) -o $@ $< -lm
 
 build/lv2/omx-midi-echo.lv2/omx-midi-echo.so: $(LV2_FIXTURE_DIR)/lv2_midi_echo.c $(wildcard $(LV2_FIXTURE_DIR)/omx-midi-echo.lv2/*.ttl)

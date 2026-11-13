@@ -891,6 +891,22 @@ OMX_CLAP_EXPORT int omx_clap_host_param_value(struct omx_clap_instance *in, clap
 /** state.save into `buf` (at most `cap` bytes): 0 with `*len`; -1 when the plugin has no state extension, wrote past `cap`
  * (refused, never truncated) or refused. state.load from `buf`, before activate or after. */
 OMX_CLAP_EXPORT int omx_clap_host_state_save(struct omx_clap_instance *in, void *buf, size_t cap, size_t *len);
+
+/* ---- org.openmixer.properties/1: a plugin's file and text properties (lv2-as-clap-adapter spec §9, omx-clap-core#15) ----
+ * The host answers OMX_CLAP_EVENT_SPACE_PROPERTIES in clap.event-registry, so a plugin presents its properties; a table
+ * that breaks the rules a host checks at load (P1-P4) is read as none, the reason kept. */
+
+/** The plugin's properties, 0 when it offers none or its table was refused. Main thread. */
+OMX_CLAP_EXPORT uint32_t omx_clap_host_property_count(struct omx_clap_instance *in);
+/** The property at `index` into `info`: 0, or -1 past the end. Main thread. */
+OMX_CLAP_EXPORT int omx_clap_host_property_info(struct omx_clap_instance *in, uint32_t index, omx_clap_property_info_t *info);
+/** The value the plugin holds now into value[capacity], NUL-terminated: its length, or -1 for an unknown or unreadable
+ * id; a value that does not fit writes nothing and answers its length. Main thread. */
+OMX_CLAP_EXPORT int32_t omx_clap_host_property_get(struct omx_clap_instance *in, clap_id id, char *value, uint32_t capacity);
+/** Set property `id` to `value` (UTF-8, NUL-terminated, an absolute path for a path property): queued on the instance's
+ * ring and delivered as one OMX_CLAP_EVENT_PROPERTY_SET in the next cycle, or through params.flush while no cycle runs.
+ * 0, or -1 with `why` naming the refusal (no such writable property, too large, a full ring). Control thread. */
+OMX_CLAP_EXPORT int omx_clap_host_property_set(struct omx_clap_instance *in, clap_id id, const char *value, char why[OMX_CLAP_WHY_MAX]);
 /** What a load answers when the plugin took the preset or the state and had not run once since, so had not applied it,
  * when OMX_HOSTED_STAGE_PRESET_APPLIED_WAIT_US ran out: an instance that was processing is answered only once its
  * plugin ran again (omx-clap-core#24). */

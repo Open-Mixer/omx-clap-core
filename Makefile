@@ -460,7 +460,7 @@ test-clap-floor-parity:
 	python3 tests/clap_floor_parity.py .
 
 test: test-no-hostd-build-dep test-clap-floor-parity test-identity-align
-test-fake: test-no-hostd-build-dep test-clap-floor-parity
+test-fake: test-no-hostd-build-dep test-clap-floor-parity test-identity-align
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)

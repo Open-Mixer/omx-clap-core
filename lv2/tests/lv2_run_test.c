@@ -58,6 +58,12 @@ void *__real_malloc(size_t);
 void *__real_calloc(size_t, size_t);
 void *__real_realloc(void *, size_t);
 void __real_free(void *);
+/* ---- RT lock witness (#63): nothing reachable from run_begin..run_end takes a lock, on any cycle ---- */
+static volatile int rt_locks = 0;
+int __real_pthread_mutex_lock(pthread_mutex_t *);
+int __real_pthread_mutex_trylock(pthread_mutex_t *);
+int __wrap_pthread_mutex_lock(pthread_mutex_t *m) { rt_locks += in_rt; return __real_pthread_mutex_lock(m); }
+int __wrap_pthread_mutex_trylock(pthread_mutex_t *m) { rt_locks += in_rt; return __real_pthread_mutex_trylock(m); }
 void *__wrap_malloc(size_t n) { rt_allocs += in_rt; return __real_malloc(n); }
 void *__wrap_calloc(size_t a, size_t b) { rt_allocs += in_rt; return __real_calloc(a, b); }
 void *__wrap_realloc(void *p, size_t n) { rt_allocs += in_rt; return __real_realloc(p, n); }
@@ -340,6 +346,19 @@ int main(int argc, char **argv)
     in_rt = 0;
     CHECK(rt_allocs == 2, "allocation witness sees malloc+free (%d)", rt_allocs);
     rt_allocs = 0;
+    // and the lock witness's: a lock and a try-lock inside the RT window ARE seen
+    {
+        pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+
+        in_rt = 1;
+        pthread_mutex_lock(&m);
+        pthread_mutex_unlock(&m);
+        if (pthread_mutex_trylock(&m) == 0)
+            pthread_mutex_unlock(&m);
+        in_rt = 0;
+        CHECK(rt_locks == 2, "lock witness sees a lock and a try-lock (%d)", rt_locks);
+        rt_locks = 0;
+    }
 
     in_child("worker full ring", worker_full_ring);
     in_child("worker woken", worker_woken);
@@ -356,6 +375,7 @@ int main(int argc, char **argv)
         printf("lv2 run @ %.0f: %d failure(s)\n", g_rate, g_failures - before);
     }
     CHECK(rt_allocs == 0, "no allocation inside lv2_instance_run (%d)", rt_allocs);
+    CHECK(rt_locks == 0, "no lock inside lv2_instance_run on any cycle, the RT law (%d)", rt_locks);
     printf("%s\n", g_failures == 0 ? "lv2 run test ok" : "lv2 run test FAILED");
     return g_failures == 0 ? 0 : 1;
 }

@@ -290,6 +290,8 @@ the English source sentence.
   state one floor for the same headers (#50).
 - fuzz: the seed corpus follows the test fixtures again, so make
   fuzz-corpus-check passes (#55).
+- tests: the identity feeder's recorder counts from the cycle the source started
+  in, not one cycle early (#56, #58).
 - A build takes plugin-db >= 0.4.1 and below 0.5 and plugin-hostd-protocol >=
   0.5.7 and below 0.6, the newest the channel serves.
 

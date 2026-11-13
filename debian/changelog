@@ -3,6 +3,8 @@ omx-clap-host (0.32.4) unstable; urgency=medium
   * hosting: hosting.rt-safety.own-threads, the code a qualifier writes for a
     plugin that starts threads of its own: conditional and still groupable
     (D20, #61).
+  * lv2: activate is serialised against a block without a lock on the audio
+    thread; since 0.32.1 every LV2 block took activate_lock there (#63).
   * ci: the jobs install and check the floors the packaging states;
     test-fake runs test-identity-align (#59).
 

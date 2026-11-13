@@ -4,6 +4,7 @@ Source: omx-clap-host
 Section: sound
 Priority: optional
 Maintainer: Pau Aliagas <linuxnow@gmail.com>
+# clap-headers: 1.2.10, the channel's one CLAP floor for every distribution, served by the channel (Debian has none)
 Build-Depends: debhelper-compat (= 13),
                clap-headers (>= 1.2.10~), clap-headers (<< 2~),
                liblilv-dev,
@@ -14,7 +15,7 @@ Build-Depends: debhelper-compat (= 13),
                libplugin-hostd-protocol-dev (>= 0.5.6~), libplugin-hostd-protocol-dev (<< 0.6~),
                libomxdsp-dev (>= 0.32.0~), libomxdsp-dev (<< 0.33~),
                libomx-contract-dev (>= 3.16.0~), libomx-contract-dev (<< 4~),
-               plugin-db-dev (>= 0.3.1~), plugin-db-dev (<< 0.5~),
+               plugin-db-dev (>= 0.4.0~), plugin-db-dev (<< 0.5~),
                pkgconf,
                python3
 Standards-Version: 4.6.2
@@ -75,7 +76,7 @@ Package: libomx-clap-core-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: libomx-contract-dev (>= 3.16.0~), libomx-contract-dev (<< 4~), libomxdsp-dev (>= 0.32.0~), libomxdsp-dev (<< 0.33~), omx-clap-core-contract (= ${source:Version}), ${misc:Depends}
+Depends: libomx-contract-dev (>= 3.16.0~), libomx-contract-dev (<< 4~), libomxdsp-dev (>= 0.32.0~), libomxdsp-dev (<< 0.33~), omx-clap-core-contract (= ${source:Version}), clap-headers (>= 1.2.10~), clap-headers (<< 2~), ${misc:Depends}
 Description: build a program that hosts CLAP plugins on libomx-clap-core
  What you need to write a program that hosts CLAP plugins on libomx-clap-core:
  the headers, the pkg-config file, and the list of functions the library
@@ -120,8 +121,8 @@ Package: omx-clap-host-l10n-ca
 Section: localization
 Architecture: all
 Depends: omx-clap-core-contract (= ${source:Version}), ${misc:Depends}
-Breaks: omx-clap-core-contract (<< 0.32.2~)
-Replaces: omx-clap-core-contract (<< 0.32.2~)
+Breaks: omx-clap-core-contract (<< 0.32.1~)
+Replaces: omx-clap-core-contract (<< 0.32.1~)
 Description: ca catalog of omx-clap-host's codes
  The sentences of omx-clap-host's codes in the language ca, read by every
  surface that shows them on a host in that locale; without it a surface shows

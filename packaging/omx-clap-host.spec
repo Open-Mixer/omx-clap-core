@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.1
+Version:        0.32.2
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -15,8 +15,10 @@ BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
 BuildRequires: (plugin-hostd-protocol-devel >= 0.5.6 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.3.1 with plugin-db-devel < 0.5)
-BuildRequires: (clap-devel >= 1.2.7 with clap-devel < 2)
+BuildRequires: (plugin-db-devel >= 0.4.0 with plugin-db-devel < 0.5)
+# the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
+# distribution's own is older)
+BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
@@ -80,7 +82,7 @@ Its documentation is on openmixer.org.
 Summary: Build a program that hosts CLAP plugins on omx-clap-core
 License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.7 with clap-devel < 2)
+Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
@@ -114,7 +116,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.7 with clap-devel < 2)
+Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig
@@ -283,6 +285,21 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.2-1
+- node_label <instance> [<label word> ...] (plugin-hostd#35): a client's label
+  joins the hosted node's pretty-name in JACK metadata, <label>: <plugin name>
+  (<instance>), at once and after each activation; no words clears it; a label
+  over 64 bytes or not UTF-8 is refused -545 and the label stays. Built against
+  plugin-hostd-protocol >= 0.5.6, which declares it.
+- A build takes plugin-db >= 0.4.0 and below 0.5: the release the channel
+  serves, which both builds are built and tested against.
+- The Debian libomx-clap-core-dev depends on clap-headers >= 1.2.10 and below
+  2, so pkg-config omx-clap-core resolves on a clean trixie or bookworm system
+  (#52); the devel package here already required clap-devel.
+- No change to the packages: the tree ignores the LV2 build of the hosted cost
+  bench (#51), and the host-verbs check in CI fetches the commit of the staged
+  protocol build it installs (#53).
+
 * Thu Nov 12 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.1-1
 - Every number the host answers has its code in HOST_REPLY_CODES, with its
   English sentence and its Catalan: -2 (the instance number already taken),

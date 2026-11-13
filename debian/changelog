@@ -1,3 +1,22 @@
+omx-clap-host (0.32.2) unstable; urgency=medium
+
+  * node_label <instance> [<label word> ...] (plugin-hostd#35): a client's
+    label joins the hosted node's pretty-name in JACK metadata, <label>:
+    <plugin name> (<instance>), at once and after each activation; no words
+    clears it; a label over 64 bytes or not UTF-8 is refused -545 and the
+    label stays. Built against plugin-hostd-protocol >= 0.5.6, which declares
+    it.
+  * A build takes plugin-db >= 0.4.0 and below 0.5: the release the channel
+    serves, which both builds are built and tested against.
+  * libomx-clap-core-dev depends on clap-headers >= 1.2.10 and below 2, the
+    floor and ceiling the build has, so pkg-config omx-clap-core resolves on
+    a clean trixie or bookworm system (#52).
+  * No change to the packages: the tree ignores the LV2 build of the hosted
+    cost bench (#51), and the host-verbs check in CI fetches the commit of
+    the staged protocol build it installs (#53).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Fri, 13 Nov 2026 01:00:00 +0000
+
 omx-clap-host (0.32.1) unstable; urgency=medium
 
   * Every number the host answers has its code in HOST_REPLY_CODES, with its

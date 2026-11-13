@@ -1401,10 +1401,12 @@ build/lv2/omx-midi-echo.lv2/omx-midi-echo.so: $(LV2_FIXTURE_DIR)/lv2_midi_echo.c
 	$(CC) $(LV2_FIXTURE_CFLAGS) -o $@ $< -lm
 
 LV2_TEST_CFLAGS = -Isrc -Ilv2/core -Ilv2/clap -Ilv2/tests $(LV2_CFLAGS) $(CFLAGS) -Werror -ffp-contract=off
-LV2_WRAP = -Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=free,--wrap=pthread_mutex_lock,--wrap=pthread_mutex_trylock
+LV2_WRAP = -Wl,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=free
+# lv2_run_test's lock witness (#63): the wraps only its own link line carries, since only it defines them
+LV2_LOCK_WRAP = -Wl,--wrap=pthread_mutex_lock,--wrap=pthread_mutex_trylock
 
 lv2/tests/lv2_run_test: lv2/tests/lv2_run_test.c $(LV2_CORE_LIB) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_fakes.h
-	$(CC) $(LV2_TEST_CFLAGS) -o $@ $< $(LV2_CORE_LIB) $(LV2_WRAP) -ldl -lpthread -lm
+	$(CC) $(LV2_TEST_CFLAGS) -o $@ $< $(LV2_CORE_LIB) $(LV2_WRAP) $(LV2_LOCK_WRAP) -ldl -lpthread -lm
 
 lv2/tests/lv2_host_test: lv2/tests/lv2_host_test.c $(LV2_CORE_LIB) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_worker_gain.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h
 	$(CC) $(LV2_TEST_CFLAGS) -o $@ $< $(LV2_CORE_LIB) -Wl,--wrap=strdup,--wrap=free -ldl -lpthread -lm

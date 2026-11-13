@@ -64,6 +64,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sched.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -272,10 +273,16 @@ struct lv2_instance
     char *dir, *saved_dir;
     int dir_made;
     pthread_mutex_t dir_lock;
-    // held across lv2_instance_activate and across every lv2_instance_run_begin..run_end span, so a host whose
-    // first process() races its activate() (the restart path's own thread, or a non-conformant caller) serialises
-    // against it instead of touching in->handle, in->audio or the ring state while activate is still setting them up
+    // held across lv2_instance_activate only: two activates on two control threads take turns. A host whose first
+    // process() races its activate() (the restart path's own thread, or a non-conformant caller) is kept off
+    // in->handle, in->audio and the rings by run_ready and in_run below, never by a lock on the audio thread (#63)
     pthread_mutex_t activate_lock;
+    // the run path's half of activate's serialisation, a Dekker handshake on sequentially consistent atomics: activate
+    // clears run_ready, waits until in_run is 0, sets the instance up and publishes run_ready; run_begin sets in_run,
+    // and skips the block (run_skipped) when run_ready is clear. Each side stores before it loads the other's word,
+    // so activate never runs beside a block and a block never runs beside activate
+    _Atomic int run_ready, in_run;
+    int run_skipped;
     LV2_State_Make_Path make_path;
     // state:mapPath and state:freePath: a path under the state root is abstracted relative to it, any other kept whole
     LV2_State_Map_Path map_path;
@@ -1775,6 +1782,10 @@ int lv2_instance_activate(struct lv2_instance *in, double rate, uint32_t min_fra
     // held for the whole call, and by lv2_instance_run_begin/run_end across every block: a host whose first run()
     // reaches another thread before this returns waits here instead of racing in->handle, in->audio or the rings
     pthread_mutex_lock(&in->activate_lock);
+    // no block may start from here, and one already running is waited for: a control thread, never the audio one
+    atomic_store(&in->run_ready, 0);
+    while (atomic_load(&in->in_run))
+        sched_yield();
     if (in->lv2_active)
         lv2_instance_deactivate(in);
     // a block length that fits the buffers is told through the plugin's options:interface, if it has one, rather than
@@ -1820,6 +1831,8 @@ int lv2_instance_activate(struct lv2_instance *in, double rate, uint32_t min_fra
         in->min_frames = min_frames;
         in->told_max_frames = max_frames;
         lv2_why_set(why, "");
+        // what activate set up is the run path's from here: a failed activate leaves every block skipped
+        atomic_store(&in->run_ready, 1);
     }
     pthread_mutex_unlock(&in->activate_lock);
     return rc;
@@ -1835,6 +1848,10 @@ void lv2_instance_deactivate(struct lv2_instance *in)
 {
     if (!in || !in->lv2_active)
         return;
+    // LV2 runs only between activate and deactivate: no block starts from here, and one running is waited for
+    atomic_store(&in->run_ready, 0);
+    while (atomic_load(&in->in_run))
+        sched_yield();
     worker_stop(in);
     worker_drain(in);
     ports_home(in);
@@ -2180,9 +2197,16 @@ void lv2_instance_run_begin(struct lv2_instance *in)
     const struct lv2_plugin *p = in->plugin;
     uint32_t k;
 
-    // paired with the unlock at the end of lv2_instance_run_end: activate() waits here rather than running beside
-    // this block's run(), and this block waits for an activate already in progress on another thread
-    pthread_mutex_lock(&in->activate_lock);
+    // no lock on the audio thread (#63): the block says it runs, then reads whether the instance is set up; during an
+    // activate on another thread it is skipped whole, run_end included, and activate waits for in_run to clear
+    atomic_store(&in->in_run, 1);
+    if (!atomic_load(&in->run_ready))
+    {
+        in->run_skipped = 1;
+        atomic_store(&in->in_run, 0);
+        return;
+    }
+    in->run_skipped = 0;
     worker_deliver(in);
     memset(in->patch_out_flag, 0, p->n_patches);
     // the output is offered with its capacity: the plugin reads that, clears the sequence and appends to it; an event
@@ -2209,6 +2233,8 @@ void lv2_instance_run_end(struct lv2_instance *in, uint32_t n)
     const struct lv2_plugin *p = in->plugin;
     uint32_t k;
 
+    if (in->run_skipped)
+        return;
     patch_forge_inputs(in);
     if (p->patch_in_shared)
         patch_splice_into_midi(in);
@@ -2242,7 +2268,7 @@ void lv2_instance_run_end(struct lv2_instance *in, uint32_t n)
     for (k = 0; k < p->n_controls; k++)
         if (p->controls[k].kind == LV2_CONTROL_OUTPUT)
             atomic_store_explicit(&in->shown[k], float_bits(in->controls[k]), memory_order_relaxed);
-    pthread_mutex_unlock(&in->activate_lock);
+    atomic_store(&in->in_run, 0);
 }
 
 void lv2_instance_run(struct lv2_instance *in, uint32_t n)

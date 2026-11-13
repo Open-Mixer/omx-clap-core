@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.3
+Version:        0.32.4
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -285,6 +285,13 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.4-1
+- hosting: hosting.rt-safety.own-threads, the code a qualifier writes for a
+  plugin that starts threads of its own: conditional and still groupable
+  (D20, #61).
+- ci: the jobs install and check the floors the packaging states; test-fake
+  runs test-identity-align (#59).
+
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.3-1
 - The rpm spec's CLAP floor is 1.2.10, the Debian control's: the two packagings
   state one floor for the same headers (#50).

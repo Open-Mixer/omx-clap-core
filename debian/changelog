@@ -1,3 +1,13 @@
+omx-clap-host (0.32.4) unstable; urgency=medium
+
+  * hosting: hosting.rt-safety.own-threads, the code a qualifier writes for a
+    plugin that starts threads of its own: conditional and still groupable
+    (D20, #61).
+  * ci: the jobs install and check the floors the packaging states;
+    test-fake runs test-identity-align (#59).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Fri, 13 Nov 2026 13:30:00 +0100
+
 omx-clap-host (0.32.3) unstable; urgency=medium
 
   * The rpm spec's CLAP floor is 1.2.10, the Debian control's: the two

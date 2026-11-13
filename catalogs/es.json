@@ -111,7 +111,6 @@
     "reply.host.preset-uri-invalid": { "text": "Ese preset no es uno que este plugin pueda cargar. Elige un preset de la propia lista del plugin.", "by": "machine", "model": "draft-prose", "source": "582370a6a0a159df9550abe0e4f150880dd4240a17a8bb1d7acba101aa1b493d" },
     "reply.host.state-load-failed": { "text": "El plugin no pudo recuperar su estado guardado. Carga otro preset o establece sus valores nuevamente.", "by": "machine", "model": "draft-prose", "source": "e1d980057e22f88d4988baa7a3c71f1624308dbd4f380c706fcbaa32c9932d31" },
     "reply.host.uri-invalid": { "text": "El host no encuentra ningún plugin con ese nombre. Verifica que el plugin esté instalado y que su nombre esté escrito como lo muestra el escaneo.", "by": "machine", "model": "draft-prose", "source": "fe279f1a0b70c86d6a1146098e0f8133b9004481dbb5961db7cb5c7d477bfff1" },
-    "reply.host.value-out-of-range": { "text": "Ese tempo o pulsos por compás está fuera de lo que acepta el host. Elige un valor dentro del rango del host.", "by": "machine", "model": "draft-prose", "source": "7df95eead66eec155a56891e478d6953035a2c76bdc05225db13440c7b984fa3" },
     "hosting.rt-safety.own-threads": { "text": "El plugin inicia sus propios hilos además del audio. Es seguro en tiempo real y puede compartir un worker; sus hilos comparten los núcleos con el audio.", "by": "machine", "model": "draft-prose", "source": "0ba232126dedd28ba3bb418a33b73dd617e72653a672673d0382b43f49d26aae" }
   }
 }

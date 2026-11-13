@@ -82,7 +82,7 @@ jobs:
       - name: Add the OpenMixer channel
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
       - name: omx-contract
-        run: dnf install -y --setopt=install_weak_deps=False 'omx-contract >= 3.16.0' 'omx-contract < 4' 'omx-contract-devel >= 3.16.0' 'omx-contract-devel < 4'
+        run: dnf install -y --setopt=install_weak_deps=False 'omx-contract >= 3.18.0' 'omx-contract < 4' 'omx-contract-devel >= 3.18.0' 'omx-contract-devel < 4'
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
       # (plugin-hostd-protocol#27: a stale staged contract package outranked the channel)
       - name: Every omx package comes from the channel
@@ -170,7 +170,7 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0' 'plugin-hostd-protocol-devel >= 0.5.7' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.1' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.7' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
           pkg-config --atleast-version=0.5.7 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
@@ -204,7 +204,7 @@ jobs:
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
 
       - name: Install plugin-db's header, which the build reads
-        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.4.1' 'plugin-db-devel < 0.5'
+        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5'
 
       - name: Build
         run: make
@@ -644,7 +644,7 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0' 'plugin-hostd-protocol-devel >= 0.5.7' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.1' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.7' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
           pkg-config --atleast-version=0.5.7 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
@@ -664,7 +664,7 @@ jobs:
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
 
       - name: Install plugin-db's header, which the build reads
-        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.4.1' 'plugin-db-devel < 0.5'
+        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5'
 
       - name: Build
         run: make
@@ -701,7 +701,7 @@ jobs:
       - name: Install omx-dsp-devel and omx-contract-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0'
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0'
           pkg-config --atleast-version=0.32.0 omxdsp
 
       - name: The sabotage of the no-copy LV2 adapter

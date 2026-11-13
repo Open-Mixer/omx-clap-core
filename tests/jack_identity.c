@@ -24,7 +24,12 @@
  * stdin; identity-rec:a, :b ... :f (one per file given) record <frames>
  * frames starting <preroll_blocks> cycles later, and the source frames of that
  * same window go to <source.f32>. Raw float32, one channel each. Prints the
- * rate, the quantum and the peak of each recording, then exits. */
+ * rate, the quantum and the peak of each recording, then exits.
+ * The recorder places each frame by the server's frame time against the cycle
+ * the source started in, which the source records: go reaches the two clients'
+ * callbacks at different moments of a cycle, and a recorder that started on
+ * its own seeing go recorded a quantum early when go landed between the
+ * source's callback and its own (omx-clap-core#56). */
 
 #include <math.h>
 #include <stdatomic.h>
@@ -41,7 +46,9 @@ static float *g_source, *g_rec[RECORDERS_MAX];
 static int g_recorders;
 static long g_frames, g_preroll_frames;
 static long g_played, g_recorded;
-static _Atomic int g_go, g_done;
+static _Atomic int g_go, g_done, g_started;
+/* the frame time of the cycle the source started playing in: the recorder's frame 0 */
+static _Atomic jack_nframes_t g_start;
 static unsigned g_lcg = 12345u;
 
 static float next_sample(void)
@@ -55,11 +62,15 @@ static int src_process(jack_nframes_t nframes, void *arg)
     float *out = jack_port_get_buffer(g_out, nframes);
     jack_nframes_t i;
 
-    (void)arg;
+    if (atomic_load(&g_go) && !atomic_load(&g_started))
+    {
+        atomic_store(&g_start, jack_last_frame_time(arg));
+        atomic_store(&g_started, 1);
+    }
     for (i = 0; i < nframes; i++)
     {
         float s = 0.0f;
-        if (atomic_load(&g_go) && g_played < g_preroll_frames + g_frames)
+        if (atomic_load(&g_started) && g_played < g_preroll_frames + g_frames)
         {
             s = next_sample();
             if (g_played >= g_preroll_frames)
@@ -75,19 +86,24 @@ static int rec_process(jack_nframes_t nframes, void *arg)
 {
     const float *in[RECORDERS_MAX];
     jack_nframes_t i;
+    long at;
     int r;
 
-    (void)arg;
-    if (!atomic_load(&g_go))
+    if (!atomic_load(&g_started))
         return 0;
+    /* this cycle's first frame, counted from the first frame the source played */
+    at = (long)(jack_nframes_t)(jack_last_frame_time(arg) - atomic_load(&g_start));
     for (r = 0; r < g_recorders; r++)
         in[r] = jack_port_get_buffer(g_in[r], nframes);
-    for (i = 0; i < nframes && g_recorded < g_preroll_frames + g_frames; i++, g_recorded++)
+    for (i = 0; i < nframes; i++)
     {
-        if (g_recorded >= g_preroll_frames)
+        long f = at + (long)i;
+
+        if (f >= g_preroll_frames && f < g_preroll_frames + g_frames)
             for (r = 0; r < g_recorders; r++)
-                g_rec[r][g_recorded - g_preroll_frames] = in[r][i];
+                g_rec[r][f - g_preroll_frames] = in[r][i];
     }
+    g_recorded = at + (long)nframes;
     if (g_recorded >= g_preroll_frames + g_frames)
         atomic_store(&g_done, 1);
     return 0;
@@ -151,8 +167,8 @@ int main(int argc, char **argv)
 
         g_in[r] = jack_port_register(rec, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
     }
-    jack_set_process_callback(src, src_process, NULL);
-    jack_set_process_callback(rec, rec_process, NULL);
+    jack_set_process_callback(src, src_process, src);
+    jack_set_process_callback(rec, rec_process, rec);
     if (jack_activate(src) != 0 || jack_activate(rec) != 0)
     {
         fprintf(stderr, "can't activate\n");

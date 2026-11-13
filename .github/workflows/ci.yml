@@ -106,7 +106,7 @@ jobs:
       # entries a pull request's new code or changed sentence leaves missing are made through the cluster's router and
       # pushed to its branch, or named (Open-Mixer/.github#46)
       - name: The language packs
-        uses: Open-Mixer/.github/.github/actions/langpacks@lane/github-46-langpacks-fill
+        uses: Open-Mixer/.github/.github/actions/langpacks@openmixer-v1
         with:
           router-key: ${{ secrets.OMX_ROUTER_KEY }}
           signing-key: ${{ secrets.OPENMIXER_CI_SIGNING_KEY }}

@@ -25,6 +25,16 @@ CORE_MAP = src/omx-clap-core.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
 CORE_TS = ts/omx-clap-core-hosting.js ts/omx-clap-core-hosting.d.ts ts/omx-clap-core-vocabulary.js ts/omx-clap-core-vocabulary.d.ts
 
+# The library ranges the installed omx-clap-core.pc names in Requires.private, read from the one place they are declared,
+# the spec's BuildRequires `(<devel> >= <floor> with <devel> < <ceiling>)` (#66): $(call spec_range,<devel>,1|2) is the
+# floor or the ceiling. debian/control states them again for the deb; tests/pc_range_parity.py holds both to the spec.
+SPEC = packaging/omx-clap-host.spec
+spec_range = $(shell sed -n -E 's/^BuildRequires:[[:space:]]*\($(1)[[:space:]]*>=[[:space:]]*([0-9.]+)[[:space:]]+with[[:space:]]+$(1)[[:space:]]*<[[:space:]]*([0-9.]+)\).*/\$(2)/p' $(SPEC))
+OMX_CONTRACT_FLOOR = $(call spec_range,omx-contract-devel,1)
+OMX_CONTRACT_CEILING = $(call spec_range,omx-contract-devel,2)
+OMXDSP_FLOOR = $(call spec_range,omx-dsp-devel,1)
+OMXDSP_CEILING = $(call spec_range,omx-dsp-devel,2)
+
 PKG_CONFIG ?= pkg-config
 
 # the protocol library, its headers and its verb declarations (<plugin-hostd/plugin_hostd_protocol_host_verbs.h>):
@@ -282,8 +292,13 @@ install-lib: $(CORE_SO)
 	ln -sf $(CORE_FILE) $(DESTDIR)$(LIBDIR)/$(CORE_SONAME)
 	ln -sf $(CORE_SONAME) $(DESTDIR)$(LIBDIR)/$(CORE_SO)
 	install -m 644 $(CORE_HEADERS) $(DESTDIR)$(INCLUDEDIR)/omx-clap-host/
+	@for v in '$(OMX_CONTRACT_FLOOR)' '$(OMX_CONTRACT_CEILING)' '$(OMXDSP_FLOOR)' '$(OMXDSP_CEILING)'; do \
+	  printf '%s\n' "$$v" | grep -qxE '[0-9]+(\.[0-9]+)*' || { echo "install-lib: $(SPEC) declares no single omx-contract-devel and omx-dsp-devel BuildRequires range (got '$$v')" >&2; exit 1; }; done
 	sed -e 's,@PREFIX@,$(PREFIX),' -e 's,@LIBDIR@,$(LIBDIR),' -e 's,@INCLUDEDIR@,$(INCLUDEDIR),' \
-	    -e 's,@DATADIR@,$(DATADIR),' -e 's,@VERSION@,$(CORE_VERSION),' omx-clap-core.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
+	    -e 's,@DATADIR@,$(DATADIR),' -e 's,@VERSION@,$(CORE_VERSION),' \
+	    -e 's,@OMX_CONTRACT_FLOOR@,$(OMX_CONTRACT_FLOOR),' -e 's,@OMX_CONTRACT_CEILING@,$(OMX_CONTRACT_CEILING),' \
+	    -e 's,@OMXDSP_FLOOR@,$(OMXDSP_FLOOR),' -e 's,@OMXDSP_CEILING@,$(OMXDSP_CEILING),' \
+	    omx-clap-core.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
 	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
 	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
@@ -459,8 +474,15 @@ test-clap-floor-parity:
 	python3 tests/clap_floor_parity.py --self-test
 	python3 tests/clap_floor_parity.py .
 
-test: test-no-hostd-build-dep test-clap-floor-parity test-identity-align
-test-fake: test-no-hostd-build-dep test-clap-floor-parity test-identity-align
+# the installed omx-clap-core.pc and debian/control carry the omx-contract and omx-dsp ranges the spec declares, the one
+# place they are stated (#66); the self-test moves the spec's range and finds the .pc moved with it
+.PHONY: test-pc-range-parity
+test-pc-range-parity: $(CORE_SO)
+	python3 tests/pc_range_parity.py --self-test
+	python3 tests/pc_range_parity.py .
+
+test: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
+test-fake: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)

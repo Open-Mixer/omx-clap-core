@@ -783,6 +783,15 @@ What a plugin may ask of any host besides its audio and its parameters:
   `omx_clap_host_state_load_context` with `CLAP_STATE_CONTEXT_FOR_PRESET`,
   `_DUPLICATE` or `_PROJECT`; a plugin without the extension saves and loads
   its plain state for each.
+- `org.openmixer.properties/1`, a plugin's file and text properties: the host
+  answers `org.openmixer.properties` in `clap.event-registry`, reads the
+  plugin's table once at load (P1 to P3: unique ids, no symbol a parameter's,
+  the grammar, known kinds and flags; a table that breaks one is read as none)
+  and offers `omx_clap_host_property_count`, `_info`, `_get` and `_set`. A set
+  goes on the instance's ring and reaches the plugin as one
+  `OMX_CLAP_EVENT_PROPERTY_SET` at time 0 of the next block, its value valid
+  through that block's `process`, or through `params.flush` while no cycle
+  runs; a full ring refuses the set. A path must be absolute.
 - `clap.audio-ports-activation`: before each activate the host sets every
   auxiliary port, input or output, active only while its buffers are bound,
   so the plugin may skip a port no one reads or writes; omx-clap-host binds

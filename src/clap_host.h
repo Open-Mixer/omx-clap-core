@@ -61,6 +61,7 @@
 #include "clap_stage.h"
 #include "omx_clap_ext.h"
 #include "omx_clap_core_vocabulary.h"
+#include "omx_msgring.h"
 
 
 /*
@@ -271,6 +272,11 @@ struct omx_clap_param_tag
 
 /** The instance's input event list over the stage's: the stage's own list, and one tag per ring position over two laps
  * of the ring, so a tag is written again only once the block that read it is long over. */
+/** The event space this host answers for OMX_CLAP_EVENT_SPACE_PROPERTIES in clap.event-registry (any id but the core's) */
+#define OMX_CLAP_HOST_PROPERTY_SPACE ((uint16_t)0x4F50)
+/** The bytes of an instance's property ring: four values of the largest size, with their ids and headers */
+#define OMX_CLAP_HOST_PROPERTY_RING_BYTES 32768u
+
 struct omx_clap_param_in
 {
     clap_input_events_t stage_in;  ///< the stage's own list, which this one reads through
@@ -634,6 +640,19 @@ struct omx_clap_instance
     // ABI 21: the bypass dry-path delay (#1), after keeps_on so no field moves; the stage reaches it through guard_off,
     // as struct omx_clap_guard_tail (clap_stage.h) lays out this tail from the guard on
     struct omx_clap_bypass_delay bypass_delay;  ///< armed for the published latency by the control thread
+
+    // ABI 22: org.openmixer.properties/1 (#15), after bypass_delay so no field moves. extra_in is the stage's too, reached
+    // through guard_off as struct omx_clap_guard_tail lays it out: a block with a property set waiting is not quiet
+    struct omx_msgring *extra_in;  ///< the property ring when the plugin presents properties, else NULL
+    const omx_clap_plugin_properties_t *properties;  ///< the extension, NULL when not offered or refused
+    uint32_t n_properties;  ///< its count, 0 when its table broke a rule at load (properties_why)
+    char properties_why[OMX_CLAP_WHY_MAX];  ///< the rule a refused table broke
+    struct omx_msgring prop_ring;  ///< property sets, control thread to the audio role
+    void *prop_buf;  ///< its OMX_CLAP_HOST_PROPERTY_RING_BYTES
+    int64_t prop_seen_block;  ///< the block the ring was last read for (the stage's steady time)
+    uint32_t prop_seen;  ///< 1 once it was read for prop_seen_block
+    uint32_t prop_n;  ///< 0 or 1: the block's property event, at index 0 and time 0
+    omx_clap_event_property_t prop_ev;  ///< that event; its value points into the ring until the next block
 };
 
 
@@ -696,7 +715,9 @@ OMX_CLAP_EXPORT int omx_clap_host_abi_clobber(const struct omx_clap_instance *in
 #define OMX_CLAP_GUARD_OFF ((uint32_t)(offsetof(struct omx_clap_instance, abi) - offsetof(struct omx_clap_instance, stage)))
 _Static_assert(offsetof(struct omx_clap_instance, keeps_on) - offsetof(struct omx_clap_instance, abi) == offsetof(struct omx_clap_guard_tail, keeps_on)
                    && offsetof(struct omx_clap_instance, bypass_delay) - offsetof(struct omx_clap_instance, abi)
-                          == offsetof(struct omx_clap_guard_tail, bypass_delay),
+                          == offsetof(struct omx_clap_guard_tail, bypass_delay)
+                   && offsetof(struct omx_clap_instance, extra_in) - offsetof(struct omx_clap_instance, abi)
+                          == offsetof(struct omx_clap_guard_tail, extra_in),
                "struct omx_clap_guard_tail lays out the instance's tail from its guard on");
 
 /** The version of the library at run time, major * 10000 + minor * 100 + patch. */

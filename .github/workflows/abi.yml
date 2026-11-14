@@ -40,17 +40,20 @@ jobs:
         cell: ${{ fromJSON(needs.checks.outputs.rpm) }}
     container:
       image: ${{ matrix.cell.image }}
-    # the ABI cell: the Fedora release whose abidw writes the ABI-XML format abi/libomx-clap-core.so.1.abi is in, the one
-    # cell where the baseline is compared; another cell builds the library and says by name that it skips the compare
-    # (tests/abi-check.sh, ruling of 2026-11-14 on #73). It must be one of check-matrix's rpm-releases above
     env:
-      OMX_ABI_CELL: '44'
       OMX_CELL: ${{ matrix.cell.fedora }}
     steps:
-      - name: The ABI cell is one of the cells this job runs
+      # the ABI cell: the oldest Fedora release of check-matrix's answer, whose abidw writes the ABI-XML format
+      # abi/libomx-clap-core.so.1.abi is in, the one cell where the baseline is compared; another cell builds the library
+      # and says by name that it skips the compare (tests/abi-check.sh, ruling of 2026-11-14 on #73). Read from the
+      # answer, never written into the job (fedora-cells); an answer whose oldest cell writes another format is red there
+      - name: The ABI cell, the oldest release of check-matrix's answer
+        env:
+          CELLS: ${{ needs.checks.outputs.rpm }}
         run: |
-          test "$(echo '${{ needs.checks.outputs.rpm }}' | grep -c "\"fedora\": *\"\?${OMX_ABI_CELL}\"\?[,}]")" -ge 1 \
-            || { echo "::error::OMX_ABI_CELL $OMX_ABI_CELL is not a cell of check-matrix's answer"; exit 1; }
+          cell=$(printf '%s' "$CELLS" | grep -o '"fedora": *"\?[0-9]*' | grep -o '[0-9][0-9]*$' | sort -n | head -1)
+          [ -n "$cell" ] || { echo "::error::check-matrix's answer names no Fedora cell: $CELLS"; exit 1; }
+          echo "OMX_ABI_CELL=$cell" >> "$GITHUB_ENV"
       - name: Install the build tools
         run: dnf install -y --setopt=install_weak_deps=False git gcc make diffutils pkgconf-pkg-config clap-devel openssl-devel libabigail dwarves dnf5-plugins
 

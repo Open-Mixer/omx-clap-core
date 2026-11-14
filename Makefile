@@ -482,7 +482,7 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py .
 
 test: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
-test-fake: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
+test-fake: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align test-abi-format
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)
@@ -935,6 +935,11 @@ test-abi-sabotage:
 
 # libabigail's dump leaves _Atomic members out (#117): abi-layout.sh reads every member's offset, size and type with
 # pahole and holds them to abi/<soname>.layout, recorded with the baseline
+# tests/abi-check.sh where abidw writes another ABI-XML format than the baseline's: compared on the declared ABI cell only
+.PHONY: test-abi-format
+test-abi-format:
+	sh tests/abi-format-test.sh
+
 abi-check: abi-stage
 	sh tests/abi-check.sh build/abi/usr/lib/$(CORE_FILE) build/abi/usr/include $(ABI_BASELINE)
 	CC="$(CC)" CPPFLAGS="$(CLAP_CFLAGS) $(DSP_CFLAGS)" sh tests/abi-layout.sh build/abi/usr/include $(ABI_LAYOUT) $(VERSION)

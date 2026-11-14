@@ -22,6 +22,21 @@ if [ ! -f "$baseline" ]; then
     exit 0
 fi
 
+# the ABI-XML format a file is written in, its major: abidiff compares two files of one format only. The baseline is
+# compared on the ABI cell abi.yml declares (OMX_ABI_CELL, beside the cell the job runs, OMX_CELL), whose abidw writes the
+# baseline's format; another cell says so by name and passes; on the ABI cell, or with none named, a mismatch is red
+format_of() { sed -n "s/.*<abi-corpus version='\([0-9]*\)[.'].*/\1/p" "$1" | head -1; }
+old_format=$(format_of "$baseline")
+new_format=$(format_of "$out")
+if [ "$old_format" != "$new_format" ]; then
+    if [ -n "${OMX_ABI_CELL:-}" ] && [ -n "${OMX_CELL:-}" ] && [ "$OMX_CELL" != "$OMX_ABI_CELL" ]; then
+        echo "VERIFY-SKIP abi: abidw writes format $new_format, the baseline format $old_format: cell $OMX_CELL, the baseline is compared on the ABI cell $OMX_ABI_CELL"
+        exit 0
+    fi
+    echo "FAIL abidw writes ABI-XML format $new_format and the baseline is format $old_format: abidiff cannot compare them; on the ABI cell (${OMX_ABI_CELL:-none named}) they must match"
+    exit 1
+fi
+
 soname_of() { sed -n "s/.*soname='\([^']*\)'.*/\1/p" "$1" | head -1; }
 version_of() { sed -n "s/.*path='[^']*\.so\.\([0-9][0-9.]*\)'.*/\1/p" "$1" | head -1; }
 

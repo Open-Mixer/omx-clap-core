@@ -173,12 +173,20 @@ static void t_abi(void) {
             offsetof(struct omx_clap_instance, abi) > offsetof(struct omx_clap_instance, pool_late),
         "the thread pool's gate follows the named slot, the guard follows the gate (%zu)", offsetof(struct omx_clap_instance, abi));
   /* the sleep's last status is appended after the guard: struct omx_clap_sleep, embedded whole before the layout
-   * extensions, does not grow, so none of them moves; the bypass dry-path delay (ABI 21) follows it, the instance's last */
+   * extensions, does not grow, so none of them moves; the bypass dry-path delay (ABI 21) follows it */
   CHECK(offsetof(struct omx_clap_instance, keeps_on) >= offsetof(struct omx_clap_instance, abi) + sizeof(struct omx_abi_guard) &&
-            offsetof(struct omx_clap_instance, bypass_delay) >= offsetof(struct omx_clap_instance, keeps_on) + sizeof(int) &&
-            sizeof(struct omx_clap_instance) - offsetof(struct omx_clap_instance, bypass_delay) - sizeof(struct omx_clap_bypass_delay)
+            offsetof(struct omx_clap_instance, bypass_delay) >= offsetof(struct omx_clap_instance, keeps_on) + sizeof(int),
+        "the sleep's last status follows the guard and the bypass delay follows it (%zu)", offsetof(struct omx_clap_instance, bypass_delay));
+  /* ABI 22 appends the properties (#15) after the bypass delay: the stage's extra input list first, the event the
+   * block hands the plugin last, the instance's last */
+  CHECK(offsetof(struct omx_clap_instance, extra_in) >= offsetof(struct omx_clap_instance, bypass_delay) + sizeof(struct omx_clap_bypass_delay) &&
+            offsetof(struct omx_clap_instance, properties) > offsetof(struct omx_clap_instance, extra_in) &&
+            offsetof(struct omx_clap_instance, prop_ring) > offsetof(struct omx_clap_instance, properties_why) &&
+            offsetof(struct omx_clap_instance, prop_ev) > offsetof(struct omx_clap_instance, prop_n) &&
+            sizeof(struct omx_clap_instance) - offsetof(struct omx_clap_instance, prop_ev) - sizeof(omx_clap_event_property_t)
                 < _Alignof(struct omx_clap_instance),
-        "the sleep's last status follows the guard and the bypass delay closes the instance (%zu)", offsetof(struct omx_clap_instance, bypass_delay));
+        "the properties follow the bypass delay and the block's property event closes the instance (%zu)",
+        offsetof(struct omx_clap_instance, prop_ev));
   config.abi = 0;
   CHECK(omx_clap_host_configure(&config) == -1, "ABI 0 is refused");
   config.abi = 11;

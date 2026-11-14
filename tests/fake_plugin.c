@@ -182,6 +182,9 @@ typedef struct FAKE_T {
     uint32_t host_preset_load;
     int logged_process;
     pthread_t init_thread;
+    int props_granted;          // the host's clap.event-registry answered org.openmixer.properties at init
+    uint16_t props_space;       // the space it answered
+    char props[4][OMX_CLAP_PROPERTY_VALUE_MAX];  // the passthrough's property values, by index (FAKE_PROPS)
 } fake_t;
 
 static const char *const g_features[] = { CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, NULL };
@@ -639,6 +642,31 @@ static bool params_text_to_value(const clap_plugin_t *plugin, clap_id id, const 
     return true;
 }
 
+/* org.openmixer.properties/1 on the passthrough, for host_verbs_check: file (a path), label (text), token (written
+ * only) and readonly (read only), ids 9001 to 9004; a set keeps its value, as a plugin's own property would */
+static const struct
+{
+    clap_id id;
+    const char *symbol;
+    uint32_t kind, flags;
+} FAKE_PROPS[4] = {
+    { 9001, "file", OMX_CLAP_PROPERTY_PATH, OMX_CLAP_PROPERTY_IS_WRITABLE | OMX_CLAP_PROPERTY_IS_READABLE },
+    { 9002, "label", OMX_CLAP_PROPERTY_STRING, OMX_CLAP_PROPERTY_IS_WRITABLE | OMX_CLAP_PROPERTY_IS_READABLE },
+    { 9003, "token", OMX_CLAP_PROPERTY_STRING, OMX_CLAP_PROPERTY_IS_WRITABLE },
+    { 9004, "readonly", OMX_CLAP_PROPERTY_STRING, OMX_CLAP_PROPERTY_IS_READABLE },
+};
+
+static void take_property(fake_t *fake, const omx_clap_event_property_t *e)
+{
+    uint32_t k;
+
+    if (e->header.size != sizeof(*e) || !e->value || !e->size || e->size > OMX_CLAP_PROPERTY_VALUE_MAX || e->value[e->size - 1] != '\0')
+        return;
+    for (k = 0; k < 4; k++)
+        if (FAKE_PROPS[k].id == e->property_id)
+            memcpy(fake->props[k], e->value, e->size);
+}
+
 static void take_events(fake_t *fake, const clap_input_events_t *in)
 {
     uint32_t i, n = in->size(in);
@@ -646,6 +674,11 @@ static void take_events(fake_t *fake, const clap_input_events_t *in)
     for (i = 0; i < n; i++)
     {
         const clap_event_header_t *header = in->get(in, i);
+        if (fake->props_granted && header->space_id == fake->props_space && header->type == OMX_CLAP_EVENT_PROPERTY_SET)
+        {
+            take_property(fake, (const omx_clap_event_property_t *)header);
+            continue;
+        }
         if (header->space_id == CLAP_CORE_EVENT_SPACE_ID && header->type == CLAP_EVENT_PARAM_VALUE)
         {
             const clap_event_param_value_t *event = (const clap_event_param_value_t *)header;
@@ -785,6 +818,14 @@ static bool plugin_init(const clap_plugin_t *plugin)
 
     fake->init_thread = pthread_self();
     fake->thread_check = fake->host->get_extension(fake->host, CLAP_EXT_THREAD_CHECK);
+    {
+        const clap_host_event_registry_t *registry = fake->host->get_extension(fake->host, CLAP_EXT_EVENT_REGISTRY);
+        uint16_t space = UINT16_MAX;
+
+        fake->props_granted = registry && registry->query && registry->query(fake->host, OMX_CLAP_EVENT_SPACE_PROPERTIES, &space);
+        fake->props_space = space;
+        snprintf(fake->props[3], sizeof(fake->props[3]), "fixed");
+    }
     fake_log(plugin, "init");
     // FAKE_AS_QT=1: the plugin dies as a Qt-linked one does when it makes its QApplication with no platform that can
     // open (synthv1: "Could not load the Qt platform plugin xcb", SIGABRT): no QT_QPA_PLATFORM and no display
@@ -1105,6 +1146,47 @@ static clap_process_status plugin_process(const clap_plugin_t *plugin, const cla
     return fake->says_sleep ? CLAP_PROCESS_SLEEP : CLAP_PROCESS_CONTINUE;
 }
 
+static uint32_t props_count(const clap_plugin_t *plugin)
+{
+    const fake_t *fake = plugin->plugin_data;
+
+    return fake->props_granted ? 4u : 0u;
+}
+
+static bool props_get_info(const clap_plugin_t *plugin, uint32_t index, omx_clap_property_info_t *info)
+{
+    if (index >= props_count(plugin) || !info)
+        return false;
+    memset(info, 0, sizeof(*info));
+    info->id = FAKE_PROPS[index].id;
+    snprintf(info->symbol, sizeof(info->symbol), "%s", FAKE_PROPS[index].symbol);
+    snprintf(info->name, sizeof(info->name), "The \"%s\" property", FAKE_PROPS[index].symbol);
+    info->kind = FAKE_PROPS[index].kind;
+    info->flags = FAKE_PROPS[index].flags;
+    return true;
+}
+
+static int32_t props_get_value(const clap_plugin_t *plugin, clap_id id, char *value, uint32_t capacity)
+{
+    const fake_t *fake = plugin->plugin_data;
+    uint32_t k, len;
+
+    for (k = 0; k < props_count(plugin); k++)
+        if (FAKE_PROPS[k].id == id)
+        {
+            if (!(FAKE_PROPS[k].flags & OMX_CLAP_PROPERTY_IS_READABLE))
+                return -1;
+            len = (uint32_t)strlen(fake->props[k]);
+            if (!value || len >= capacity)
+                return (int32_t)len;
+            memcpy(value, fake->props[k], len + 1u);
+            return (int32_t)len;
+        }
+    return -1;
+}
+
+static const omx_clap_plugin_properties_t g_properties = { props_count, props_get_info, props_get_value };
+
 static const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 {
     const fake_t *fake = plugin->plugin_data;
@@ -1133,6 +1215,8 @@ static const void *plugin_get_extension(const clap_plugin_t *plugin, const char 
         return &g_track_info;
     if (!strcmp(plugin->desc->id, ID_PASSTHROUGH) && !strcmp(id, CLAP_EXT_REMOTE_CONTROLS))
         return &g_remote_controls;
+    if (!strcmp(plugin->desc->id, ID_PASSTHROUGH) && !strcmp(id, OMX_CLAP_EXT_PROPERTIES))
+        return &g_properties;
     return NULL;
 }
 

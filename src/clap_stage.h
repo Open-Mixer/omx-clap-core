@@ -83,6 +83,7 @@
 #include "abi_guard.h"
 #include "hosted_stage.h"
 #include "omx_clap_midi.h"
+#include "omx_msgring.h"
 
 
 /*
@@ -310,7 +311,15 @@ struct omx_clap_guard_tail
     struct omx_abi_guard abi;                     ///< the instance's guard, guard_off bytes after its stage
     int keeps_on;                                 ///< the instance's keeps_on
     struct omx_clap_bypass_delay bypass_delay;    ///< the instance's bypass dry-path delay
+    struct omx_msgring *extra_in;                 ///< the instance's property ring, NULL when it has none (ABI 22)
 };
+
+/** the input the host adds to the stage's list (its property sets), or NULL: none, or a stage of its own (ABI 22) */
+static inline const struct omx_msgring *omx_clap_stage_extra_in(const struct omx_clap_stage *s)
+{
+    return s->guard_off ? *(struct omx_msgring *const *)((const char *)s + s->guard_off + offsetof(struct omx_clap_guard_tail, extra_in))
+                        : NULL;
+}
 
 /** the bypass dry-path delay of the instance holding the stage, or NULL for a stage of its own (ABI 21) */
 static inline struct omx_clap_bypass_delay *omx_clap_stage_bypass_delay(const struct omx_clap_stage *s)
@@ -1095,10 +1104,13 @@ static inline const clap_input_events_t *omx_clap_no_events(void)
     return &none;
 }
 
-/** RT: a quiet block, one with no parameter write waiting in the ring and no note written ahead of it. */
+/** RT: a quiet block, one with no parameter write waiting in the ring, no note written ahead of it, and nothing in the
+ * host's extra input (a property set waiting, or the one delivered last block, popped by the next list read). */
 static inline int omx_clap_block_quiet(const struct omx_clap_stage *s)
 {
-    return s->n_notes == 0 && omx_hosted_queue_pending(&s->queue) == 0;
+    const struct omx_msgring *extra = omx_clap_stage_extra_in(s);
+
+    return s->n_notes == 0 && omx_hosted_queue_pending(&s->queue) == 0 && (!extra || omx_msgring_used(extra) == 0);
 }
 
 /** Whether a channel message of one to three bytes is a release (OMX_CLAP_NOTES_RESERVED says which). */

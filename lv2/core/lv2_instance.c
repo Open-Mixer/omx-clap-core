@@ -144,7 +144,7 @@ _Static_assert(EVENT_HEADER_BYTES % 8u == 0 && EVENT_HEADER_BYTES >= sizeof(LV2_
 /* the URIDs the patch ports are written and read with, mapped once at creation */
 struct patch_urids
 {
-    LV2_URID set, put, property, value, object, sequence, urid, time_frame;
+    LV2_URID set, put, get, property, value, object, sequence, urid, time_frame;
     LV2_URID blank, body, string, path;
     LV2_URID types[5];              // by enum lv2_patch_type
 };
@@ -300,6 +300,7 @@ struct lv2_instance
     uint32_t atom_in_bytes;
     // the text properties, one slot each, their URIDs mapped at creation
     struct text_slot *texts;
+    _Atomic int text_get_pending;   // 1: the next block asks the plugin for its readable text properties (one patch:Get)
     char *text_mem;
     LV2_URID *text_key;
 };
@@ -980,6 +981,20 @@ static void patch_forge_inputs(struct lv2_instance *in)
         used += total;
         atomic_store_explicit(&t->pending_full, 0, memory_order_release);
     }
+    // a patch:Get after an activate, when a text property is readable: the plugin answers with its own values (a state it
+    // restored, its defaults), which become what get_value reads (lv2-as-clap-adapter spec §9.3)
+    if (atomic_load_explicit(&in->text_get_pending, memory_order_acquire) && used + 24u <= in->atom_cap)
+    {
+        uint8_t *ev = buf + used;
+
+        put64(ev, 0);
+        put32(ev + 8, 8u);
+        put32(ev + 12, in->urids.object);
+        put32(ev + 16, 0);
+        put32(ev + 20, in->urids.get);
+        used += 24u;
+        atomic_store_explicit(&in->text_get_pending, 0, memory_order_release);
+    }
     put32(buf, used - 8u);
 }
 
@@ -1597,6 +1612,12 @@ static int instance_make(struct lv2_instance *in, double rate, uint32_t min_fram
         t->pending_len = t->host_len;
         atomic_store_explicit(&t->pending_full, 1, memory_order_release);
     }
+    for (k = 0; k < p->n_texts; k++)
+        if (p->texts[k].readable)
+        {
+            atomic_store_explicit(&in->text_get_pending, 1, memory_order_release);
+            break;
+        }
     return 0;
 drop:
     omx_abi_g(&in->abi, "cleanup", (const void *)d->cleanup, OMX_ABI_A(in->handle), 0, 0, 0, 0, 0);
@@ -1672,6 +1693,7 @@ struct lv2_instance *lv2_instance_new(const struct lv2_plugin *p)
         return NULL;
     }
     in->urids.set = lv2_urid_lookup(LV2_PATCH__Set);
+    in->urids.get = lv2_urid_lookup(LV2_PATCH__Get);
     in->urids.put = lv2_urid_lookup(LV2_PATCH__Put);
     in->urids.property = lv2_urid_lookup(LV2_PATCH__property);
     in->urids.value = lv2_urid_lookup(LV2_PATCH__value);

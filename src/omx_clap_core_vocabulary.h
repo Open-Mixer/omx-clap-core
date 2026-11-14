@@ -4,7 +4,7 @@
 #define OMX_CLAP_CORE_VOCABULARY_H
 /*
  * GENERATED: DO NOT EDIT BY HAND.
- * Produced by `omx-contract render --target c` from FreeMixer/omx-clap-core's data/: the vocabulary
+ * Produced by `omx-contract render --target c` from Open-Mixer/omx-clap-core's data/: the vocabulary
  * (docs/data-layout.md). A code is OMX_ and the code in upper snake case, and a reply code that carries a resp has it as that name and _RESP; a word is OMX_<ITEM>_<NAME>, each words
  * item with its _COUNT and an _INIT of its words in their order. A consumer writes and compares these, never a
  * literal of its own.
@@ -279,6 +279,18 @@
 #define OMX_REPLY_HOST_NOTE_QUEUE_FULL "reply.host.note-queue-full" ///< the worker has no room for the line's notes before its next block: nothing of it is kept, and the line may be sent again
 #define OMX_REPLY_HOST_NOTE_QUEUE_FULL_RESP (-517)
 #define OMX_REPLY_HOST_NOTE_QUEUE_FULL_TEXT_EN "The worker had no room for these notes before its next block, so none of them were kept. Send the line again."
+#define OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID "reply.host.property-symbol-invalid" ///< a symbol that is not one of the instance's file or text properties (org.openmixer.properties/1), or an index past its last
+#define OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID_RESP (-106)
+#define OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID_TEXT_EN "That symbol is not one of this plugin\342\200\231s file or text properties. Ask the plugin for its property list and use one of those symbols."
+#define OMX_REPLY_HOST_PROPERTY_ACCESS "reply.host.property-access" ///< a set of a property that is not writable, or a get of one that is not readable
+#define OMX_REPLY_HOST_PROPERTY_ACCESS_RESP (-107)
+#define OMX_REPLY_HOST_PROPERTY_ACCESS_TEXT_EN "This property cannot be used that way: it is not writable, or not readable. Check the property's access before setting or reading it."
+#define OMX_REPLY_HOST_PROPERTY_VALUE_INVALID "reply.host.property-value-invalid" ///< a property value the host does not hand on: larger than OMX_CLAP_PROPERTY_VALUE_MAX with its NUL, not UTF-8, or a path that is not absolute
+#define OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP (-108)
+#define OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_TEXT_EN "That value cannot be set: it is too long, not valid text, or a path that does not start with a slash. Send a shorter value, or an absolute path."
+#define OMX_REPLY_HOST_PROPERTY_QUEUE_FULL "reply.host.property-queue-full" ///< the instance's property ring has no room before its next block: nothing of the set is kept, and it may be sent again
+#define OMX_REPLY_HOST_PROPERTY_QUEUE_FULL_RESP (-109)
+#define OMX_REPLY_HOST_PROPERTY_QUEUE_FULL_TEXT_EN "The plugin had no room for this value before its next block, so it was not kept. Send it again."
 
 /* HOST_TRACK_KINDS (data/verbs.json) */
 #define OMX_HOST_TRACK_KINDS_BUS "bus"

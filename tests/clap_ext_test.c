@@ -54,6 +54,8 @@ typedef struct
     int64_t last_steady;
     uint32_t loaded_context, plain_loads, aux_out_set, aux_out_active, ring, while_processing, activations;
     uint32_t rescan_on_deactivate;
+    uint32_t no_state_context;
+    double bypass;
 } ext_stats_t;
 
 static void *hook(const char *path, const char *name)
@@ -428,6 +430,41 @@ int main(int argc, char **argv)
           "a load for a duplicate goes through state-context with its context");
     CHECK(omx_clap_host_state_save_context(in, 9, buf, sizeof(buf), &len) == -1, "an unknown context: -1");
 
+    /* a preset never carries the plugin's own bypass (omx-clap-core#20): after a load for a preset, the parameter flagged
+     * CLAP_PARAM_IS_BYPASS reads off whatever the state said; a project or session load keeps the plugin's own last
+     * state, bypassed included. A state that begins with 'B' was saved bypassed. */
+    {
+        double v = -1.0;
+
+        st->bypass = 0.0;
+        CHECK(omx_clap_host_state_load_context(in, CLAP_STATE_CONTEXT_FOR_PRESET, "Bpreset", 7) == 0 &&
+                  st->loaded_context == CLAP_STATE_CONTEXT_FOR_PRESET && omx_clap_host_param_read(in, 7, &v) == 0 && v == 0.0,
+              "a preset saved bypassed loads with the bypass off (%g)", v);
+        CHECK(omx_clap_host_state_load_context(in, CLAP_STATE_CONTEXT_FOR_PROJECT, "Bproject", 8) == 0 &&
+                  omx_clap_host_param_read(in, 7, &v) == 0 && v == 1.0,
+              "control: a project saved bypassed reloads bypassed (%g)", v);
+        st->bypass = 0.0;
+        st->no_state_context = 1;
+        {
+            const uint32_t plain = st->plain_loads;
+
+            CHECK(omx_clap_host_state_load_context(in, CLAP_STATE_CONTEXT_FOR_PRESET, "B", 1) == 0 && st->plain_loads == plain + 1 &&
+                      omx_clap_host_param_read(in, 7, &v) == 0 && v == 0.0,
+                  "a plugin without state-context: a preset load is state.load, and the bypass is off after it (%g)", v);
+        }
+        CHECK(omx_clap_host_state_load_context(in, CLAP_STATE_CONTEXT_FOR_PROJECT, "B", 1) == 0 && omx_clap_host_param_read(in, 7, &v) == 0 &&
+                  v == 1.0,
+              "control: its project load keeps the bypass (%g)", v);
+        st->bypass = 0.0;
+        CHECK(omx_clap_host_state_load(in, "B", 1) == 0 && omx_clap_host_param_read(in, 7, &v) == 0 && v == 1.0,
+              "control: the plain load, a session restore, keeps the bypass (%g)", v);
+        st->no_state_context = 0;
+        st->bypass = 0.0;
+        CHECK(omx_clap_host_state_load_context(in, CLAP_STATE_CONTEXT_FOR_PRESET, "B", 1) == 0 && omx_clap_host_param_read(in, 7, &v) == 0 &&
+                  v == 0.0,
+              "the last preset load leaves the bypass off for the audio below (%g)", v);
+    }
+
     /* the tail, read at activate; the plugin's auxiliary output deactivated before it */
     st->tail = 1000;
     CHECK(omx_clap_host_activate(in, 48000.0, BLK, why) == 0, "fake_ext activates (%s)", why);
@@ -485,6 +522,7 @@ int main(int argc, char **argv)
     /* the thread pool inside process(): every task done before request_exec returns */
     st->pool_request = 12;
     run(in, 0.5f);
+    CHECK(g_l[0] == 0.5f && g_r[BLK - 1] == 0.5f, "after the preset load the plugin is not bypassed: audio passes (%g)", (double)g_l[0]);
     CHECK(st->pool_ok && st->pool_done == 12, "inside process() request_exec runs all 12 tasks before it returns (%u, %u)", st->pool_ok,
           st->pool_done);
     st->pool_request = 0;
@@ -497,6 +535,10 @@ int main(int argc, char **argv)
           st->pool_nested_ok, st->pool_nested_refused);
     st->pool_nested = 0;
     st->pool_request = 0;
+    st->bypass = 1.0;
+    run(in, 0.5f);
+    CHECK(g_l[0] == 0.0f, "control: the fake bypassed writes silence (%g)", (double)g_l[0]);
+    st->bypass = 0.0;
 
     scan_section();
 

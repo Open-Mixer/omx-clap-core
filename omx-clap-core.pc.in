@@ -13,7 +13,8 @@ Version: @VERSION@
 Requires: clap
 # hosted_stage.h takes its DSP words from omx-dsp's headers, which name omx-contract's; clap_host.h its hosting codes
 # from omx_clap_core_vocabulary.h, installed beside it, and the resource hints from omx-contract's
-# omxcontract/omx_resource_hints.h (3.1.0); nothing of either is linked
-Requires.private: omxdsp >= 0.32.0, omxdsp < 0.33, omx-contract >= 3.18.0, omx-contract < 4, libcrypto
+# omxcontract/omx_resource_hints.h (3.1.0); nothing of either is linked. Both ranges are the spec's BuildRequires, filled in by
+# make install-lib (#66): the one place they are declared
+Requires.private: omxdsp >= @OMXDSP_FLOOR@, omxdsp < @OMXDSP_CEILING@, omx-contract >= @OMX_CONTRACT_FLOOR@, omx-contract < @OMX_CONTRACT_CEILING@, libcrypto
 Libs: -L${libdir} -lomx-clap-core
 Cflags: -I${includedir}

@@ -1350,9 +1350,6 @@ clap-coverage: $(PROG) $(SCAN_PROG)
 	nice -n 10 python3 -I tests/clap_coverage.py host --sandbox --out $(CLAP_COVERAGE_OUT) --omx-clap-host ./$(PROG)
 	python3 -I tests/clap_coverage.py classify --out $(CLAP_COVERAGE_OUT)
 
-# the fixture bundle through the parity runner end to end, in a PipeWire of its own, at 48 and 96 kHz; mod-host needed
-test-parity-lv2: $(PROG) tests/jack_parity $(LV2_BUNDLES)
-	./tests/lv2_parity_fixture.sh
 
 # ---- the LV2 adapter's tests ----
 
@@ -1375,6 +1372,11 @@ LV2_BUNDLES = build/lv2/omx-host-fixture.lv2/omx-host-fixture.so build/lv2/omx-w
               build/lv2/omx-event-fixture.lv2/omx-event-fixture.so \
               build/lv2/omx-ll-midi-fixture.lv2/omx-ll-midi-fixture.so \
               build/lv2/omx-layout-fixture.lv2/omx-layout-fixture.so
+
+# the fixture bundles through the parity runner end to end, in a PipeWire of its own, at 48 and 96 kHz; mod-host
+# needed. After LV2_BUNDLES: a rule's prerequisites are read where the rule stands, and above it they were empty
+test-parity-lv2: $(PROG) tests/jack_parity $(LV2_BUNDLES)
+	./tests/lv2_parity_fixture.sh
 
 # the resource hints' LV2 face (#323), outside build/lv2: the refused bundle is malformed on purpose, and lv2_validate
 # knows no omxres property (omx-contract's omx-resource-hints.ttl does not validate on its own), so neither is validated

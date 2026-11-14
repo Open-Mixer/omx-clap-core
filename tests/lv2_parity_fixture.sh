@@ -60,7 +60,7 @@ prop_uri=urn:openmixer:test:property-fixture
 props() { # <dir> <dB>: the gain file and the property table
     mkdir -p "$1"
     printf -- '%s\n' "$2" >"$1/gain.txt"
-    printf '%s\tgainfile\t%s#gainfile\t"%s"\n' "$prop_uri" "$prop_uri" "$1/gain.txt" >"$1/properties.tsv"
+    printf '%s\tgainfile\t%s#gainfile\t"%s"\t%s\n' "$prop_uri" "$prop_uri" "$1/gain.txt" "$2" >"$1/properties.tsv"
 }
 prop_pass() { # <dir> [sabotage]
     props "$1" -12

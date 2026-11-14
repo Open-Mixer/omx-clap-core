@@ -32,6 +32,14 @@ classify maps each measurement to a class and a cause (the rules below, a pure f
 report  writes summary.md: counts per class and rate, the causes of DIFFERS with example plugins, the
         latencies the hosts disagree on, CPU, and the time the run took with the estimate for the full set.
 
+--properties <tsv> (omx-clap-core#15, adapter spec §10.3/§10.4): per row a URI, a property's symbol, its URI, a value
+        (one quoted-escaped word) and the dB the plugin must then play at against its unset self. The second instance of
+        each host is given it after the add, mod-host by patch_set with the URI, omx-clap-host by property_set with the
+        symbol; the first stays unset. Such a plugin's record is classified on that alone: PROPERTY-SAME when each host's
+        two instances agree with the other host's bit for bit, each host's set instance plays at the dB against its
+        unset one within 0.01, and omx-clap-host's property_get reads the value back; PROPERTY-DIFFERS otherwise, with
+        which. LV2_PARITY_SABOTAGE=property gives omx-clap-host the rows of LV2_PARITY_SABOTAGE_PROPERTIES instead.
+
 Classes. IDENTICAL: both instances of each host agree bit for bit, and the two hosts agree bit for bit.
 WITHIN-TOLERANCE: the hosts differ, the largest difference is under 1e-6 and the reason is named (an
 offset of N samples found by cross-correlation, subnormal values only, rounding). DIFFERS: the largest
@@ -180,6 +188,24 @@ SPREAD_K = 1.5      # two hosts of a random plugin may differ by this times the 
 SPREAD_DB = 0.5     # ... and their levels (RMS) by this many dB, or SPREAD_K times the plugin's own level spread
 
 
+def property_verdict(p):
+    """(class, cause, detail) of a plugin given a property by both hosts (--properties)"""
+    want = p.get('want_db')
+    detail = (f"set: mod-host {p.get('mod_db')} dB, omx-clap-host {p.get('omx_db')} dB against unset, want {want}; "
+              f"unset alike {p.get('equal_unset')}, set alike {p.get('equal_set')}; readback {p.get('readback')}")
+    wrong = []
+    if not p.get('equal_unset'):
+        wrong.append('the unset instances differ')
+    if not p.get('equal_set'):
+        wrong.append('the set instances differ')
+    for k in ('mod_db', 'omx_db'):
+        if p.get(k) is None or want is None or abs(p[k] - want) >= 0.01:
+            wrong.append(f"{'mod-host' if k == 'mod_db' else 'omx-clap-host'} plays at {p.get(k)} dB, not {want}")
+    if p.get('readback') != f"resp 0 {p.get('value')}":
+        wrong.append('omx-clap-host reads back %r' % p.get('readback'))
+    return ('PROPERTY-DIFFERS', '; '.join(wrong), detail) if wrong else ('PROPERTY-SAME', '', detail)
+
+
 def ports_of(rec):
     """{'mod': (outputs, midi inputs), 'omx': (...)} from the feeder's link lines of instance 0 and 2 (None: unknown)."""
     p = rec.get('ports') or {}
@@ -219,6 +245,8 @@ def _classify(rec, ports):
         return 'REFUSED', f"{rec.get('host', '?')}: {rec.get('detail', '')}", ''
     if st != 'ok':
         return 'ERROR', st, rec.get('detail', '')
+    if 'prop' in rec:
+        return property_verdict(rec['prop'])
     m = rec['m']
     audio = 'the audio bit-identical' if m.get('equal') else 'the audio differs too'
     # the port layout first: a port one host has and the other has not is a difference whatever the audio says
@@ -565,6 +593,24 @@ class Lines:
             self.buf += d
 
 
+def properties_of(path, uri):
+    """the rows of a --properties table for one plugin: (symbol, property URI, value, dB)"""
+    rows = []
+    if path and os.path.exists(path):
+        for line in open(path, encoding='utf-8'):
+            f = line.rstrip('\n').split('\t')
+            if len(f) == 5 and f[0] == uri:
+                rows.append((f[1], f[2], f[3], float(f[4])))
+    return rows
+
+
+def level_db(set_, unset):
+    """the set recording's level against the unset one's, in dB, over every channel"""
+    np = _np()
+    a, b = float(np.sqrt(np.mean(np.square(set_, dtype=np.float64)))), float(np.sqrt(np.mean(np.square(unset, dtype=np.float64))))
+    return round(20.0 * np.log10(a / b), 4) if a > 0 and b > 0 else None
+
+
 def one_pass(e, rate, a, env, work, logdir, tag, arms_of):
     """One plugin at one rate with the hosts in arms_of ({'mod': [0, 1], 'omx': [2, 3]}). A raw record."""
     np = _np()
@@ -598,6 +644,21 @@ def one_pass(e, rate, a, env, work, logdir, tag, arms_of):
                     rec.update(status='refused', host=NAMES[k], detail=reply)
                     return rec
         mark('added')
+        props = properties_of(getattr(a, 'properties', None), e['uri']) if len(arms_of) == 2 else []
+        if props:
+            omx_rows = (properties_of(os.environ.get('LV2_PARITY_SABOTAGE_PROPERTIES'), e['uri'])
+                        if SABOTAGE == 'property' else props)
+            sets = [('mod', arms_of['mod'][1], f'patch_set {arms_of["mod"][1]} {uri} {value}')
+                    for _, uri, value, _ in props]
+            sets += [('omx', arms_of['omx'][1], f'property_set {arms_of["omx"][1]} {sym} {value}')
+                     for sym, _, value, _ in omx_rows]
+            for k, n, cmd in sets:
+                reply, err = hosts[k].send(cmd, a.add_timeout)
+                if err or reply != 'resp 0':
+                    rec.update(status='refused', host=NAMES[k], detail=f'{cmd} -> {reply or err}')
+                    return rec
+            rec['prop'] = {'sets': [c for _, _, c in sets]}
+            mark('set')
         clients = [f'effect_{n}' for k in arms_of for n in arms_of[k]]
         frames = int(round(a.seconds * rate / QUANTUM)) * QUANTUM
         rec_dir = tempfile.mkdtemp(dir=work, prefix='rec.')
@@ -676,6 +737,18 @@ def one_pass(e, rate, a, env, work, logdir, tag, arms_of):
                 return rec
         m0, m1 = traces[clients[0]], traces[clients[1]]
         o0, o1 = traces[clients[2]], traces[clients[3]]
+        if props:
+            p = rec['prop']
+            p['equal_unset'], p['equal_set'] = bits_equal(m0, o0), bits_equal(m1, o1)
+            p['mod_db'], p['omx_db'], p['want_db'] = level_db(m1, m0), level_db(o1, o0), props[0][3]
+            sym, _, value, _ = props[0]
+            got, _ = hosts['omx'].send(f'property_get {arms_of["omx"][1]} {sym}', 2)
+            p['readback'], p['value'] = got, value
+            mark('measured')
+            for f in os.listdir(rec_dir):
+                os.unlink(os.path.join(rec_dir, f))
+            os.rmdir(rec_dir)
+            return rec
         if SABOTAGE == 'offset':
             # the adapter's output one sample late, in a copy: the end-to-end fixture must read it red
             o0, o1 = (np.concatenate((np.zeros((x.shape[0], 1), np.float32), x[:, :-1]), axis=1) for x in (o0, o1))
@@ -1240,6 +1313,16 @@ def self_test():
     c = cls(noisy(1), noisy(2), noisy(3, 2.0), noisy(4, 2.0))
     t("random in both hosts, omx-clap-host twice as loud: DIFFERS, beyond the plugin's own spread",
       c[:2] == ('DIFFERS', "beyond the plugin's own spread"))
+    # a property given by both hosts: the same set, the same level, the value read back; each fault named
+    good = {'equal_unset': True, 'equal_set': True, 'mod_db': -12.0, 'omx_db': -12.0, 'want_db': -12.0,
+            'readback': 'resp 0 "/a"', 'value': '"/a"'}
+    t('a property both hosts set alike, at the dB, read back: PROPERTY-SAME', property_verdict(good)[0] == 'PROPERTY-SAME')
+    for k, v, word in (('omx_db', -6.0, 'omx-clap-host plays at -6.0'), ('equal_set', False, 'set instances differ'),
+                       ('equal_unset', False, 'unset instances differ'), ('readback', 'resp -108', 'reads back'),
+                       ('mod_db', None, 'mod-host plays at None')):
+        v_ = property_verdict(dict(good, **{k: v}))
+        t(f'a property with {k}={v!r}: PROPERTY-DIFFERS naming it', v_[0] == 'PROPERTY-DIFFERS' and word in v_[1])
+
     def with_ports(r, mod, omx):
         r = dict(r)
         r['ports'] = {'effect_0': f'in=2 out={mod[0]} midi={mod[1]} midi_fed=0', 'effect_2': f'in=2 out={omx[0]} midi={omx[1]} midi_fed=0'}
@@ -1384,6 +1467,7 @@ def main():
     p.add_argument('--run-timeout', type=float, default=120)
     p.add_argument('--paced', action='store_true', help='play one quantum of wall time per cycle')
     p.add_argument('--keep', choices=['none', 'differs', 'all'], default='differs')
+    p.add_argument('--properties', help='a table of properties both hosts give the second instance (see the head)')
     p.add_argument('--min-free-gib', type=float, default=3.0)
     p.add_argument('--work')
     p.add_argument('--feeder', default=os.path.join(HERE, 'jack_parity'))

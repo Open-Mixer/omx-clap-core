@@ -70,6 +70,22 @@ static float level_after(struct omx_clap_instance *in, float from, float by)
     return l;
 }
 
+/* blocks until the level holds for 16 blocks (a fade-in or a worker's reply passed), or WAIT_BLOCKS ran: the level then */
+static float level_steady(struct omx_clap_instance *in)
+{
+    float l = block(in), was = -1.0f;
+    uint32_t held = 0;
+
+    for (uint32_t n = 0; n < WAIT_BLOCKS && held < 16u; n++)
+    {
+        usleep(250);
+        was = l;
+        l = block(in);
+        held = l == was ? held + 1u : 0u;
+    }
+    return l;
+}
+
 /* blocks until get answers `want` for `id`, or WAIT_BLOCKS ran: 1 when it did */
 static int reads_back(struct omx_clap_instance *in, clap_id id, const char *want)
 {
@@ -97,7 +113,9 @@ static int find(struct omx_clap_instance *in, const char *symbol, omx_clap_prope
     return 0;
 }
 
-static struct omx_clap_instance *open_one(const clap_plugin_entry_t *entry)
+/* opened, its state loaded when one is given (the adapter applies a held state at its plugin's activate, as a fresh
+ * instance's restore), then activated and its cycles started */
+static struct omx_clap_instance *open_one(const clap_plugin_entry_t *entry, const void *state, size_t len)
 {
     char why[OMX_CLAP_WHY_MAX] = "";
     struct omx_clap_instance *in = NULL;
@@ -105,6 +123,12 @@ static struct omx_clap_instance *open_one(const clap_plugin_entry_t *entry)
     CHECK(omx_clap_host_open_entry(entry, FIXTURE_URI, &in, why) == 0 && in, "%s opens through the adapter (%s)", FIXTURE_URI, why);
     if (!in)
         return NULL;
+    if (state)
+    {
+        const int loaded = omx_clap_host_state_load(in, state, len);
+
+        CHECK(loaded == 0, "a fresh instance loads the state (%d)", loaded);
+    }
     CHECK(omx_clap_host_activate(in, RATE, BLOCK, why) == 0, "it activates (%s)", why);
     omx_clap_host_publish(in, pthread_self());
     return in;
@@ -147,7 +171,7 @@ int main(int argc, char **argv)
     snprintf(bundle, sizeof(bundle), "%s/omx-property-fixture.lv2", argv[1]);
     entry = omx_clap_lv2_entry(bundle, lv2_why);
     CHECK(entry != NULL, "the fixture bundle's entry opens (%s)", lv2_why);
-    if (!entry || !(a = open_one(entry)))
+    if (!entry || !(a = open_one(entry, NULL, 0)))
         return 1;
 
     /* count: the host answers the event space, so both properties are presented */
@@ -163,7 +187,8 @@ int main(int argc, char **argv)
     unset = level_after(a, 0.0f, 0.0f);
     CHECK(fabsf(unset - 0.5f) < 1e-6f, "unset, the fixture passes its input (%g)", (double)unset);
     CHECK(omx_clap_host_property_set(a, path.id, file, why) == 0, "the path is set (%s)", why);
-    set = level_after(a, unset, 1e-6f);
+    (void)level_after(a, unset, 1e-6f);
+    set = level_steady(a);
     CHECK(fabsf(set - unset) > 1e-3f, "positive control: the level moved (%g -> %g)", (double)unset, (double)set);
     CHECK(fabs(20.0 * log10((double)set / (double)unset) + 12.0) < 0.01, "the path to a file holding -12 moves the output by -12.00 dB (%.3f)",
           20.0 * log10((double)set / (double)unset));
@@ -175,12 +200,13 @@ int main(int argc, char **argv)
 
     /* state: a fresh instance keeps both */
     CHECK(omx_clap_host_state_save(a, state, sizeof(state), &state_len) == 0 && state_len > 0, "the state saves (%zu bytes)", state_len);
+    if (getenv("PROPERTIES_TEST_DUMP"))
+        fwrite(state, 1, state_len, stderr);
     omx_clap_host_unpublish(a, 10, 1000000);
     omx_clap_host_close(a);
-    if (!(b = open_one(entry)))
+    if (!(b = open_one(entry, state, state_len)))
         return 1;
-    CHECK(omx_clap_host_state_load(b, state, state_len) >= 0, "a fresh instance loads it");
-    restored = level_after(b, 0.5f, 1e-6f);
+    restored = level_steady(b);
     CHECK(fabs(20.0 * log10((double)restored / 0.5) + 12.0) < 0.01, "the fresh instance plays at -12.00 dB (%.3f)",
           20.0 * log10((double)restored / 0.5));
     CHECK(find(b, "gainfile", &path) && reads_back(b, path.id, file), "and reads the path back");

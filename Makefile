@@ -427,7 +427,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
+test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -553,6 +553,38 @@ tests/clap_properties_test: tests/clap_properties_test.c $(CORE_SRC) $(CORE_HEAD
 .PHONY: test-properties
 test-properties: tests/clap_properties_test build/lv2/omx-property-fixture.lv2/omx-property-fixture.so
 	./tests/clap_properties_test $(abspath build/lv2)
+
+# each sabotage of §10.3 built on its own and seen red on the oracle's arm it breaks: the property set into the core
+# dropped (the level does not move); the host's registry answering false (no property, the set refused by name); and the
+# path stored without state:mapPath, the fixture's save not using it (the path is lost across a save, the fresh instance
+# plays at 0 dB). lilv adds its own mapPath to the features of every save and restore, so a host cannot withhold it: the
+# sabotage is the plugin's use of it, which is what the state arm rests on.
+PROPS_SAB_CC = $(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O2 -g -std=gnu99 -D_GNU_SOURCE \
+	-pthread -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u
+.PHONY: test-properties-sabotage
+test-properties-sabotage: tests/clap_properties_test.c tests/clap_properties_test $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS) build/lv2/omx-property-fixture.lv2/omx-property-fixture.so
+	mkdir -p build/props-sab-set build/props-sab-registry
+	sed -e 's|^    (void)lv2_instance_text_set(s->in, j, e->value, why);$$|    (void)why;|' lv2/clap/lv2_clap.c > build/props-sab-set/lv2_clap.c
+	! cmp -s lv2/clap/lv2_clap.c build/props-sab-set/lv2_clap.c
+	$(PROPS_SAB_CC) -o build/props-sab-set/test $< $(CORE_SRC) $(LV2_CORE_SRC) build/props-sab-set/lv2_clap.c $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+	! ./build/props-sab-set/test $(abspath build/lv2) > build/props-sab-set/log 2>&1
+	grep -q '^FAIL the path to a file holding -12 moves the output by -12.00 dB' build/props-sab-set/log
+	sed -e 's|^    return known;$$|    return false;|' src/clap_host.c > build/props-sab-registry/clap_host.c
+	! cmp -s src/clap_host.c build/props-sab-registry/clap_host.c
+	$(PROPS_SAB_CC) -o build/props-sab-registry/test $< $(filter-out src/clap_host.c,$(CORE_SRC)) build/props-sab-registry/clap_host.c $(LV2_CORE_SRC) $(LV2_CLAP_SRC) \
+	    $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+	! ./build/props-sab-registry/test $(abspath build/lv2) > build/props-sab-registry/log 2>&1
+	grep -q '^FAIL the plugin presents its two properties (0)' build/props-sab-registry/log
+	grep -q '^FAIL the path is set (no such writable property)' build/props-sab-registry/log
+	mkdir -p build/props-sab-mappath/lv2/omx-property-fixture.lv2
+	sed -e 's|^        if (abstract)$$|        if (0)|' $(LV2_FIXTURE_DIR)/lv2_property_fixture.c > build/props-sab-mappath/lv2_property_fixture.c
+	! cmp -s $(LV2_FIXTURE_DIR)/lv2_property_fixture.c build/props-sab-mappath/lv2_property_fixture.c
+	cp -r build/lv2/. build/props-sab-mappath/lv2/
+	cp $(LV2_FIXTURE_DIR)/omx-property-fixture.lv2/*.ttl build/props-sab-mappath/lv2/omx-property-fixture.lv2/
+	$(CC) $(LV2_FIXTURE_CFLAGS) -o build/props-sab-mappath/lv2/omx-property-fixture.lv2/omx-property-fixture.so build/props-sab-mappath/lv2_property_fixture.c -lm
+	! ./tests/clap_properties_test $(abspath build/props-sab-mappath/lv2) > build/props-sab-mappath/log 2>&1
+	grep -q '^FAIL the fresh instance plays at -12.00 dB' build/props-sab-mappath/log
+	@echo "properties sabotage: the dropped set, the silent registry and the path kept without mapPath each red"
 
 tests/lv2_restart_race_tsan: tests/lv2_restart_race_test.c $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS)
 	$(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \

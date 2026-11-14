@@ -28,7 +28,8 @@
  *                                         gain moves. Its atom:String `label` is kept as it is set. Each set is echoed
  *                                         as a patch:Set of the same property on patch_out, and a patch:Get answers
  *                                         both. Its state keeps the path (abstracted by state:mapPath when the host
- *                                         gives it) and the label, and its restore reads the file again.
+ *                                         gives it; without it the path is not stored) and the label, and its restore
+ *                                         reads the file again.
  *
  * Nothing is allocated or locked in run().
  */
@@ -268,12 +269,13 @@ static LV2_State_Status save(LV2_Handle h, LV2_State_Store_Function store, LV2_S
     for (i = 0; features && features[i]; i++)
         if (!strcmp(features[i]->URI, LV2_STATE__mapPath))
             map_path = features[i]->data;
+    // a path is kept only through state:mapPath, as the extension asks of a plugin: without it the path is not stored
     if (p->path_len)
     {
         char *abstract = map_path ? map_path->abstract_path(map_path->handle, p->path) : NULL;
-        const char *kept = abstract ? abstract : p->path;
 
-        store(sh, p->u.gainfile, kept, strlen(kept) + 1u, p->u.atom_path, LV2_STATE_IS_POD | LV2_STATE_IS_PORTABLE);
+        if (abstract)
+            store(sh, p->u.gainfile, abstract, strlen(abstract) + 1u, p->u.atom_path, LV2_STATE_IS_POD | LV2_STATE_IS_PORTABLE);
         free(abstract);
     }
     store(sh, p->u.label, p->label, p->label_len + 1u, p->u.atom_string, LV2_STATE_IS_POD | LV2_STATE_IS_PORTABLE);

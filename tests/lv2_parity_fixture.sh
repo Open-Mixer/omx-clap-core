@@ -51,6 +51,32 @@ t "the host fixture at 96000, $repeats runs: every one IDENTICAL ($repeat_bad no
 pass "$out/sabotage" offset
 t "sabotage (the adapter one sample late): no IDENTICAL ($(classes "$out/sabotage"))" \
   "[ \$(tail -n +2 '$out/sabotage/parity.tsv' | wc -l) = 6 ] && ! tail -n +2 '$out/sabotage/parity.tsv' | cut -f3 | grep -qx IDENTICAL"
-[ "$fails" = 0 ] || { echo "run log:"; sed 's/^/     /' "$out/real/run.log"; }
+# the property fixture (omx-clap-core#15, adapter spec §10.3/§10.4): the second instance of each host is given the same
+# path, mod-host by patch_set with the property's URI, omx-clap-host by property_set with its symbol; the first of each
+# stays unset. The path names a file holding -12: each host's set instance must play 12.00 dB under its unset one, and
+# the two hosts' set instances bit for bit alike, at both rates. With LV2_PARITY_SABOTAGE=property the adapter's set
+# names a file holding -6, and the pass must read red
+prop_uri=urn:openmixer:test:property-fixture
+props() { # <dir> <dB>: the gain file and the property table
+    mkdir -p "$1"
+    printf -- '%s\n' "$2" >"$1/gain.txt"
+    printf '%s\tgainfile\t%s#gainfile\t"%s"\n' "$prop_uri" "$prop_uri" "$1/gain.txt" >"$1/properties.tsv"
+}
+prop_pass() { # <dir> [sabotage]
+    props "$1" -12
+    props "$1/six" -6
+    LV2_PATH=$root/build/lv2 python3 "$here/lv2_parity.py" probe --uris "$prop_uri" --out "$1" >/dev/null || return 1
+    LV2_PARITY_SABOTAGE=${2:-} LV2_PARITY_SABOTAGE_PROPERTIES=$1/six/properties.tsv python3 "$here/lv2_parity.py" run \
+        --out "$1" --rates 48000,96000 --lv2-path "$root/build/lv2" --omx-clap-host "$root/omx-clap-host" \
+        --mod-host "$mod_host" --keep none --properties "$1/properties.tsv" >"$1/run.log" 2>&1 || return 1
+    python3 "$here/lv2_parity.py" classify --out "$1" >/dev/null
+}
+prop_pass "$out/property"
+t "property: both rates PROPERTY-SAME, -12.00 dB under the unset on both hosts ($(classes "$out/property"))" \
+  "[ \$(tail -n +2 '$out/property/parity.tsv' 2>/dev/null | cut -f3 | grep -cx PROPERTY-SAME) = 2 ]"
+prop_pass "$out/property-sabotage" property
+t "sabotage (the adapter's set names a file holding -6): no PROPERTY-SAME ($(classes "$out/property-sabotage"))" \
+  "[ \$(tail -n +2 '$out/property-sabotage/parity.tsv' 2>/dev/null | wc -l) = 2 ] && ! tail -n +2 '$out/property-sabotage/parity.tsv' | cut -f3 | grep -qx PROPERTY-SAME"
+[ "$fails" = 0 ] || { echo "run log:"; sed 's/^/     /' "$out/real/run.log"; for d in property property-sabotage; do [ -f "$out/$d/run.log" ] && sed 's/^/     /' "$out/$d/run.log" | tail -5; done; }
 [ "$fails" = 0 ] && echo "lv2 parity fixture ok" || echo "lv2 parity fixture FAILED ($fails)"
 [ "$fails" = 0 ]

@@ -214,3 +214,13 @@ OMX_CLAP_CORE_0.26
     omx_abi_call6f;
     omx_clap_host_abi_clobber;
 } OMX_CLAP_CORE_0.24;
+
+/* added in 0.33.0: org.openmixer.properties/1, a plugin's file and text properties (omx-clap-core#15) */
+OMX_CLAP_CORE_0.33
+{
+  global:
+    omx_clap_host_property_count;
+    omx_clap_host_property_info;
+    omx_clap_host_property_get;
+    omx_clap_host_property_set;
+} OMX_CLAP_CORE_0.26;

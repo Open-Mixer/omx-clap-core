@@ -143,6 +143,7 @@ struct shim
     const clap_host_log_t *host_log;
     const clap_host_thread_check_t *host_thread;
     bool properties_granted;        // the host's clap.event-registry answered org.openmixer.properties at init
+    uint16_t properties_space;      // the space id it answered, the space of an OMX_CLAP_EVENT_PROPERTY_SET
     struct lv2_plugin *lv2;
     struct lv2_instance *in;
     int32_t *control_of_port;           // port index -> control index, -1 for a port that is not a control
@@ -402,7 +403,50 @@ static bool params_text_to_value(const clap_plugin_t *plugin, clap_id id, const 
     return end != text;
 }
 
-/* every CLAP_EVENT_PARAM_VALUE of the list into the control or patch parameter it names; any other event is not taken */
+/* whether `text`, `size` bytes with its NUL, is UTF-8 */
+static bool utf8_valid(const char *text, uint32_t size)
+{
+    const unsigned char *u = (const unsigned char *)text;
+    uint32_t i = 0, k, more;
+
+    while (i + 1u < size)
+    {
+        if (u[i] < 0x80u)
+        {
+            i++;
+            continue;
+        }
+        more = (u[i] & 0xE0u) == 0xC0u ? 1u : (u[i] & 0xF0u) == 0xE0u ? 2u : (u[i] & 0xF8u) == 0xF0u ? 3u : 0u;
+        if (!more || i + more >= size || (more == 1u && u[i] < 0xC2u))
+            return false;
+        for (k = 1; k <= more; k++)
+            if ((u[i + k] & 0xC0u) != 0x80u)
+                return false;
+        i += more + 1u;
+    }
+    return true;
+}
+
+/* an OMX_CLAP_EVENT_PROPERTY_SET into the text property it names, through the core's text slot, which the next block's
+ * patch:Message input forges into a patch:Set with no allocation (§9.3). A value of the wrong size, not NUL-terminated,
+ * not UTF-8, or a path that is not absolute, is ignored (§9.2); so is a set the slot cannot take before its block. */
+static void apply_property(struct shim *s, const omx_clap_event_property_t *e)
+{
+    char why[LV2_CORE_WHY_MAX];
+    uint32_t j;
+
+    if (e->header.size != sizeof(*e) || !e->value || e->size < 1u || e->size > OMX_CLAP_PROPERTY_VALUE_MAX ||
+        e->value[e->size - 1u] != '\0' || !utf8_valid(e->value, e->size))
+        return;
+    for (j = 0; j < s->lv2->n_texts && s->lv2->texts[j].id != e->property_id; j++)
+        ;
+    if (j == s->lv2->n_texts || (s->lv2->texts[j].is_path && e->value[0] != '/'))
+        return;
+    (void)lv2_instance_text_set(s->in, j, e->value, why);
+}
+
+/* every CLAP_EVENT_PARAM_VALUE of the list into the control or patch parameter it names, and every property set into its
+ * text property; any other event is not taken */
 static void apply_events(struct shim *s, const clap_input_events_t *events)
 {
     const uint32_t n = events ? events->size(events) : 0;
@@ -414,6 +458,11 @@ static void apply_events(struct shim *s, const clap_input_events_t *events)
         const clap_event_param_value_t *e;
         int32_t k, j;
 
+        if (h && s->properties_granted && h->space_id == s->properties_space && h->type == OMX_CLAP_EVENT_PROPERTY_SET)
+        {
+            apply_property(s, (const omx_clap_event_property_t *)h);
+            continue;
+        }
         if (!h || h->space_id != CLAP_CORE_EVENT_SPACE_ID || h->type != CLAP_EVENT_PARAM_VALUE)
             continue;
         e = (const clap_event_param_value_t *)h;
@@ -954,6 +1003,7 @@ static bool plugin_init(const clap_plugin_t *plugin)
     // know the space, gets no property
     registry = s->host->get_extension ? s->host->get_extension(s->host, CLAP_EXT_EVENT_REGISTRY) : NULL;
     s->properties_granted = registry && registry->query && registry->query(s->host, OMX_CLAP_EVENT_SPACE_PROPERTIES, &space);
+    s->properties_space = s->properties_granted ? space : UINT16_MAX;
     return true;
 }
 

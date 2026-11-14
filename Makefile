@@ -442,7 +442,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage
+test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -566,6 +566,48 @@ tests/active_race_tsan: tests/active_race_test.c $(CORE_SRC) $(CORE_HEADERS)
 # written by plugin_activate/plugin_deactivate on the control thread that restarts it: the one path test-identity-lv2
 # exercises and no other e2e test does, so it is the LV2 adapter's sources compiled into the test, not the prebuilt
 # static library test-chain-host-tsan links (never built under ThreadSanitizer)
+# org.openmixer.properties/1 through this host and the LV2 adapter, the stage 3 oracle (lv2-as-clap-adapter spec §10.3, #15)
+tests/clap_properties_test: tests/clap_properties_test.c $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS)
+	$(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O2 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \
+	    -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $< $(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) \
+	    $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+
+.PHONY: test-properties
+test-properties: tests/clap_properties_test build/lv2/omx-property-fixture.lv2/omx-property-fixture.so
+	./tests/clap_properties_test $(abspath build/lv2)
+
+# each sabotage of §10.3 built on its own and seen red on the oracle's arm it breaks: the property set into the core
+# dropped (the level does not move); the host's registry answering false (no property, the set refused by name); and the
+# path stored without state:mapPath, the fixture's save not using it (the path is lost across a save, the fresh instance
+# plays at 0 dB). lilv adds its own mapPath to the features of every save and restore, so a host cannot withhold it: the
+# sabotage is the plugin's use of it, which is what the state arm rests on.
+PROPS_SAB_CC = $(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O2 -g -std=gnu99 -D_GNU_SOURCE \
+	-pthread -Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-variable -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u
+.PHONY: test-properties-sabotage
+test-properties-sabotage: tests/clap_properties_test.c tests/clap_properties_test $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS) build/lv2/omx-property-fixture.lv2/omx-property-fixture.so
+	mkdir -p build/props-sab-set build/props-sab-registry
+	sed -e 's|^    (void)lv2_instance_text_set(s->in, j, e->value, why);$$|    (void)why;|' lv2/clap/lv2_clap.c > build/props-sab-set/lv2_clap.c
+	! cmp -s lv2/clap/lv2_clap.c build/props-sab-set/lv2_clap.c
+	$(PROPS_SAB_CC) -o build/props-sab-set/test $< $(CORE_SRC) $(LV2_CORE_SRC) build/props-sab-set/lv2_clap.c $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+	! ./build/props-sab-set/test $(abspath build/lv2) > build/props-sab-set/log 2>&1
+	grep -q '^FAIL the path to a file holding -12 moves the output by -12.00 dB' build/props-sab-set/log
+	sed -e 's|^    return known;$$|    return false;|' src/clap_host.c > build/props-sab-registry/clap_host.c
+	! cmp -s src/clap_host.c build/props-sab-registry/clap_host.c
+	$(PROPS_SAB_CC) -o build/props-sab-registry/test $< $(filter-out src/clap_host.c,$(CORE_SRC)) build/props-sab-registry/clap_host.c $(LV2_CORE_SRC) $(LV2_CLAP_SRC) \
+	    $(CRYPTO_LIBS) src/abi_guard.S -ldl -lpthread -lm
+	! ./build/props-sab-registry/test $(abspath build/lv2) > build/props-sab-registry/log 2>&1
+	grep -q '^FAIL the plugin presents its two properties (0)' build/props-sab-registry/log
+	grep -q '^FAIL the path is set (no such writable property)' build/props-sab-registry/log
+	mkdir -p build/props-sab-mappath/lv2/omx-property-fixture.lv2
+	sed -e 's|^        if (abstract)$$|        if (0)|' $(LV2_FIXTURE_DIR)/lv2_property_fixture.c > build/props-sab-mappath/lv2_property_fixture.c
+	! cmp -s $(LV2_FIXTURE_DIR)/lv2_property_fixture.c build/props-sab-mappath/lv2_property_fixture.c
+	cp -r build/lv2/. build/props-sab-mappath/lv2/
+	cp $(LV2_FIXTURE_DIR)/omx-property-fixture.lv2/*.ttl build/props-sab-mappath/lv2/omx-property-fixture.lv2/
+	$(CC) $(LV2_FIXTURE_CFLAGS) -o build/props-sab-mappath/lv2/omx-property-fixture.lv2/omx-property-fixture.so build/props-sab-mappath/lv2_property_fixture.c -lm
+	! ./tests/clap_properties_test $(abspath build/props-sab-mappath/lv2) > build/props-sab-mappath/log 2>&1
+	grep -q '^FAIL the fresh instance plays at -12.00 dB' build/props-sab-mappath/log
+	@echo "properties sabotage: the dropped set, the silent registry and the path kept without mapPath each red"
+
 tests/lv2_restart_race_tsan: tests/lv2_restart_race_test.c $(CORE_SRC) $(CORE_HEADERS) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) $(LV2_HEADERS)
 	$(CC) -Isrc -Ilv2/core -Ilv2/clap $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror \
 	    -Wno-tsan -fsanitize=thread -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $< $(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC) \
@@ -957,11 +999,11 @@ tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap-core.pc.in
 
 # what one stage block costs, as the header is and with the six in_cycle stores relaxed (omx_clap_run's two,
 # omx_clap_run_ports' two and omx_clap_run_direct_status' two): a measurement
-bench-stage: tests/stage_bench.c src/clap_stage.h src/hosted_stage.h src/hosted_stage_limits.h src/omx_clap_midi.h src/abi_guard.h src/abi_guard.S
+bench-stage: tests/stage_bench.c src/clap_stage.h src/hosted_stage.h src/hosted_stage_limits.h src/omx_clap_midi.h src/omx_msgring.h src/abi_guard.h src/abi_guard.S
 	mkdir -p build/bench-relaxed
 	sed -e 's/atomic_store(&s->in_cycle, \([01]\));/atomic_store_explicit(\&s->in_cycle, \1, memory_order_relaxed);/' src/clap_stage.h > build/bench-relaxed/clap_stage.h
 	test $$(grep -c 'in_cycle, [01], memory_order_relaxed' build/bench-relaxed/clap_stage.h) -eq 6
-	cp src/hosted_stage.h src/hosted_stage_limits.h src/clap_host_limits.h src/omx_clap_midi.h src/abi_guard.h build/bench-relaxed/
+	cp src/hosted_stage.h src/hosted_stage_limits.h src/clap_host_limits.h src/omx_clap_midi.h src/abi_guard.h src/omx_msgring.h build/bench-relaxed/
 	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -DBENCH_LABEL='"seq_cst"' -o build/stage_bench_seq_cst $< src/abi_guard.S -lm
 	$(CC) -Ibuild/bench-relaxed $(CLAP_CFLAGS) $(CFLAGS) -Werror -DBENCH_LABEL='"relaxed"' -o build/stage_bench_relaxed $< src/abi_guard.S -lm
 	for i in 1 2 3; do ./build/stage_bench_seq_cst; ./build/stage_bench_relaxed; done
@@ -1321,6 +1363,7 @@ LV2_FIXTURE_DIR = lv2/tests/fixtures
 LV2_FIXTURE_CFLAGS = -O2 -g -Wall -Wextra -Werror -std=gnu99 -fPIC -shared -D_GNU_SOURCE -pthread -ffp-contract=off $(LV2_CFLAGS)
 LV2_BUNDLES = build/lv2/omx-host-fixture.lv2/omx-host-fixture.so build/lv2/omx-worker-gain.lv2/omx-worker-gain.so \
               build/lv2/omx-lv2-fakes.lv2/omx-lv2-fakes.so build/lv2/omx-patch-fixture.lv2/omx-patch-fixture.so \
+              build/lv2/omx-property-fixture.lv2/omx-property-fixture.so \
               build/lv2/omx-midi-echo.lv2/omx-midi-echo.so \
               build/lv2/omx-time-probe.lv2/omx-time-probe.so \
               build/lv2/omx-sidechain-fixture.lv2/omx-sidechain-fixture.so \
@@ -1415,6 +1458,12 @@ build/lv2/omx-lv2-fakes.lv2/omx-lv2-fakes.so: $(LV2_FIXTURE_DIR)/lv2_fakes.c $(L
 build/lv2/omx-patch-fixture.lv2/omx-patch-fixture.so: $(LV2_FIXTURE_DIR)/lv2_patch_fixture.c $(wildcard $(LV2_FIXTURE_DIR)/omx-patch-fixture.lv2/*.ttl)
 	@mkdir -p $(@D)
 	cp $(LV2_FIXTURE_DIR)/omx-patch-fixture.lv2/*.ttl $(@D)/
+	$(CC) $(LV2_FIXTURE_CFLAGS) -o $@ $< -lm
+
+# the file and text properties of stage 3 (lv2-as-clap-adapter spec §10.3, #15)
+build/lv2/omx-property-fixture.lv2/omx-property-fixture.so: $(LV2_FIXTURE_DIR)/lv2_property_fixture.c $(wildcard $(LV2_FIXTURE_DIR)/omx-property-fixture.lv2/*.ttl)
+	@mkdir -p $(@D)
+	cp $(LV2_FIXTURE_DIR)/omx-property-fixture.lv2/*.ttl $(@D)/
 	$(CC) $(LV2_FIXTURE_CFLAGS) -o $@ $< -lm
 
 build/lv2/omx-midi-echo.lv2/omx-midi-echo.so: $(LV2_FIXTURE_DIR)/lv2_midi_echo.c $(wildcard $(LV2_FIXTURE_DIR)/omx-midi-echo.lv2/*.ttl)

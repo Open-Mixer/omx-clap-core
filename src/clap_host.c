@@ -1450,7 +1450,8 @@ static void resource_hints_read(struct omx_clap_instance *in)
  * on `bin`: a failure drops it. */
 static uint32_t param_count_of(struct omx_clap_instance *in, uint32_t *rescan);
 
-/* a one-event input list, and an output list that keeps nothing: what the host hands params.flush outside a cycle */
+/* a one-event input list, and an output list that keeps nothing: what the host hands params.flush outside a cycle (a
+ * property set, and preset_bypass_off, whose plugin may answer the value it was given, which the next get_value reads) */
 struct one_event
 {
     const clap_event_header_t *event;
@@ -4087,27 +4088,6 @@ static int state_load_done(struct omx_clap_instance *in, int stopped)
         waited += OMX_HOSTED_STAGE_ROLE_POLL_US;
     }
     return 0;
-}
-
-/* a one-event input list for preset_bypass_off, and an output list that keeps nothing: the plugin may answer the value
- * it was given, which the next get_value reads anyway */
-struct one_event
-{
-    const clap_event_header_t *event;
-};
-
-static uint32_t one_event_size(const clap_input_events_t *list) { return ((const struct one_event *)list->ctx)->event ? 1u : 0u; }
-
-static const clap_event_header_t *one_event_get(const clap_input_events_t *list, uint32_t index)
-{
-    return index == 0 ? ((const struct one_event *)list->ctx)->event : NULL;
-}
-
-static bool drop_event(const clap_output_events_t *list, const clap_event_header_t *event)
-{
-    (void)list;
-    (void)event;
-    return true;
 }
 
 /* A preset never carries the plugin's own bypass (omx-clap-core#20): after a load for a preset, each parameter flagged

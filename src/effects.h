@@ -119,6 +119,12 @@ const char *effects_patch_why(void);
 int effects_chain(int id, const int *instances, int n);
 int effects_remote_pages(int effect_id);
 int effects_remote_page_get(int effect_id, int page, char *reply, size_t size);
+/* org.openmixer.properties/1 (#15): property_list's count, property_info's and property_get's replies into `reply`,
+ * and property_set; each a resp of HOST_REPLY_CODES on a refusal */
+int effects_property_list(int effect_id);
+int effects_property_info(int effect_id, int index, char *reply, size_t size);
+int effects_property_get(int effect_id, const char *symbol, char *reply, size_t size);
+int effects_property_set(int effect_id, const char *symbol, const char *value);
 /* param_info: "resp 0 <unit> <scale> <min> <max> <default> <step> <stable_symbol>" from the plugin's parameter contract */
 int effects_param_info(int effect_id, const char *symbol, char *reply, size_t size);
 /* audio_ports: "resp 0", " dry" while the instance passes dry, and a record per registered audio port, inputs first and

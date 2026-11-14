@@ -76,7 +76,7 @@ jobs:
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       - name: Install omx-contract-devel from the OpenMixer channel
-        run: dnf install -y --setopt=install_weak_deps=False --setopt=retries=10 'omx-contract-devel >= 3.16.0'
+        run: dnf install -y --setopt=install_weak_deps=False --setopt=retries=10 'omx-contract-devel >= 3.18.0'
 
       - uses: actions/checkout@v4
 

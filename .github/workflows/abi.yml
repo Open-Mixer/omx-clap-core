@@ -48,7 +48,9 @@ jobs:
       OMX_CELL: ${{ matrix.cell.fedora }}
     steps:
       - name: The ABI cell is one of the cells this job runs
-        run: test "$(echo '${{ needs.checks.outputs.rpm }}' | grep -c "\"fedora\": *\"\?${OMX_ABI_CELL}\"\?[,}]")" -ge 1 || { echo "::error::OMX_ABI_CELL $OMX_ABI_CELL is not a cell of check-matrix's answer"; exit 1; }
+        run: |
+          test "$(echo '${{ needs.checks.outputs.rpm }}' | grep -c "\"fedora\": *\"\?${OMX_ABI_CELL}\"\?[,}]")" -ge 1 \
+            || { echo "::error::OMX_ABI_CELL $OMX_ABI_CELL is not a cell of check-matrix's answer"; exit 1; }
       - name: Install the build tools
         run: dnf install -y --setopt=install_weak_deps=False git gcc make diffutils pkgconf-pkg-config clap-devel openssl-devel libabigail dwarves dnf5-plugins
 

@@ -5032,6 +5032,136 @@ static void quoted(char *out, size_t size, const char *name)
     out[o] = '\0';
 }
 
+/* a property's value as one quoted-escaped word (\" a quote, \\ a backslash, every other byte as it is): 0, or -1 when
+ * it does not fit in `size` */
+static int quoted_value(char *out, size_t size, const char *value)
+{
+    size_t o = 0;
+
+    if (size < 3)
+        return -1;
+    out[o++] = '"';
+    for (; *value; value++)
+    {
+        if (o + 3 >= size)
+            return -1;
+        if (*value == '"' || *value == '\\')
+            out[o++] = '\\';
+        out[o++] = *value;
+    }
+    out[o++] = '"';
+    out[o] = '\0';
+    return 0;
+}
+
+/* whether `text` is UTF-8 */
+static int utf8_ok(const char *text)
+{
+    const unsigned char *u = (const unsigned char *)text;
+    unsigned more, k;
+
+    while (*u)
+    {
+        if (*u < 0x80u)
+        {
+            u++;
+            continue;
+        }
+        more = (*u & 0xE0u) == 0xC0u ? 1u : (*u & 0xF0u) == 0xE0u ? 2u : (*u & 0xF8u) == 0xF0u ? 3u : 0u;
+        if (!more || (more == 1u && *u < 0xC2u))
+            return 0;
+        for (k = 1; k <= more; k++)
+            if ((u[k] & 0xC0u) != 0x80u)
+                return 0;
+        u += more + 1u;
+    }
+    return 1;
+}
+
+/* the property of `symbol` into `info`: 0, or OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID_RESP */
+static int property_of(struct omx_clap_instance *clap, const char *symbol, omx_clap_property_info_t *info)
+{
+    const uint32_t n = omx_clap_host_property_count(clap);
+
+    for (uint32_t i = 0; i < n; i++)
+        if (omx_clap_host_property_info(clap, i, info) == 0 && strcmp(info->symbol, symbol) == 0)
+            return 0;
+    return OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID_RESP;
+}
+
+int effects_property_list(int effect_id)
+{
+    if (!instance_exist(effect_id))
+        return ERR_INSTANCE_NON_EXISTS;
+    return (int)omx_clap_host_property_count(g_effects[effect_id].clap);
+}
+
+int effects_property_info(int effect_id, int index, char *reply, size_t size)
+{
+    omx_clap_property_info_t info;
+    char name[2 * HOST_STRING_MAX + 3];
+    const uint32_t rw = OMX_CLAP_PROPERTY_IS_WRITABLE | OMX_CLAP_PROPERTY_IS_READABLE;
+
+    if (!instance_exist(effect_id))
+        return ERR_INSTANCE_NON_EXISTS;
+    if (index < 0 || omx_clap_host_property_info(g_effects[effect_id].clap, (uint32_t)index, &info) != 0)
+        return OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID_RESP;
+    info.name[sizeof(info.name) - 1] = '\0';
+    quoted(name, sizeof(name), info.name);
+    snprintf(reply, size, "resp 0 %s %s %s %s", info.symbol, info.kind == OMX_CLAP_PROPERTY_PATH ? "path" : "string",
+             (info.flags & rw) == rw ? "rw" : (info.flags & OMX_CLAP_PROPERTY_IS_WRITABLE) ? "w" : "r", name);
+    return SUCCESS;
+}
+
+int effects_property_get(int effect_id, const char *symbol, char *reply, size_t size)
+{
+    struct omx_clap_instance *clap;
+    omx_clap_property_info_t info;
+    char value[OMX_CLAP_PROPERTY_VALUE_MAX];
+    int32_t len;
+    int rc;
+
+    if (!instance_exist(effect_id))
+        return ERR_INSTANCE_NON_EXISTS;
+    clap = g_effects[effect_id].clap;
+    if ((rc = property_of(clap, symbol, &info)) != 0)
+        return rc;
+    if (!(info.flags & OMX_CLAP_PROPERTY_IS_READABLE))
+        return OMX_REPLY_HOST_PROPERTY_ACCESS_RESP;
+    len = omx_clap_host_property_get(clap, info.id, value, sizeof(value));
+    if (len < 0)
+        return OMX_REPLY_HOST_PROPERTY_ACCESS_RESP;
+    if ((size_t)len >= sizeof(value))
+        return OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP;
+    // the reply is one line of the protocol: a value whose escaped word does not fit is answered as too large
+    if (size < 8 || quoted_value(reply + 7, size - 7, value) != 0)
+        return OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP;
+    memcpy(reply, "resp 0 ", 7);
+    return SUCCESS;
+}
+
+int effects_property_set(int effect_id, const char *symbol, const char *value)
+{
+    struct omx_clap_instance *clap;
+    omx_clap_property_info_t info;
+    char why[OMX_CLAP_WHY_MAX];
+    int rc;
+
+    if (!instance_exist(effect_id))
+        return ERR_INSTANCE_NON_EXISTS;
+    clap = g_effects[effect_id].clap;
+    if ((rc = property_of(clap, symbol, &info)) != 0)
+        return rc;
+    if (!(info.flags & OMX_CLAP_PROPERTY_IS_WRITABLE))
+        return OMX_REPLY_HOST_PROPERTY_ACCESS_RESP;
+    if (strlen(value) + 1u > OMX_CLAP_PROPERTY_VALUE_MAX || !utf8_ok(value) || (info.kind == OMX_CLAP_PROPERTY_PATH && value[0] != '/'))
+        return OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP;
+    // past its checks a set fails only on the instance's ring: full, answered so the line may be sent again
+    if (omx_clap_host_property_set(clap, info.id, value, why) != 0)
+        return OMX_REPLY_HOST_PROPERTY_QUEUE_FULL_RESP;
+    return SUCCESS;
+}
+
 /* remote_page_get: the page's reply into `reply`; a slot is the id param_set takes, HOST_WORD_NONE for an empty one,
  * an id params does not list, and an id param_set would refuse */
 int effects_remote_page_get(int effect_id, int page, char *reply, size_t size)

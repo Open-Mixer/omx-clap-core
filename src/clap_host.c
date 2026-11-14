@@ -635,14 +635,16 @@ static void host_voice_info_changed(const clap_host_t *host)
         atomic_store_explicit(&instance_of(host)->voice_info_changed, 1u, memory_order_relaxed);
 }
 
-/* the host reads no event space but the core one, so it knows no other space to name: every query answers false */
+/* the host reads one event space beside the core one, org.openmixer.properties (its file and text properties, §9 of
+ * the LV2 adapter spec): that name answers OMX_CLAP_HOST_PROPERTY_SPACE, any other false */
 static bool host_event_registry_query(const clap_host_t *host, const char *space_name, uint16_t *space_id)
 {
-    (void)space_name;
+    const bool known = space_name && strcmp(space_name, OMX_CLAP_EVENT_SPACE_PROPERTIES) == 0;
+
     if (space_id)
-        *space_id = UINT16_MAX;
+        *space_id = known ? OMX_CLAP_HOST_PROPERTY_SPACE : UINT16_MAX;
     main_thread_call(host);
-    return false;
+    return known;
 }
 
 static const clap_host_event_registry_t g_host_event_registry = { host_event_registry_query };
@@ -1446,6 +1448,86 @@ static void resource_hints_read(struct omx_clap_instance *in)
 
 /* Create the plugin of `desc`, init it and read its extensions, with no layout judged. Takes over the caller's reference
  * on `bin`: a failure drops it. */
+static uint32_t param_count_of(struct omx_clap_instance *in, uint32_t *rescan);
+
+/* a one-event input list, and an output list that keeps nothing: what the host hands params.flush outside a cycle (a
+ * property set, and preset_bypass_off, whose plugin may answer the value it was given, which the next get_value reads) */
+struct one_event
+{
+    const clap_event_header_t *event;
+};
+
+static uint32_t one_event_size(const clap_input_events_t *list) { return ((const struct one_event *)list->ctx)->event ? 1u : 0u; }
+
+static const clap_event_header_t *one_event_get(const clap_input_events_t *list, uint32_t index)
+{
+    return index == 0 ? ((const struct one_event *)list->ctx)->event : NULL;
+}
+
+static bool drop_event(const clap_output_events_t *list, const clap_event_header_t *event)
+{
+    (void)list;
+    (void)event;
+    return true;
+}
+
+/* org.openmixer.properties/1 at load: the table read once and held to the rules a host checks (§9.2 of the LV2 adapter
+ * spec): P1 ids unique and no symbol a parameter's, P2 every symbol the grammar's, P3 a known kind and only known flags.
+ * P4, a table constant for the instance's life, holds by being read once. A table that breaks one is read as none, the
+ * rule kept in properties_why; one that holds gets its ring. */
+static void properties_load(struct omx_clap_instance *in)
+{
+    const uint32_t known = OMX_CLAP_PROPERTY_IS_WRITABLE | OMX_CLAP_PROPERTY_IS_READABLE;
+    uint32_t n, i, k, np;
+
+    in->properties = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, OMX_CLAP_EXT_PROPERTIES);
+    in->n_properties = 0;
+    in->properties_why[0] = '\0';
+    if (!in->properties || !in->properties->count || !in->properties->get_info || !in->properties->get_value)
+        return;
+    n = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "properties.count", in->properties->count, in->plugin);
+    np = in->params ? param_count_of(in, NULL) : 0;
+    for (i = 0; i < n; i++)
+    {
+        omx_clap_property_info_t a, b;
+        const char *rule = NULL;
+
+        memset(&a, 0, sizeof(a));
+        if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "properties.get_info", in->properties->get_info, in->plugin, i, &a))
+            rule = "P1: a property has no info";
+        else if (!memchr(a.symbol, '\0', sizeof(a.symbol)) || !pc_symbol_ok(a.symbol))
+            rule = "P2: a property symbol breaks the grammar";
+        else if (a.kind > OMX_CLAP_PROPERTY_STRING || (a.flags & ~known))
+            rule = "P3: a property kind or flag is unknown";
+        for (k = 0; !rule && k < i; k++)
+        {
+            memset(&b, 0, sizeof(b));
+            if (OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "properties.get_info", in->properties->get_info, in->plugin, k, &b) &&
+                (b.id == a.id || strcmp(b.symbol, a.symbol) == 0))
+                rule = "P1: two properties share an id or a symbol";
+        }
+        for (k = 0; !rule && k < np; k++)
+        {
+            clap_param_info_t pi;
+            struct omx_clap_param_meaning m;
+
+            memset(&pi, 0, sizeof(pi));
+            if (OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "params.get_info", in->params->get_info, in->plugin, k, &pi) &&
+                omx_clap_host_param_meaning(in, pi.id, &m) == 0 && strcmp(m.symbol, a.symbol) == 0)
+                rule = "P1: a property symbol is a parameter's";
+        }
+        if (rule)
+        {
+            snprintf(in->properties_why, sizeof(in->properties_why), "%s", rule);
+            return;
+        }
+    }
+    if (!n || !(in->prop_buf = calloc(1, OMX_CLAP_HOST_PROPERTY_RING_BYTES)) ||
+        omx_msgring_init(&in->prop_ring, in->prop_buf, OMX_CLAP_HOST_PROPERTY_RING_BYTES) != 0)
+        return;
+    in->n_properties = n;
+}
+
 static int instance_create(struct omx_clap_binary *bin, const clap_plugin_descriptor_t *desc, struct omx_clap_instance **out)
 {
     struct omx_clap_instance *in = calloc(1, sizeof(*in));
@@ -1487,6 +1569,7 @@ static int instance_create(struct omx_clap_binary *bin, const clap_plugin_descri
         return -1;
     }
     in->params = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_PARAMS);
+    properties_load(in);
     in->latency = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_LATENCY);
     in->audio_ports = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_AUDIO_PORTS);
     in->note_ports = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_NOTE_PORTS);
@@ -1830,17 +1913,57 @@ _Static_assert(OMX_HOSTED_STAGE_EVENTS_PER_BLOCK <= OMX_HOSTED_STAGE_PARAM_QUEUE
  * given the plugin's own cookie back. The first read of an event turns it; a later read finds a plain cookie and leaves
  * it. Runs where the plugin reads its events: process() on the audio role, params.flush on the control thread. Bounded,
  * no allocation, no lock, no call out. */
+/* the block's property event: once a block, the one set last block is popped (its value was valid through that block's
+ * process) and the ring's front is read; nothing else reads it, so the count does not change inside a process() */
+static struct omx_clap_instance *instance_of_param_in(struct omx_clap_param_in *p)
+{
+    return (struct omx_clap_instance *)(void *)((char *)p - offsetof(struct omx_clap_instance, param_in));
+}
+
+static void props_refresh(struct omx_clap_instance *p)
+{
+    const void *rec;
+    uint32_t size;
+
+    if (!p->extra_in || (p->prop_seen && p->prop_seen_block == p->stage.steady_time))
+        return;
+    if (p->prop_n)
+        omx_msgring_pop(p->extra_in);
+    p->prop_n = 0;
+    p->prop_seen = 1;
+    p->prop_seen_block = p->stage.steady_time;
+    rec = omx_msgring_peek(p->extra_in, &size);
+    if (!rec || size <= sizeof(clap_id))
+        return;
+    memset(&p->prop_ev, 0, sizeof(p->prop_ev));
+    p->prop_ev.header.size = sizeof(p->prop_ev);
+    p->prop_ev.header.space_id = OMX_CLAP_HOST_PROPERTY_SPACE;
+    p->prop_ev.header.type = OMX_CLAP_EVENT_PROPERTY_SET;
+    memcpy(&p->prop_ev.property_id, rec, sizeof(clap_id));
+    p->prop_ev.value = (const char *)rec + sizeof(clap_id);
+    p->prop_ev.size = (uint32_t)strnlen(p->prop_ev.value, size - sizeof(clap_id)) + 1u;
+    p->prop_n = 1;
+}
+
 static uint32_t param_in_size(const struct clap_input_events *list)
 {
-    const struct omx_clap_param_in *p = (const struct omx_clap_param_in *)list->ctx;
+    struct omx_clap_param_in *p = (struct omx_clap_param_in *)list->ctx;
+    struct omx_clap_instance *in = instance_of_param_in(p);
 
-    return p->stage_in.size(&p->stage_in);
+    props_refresh(in);
+    return in->prop_n + p->stage_in.size(&p->stage_in);
 }
 
 static const clap_event_header_t *param_in_get(const struct clap_input_events *list, uint32_t index)
 {
-    const struct omx_clap_param_in *p = (const struct omx_clap_param_in *)list->ctx;
-    const clap_event_header_t *h = p->stage_in.get(&p->stage_in, index);
+    struct omx_clap_param_in *p = (struct omx_clap_param_in *)list->ctx;
+    struct omx_clap_instance *in = instance_of_param_in(p);
+    const clap_event_header_t *h;
+
+    props_refresh(in);
+    if (index < in->prop_n)
+        return &in->prop_ev.header;   // time 0: before every event of the stage's list
+    h = p->stage_in.get(&p->stage_in, index - in->prop_n);
     clap_event_param_value_t *e;
     const struct omx_clap_param_tag *tag;
 
@@ -1907,6 +2030,9 @@ static int take_bounce(struct omx_clap_instance *in, uint32_t max_block)
     in->stage.out_events.try_push = param_out_push;
     // and the plugin reads its input events through the instance's list, which turns a tagged record into its kind
     in->param_in.stage_in = in->stage.in_events;
+    in->extra_in = in->n_properties ? &in->prop_ring : NULL;   // the stage reads it: a set waiting makes the block not quiet
+    in->prop_seen = 0;
+    in->prop_n = 0;
     in->stage.in_events.ctx = &in->param_in;
     in->stage.in_events.size = param_in_size;
     in->stage.in_events.get = param_in_get;
@@ -3083,6 +3209,8 @@ void omx_clap_host_close(struct omx_clap_instance *in)
 {
     if (!in)
         return;
+    free(in->prop_buf);
+    in->prop_buf = NULL;
     omx_clap_host_stop(in);
     if (in->active)
         omx_clap_host_deactivate(in);
@@ -3962,18 +4090,72 @@ static int state_load_done(struct omx_clap_instance *in, int stopped)
     return 0;
 }
 
-int omx_clap_host_state_load(struct omx_clap_instance *in, const void *buf, size_t len)
+/* A preset never carries the plugin's own bypass (omx-clap-core#20): after a load for a preset, each parameter flagged
+ * CLAP_PARAM_IS_BYPASS that does not read its minimum is set back to it through params.flush, a main-thread call the
+ * plugin takes while it does not process, which state_load_begin made so. One place, for every host this library
+ * runs (the console, plugin-hostd, the Zynthian adapter). A project or session load keeps the plugin's own last state,
+ * bypassed included. */
+static void preset_bypass_off(struct omx_clap_instance *in)
+{
+    uint32_t n, i;
+
+    if (!in->params || !in->params->flush)
+        return;
+    n = param_count_of(in, NULL);
+    for (i = 0; i < n; i++)
+    {
+        clap_param_info_t info;
+        double value;
+        clap_event_param_value_t ev;
+        struct one_event one = { &ev.header };
+        const clap_input_events_t ie = { &one, one_event_size, one_event_get };
+        const clap_output_events_t oe = { NULL, drop_event };
+
+        memset(&info, 0, sizeof(info));
+        if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "params.get_info", in->params->get_info, in->plugin, i, &info) ||
+            !(info.flags & CLAP_PARAM_IS_BYPASS))
+            continue;
+        if (OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "params.get_value", in->params->get_value, in->plugin, info.id, &value) &&
+            value == info.min_value)
+            continue;
+        memset(&ev, 0, sizeof(ev));
+        ev.header.size = sizeof(ev);
+        ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+        ev.header.type = CLAP_EVENT_PARAM_VALUE;
+        ev.param_id = info.id;
+        ev.cookie = info.cookie;
+        ev.note_id = -1;
+        ev.port_index = -1;
+        ev.channel = -1;
+        ev.key = -1;
+        ev.value = info.min_value;
+        OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "params.flush", in->params->flush, in->plugin, &ie, &oe);
+    }
+}
+
+/* the plugin's state.load, or state-context's load with `context` when `ext` offers it, inside state_load_begin and
+ * state_load_done; a preset's bypass is set off before the instance runs again */
+static int state_load_as(struct omx_clap_instance *in, const clap_plugin_state_context_t *ext, uint32_t context, const void *buf,
+                         size_t len)
 {
     struct bounded_stream b = { NULL, buf, len, len, 0, 0 };
     const clap_istream_t is = { &b, istream_read };
     int stopped, ok, applied;
 
-    if (!in->state || !buf)
-        return -1;
     stopped = state_load_begin(in);
-    ok = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "state.load", in->state->load, in->plugin, &is);
+    ok = ext ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ext.load", ext->load, in->plugin, &is, context)
+             : OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "state.load", in->state->load, in->plugin, &is);
+    if (ok && context == CLAP_STATE_CONTEXT_FOR_PRESET)
+        preset_bypass_off(in);
     applied = state_load_done(in, stopped);
     return !ok ? -1 : applied;
+}
+
+int omx_clap_host_state_load(struct omx_clap_instance *in, const void *buf, size_t len)
+{
+    if (!in->state || !buf)
+        return -1;
+    return state_load_as(in, NULL, 0, buf, len);    // no context: a project or session restore keeps the bypass
 }
 
 int omx_clap_host_state_save_context(struct omx_clap_instance *in, uint32_t context, void *buf, size_t cap, size_t *len)
@@ -3994,19 +4176,98 @@ int omx_clap_host_state_save_context(struct omx_clap_instance *in, uint32_t cont
 
 int omx_clap_host_state_load_context(struct omx_clap_instance *in, uint32_t context, const void *buf, size_t len)
 {
-    struct bounded_stream b = { NULL, buf, len, len, 0, 0 };
-    const clap_istream_t is = { &b, istream_read };
     const clap_plugin_state_context_t *ext = in ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_STATE_CONTEXT) : NULL;
-    int stopped, ok, applied;
 
     if (!in || !buf || context < CLAP_STATE_CONTEXT_FOR_PRESET || context > CLAP_STATE_CONTEXT_FOR_PROJECT)
         return -1;
     if (!ext || !ext->load)
-        return omx_clap_host_state_load(in, buf, len);
-    stopped = state_load_begin(in);
-    ok = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ext.load", ext->load, in->plugin, &is, context);
-    applied = state_load_done(in, stopped);
-    return !ok ? -1 : applied;
+        return in->state ? state_load_as(in, NULL, context, buf, len) : -1;
+    return state_load_as(in, ext, context, buf, len);
+}
+
+uint32_t omx_clap_host_property_count(struct omx_clap_instance *in)
+{
+    return in ? in->n_properties : 0;
+}
+
+int omx_clap_host_property_info(struct omx_clap_instance *in, uint32_t index, omx_clap_property_info_t *info)
+{
+    if (!in || !info || index >= in->n_properties)
+        return -1;
+    memset(info, 0, sizeof(*info));
+    return OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "properties.get_info", in->properties->get_info, in->plugin, index, info) ? 0 : -1;
+}
+
+int32_t omx_clap_host_property_get(struct omx_clap_instance *in, clap_id id, char *value, uint32_t capacity)
+{
+    if (!in || !in->n_properties)
+        return -1;
+    return OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "properties.get_value", in->properties->get_value, in->plugin, id, value, capacity);
+}
+
+/* the ring's sets into the plugin through params.flush while no cycle runs, holding the audio role as parameters are */
+static void properties_flush(struct omx_clap_instance *in)
+{
+    const clap_output_events_t oe = { NULL, drop_event };
+    struct omx_clap_role role;
+
+    if (!in->params || !in->params->flush)
+        return;
+    omx_clap_host_take_role(in, &role);
+    for (;;)
+    {
+        in->prop_seen = 0;
+        props_refresh(in);
+        if (!in->prop_n)
+            break;
+        {
+            struct one_event one = { &in->prop_ev.header };
+            const clap_input_events_t ie = { &one, one_event_size, one_event_get };
+
+            OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "params.flush", in->params->flush, in->plugin, &ie, &oe);
+        }
+        omx_msgring_pop(in->extra_in);
+        in->prop_n = 0;
+    }
+    in->prop_seen = 0;
+    omx_clap_host_release_role(in, &role, role.state);
+}
+
+int omx_clap_host_property_set(struct omx_clap_instance *in, clap_id id, const char *value, char why[OMX_CLAP_WHY_MAX])
+{
+    unsigned char rec[sizeof(clap_id) + OMX_CLAP_PROPERTY_VALUE_MAX];
+    omx_clap_property_info_t info;
+    size_t len;
+    uint32_t i, st;
+
+    for (i = 0; in && i < in->n_properties; i++)
+        if (omx_clap_host_property_info(in, i, &info) == 0 && info.id == id)
+            break;
+    if (!in || !in->n_properties || i == in->n_properties || !(info.flags & OMX_CLAP_PROPERTY_IS_WRITABLE))
+    {
+        snprintf(why, OMX_CLAP_WHY_MAX, "%s", in && in->properties_why[0] ? in->properties_why : "no such writable property");
+        return -1;
+    }
+    len = value ? strlen(value) : 0;
+    if (!value || len + 1u > OMX_CLAP_PROPERTY_VALUE_MAX || (info.kind == OMX_CLAP_PROPERTY_PATH && value[0] != '/'))
+    {
+        snprintf(why, OMX_CLAP_WHY_MAX, "%s", !value ? "no value" : len + 1u > OMX_CLAP_PROPERTY_VALUE_MAX ? "the value is too large" : "a path that is not absolute");
+        return -1;
+    }
+    memcpy(rec, &id, sizeof(id));
+    memcpy(rec + sizeof(id), value, len + 1u);
+    if (!in->active || omx_msgring_push(&in->prop_ring, rec, (uint32_t)(sizeof(id) + len + 1u)) != 0)
+    {
+        snprintf(why, OMX_CLAP_WHY_MAX, "%s", in->active ? "the property ring is full" : "the instance is not active");
+        return -1;
+    }
+    st = atomic_load_explicit(&in->stage.state, memory_order_acquire);
+    if (st == OMX_CLAP_IDLE || st == OMX_CLAP_STOPPED)
+        properties_flush(in);   // no cycle runs: delivered now
+    else
+        atomic_store_explicit(&in->sleep.wake, 1u, memory_order_relaxed);   // a sleeping plugin runs the next block
+    why[0] = '\0';
+    return 0;
 }
 
 int omx_clap_host_set_render(struct omx_clap_instance *in, int32_t mode)

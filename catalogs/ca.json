@@ -467,6 +467,30 @@
     "reply.host.pin-layout-mismatch": {
       "text": "Un cop iniciat, la disposició del plugin no coincidia amb el pin esperat, i per això no s’ha activat. Espereu la disposició real del plugin, o useu un plugin fet per a aquest pin.",
       "by": "human"
+    },
+    "reply.host.property-access": {
+      "text": "No es pot utilitzar aquesta propietat així: no és escriptible o no és llegible. Comproveu l'accés a la propietat abans de configurar-la o llegir-la.",
+      "by": "machine",
+      "model": "draft-prose",
+      "source": "5284683c2ed7e9f56162e2b9215caa7f014afa46c3fb16ecef11be16170f4d3b"
+    },
+    "reply.host.property-queue-full": {
+      "text": "El connector no tenia espai per a aquest valor abans del seu bloc següent, així que no es va guardar. Torneu a enviar-lo.",
+      "by": "machine",
+      "model": "draft-prose",
+      "source": "cde6cf49e822a7dddd5371c5b3c0c2593aed5fc5f88d473126a57bc5e07359a3"
+    },
+    "reply.host.property-symbol-invalid": {
+      "text": "Aquest símbol no és una de les propietats de fitxer o text d'aquest connector. Demaneu al connector la seva llista de propietats i feu servir un d'aquells símbols.",
+      "by": "machine",
+      "model": "draft-prose",
+      "source": "d9c0315902c47a9293effab1b0a8c9963e0c82b18d425dd0060c3bfc57e71565"
+    },
+    "reply.host.property-value-invalid": {
+      "text": "No es pot establir aquest valor: és massa llarg, no és un text vàlid o és un camí que no comença amb una barra. Envieu un valor més curt o un camí absolut.",
+      "by": "machine",
+      "model": "draft-prose",
+      "source": "b9a5213328ef4e59a171c63904ea01ed250c919f6e0fe4e8604ced12ca1f0363"
     }
   }
 }

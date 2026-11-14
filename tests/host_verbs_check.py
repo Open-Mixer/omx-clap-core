@@ -52,6 +52,15 @@ EXAMPLES = {
     'remote_pages': (['{fx}'], [(['x'], 'invalidOperation'), (['9'], 'instanceNonExists')]),
     'remote_page_get': (['{fx}', '0'], [(['{fx}', '99'], 'invalidOperation'), (['9', '0'], 'instanceNonExists')]),
     'param_info': (['{fx}', '0'], [(['{fx}', '99'], 'paramSymbolInvalid'), (['9', '0'], 'instanceNonExists')]),
+    # org.openmixer.properties/1 (#15): {fx}'s properties are file (a path), label (text), token (written only) and
+    # readonly (read only); a value is a quoted-escaped word
+    'property_list': (['{fx}'], [(['x'], 'invalidOperation'), (['9'], 'instanceNonExists')]),
+    'property_info': (['{fx}', '0'], [(['{fx}', '99'], 'propertySymbolInvalid'), (['9', '0'], 'instanceNonExists')]),
+    'property_get': (['{fx}', 'label'], [(['{fx}', 'nope'], 'propertySymbolInvalid'), (['{fx}', 'token'], 'propertyAccess'),
+                                         (['9', 'label'], 'instanceNonExists')]),
+    'property_set': (['{fx}', 'label', '"a \\"b\\" \\\\ c"'],
+                     [(['{fx}', 'nope', '"x"'], 'propertySymbolInvalid'), (['{fx}', 'readonly', '"x"'], 'propertyAccess'),
+                      (['{fx}', 'file', '"relative/path"'], 'propertyValueInvalid'), (['9', 'label', '"x"'], 'instanceNonExists')]),
     'pin_expect': (['7', '{pin}'], [(['7', '{scheme}:zz'], 'invalidOperation'), (['7', 'omx-layout/0:' + '0' * 64], 'pinAbsent'),
                                     (['-1', '{pin}'], 'instanceInvalid')]),
     'chain_expect': (['7', '7'], [(['7', 'x'], 'invalidOperation'), (['-1', '7'], 'instanceInvalid')]),

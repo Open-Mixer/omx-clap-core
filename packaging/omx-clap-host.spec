@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.4
+Version:        0.33.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -13,9 +13,9 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.7 with plugin-hostd-protocol-devel < 0.6)
+BuildRequires: (plugin-hostd-protocol-devel >= 0.5.10 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.4.1 with plugin-db-devel < 0.5)
+BuildRequires: (plugin-db-devel >= 0.4.2 with plugin-db-devel < 0.5)
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
 # distribution's own is older)
 BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
@@ -23,7 +23,7 @@ BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: (omx-contract-devel >= 3.16.0 with omx-contract-devel < 4)
+BuildRequires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
@@ -35,7 +35,7 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.7 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.10 with plugin-hostd-protocol%{?_isa} < 0.6)
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -86,7 +86,7 @@ Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: (omx-contract-devel >= 3.16.0 with omx-contract-devel < 4)
+Requires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -101,7 +101,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: (omx-contract-data >= 3.16.0 with omx-contract-data < 4)
+Requires: (omx-contract-data >= 3.18.0 with omx-contract-data < 4)
 # the files lived in omx-clap-core-devel before this package
 Conflicts: omx-clap-core-devel < %{version}-%{release}
 
@@ -285,6 +285,37 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Sat Nov 14 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
+- org.openmixer.properties/1: a plugin's file and text properties. The host
+  answers the event space, reads the table once at load and offers
+  omx_clap_host_property_count, _info, _get and _set (version node
+  OMX_CLAP_CORE_0.33); a set reaches the plugin as one property event at the
+  next block, or through params.flush while no cycle runs. The LV2 adapter
+  forges it into the plugin's patch:Set and sends one patch:Get after an
+  activate (#15, #77).
+- ABI 22: the instance's layout grew at its tail (abi-check: compatible), so
+  this is a minor release.
+- omx-clap-host answers property_list, property_info, property_get and
+  property_set, declared in data/verbs.json with the codes -106 to -109 and
+  their sentences in every language; a value is one quoted-escaped word (#78).
+- The LV2 parity harness sets a property through both hosts, mod-host's
+  patch_set and this host's property_set, and compares them on the oracle;
+  test-parity-lv2 builds the fixture bundles again in a fresh tree (#80).
+- Built against plugin-hostd-protocol >= 0.5.10, whose line splitter reads a
+  quoted-escaped value.
+
+* Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
+- Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and
+  below 0.5, and plugin-hostd-protocol >= 0.5.9 and below 0.6: every dependency
+  at its newest version, served or released before it in the same pass, with
+  its ceiling (D30). The installed
+  omx-clap-core.pc names the same omx-contract floor.
+- The organisation's name: FreeMixer becomes Open-Mixer and OpenMixer (#69).
+- ci: an ordinary run builds against the channel, not the staging channel; the
+  seed corpus check runs on every pull request, with the rtSafetyOwnThreads
+  block (#70).
+- 0.32.4 was never released (D29); this carries its changes.
+
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.4-1
 - hosting: hosting.rt-safety.own-threads, the code a qualifier writes for a
   plugin that starts threads of its own: conditional and still groupable

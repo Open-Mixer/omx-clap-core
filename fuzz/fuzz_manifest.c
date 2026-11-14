@@ -209,7 +209,9 @@ static __attribute__((noinline)) void check_as_written(const char *text, const c
      * mutant: src/lv2_locate.c:76 `strstr(p, local)` -> `strstr(p + local_len, local)`
      * input: repeat-then-name
      * mutant: src/lv2_locate.c:92 `end = at += local_len;` -> `end = at += 2 * local_len + 1;`
-     * input: next-name-close */
+     * input: next-name-close
+     * mutant: src/lv2_locate.c:161 `return 1;` -> `return LV2_LOCATE_READ_FAILED;`
+     * input: prefixes-past-most-read */
     if (want && !named)
         abort();
     /* A manifest that does not name it is not: "ex:gain2" is not "ex:gain".

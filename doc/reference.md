@@ -782,7 +782,12 @@ What a plugin may ask of any host besides its audio and its parameters:
 - `clap.state-context`: `omx_clap_host_state_save_context` and
   `omx_clap_host_state_load_context` with `CLAP_STATE_CONTEXT_FOR_PRESET`,
   `_DUPLICATE` or `_PROJECT`; a plugin without the extension saves and loads
-  its plain state for each.
+  its plain state for each. A preset never carries bypass: after a load for
+  `_FOR_PRESET` the plugin's own bypass (the parameter flagged
+  `CLAP_PARAM_IS_BYPASS`) is set back to off before the plugin runs again, so
+  a preset saved bypassed elsewhere does not silence the plugin it is recalled
+  on. Bypass is the host's, per stage; a project or session reload keeps the
+  plugin's own last state, bypassed included (omx-clap-core#20).
 - `clap.audio-ports-activation`: before each activate the host sets every
   auxiliary port, input or output, active only while its buffers are bound,
   so the plugin may skip a port no one reads or writes; omx-clap-host binds

@@ -270,13 +270,13 @@ struct omx_clap_param_tag
     void *cookie;  ///< the cookie get_info returned, which the event carries
 };
 
-/** The instance's input event list over the stage's: the stage's own list, and one tag per ring position over two laps
- * of the ring, so a tag is written again only once the block that read it is long over. */
 /** The event space this host answers for OMX_CLAP_EVENT_SPACE_PROPERTIES in clap.event-registry (any id but the core's) */
 #define OMX_CLAP_HOST_PROPERTY_SPACE ((uint16_t)0x4F50)
 /** The bytes of an instance's property ring: four values of the largest size, with their ids and headers */
 #define OMX_CLAP_HOST_PROPERTY_RING_BYTES 32768u
 
+/** The instance's input event list over the stage's: the stage's own list, and one tag per ring position over two laps
+ * of the ring, so a tag is written again only once the block that read it is long over. */
 struct omx_clap_param_in
 {
     clap_input_events_t stage_in;  ///< the stage's own list, which this one reads through

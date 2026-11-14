@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.5
+Version:        0.33.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -13,7 +13,7 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.9 with plugin-hostd-protocol-devel < 0.6)
+BuildRequires: (plugin-hostd-protocol-devel >= 0.5.10 with plugin-hostd-protocol-devel < 0.6)
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
 BuildRequires: (plugin-db-devel >= 0.4.2 with plugin-db-devel < 0.5)
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
@@ -35,7 +35,7 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.9 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.10 with plugin-hostd-protocol%{?_isa} < 0.6)
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -285,6 +285,25 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Sat Nov 14 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
+- org.openmixer.properties/1: a plugin's file and text properties. The host
+  answers the event space, reads the table once at load and offers
+  omx_clap_host_property_count, _info, _get and _set (version node
+  OMX_CLAP_CORE_0.33); a set reaches the plugin as one property event at the
+  next block, or through params.flush while no cycle runs. The LV2 adapter
+  forges it into the plugin's patch:Set and sends one patch:Get after an
+  activate (#15, #77).
+- ABI 22: the instance's layout grew at its tail (abi-check: compatible), so
+  this is a minor release.
+- omx-clap-host answers property_list, property_info, property_get and
+  property_set, declared in data/verbs.json with the codes -106 to -109 and
+  their sentences in every language; a value is one quoted-escaped word (#78).
+- The LV2 parity harness sets a property through both hosts, mod-host's
+  patch_set and this host's property_set, and compares them on the oracle;
+  test-parity-lv2 builds the fixture bundles again in a fresh tree (#80).
+- Built against plugin-hostd-protocol >= 0.5.10, whose line splitter reads a
+  quoted-escaped value.
+
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
 - Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and
   below 0.5, and plugin-hostd-protocol >= 0.5.9 and below 0.6: every dependency

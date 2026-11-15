@@ -501,11 +501,22 @@ while True:
 
 
 def free_port():
-    s = socket.socket()
-    s.bind(('127.0.0.1', 0))
-    p = s.getsockname()[1]
-    s.close()
-    return p if p < 65000 else 5700
+    """a port the fake host can listen on whose next port, its feed, is free too: each offer is held with the port after
+    it until both are known free, since another test running beside this one (make -j4) may hold the second"""
+    while True:
+        s = socket.socket()
+        s.bind(('127.0.0.1', 0))
+        p = s.getsockname()[1]
+        feed = socket.socket()
+        try:
+            if p < 65000:
+                feed.bind(('127.0.0.1', p + 1))
+                return p
+        except OSError:
+            pass
+        finally:
+            feed.close()
+            s.close()
 
 
 def self_test():
@@ -644,6 +655,18 @@ def self_test():
     return 0 if not fails else 1
 
 
+def sabotage_verdict(returncode, stdout):
+    """(red, text) of one sabotaged self-test run: red when it ends non-zero naming a FAIL; a run that ends non-zero with
+    no FAIL line died before its checks (a port held, a traceback) and is broken, named by its last line, never green"""
+    failed = [l[5:] for l in stdout.splitlines() if l.startswith('FAIL ')]
+    if returncode != 0 and failed:
+        return True, f'red, {len(failed)} checks failed ({failed[0]})'
+    if returncode != 0:
+        last = next((l for l in reversed(stdout.splitlines()) if l.strip()), 'no output')
+        return False, f'broken, the run died with no FAIL line: {last}'
+    return False, 'stayed green'
+
+
 def self_test_with_sabotage():
     rc = self_test()
     if SABOTAGE:
@@ -654,10 +677,9 @@ def self_test_with_sabotage():
     for s in sabotages:
         p = subprocess.run([sys.executable, '-I', os.path.abspath(__file__), '--self-test'],
                            env=dict(os.environ, CLAP_COVERAGE_SABOTAGE=s), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        failed = [l[5:] for l in p.stdout.splitlines() if l.startswith('FAIL ')]
-        ok = p.returncode != 0 and failed
+        ok, text = sabotage_verdict(p.returncode, p.stdout)
         red += bool(ok)
-        print(f"{'ok  ' if ok else 'FAIL'} sabotage {s}: {'red, ' + str(len(failed)) + ' checks failed (' + failed[0] + ')' if ok else 'stayed green'}")
+        print(f"{'ok  ' if ok else 'FAIL'} sabotage {s}: {text}")
     print(f'sabotage: {red} of {len(sabotages)} red')
     return 0 if rc == 0 and red == len(sabotages) else 1
 

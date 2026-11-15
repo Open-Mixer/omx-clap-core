@@ -907,7 +907,8 @@ test-thread-pool: tests/thread_pool_test tests/fake_pool.clap
 # The gate reads the units the way the compiler sees them (-O0 -fno-inline -fcallgraph-info) and derives the roots from
 # the ABI tables they fill. This tree binds the host side of CLAP and LV2 (--abi clap:host --abi lv2:host): try_push,
 # in_events.size and get, request_exec, tail.changed, request_flush, schedule_work and log.printf are audio, the respond
-# LV2 work is handed is worker. omx-dsp-devel installs the gate; OMX_RT_GATE=<path> names one built from an omx-dsp checkout.
+# LV2 work is handed is worker. It binds its own embedding API too (--abi omx-clap-core, omx-dsp's omx-clap-core.abi):
+# the audio-role predicates and the log sink its embedder hands it are called through their fields, as audio. omx-dsp-devel installs the gate; OMX_RT_GATE=<path> names one built from an omx-dsp checkout.
 #   rt-gate-graphs           the call graph of every compiled unit of the core and the LV2 adapter, the graphs this tree
 #                            ships (make install, $(DATADIR)/omx-clap-core/rt-gate/graphs) for a plugin's run to join
 #   test-rt-gate-control     tests/rt_gate/host_roots.c: every host root derived, clean green, a malloc, a lock or a
@@ -922,7 +923,7 @@ RT_GATE_FLAGS = -std=gnu99 -D_GNU_SOURCE -pthread -fPIC -fvisibility=hidden -Isr
 # the units that store a host root, judged; the rest of the core and the adapter joined by their graphs
 RT_GATE_UNITS = src/clap_host.c lv2/core/lv2_instance.c lv2/core/lv2_features.c
 RT_GATE_JOINED = $(filter-out $(RT_GATE_UNITS),$(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC))
-RT_GATE_ABIS = --abi clap:host --abi lv2:host
+RT_GATE_ABIS = --abi clap:host --abi lv2:host --abi omx-clap-core
 # omx-dsp's graphs, joined beside this tree's: the installed ones, unless OMX_RT_GATE_DSP_GRAPHS names others
 OMX_RT_GATE_DSP_GRAPHS ?= $(abspath $(dir $(shell command -v $(OMX_RT_GATE) 2>/dev/null))../share/omxdsp/rt-gate/graphs)
 

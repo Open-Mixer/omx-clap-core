@@ -38,6 +38,10 @@ on:
         description: 'Build against the staging channel, above the real one: a dry run only, never a tag or a publish'
         type: boolean
         default: false
+      same_pass:
+        description: 'Packages other repositories release in the same pass, space separated: the channel-installability gate reports a range they fall outside of, instead of failing on it'
+        type: string
+        default: ''
   workflow_call:
     inputs:
       publish:
@@ -57,6 +61,10 @@ on:
         description: 'Build against the staging channel, above the real one: a dry run only, never a tag or a publish'
         type: boolean
         default: false
+      same_pass:
+        description: 'Packages other repositories release in the same pass, space separated (channel-installability)'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -75,6 +83,7 @@ jobs:
       staged: ${{ inputs.staged == true }}
       staged-deps: ${{ inputs.staged-deps || '' }}
       staging: ${{ inputs.staging == true }}
+      same-pass: ${{ inputs.same_pass || '' }}
       package-name: omx-clap-host
       publish: ${{ github.event_name == 'push' || inputs.publish == true }}
       arch-matrix: ${{ (github.event_name != 'push' && inputs.arm == false) && '["x86_64"]' || '["x86_64", "aarch64"]' }}
@@ -89,6 +98,7 @@ jobs:
       staged: ${{ inputs.staged == true }}
       staged-deps: ${{ inputs.staged-deps || '' }}
       staging: ${{ inputs.staging == true }}
+      same-pass: ${{ inputs.same_pass || '' }}
       package-name: omx-clap-host
       publish: ${{ github.event_name == 'push' || inputs.publish == true }}
       arch-matrix: ${{ (github.event_name != 'push' && inputs.arm == false) && '["amd64"]' || '["amd64", "arm64"]' }}

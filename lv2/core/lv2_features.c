@@ -145,21 +145,42 @@ static const char *const g_declared_uri[BLOCK_DECLARATIONS] =
 ************************************************************************************************************************
 */
 
-/* the slot of the URID index `i`: segment k starts at URID_SEGMENT0 * (2^k - 1) */
-static _Atomic(const char *) *urid_slot(uint32_t i, int create)
+/* the segment of the URID index `i` (URID_SEGMENTS past the last) and, in *base, its first index: segment k starts at
+   URID_SEGMENT0 * (2^k - 1) */
+static uint32_t urid_segment_of(uint32_t i, uint32_t *base)
 {
-    uint32_t k = 0, base = 0;
+    uint32_t k = 0;
 
-    while (k < URID_SEGMENTS && i >= base + (URID_SEGMENT0 << k))
+    *base = 0;
+    while (k < URID_SEGMENTS && i >= *base + (URID_SEGMENT0 << k))
     {
-        base += URID_SEGMENT0 << k;
+        *base += URID_SEGMENT0 << k;
         k++;
     }
+    return k;
+}
+
+/* the slot of the URID index `i` in a segment already made, or NULL: no allocation, so lv2_urid_unlookup may run on
+   the audio thread (rt-gate #19) */
+static _Atomic(const char *) *urid_slot(uint32_t i)
+{
+    uint32_t base;
+    const uint32_t k = urid_segment_of(i, &base);
+
+    return k < URID_SEGMENTS && g_urid.segment[k] ? &g_urid.segment[k][i - base] : NULL;
+}
+
+/* the slot of the URID index `i`, its segment made first when it is not yet: the map's path, never the audio thread's */
+static _Atomic(const char *) *urid_slot_make(uint32_t i)
+{
+    uint32_t base;
+    const uint32_t k = urid_segment_of(i, &base);
+
     if (k == URID_SEGMENTS)
         return NULL;
-    if (!g_urid.segment[k] && create)
+    if (!g_urid.segment[k])
         g_urid.segment[k] = calloc(URID_SEGMENT0 << k, sizeof(*g_urid.segment[k]));
-    return g_urid.segment[k] ? &g_urid.segment[k][i - base] : NULL;
+    return urid_slot(i);
 }
 
 /* the URID of `uri` among the first `n`, or 0 */
@@ -169,7 +190,7 @@ static LV2_URID urid_find(const char *uri, uint32_t from, uint32_t n)
 
     for (i = from; i < n; i++)
     {
-        const char *s = atomic_load_explicit(urid_slot(i, 0), memory_order_relaxed);
+        const char *s = atomic_load_explicit(urid_slot(i), memory_order_relaxed);
 
         if (strcmp(s, uri) == 0)
             return i + 1;
@@ -193,7 +214,7 @@ LV2_URID lv2_urid_lookup(const char *uri)
     id = urid_find(uri, n, seen);      // another writer may have appended it meanwhile
     if (!id)
     {
-        _Atomic(const char *) *slot = urid_slot(seen, 1);
+        _Atomic(const char *) *slot = urid_slot_make(seen);
         char *copy = slot ? strdup(uri) : NULL;
 
         if (copy)
@@ -213,7 +234,7 @@ const char *lv2_urid_unlookup(LV2_URID id)
 
     if (id < 1 || id > n)
         return NULL;
-    return atomic_load_explicit(urid_slot(id - 1, 0), memory_order_relaxed);
+    return atomic_load_explicit(urid_slot(id - 1), memory_order_relaxed);
 }
 
 static int provider_of(const char *uri)

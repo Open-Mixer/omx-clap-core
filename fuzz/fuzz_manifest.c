@@ -201,7 +201,7 @@ static __attribute__((noinline)) void check_as_written(const char *text, const c
 {
     const int want = expected(text, uri);
 
-    /* A manifest that names the URI is a candidate.
+    /* A manifest that names the URI is a candidate, and a read failure is not one.
      * mutant: src/lv2_locate.c:119 `found = strstr(text, whole) != NULL;` -> `found = 0;`
      * input: whole
      * mutant: src/lv2_locate.c:71 `next[-1] != ':'` -> `1`
@@ -209,17 +209,19 @@ static __attribute__((noinline)) void check_as_written(const char *text, const c
      * mutant: src/lv2_locate.c:76 `strstr(p, local)` -> `strstr(p + local_len, local)`
      * input: repeat-then-name
      * mutant: src/lv2_locate.c:92 `end = at += local_len;` -> `end = at += 2 * local_len + 1;`
-     * input: next-name-close */
-    if (want && !named)
+     * input: next-name-close
+     * mutant: src/lv2_locate.c:161 `return 1;` -> `return LV2_LOCATE_READ_FAILED;`
+     * input: prefixes-past-most-read */
+    if (want && named != 1)
         abort();
-    /* A manifest that does not name it is not: "ex:gain2" is not "ex:gain".
+    /* A manifest that does not name it is not, nor a read failure: "ex:gain2" is not "ex:gain".
      * mutant: src/lv2_locate.c:89 `!name_char(at[local_len])` -> `1`
      * input: longer-local
      * mutant: src/lv2_locate.c:88 `strncmp(start, prefix, prefix_len) == 0` -> `1`
      * input: other-prefix-name
      * mutant: src/lv2_locate.h:43 `16` -> `15`
      * input: prefixes-most-read */
-    if (named && !want)
+    if (!want && named != 0)
         abort();
 }
 

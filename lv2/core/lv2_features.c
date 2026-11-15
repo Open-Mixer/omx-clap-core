@@ -537,6 +537,432 @@ void lv2_options_fill(LV2_Options_Option opts[5], float *rate, int32_t *min, int
     memcpy(opts, o, sizeof(o));
 }
 
+/*
+ * The log's printf: what vsnprintf writes and answers, made with no allocation, no lock and no locale, so a plugin may
+ * log from its audio thread (glibc's vsnprintf may allocate for a large width or precision, positional arguments or a
+ * large float). Integers, chars, strings and pointers come out as glibc writes them, with every flag, width, precision
+ * and length. A float is written from its double: f, e, g and a (as e) round half to even like glibc, nan and inf
+ * signed, to 17 significant digits, zeros past them; an f of 1e19 or more is written as e. %n writes nothing: a
+ * plugin's pointer is never written through. A conversion it does not know is copied as it stands.
+ */
+struct log_out {
+    char *buf;
+    size_t size, n;
+};
+
+static void log_putc(struct log_out *o, char c)
+{
+    if (o->n + 1u < o->size)
+        o->buf[o->n] = c;
+    o->n++;
+}
+
+static void log_repeat(struct log_out *o, char c, int count)
+{
+    while (count-- > 0)
+        log_putc(o, c);
+}
+
+/* one field: a prefix (sign, 0x), zeros a precision asks for, the body, padded to the width */
+static void log_field(struct log_out *o, const char *pre, int npre, int zeros, const char *body, int nbody, int width,
+                      int left, int zero_pad)
+{
+    const int total = npre + zeros + nbody;
+    int i;
+
+    if (!left && !zero_pad)
+        log_repeat(o, ' ', width - total);
+    for (i = 0; i < npre; i++)
+        log_putc(o, pre[i]);
+    if (!left && zero_pad)
+        log_repeat(o, '0', width - total);
+    log_repeat(o, '0', zeros);
+    for (i = 0; i < nbody; i++)
+        log_putc(o, body[i]);
+    if (left)
+        log_repeat(o, ' ', width - total);
+}
+
+/* the digits of v in base, written backwards from end; their count */
+static int log_digits(char *end, uint64_t v, unsigned base, int upper)
+{
+    const char *d = upper ? "0123456789ABCDEF" : "0123456789abcdef";
+    int n = 0;
+
+    do
+    {
+        *--end = d[v % base];
+        v /= base;
+        n++;
+    } while (v);
+    return n;
+}
+
+/* x >= 0 (below 1e19) as fixed with prec decimals (prec <= 17), rounded half to even, into out; its length */
+static int log_fixed(char *out, double x, int prec, int alt)
+{
+    static const double p10[18] = { 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14,
+                                    1e15, 1e16, 1e17 };
+    uint64_t ip = (uint64_t)x, fr = 0;
+    const double frac = x - (double)ip;
+    char tmp[24];
+    int n, len = 0, i;
+
+    if (prec == 0)
+    {
+        if (frac > 0.5 || (frac == 0.5 && (ip & 1u)))
+            ip++;
+    }
+    else
+    {
+        const double t = frac * p10[prec];
+        const double rem = t - (double)(uint64_t)t;
+
+        fr = (uint64_t)t;
+        if (rem > 0.5 || (rem == 0.5 && (fr & 1u)))
+            fr++;
+        if (fr >= (uint64_t)p10[prec])
+        {
+            fr -= (uint64_t)p10[prec];
+            ip++;
+        }
+    }
+    n = log_digits(tmp + sizeof(tmp), ip, 10, 0);
+    for (i = 0; i < n; i++)
+        out[len++] = tmp[sizeof(tmp) - n + i];
+    if (prec > 0 || alt)
+        out[len++] = '.';
+    if (prec > 0)
+    {
+        n = log_digits(tmp + sizeof(tmp), fr, 10, 0);
+        for (i = n; i < prec; i++)
+            out[len++] = '0';
+        for (i = 0; i < n; i++)
+            out[len++] = tmp[sizeof(tmp) - n + i];
+    }
+    return len;
+}
+
+/* x > 0 as m * 10^e with 1 <= m < 10 */
+static double log_normal(double x, int *e)
+{
+    double p = 1.0;
+
+    *e = 0;
+    if (x >= 1.0)
+    {
+        while (x / p >= 10.0)
+        {
+            p *= 10.0;
+            ++*e;
+        }
+        return x / p;
+    }
+    while (x * p < 1.0)
+    {
+        p *= 10.0;
+        --*e;
+    }
+    return x * p;
+}
+
+/* x >= 0 as e: the mantissa with prec decimals and the exponent, at least two digits */
+static int log_exp(char *out, double x, int prec, int alt, int upper, int *exp_out)
+{
+    int e = 0, len, n, i;
+    double m = x == 0.0 ? 0.0 : log_normal(x, &e);
+    char tmp[8];
+
+    len = log_fixed(out, m, prec, alt);
+    if (out[0] == '1' && out[1] == '0' && (len == 2 || out[2] == '.'))   // 9.99.. rounded up to 10: one place over
+    {
+        e++;
+        len = log_fixed(out, m / 10.0, prec, alt);
+    }
+    *exp_out = e;
+    out[len++] = upper ? 'E' : 'e';
+    out[len++] = e < 0 ? '-' : '+';
+    n = log_digits(tmp + sizeof(tmp), (uint64_t)(e < 0 ? -e : e), 10, 0);
+    if (n < 2)
+        out[len++] = '0';
+    for (i = 0; i < n; i++)
+        out[len++] = tmp[sizeof(tmp) - n + i];
+    return len;
+}
+
+/* g's trailing zeros of the fraction go, and a point left alone */
+static int log_trim(char *s, int len)
+{
+    int dot = -1, end = len, i, k;
+
+    for (i = 0; i < len && s[i] != 'e' && s[i] != 'E'; i++)
+        if (s[i] == '.')
+            dot = i;
+    if (dot < 0)
+        return len;
+    end = i;
+    k = end;
+    while (k > dot + 1 && s[k - 1] == '0')
+        k--;
+    if (k == dot + 1)
+        k = dot;
+    for (i = 0; end + i < len; i++)
+        s[k + i] = s[end + i];
+    return k + (len - end);
+}
+
+static void log_float(struct log_out *o, double v, char conv, int prec, int width, int left, int zero_pad, int plus,
+                      int space, int alt)
+{
+    const int upper = conv == 'F' || conv == 'E' || conv == 'G' || conv == 'A';
+    char body[96], pre[1];
+    int npre = 0, len = 0, extra = 0;
+    double x = __builtin_signbit(v) ? -v : v;
+
+    if (__builtin_signbit(v))
+        pre[npre++] = '-';
+    else if (plus)
+        pre[npre++] = '+';
+    else if (space)
+        pre[npre++] = ' ';
+    if (v != v || x == __builtin_inf())
+    {
+        const char *w = v != v ? (upper ? "NAN" : "nan") : (upper ? "INF" : "inf");
+
+        log_field(o, pre, npre, 0, w, 3, width, left, 0);
+        return;
+    }
+    if (prec < 0)
+        prec = 6;
+    if (prec > 17)
+    {
+        extra = prec - 17;   // past 17 significant decimals a double holds nothing: zeros
+        prec = 17;
+    }
+    switch (conv)
+    {
+    case 'f':
+    case 'F':
+        if (x >= 1e19)
+            len = log_exp(body, x, prec, alt, upper, &(int){ 0 });
+        else
+            len = log_fixed(body, x, prec, alt);
+        break;
+    case 'e':
+    case 'E':
+    case 'a':
+    case 'A':
+        len = log_exp(body, x, prec, alt, upper, &(int){ 0 });
+        break;
+    default: {   // g: e when the exponent is below -4 or at least the precision, else f, trailing zeros trimmed
+        const int p = prec == 0 ? 1 : prec;
+        int e;
+
+        extra = 0;   // g counts significant digits: no zeros are added past them
+        log_exp(body, x, p - 1, alt, upper, &e);
+        if (e < p && e >= -4)
+            len = log_fixed(body, x, p - 1 - e, alt);
+        else
+            len = log_exp(body, x, p - 1, alt, upper, &e);
+        if (!alt)
+            len = log_trim(body, len);
+        break;
+    }
+    }
+    if (extra)
+    {
+        int i, at = len;
+
+        for (i = 0; i < len; i++)
+            if (body[i] == 'e' || body[i] == 'E')
+            {
+                at = i;
+                break;
+            }
+        if (len + extra > (int)sizeof(body))
+            extra = (int)sizeof(body) - len;
+        for (i = len - 1; i >= at; i--)
+            body[i + extra] = body[i];
+        for (i = 0; i < extra; i++)
+            body[at + i] = '0';
+        len += extra;
+    }
+    log_field(o, pre, npre, 0, body, len, width, left, zero_pad && !left);
+}
+
+int omx_lv2_log_vformat(char *buf, size_t size, const char *fmt, va_list ap)
+{
+    struct log_out o = { buf, buf ? size : 0u, 0u };
+    va_list args;
+
+    va_copy(args, ap);
+    while (*fmt)
+    {
+        const char *spec = fmt;
+        int left = 0, zero_pad = 0, plus = 0, space = 0, alt = 0, width = 0, prec = -1, len = 0;
+        char conv, tmp[32], pre[2];
+        int npre = 0, n;
+
+        if (*fmt != '%')
+        {
+            log_putc(&o, *fmt++);
+            continue;
+        }
+        fmt++;
+        for (;; fmt++)
+        {
+            if (*fmt == '-')
+                left = 1;
+            else if (*fmt == '0')
+                zero_pad = 1;
+            else if (*fmt == '+')
+                plus = 1;
+            else if (*fmt == ' ')
+                space = 1;
+            else if (*fmt == '#')
+                alt = 1;
+            else
+                break;
+        }
+        if (*fmt == '*')
+        {
+            width = va_arg(args, int);
+            if (width < 0)
+            {
+                left = 1;
+                width = -width;
+            }
+            fmt++;
+        }
+        else
+            while (*fmt >= '0' && *fmt <= '9')
+                width = width * 10 + (*fmt++ - '0');
+        if (*fmt == '.')
+        {
+            fmt++;
+            prec = 0;
+            if (*fmt == '*')
+            {
+                prec = va_arg(args, int);
+                fmt++;
+            }
+            else
+                while (*fmt >= '0' && *fmt <= '9')
+                    prec = prec * 10 + (*fmt++ - '0');
+        }
+        if (*fmt == 'h')
+            len = *++fmt == 'h' ? (fmt++, -2) : -1;
+        else if (*fmt == 'l')
+            len = *++fmt == 'l' ? (fmt++, 2) : 1;
+        else if (*fmt == 'j' || *fmt == 'z' || *fmt == 't')
+            len = (fmt++, 3);
+        else if (*fmt == 'L' || *fmt == 'q')
+            len = (fmt++, 4);
+        conv = *fmt ? *fmt++ : '\0';
+        switch (conv)
+        {
+        case 'd':
+        case 'i': {
+            int64_t v = len == 2 ? (int64_t)va_arg(args, long long) : len == 1 ? (int64_t)va_arg(args, long)
+                      : len == 3 ? (int64_t)va_arg(args, intmax_t) : (int64_t)va_arg(args, int);
+            uint64_t u;
+
+            if (len == -1)
+                v = (short)v;
+            else if (len == -2)
+                v = (signed char)v;
+            u = v < 0 ? (uint64_t)0 - (uint64_t)v : (uint64_t)v;
+            if (v < 0)
+                pre[npre++] = '-';
+            else if (plus)
+                pre[npre++] = '+';
+            else if (space)
+                pre[npre++] = ' ';
+            n = prec == 0 && u == 0 ? 0 : log_digits(tmp + sizeof(tmp), u, 10, 0);
+            log_field(&o, pre, npre, prec > n ? prec - n : 0, tmp + sizeof(tmp) - n, n, width, left,
+                      zero_pad && prec < 0);
+            break;
+        }
+        case 'u':
+        case 'x':
+        case 'X':
+        case 'o': {
+            uint64_t u = len == 2 ? (uint64_t)va_arg(args, unsigned long long) : len == 1 ? (uint64_t)va_arg(args, unsigned long)
+                       : len == 3 ? (uint64_t)va_arg(args, uintmax_t) : (uint64_t)va_arg(args, unsigned int);
+            const unsigned base = conv == 'u' ? 10u : conv == 'o' ? 8u : 16u;
+            int zeros;
+
+            if (len == -1)
+                u = (unsigned short)u;
+            else if (len == -2)
+                u = (unsigned char)u;
+            n = prec == 0 && u == 0 ? 0 : log_digits(tmp + sizeof(tmp), u, base, conv == 'X');
+            zeros = prec > n ? prec - n : 0;
+            if (alt && base == 16u && u)
+            {
+                pre[npre++] = '0';
+                pre[npre++] = conv;
+            }
+            else if (alt && base == 8u && zeros == 0 && (n == 0 || tmp[sizeof(tmp) - n] != '0'))
+                zeros = 1;
+            log_field(&o, pre, npre, zeros, tmp + sizeof(tmp) - n, n, width, left, zero_pad && prec < 0);
+            break;
+        }
+        case 'c':
+            tmp[0] = (char)va_arg(args, int);
+            log_field(&o, pre, 0, 0, tmp, 1, width, left, 0);
+            break;
+        case 's': {
+            const char *s = va_arg(args, const char *);
+
+            if (!s)
+                s = prec < 0 || prec >= 6 ? "(null)" : "";
+            for (n = 0; s[n] && (prec < 0 || n < prec); n++)
+                ;
+            log_field(&o, pre, 0, 0, s, n, width, left, 0);
+            break;
+        }
+        case 'p': {
+            const void *p = va_arg(args, const void *);
+
+            if (!p)
+                log_field(&o, pre, 0, 0, "(nil)", 5, width, left, 0);
+            else
+            {
+                n = log_digits(tmp + sizeof(tmp), (uint64_t)(uintptr_t)p, 16, 0);
+                log_field(&o, "0x", 2, 0, tmp + sizeof(tmp) - n, n, width, left, 0);
+            }
+            break;
+        }
+        case 'f':
+        case 'F':
+        case 'e':
+        case 'E':
+        case 'g':
+        case 'G':
+        case 'a':
+        case 'A':
+            log_float(&o, len == 4 ? (double)va_arg(args, long double) : va_arg(args, double), conv, prec, width, left,
+                      zero_pad, plus, space, alt);
+            break;
+        case 'n':
+            (void)va_arg(args, void *);   // never written through
+            break;
+        case '%':
+            log_putc(&o, '%');
+            break;
+        default:   // a conversion this does not know: copied as it stands, consuming nothing
+            while (spec < fmt)
+                log_putc(&o, *spec++);
+            break;
+        }
+    }
+    va_end(args);
+    if (o.size)
+        o.buf[o.n < o.size ? o.n : o.size - 1u] = '\0';
+    return o.n > (size_t)INT_MAX ? INT_MAX : (int)o.n;
+}
+
 int lv2_log_emit(const struct omx_lv2_feature_options *o, LV2_URID type, const char *fmt, va_list ap)
 {
     char line[LOG_LINE_MAX];
@@ -545,7 +971,7 @@ int lv2_log_emit(const struct omx_lv2_feature_options *o, LV2_URID type, const c
 
     if (o->log.mode == OMX_LV2_LOG_SILENT || !fmt)
         return 0;
-    n = vsnprintf(line, sizeof(line), fmt, ap);
+    n = omx_lv2_log_vformat(line, sizeof(line), fmt, ap);   // never vsnprintf: it may allocate (rt-gate #18)
     if (n < 0)
         return n;
     if (o->log.mode == OMX_LV2_LOG_ROUTE)

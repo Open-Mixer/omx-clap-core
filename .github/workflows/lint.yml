@@ -28,3 +28,19 @@ jobs:
       - uses: Open-Mixer/.github/.github/actions/trigger-gate@openmixer-v1
         with:
           lint-workflow: lint.yml
+
+  version:
+    name: VERSION agrees with the spec and debian/changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # the file VERSION is the one version the Makefile, the library and the programs carry
+      - name: VERSION is the spec's Version and the newest debian/changelog entry
+        run: make version-check
+
+  # the checks every OpenMixer repository runs on what it publishes: commit messages, private references, no local copy
+  # of either (the commit-msg hook the shared stub byte for byte), from Open-Mixer/.github and nowhere else
+  public-sources:
+    uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1

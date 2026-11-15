@@ -753,7 +753,11 @@ static bool host_request_exec(const clap_host_t *host, uint32_t num_tasks)
     if (!in->pool_held ||
         thread_pool_run(in, num_tasks, (uint64_t)((double)in->max_block * 1e9 / in->rate), &late) != 0)
         for (uint32_t i = 0; i < num_tasks; i++)
+#ifdef OMX_RT_GATE_VIEW
+            in->thread_pool->exec(in->plugin, i);   // the gate's view (src/thread_pool.c, run_task's note)
+#else
             OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "thread_pool.exec", in->thread_pool->exec, in->plugin, i);
+#endif
     if (late)
         atomic_fetch_add_explicit(&in->pool_late, 1u, memory_order_relaxed);
     in->in_exec = 0;

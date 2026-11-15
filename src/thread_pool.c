@@ -157,20 +157,34 @@ static void futex_wake(_Atomic uint32_t *word, int count)
     syscall(SYS_futex, (uint32_t *)word, FUTEX_WAKE_PRIVATE, count, NULL, NULL, 0);
 }
 
-/* one task: on a helper, timed and counted as the helper's, with the helper on the instance's audio role for it */
+/* one task: on a helper, timed and counted as the helper's, with the helper on the instance's audio role for it.
+   omx-rt-gate's view (make test-rt-gate defines OMX_RT_GATE_VIEW; never a build): the plugin's exec called through its
+   field, so the gate judges it by the role clap.abi declares for clap_plugin_thread_pool.exec (audio, the plugin's own
+   boundary). The build calls it through OMX_ABI_VCALL, whose trampoline omx_abi_call6 (src/abi_guard.S) the gate
+   cannot read: it saves the callee-saved registers, makes the one call, compares and restores them and counts, with
+   no allocation, lock or system call. GCC places a macro's call at the macro, so the view is spelled here, at the
+   site (rt-gate #87, omx_abi_call6, ruled by %7 2026-11-15). */
 static void run_task(struct pool_helper *self, struct omx_clap_instance *in, uint32_t index)
 {
     uint64_t t0;
 
     if (!self)
     {
+#ifdef OMX_RT_GATE_VIEW
+        in->thread_pool->exec(in->plugin, index);   // the gate's view: see run_task's note
+#else
         OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "thread_pool.exec", in->thread_pool->exec, in->plugin, index);
+#endif
         atomic_fetch_add_explicit(&g_tasks_audio, 1u, memory_order_relaxed);
         return;
     }
     t0 = pool_now_ns();
     atomic_store_explicit(&self->running, in, memory_order_relaxed);
+#ifdef OMX_RT_GATE_VIEW
+    in->thread_pool->exec(in->plugin, index);   // the gate's view: see run_task's note
+#else
     OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "thread_pool.exec", in->thread_pool->exec, in->plugin, index);
+#endif
     atomic_store_explicit(&self->running, NULL, memory_order_relaxed);
     atomic_fetch_add_explicit(&self->tasks, 1u, memory_order_relaxed);
     atomic_fetch_add_explicit(&self->busy_ns, pool_now_ns() - t0, memory_order_relaxed);

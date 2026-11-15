@@ -917,7 +917,8 @@ test-thread-pool: tests/thread_pool_test tests/fake_pool.clap
 OMX_RT_GATE ?= omx-rt-gate
 RT_GATE_GRAPHS = build/rt-gate/graphs
 RT_GATE_FLAGS = -std=gnu99 -D_GNU_SOURCE -pthread -fPIC -fvisibility=hidden -Isrc -Ilv2/core -Ilv2/clap $(DSP_CFLAGS) \
-    $(CLAP_CFLAGS) $(CRYPTO_CFLAGS) $(PIN_CFLAGS) $(LV2_CFLAGS) -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u
+    $(CLAP_CFLAGS) $(CRYPTO_CFLAGS) $(PIN_CFLAGS) $(LV2_CFLAGS) -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u \
+    -DOMX_RT_GATE_VIEW
 # the units that store a host root, judged; the rest of the core and the adapter joined by their graphs
 RT_GATE_UNITS = src/clap_host.c lv2/core/lv2_instance.c lv2/core/lv2_features.c
 RT_GATE_JOINED = $(filter-out $(RT_GATE_UNITS),$(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC))

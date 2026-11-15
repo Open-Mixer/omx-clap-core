@@ -481,7 +481,12 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
 
-test: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
+# a jalv the bench starts, killed, leaves no jalvXXXXXX state directory where the bench was started (bench/lib.sh)
+.PHONY: test-bench-jalv-cwd
+test-bench-jalv-cwd:
+	bash tests/bench_jalv_cwd.sh
+
+test: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align test-bench-jalv-cwd
 test-fake: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align test-abi-format
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)

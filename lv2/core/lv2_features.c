@@ -559,7 +559,7 @@ int lv2_log_emit(const struct omx_lv2_feature_options *o, LV2_URID type, const c
     // appended after what the buffer holds, a newline closing the line, cut short at the buffer's end
     used = strnlen(o->log.capture, o->log.capture_size - 1u);
     room = o->log.capture_size - 1u - used;
-    len = strlen(line);
+    len = strnlen(line, sizeof(line));   // vsnprintf NUL-ended it within the buffer: bounded by it, never by a scan
     if (len > room)
         len = room;
     memcpy(o->log.capture + used, line, len);

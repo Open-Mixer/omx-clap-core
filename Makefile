@@ -61,10 +61,13 @@ PIN_LIBS = $(shell $(PKG_CONFIG) --libs plugin-db)
 # built from it (make test-no-hostd-build-dep)
 PLUGIN_HOSTD_DIR ?= ../plugin-hostd
 
-# plugin-hostd-tests' protocol clients (lib/protocol.sh, lib/plugin_hostd_client.py), which every e2e test and bench
-# sources: the checkout's, else the installed package's
+# plugin-hostd-tests' shell protocol client (lib/protocol.sh), which every e2e shell test and bench sources: the
+# checkout's, else the installed package's. The Python client, plugin_hostd_client, is the protocol's
+# (python3-plugin-hostd-client; PLUGIN_HOSTD_CLIENT_DIR a plugin-hostd-protocol checkout's clients/python), never
+# plugin-hostd's: make test-client-from-protocol
 PLUGIN_HOSTD_TESTS_LIB ?= $(firstword $(wildcard $(PLUGIN_HOSTD_DIR)/tests/lib) /usr/libexec/plugin-hostd/tests/lib)
 export PLUGIN_HOSTD_TESTS_LIB
+export PLUGIN_HOSTD_CLIENT_DIR
 
 # CLAP headers: pkg-config when clap-devel is installed, CLAP_CFLAGS=-I<dir> otherwise
 CLAP_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags clap 2>/dev/null)
@@ -467,6 +470,14 @@ test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
 	python3 tests/no_hostd_build_dep.py .
 
+# the protocol's Python client comes from the protocol (python3-plugin-hostd-client, or PLUGIN_HOSTD_CLIENT_DIR on a
+# plugin-hostd-protocol checkout's clients/python), never from a plugin-hostd checkout or plugin-hostd-tests
+# (plugin-hostd-protocol issue 45): the tests of this lower layer run with no plugin-hostd installed
+.PHONY: test-client-from-protocol
+test-client-from-protocol:
+	python3 tests/client_from_protocol.py --self-test
+	python3 tests/client_from_protocol.py .
+
 # the rpm spec's clap-devel and debian/control's clap-headers name the same CLAP headers: a build from one
 # packaging must not take a floor or ceiling the other refuses (#14)
 .PHONY: test-clap-floor-parity
@@ -481,7 +492,7 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
 
-test: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
+test: test-no-hostd-build-dep test-client-from-protocol test-clap-floor-parity test-pc-range-parity test-identity-align
 test-fake: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align test-abi-format
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)

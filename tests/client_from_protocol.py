@@ -21,8 +21,9 @@ import subprocess
 import sys
 import tempfile
 
-# a sys.path entry built from a plugin-hostd path or from the tests-lib variable, for the client
-HOSTD_PATH = r"sys\.path\.insert\([^\n]*(plugin-hostd|PLUGIN_HOSTD_TESTS_LIB)"
+# a sys.path entry built from a plugin-hostd path (not plugin-hostd-protocol's) or from the tests-lib variable, in code
+# (a trailing comment is not read)
+HOSTD_PATH = r"sys\.path\.insert\([^\n#]*(plugin-hostd(?!-protocol)|PLUGIN_HOSTD_TESTS_LIB)"
 
 
 def uncommented(text):
@@ -37,7 +38,7 @@ def path_returns(root):
                 continue  # this check plants the strings it looks for in its self-test
             with open(path, encoding="utf-8", errors="replace") as f:
                 for n, line in enumerate(f, 1):
-                    if re.search(HOSTD_PATH, line):
+                    if re.search(HOSTD_PATH, line.split("#", 1)[0] if not line.lstrip().startswith("#") else ""):
                         found.append("%s:%d: %s" % (os.path.relpath(path, root), n, line.strip()))
     return found
 

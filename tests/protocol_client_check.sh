@@ -1,8 +1,9 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
-# No test or bench writes a NUL-ended command by hand: the line protocol's client is plugin-hostd-tests' lib/protocol.sh
-# and lib/plugin_hostd_client.py (FreeMixer/plugin-hostd#177), not a send() of a script's own. A copy of the shell form
+# No test or bench writes a NUL-ended command by hand: the line protocol's clients are plugin-hostd-tests' lib/protocol.sh
+# and the protocol's plugin_hostd_client (python3-plugin-hostd-client; plugin-hostd#177, plugin-hostd-protocol#45), not a
+# send() of a script's own. A copy of the shell form
 # (printf '%s\0' ... >&<fd>) or of the Python form (sendall(<line>.encode() + b'\0')) is red; the check proves it can
 # see one by running on a copy first.
 #

@@ -452,12 +452,22 @@ static int event_append(LV2_Event_Buffer *buf, uint32_t capacity, uint32_t frame
     return lv2_event_write(&it, frame, 0, type, (uint16_t)size, data) ? 0 : -1;
 }
 
+/* the host's audio-role predicate and its context: called through its field, which omx-rt-gate's omx-clap-core.abi
+   declares audio (rt-gate #87, ruled by %7 2026-11-15) */
+struct lv2_audio_role
+{
+    lv2_audio_role_fn is_audio;
+    void *ctx;
+};
+
 /* whether the calling thread holds the instance's audio role, by the host's predicate; -1 without one */
 static int on_audio(const struct lv2_instance *in)
 {
-    const lv2_audio_role_fn is_audio = atomic_load_explicit(&in->is_audio, memory_order_acquire);
+    struct lv2_audio_role role;
 
-    return is_audio ? is_audio(atomic_load_explicit(&in->role_ctx, memory_order_relaxed)) != 0 : -1;
+    role.is_audio = atomic_load_explicit(&in->is_audio, memory_order_acquire);
+    role.ctx = atomic_load_explicit(&in->role_ctx, memory_order_relaxed);
+    return role.is_audio ? role.is_audio(role.ctx) != 0 : -1;
 }
 
 /* urid:map and urid:unmap over the process's table; a map on the audio role is counted */

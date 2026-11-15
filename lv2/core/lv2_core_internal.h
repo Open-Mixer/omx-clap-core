@@ -98,6 +98,10 @@ int lv2_block_lengths(const struct omx_lv2_feature_options *o, uint32_t min_fram
 /* options:options over `rate` and the three lengths, which the options point to, ending in the empty option */
 void lv2_options_fill(LV2_Options_Option opts[5], float *rate, int32_t *min, int32_t *max, int32_t *nominal);
 
+/* the log's printf: what vsnprintf would write and answer, made with no allocation, no lock and no locale, so a plugin
+   may log from its audio thread; %n writes nothing */
+int omx_lv2_log_vformat(char *buf, size_t size, const char *fmt, va_list ap);
+
 /* one log:log line, as `o` says: what printf answers (0 when silent) */
 int lv2_log_emit(const struct omx_lv2_feature_options *o, LV2_URID type, const char *fmt, va_list ap);
 

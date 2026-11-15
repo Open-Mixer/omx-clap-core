@@ -12,13 +12,48 @@ permissions:
   contents: read
 
 jobs:
+  # the Fedora cells abi runs: check-matrix's answer (rule 11-10: fc45 beside fc44;
+  # the quick set while a release wave is open, the whole matrix declared here otherwise)
+  checks:
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    outputs:
+      rpm: ${{ steps.m.outputs.rpm }}
+      rpm-count: ${{ steps.m.outputs.rpm-count }}
+    steps:
+      - id: m
+        uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
+        with:
+          wave: ${{ vars.OMX_RELEASE_MATRIX }}
+          rpm-releases: '["44", "45"]'
+          rpm-arches: '["x86_64"]'
+
   abi:
-    name: ABI of libomx-clap-core against its baseline
+    needs: checks
+    if: needs.checks.outputs.rpm-count != '0'
+    name: ABI of libomx-clap-core against its baseline (${{ matrix.cell.image }})
     runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        cell: ${{ fromJSON(needs.checks.outputs.rpm) }}
     container:
-      image: fedora:44
+      image: ${{ matrix.cell.image }}
+    env:
+      OMX_CELL: ${{ matrix.cell.fedora }}
     steps:
+      # the ABI cell: the oldest Fedora release of check-matrix's answer, whose abidw writes the ABI-XML format
+      # abi/libomx-clap-core.so.1.abi is in, the one cell where the baseline is compared; another cell builds the library
+      # and says by name that it skips the compare (tests/abi-check.sh, ruling of 2026-11-14 on #73). Read from the
+      # answer, never written into the job (fedora-cells); an answer whose oldest cell writes another format is red there
+      - name: The ABI cell, the oldest release of check-matrix's answer
+        env:
+          CELLS: ${{ needs.checks.outputs.rpm }}
+        run: |
+          cell=$(printf '%s' "$CELLS" | grep -o '"fedora": *"\?[0-9]*' | grep -o '[0-9][0-9]*$' | sort -n | head -1)
+          [ -n "$cell" ] || { echo "::error::check-matrix's answer names no Fedora cell: $CELLS"; exit 1; }
+          echo "OMX_ABI_CELL=$cell" >> "$GITHUB_ENV"
       - name: Install the build tools
         run: dnf install -y --setopt=install_weak_deps=False git gcc make diffutils pkgconf-pkg-config clap-devel openssl-devel libabigail dwarves dnf5-plugins
 
@@ -40,7 +75,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: libomx-clap-core-abi
+          name: libomx-clap-core-abi-fc${{ matrix.cell.fedora }}-${{ matrix.cell.arch }}
           path: |
             build/new.abi
             build/abidiff.txt

@@ -457,6 +457,53 @@ static void remote_page_get_cb(proto_t *proto)
         protocol_response_int(resp, proto);
 }
 
+static void property_list_cb(proto_t *proto)
+{
+    int id;
+
+    if (instance_word(proto, &id, ERR_INVALID_OPERATION))
+        protocol_response_int(effects_property_list(id), proto);
+}
+
+static void property_info_cb(proto_t *proto)
+{
+    char reply[SOCKET_MSG_BUFFER_SIZE];
+    char *end;
+    long index = strtol(proto->list[2], &end, 10);
+    int id, resp = ERR_INVALID_OPERATION;
+
+    if (!instance_word(proto, &id, ERR_INVALID_OPERATION))
+        return;
+    if (*end == '\0' && end != proto->list[2] && index >= 0 && index <= INT32_MAX)
+        resp = effects_property_info(id, (int)index, reply, sizeof(reply));
+    if (resp == SUCCESS)
+        protocol_response(reply, proto);
+    else
+        protocol_response_int(resp, proto);
+}
+
+static void property_get_cb(proto_t *proto)
+{
+    char reply[PHD_LINE_MAX];
+    int id, resp;
+
+    if (!instance_word(proto, &id, ERR_INVALID_OPERATION))
+        return;
+    resp = effects_property_get(id, proto->list[2], reply, sizeof(reply));
+    if (resp == SUCCESS)
+        protocol_response(reply, proto);
+    else
+        protocol_response_int(resp, proto);
+}
+
+static void property_set_cb(proto_t *proto)
+{
+    int id;
+
+    if (instance_word(proto, &id, ERR_INVALID_OPERATION))
+        protocol_response_int(effects_property_set(id, proto->list[2], proto->list[3]), proto);
+}
+
 static void pin_layout_cb(proto_t *proto)
 {
     char reply[SOCKET_MSG_BUFFER_SIZE];
@@ -664,6 +711,10 @@ static int host_init(int socket_port, int feedback_port)
     protocol_add_command(EFFECT_PATCH_GET, patch_get_cb);
     protocol_add_command(OMX_VERB_REMOTE_PAGES_FMT, remote_pages_cb);
     protocol_add_command(OMX_VERB_REMOTE_PAGE_GET_FMT, remote_page_get_cb);
+    protocol_add_command(OMX_VERB_PROPERTY_LIST_FMT, property_list_cb);
+    protocol_add_command(OMX_VERB_PROPERTY_INFO_FMT, property_info_cb);
+    protocol_add_command(OMX_VERB_PROPERTY_GET_FMT, property_get_cb);
+    protocol_add_command(OMX_VERB_PROPERTY_SET_FMT, property_set_cb);
     protocol_add_command(OMX_VERB_PARAM_INFO_FMT, param_info_cb);
     protocol_add_command(OMX_VERB_PIN_LAYOUT_FMT, pin_layout_cb);
     protocol_add_command(OMX_VERB_PRESET_LIST_FMT, preset_list_cb);

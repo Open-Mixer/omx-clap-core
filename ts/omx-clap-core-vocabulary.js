@@ -830,6 +830,38 @@ export const HOST_REPLY_CODES = {
     "text": {
       "en": "The worker had no room for these notes before its next block, so none of them were kept. Send the line again."
     }
+  },
+  "propertySymbolInvalid": {
+    "code": "reply.host.property-symbol-invalid",
+    "resp": -106,
+    "doc": "a symbol that is not one of the instance's file or text properties (org.openmixer.properties/1), or an index past its last",
+    "text": {
+      "en": "That symbol is not one of this plugin’s file or text properties. Ask the plugin for its property list and use one of those symbols."
+    }
+  },
+  "propertyAccess": {
+    "code": "reply.host.property-access",
+    "resp": -107,
+    "doc": "a set of a property that is not writable, or a get of one that is not readable",
+    "text": {
+      "en": "This property cannot be used that way: it is not writable, or not readable. Check the property's access before setting or reading it."
+    }
+  },
+  "propertyValueInvalid": {
+    "code": "reply.host.property-value-invalid",
+    "resp": -108,
+    "doc": "a property value the host does not hand on: larger than OMX_CLAP_PROPERTY_VALUE_MAX with its NUL, not UTF-8, or a path that is not absolute",
+    "text": {
+      "en": "That value cannot be set: it is too long, not valid text, or a path that does not start with a slash. Send a shorter value, or an absolute path."
+    }
+  },
+  "propertyQueueFull": {
+    "code": "reply.host.property-queue-full",
+    "resp": -109,
+    "doc": "the instance's property ring has no room before its next block: nothing of the set is kept, and it may be sent again",
+    "text": {
+      "en": "The plugin had no room for this value before its next block, so it was not kept. Send it again."
+    }
   }
 };
 

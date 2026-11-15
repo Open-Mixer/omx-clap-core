@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+# The property fixture (lv2_property_fixture.c): the file and text properties of the adapter's stage 3.
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<urn:openmixer:test:property-fixture>
+    a lv2:Plugin ;
+    lv2:binary <omx-property-fixture.so> ;
+    rdfs:seeAlso <omx-property-fixture.ttl> .

@@ -199,6 +199,38 @@
         "text": {
           "en": "The worker had no room for these notes before its next block, so none of them were kept. Send the line again."
         }
+      },
+      "propertySymbolInvalid": {
+        "code": "reply.host.property-symbol-invalid",
+        "resp": -106,
+        "doc": "a symbol that is not one of the instance's file or text properties (org.openmixer.properties/1), or an index past its last",
+        "text": {
+          "en": "That symbol is not one of this plugin’s file or text properties. Ask the plugin for its property list and use one of those symbols."
+        }
+      },
+      "propertyAccess": {
+        "code": "reply.host.property-access",
+        "resp": -107,
+        "doc": "a set of a property that is not writable, or a get of one that is not readable",
+        "text": {
+          "en": "This property cannot be used that way: it is not writable, or not readable. Check the property's access before setting or reading it."
+        }
+      },
+      "propertyValueInvalid": {
+        "code": "reply.host.property-value-invalid",
+        "resp": -108,
+        "doc": "a property value the host does not hand on: larger than OMX_CLAP_PROPERTY_VALUE_MAX with its NUL, not UTF-8, or a path that is not absolute",
+        "text": {
+          "en": "That value cannot be set: it is too long, not valid text, or a path that does not start with a slash. Send a shorter value, or an absolute path."
+        }
+      },
+      "propertyQueueFull": {
+        "code": "reply.host.property-queue-full",
+        "resp": -109,
+        "doc": "the instance's property ring has no room before its next block: nothing of the set is kept, and it may be sent again",
+        "text": {
+          "en": "The plugin had no room for this value before its next block, so it was not kept. Send it again."
+        }
       }
     }
   },
@@ -500,6 +532,107 @@
         },
         "since": "0.22.0",
         "doc": "Release every key of every channel, MIDI's all notes off (controller 123) on each; answered as note_on is."
+      },
+      "propertyList": {
+        "verb": "property_list",
+        "format": "property_list %i",
+        "reply": "resp <count>",
+        "codes": [
+          {
+            "ref": "HOST_REPLY_CODES.invalidOperation"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.instanceNonExists"
+          }
+        ],
+        "implementedBy": {
+          "plugin-hostd": "optional",
+          "omx-clap-host": "required",
+          "mod-host": "unsupported"
+        },
+        "since": "0.33.0",
+        "doc": "The instance's file and text properties (org.openmixer.properties/1, #15): how many; 0 for a plugin that offers none or whose table broke a rule at load."
+      },
+      "propertyInfo": {
+        "verb": "property_info",
+        "format": "property_info %i %i",
+        "reply": "resp 0 <symbol> <kind> <access> <name>",
+        "codes": [
+          {
+            "ref": "HOST_REPLY_CODES.invalidOperation"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.instanceNonExists"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.propertySymbolInvalid"
+          }
+        ],
+        "implementedBy": {
+          "plugin-hostd": "optional",
+          "omx-clap-host": "required",
+          "mod-host": "unsupported"
+        },
+        "since": "0.33.0",
+        "doc": "One property, 0 to count - 1: its symbol, its kind (path or string), its access (rw, w or r) and its name as a quoted-escaped word; -106 for an index that is not one."
+      },
+      "propertyGet": {
+        "verb": "property_get",
+        "format": "property_get %i %s",
+        "reply": "resp 0 <value>",
+        "codes": [
+          {
+            "ref": "HOST_REPLY_CODES.invalidOperation"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.instanceNonExists"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.propertySymbolInvalid"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.propertyAccess"
+          }
+        ],
+        "implementedBy": {
+          "plugin-hostd": "optional",
+          "omx-clap-host": "required",
+          "mod-host": "unsupported"
+        },
+        "since": "0.33.0",
+        "doc": "The value the plugin holds now for the property of that symbol, as a quoted-escaped word (\"\" when unset); -107 for one that is not readable."
+      },
+      "propertySet": {
+        "verb": "property_set",
+        "format": "property_set %i %s %s",
+        "reply": "resp 0",
+        "codes": [
+          {
+            "ref": "HOST_REPLY_CODES.invalidOperation"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.instanceNonExists"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.propertySymbolInvalid"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.propertyAccess"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.propertyValueInvalid"
+          },
+          {
+            "ref": "HOST_REPLY_CODES.propertyQueueFull"
+          }
+        ],
+        "implementedBy": {
+          "plugin-hostd": "optional",
+          "omx-clap-host": "required",
+          "mod-host": "unsupported"
+        },
+        "since": "0.33.0",
+        "doc": "Set the property of that symbol to the quoted-escaped value: it reaches the plugin at its next block; -107 for one that is not writable, -108 for a value too large, not UTF-8 or a path that is not absolute, -109 when the instance's ring is full (send it again)."
       }
     }
   },

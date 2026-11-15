@@ -34,15 +34,6 @@ env:
 # the full package matrix and the release dry run run on push to main, on tags and on dispatch, before a release.
 jobs:
   # no Fedora release written into a job: the cells come from check-matrix (rule 11-10, ruling D25)
-  fedora-cells:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/workflows
-      - uses: Open-Mixer/.github/.github/actions/fedora-cells@openmixer-v1
-
   # The packages (and the jobs that need this one) run only on workflow_dispatch: a pull request or a push runs the tests
   # alone (owner 2026-11-09). release.yml builds on a v* tag; fast-release dispatches this workflow on a release head.
   changes:
@@ -59,17 +50,6 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then echo "packages=true"; else echo "packages=false"; fi >> "$GITHUB_OUTPUT"
-
-  version:
-    name: VERSION agrees with the spec and debian/changelog
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-
-      # the file VERSION is the one version the Makefile, the library and the programs carry
-      - name: VERSION is the spec's Version and the newest debian/changelog entry
-        run: make version-check
 
   # the Fedora cells the contract, build and two sabotage jobs run, and the rpm job's: check-matrix's answer
   # (rule 11-10: fc45 beside fc44; the quick set while a release wave is open, the whole matrix declared here otherwise)

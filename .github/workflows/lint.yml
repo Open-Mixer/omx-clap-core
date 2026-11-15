@@ -33,3 +33,24 @@ jobs:
   # local copy of either (Open-Mixer/.github's public-sources-check)
   public-sources:
     uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
+
+  # fast checks moved from ci.yml (seconds each): the Fedora cells every workflow declares, and VERSION's agreement
+  fedora-cells:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/workflows
+      - uses: Open-Mixer/.github/.github/actions/fedora-cells@openmixer-v1
+
+  version:
+    name: VERSION agrees with the spec and debian/changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # the file VERSION is the one version the Makefile, the library and the programs carry
+      - name: VERSION is the spec's Version and the newest debian/changelog entry
+        run: make version-check

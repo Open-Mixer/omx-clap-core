@@ -81,6 +81,8 @@ typedef struct FAKE_EXT_STATS_T {
     uint32_t while_processing;  ///< what can_activate_while_processing answers (the test sets it)
     uint32_t activations;       ///< activate calls
     uint32_t rescan_on_deactivate;  ///< deactivate calls the host's audio-ports rescan (the test sets it)
+    uint32_t no_state_context;  ///< 1: state-context is not offered, so a load is state.load (the test sets it)
+    double bypass;              ///< the CLAP_PARAM_IS_BYPASS parameter: a state that begins with 'B' sets it to 1
 } fake_ext_stats_t;
 
 static fake_ext_stats_t g_stats;
@@ -190,15 +192,19 @@ static bool plugin_start_processing(const clap_plugin_t *plugin) { (void)plugin;
 static void plugin_stop_processing(const clap_plugin_t *plugin) { (void)plugin; }
 static void plugin_reset(const clap_plugin_t *plugin) { (void)plugin; }
 
+static void apply_params(const clap_input_events_t *in);
+
 static clap_process_status plugin_process(const clap_plugin_t *plugin, const clap_process_t *process)
 {
     const clap_host_thread_pool_t *pool = g_host->get_extension(g_host, CLAP_EXT_THREAD_POOL);
     uint32_t c, i;
 
     (void)plugin;
+    apply_params(process->in_events);
     for (c = 0; c < 2; c++)
         for (i = 0; i < process->frames_count; i++)
-            process->audio_outputs[0].data32[c][i] = process->audio_inputs[0].data32[c][i] + (g_stats.ring ? 0.25f : 0.0f);
+            process->audio_outputs[0].data32[c][i] =
+                g_stats.bypass >= 0.5 ? 0.0f : process->audio_inputs[0].data32[c][i] + (g_stats.ring ? 0.25f : 0.0f);
     if (g_stats.ring)
         g_stats.ring--;
     for (i = 1; i < process->audio_outputs_count; i++)
@@ -256,7 +262,23 @@ static bool write_text(const clap_ostream_t *stream, const char *text)
 }
 
 static bool state_save(const clap_plugin_t *plugin, const clap_ostream_t *stream) { (void)plugin; return write_text(stream, "plain"); }
-static bool state_load(const clap_plugin_t *plugin, const clap_istream_t *stream) { (void)plugin; (void)stream; g_stats.plain_loads++; return true; }
+/* a state whose first byte is 'B' was saved bypassed: loading it sets the bypass parameter, as a plugin restoring every
+ * parameter of its state does */
+static void load_bypass(const clap_istream_t *stream)
+{
+    char first = 0;
+
+    if (stream->read(stream, &first, 1) == 1 && first == 'B')
+        g_stats.bypass = 1.0;
+}
+
+static bool state_load(const clap_plugin_t *plugin, const clap_istream_t *stream)
+{
+    (void)plugin;
+    g_stats.plain_loads++;
+    load_bypass(stream);
+    return true;
+}
 
 static bool context_save(const clap_plugin_t *plugin, const clap_ostream_t *stream, uint32_t context)
 {
@@ -267,8 +289,8 @@ static bool context_save(const clap_plugin_t *plugin, const clap_ostream_t *stre
 static bool context_load(const clap_plugin_t *plugin, const clap_istream_t *stream, uint32_t context)
 {
     (void)plugin;
-    (void)stream;
     g_stats.loaded_context = context;
+    load_bypass(stream);
     return true;
 }
 
@@ -308,6 +330,75 @@ static const clap_plugin_posix_fd_support_t g_fds = { on_fd };
 static const clap_plugin_thread_pool_t g_pool = { pool_exec };
 static const clap_plugin_render_t g_render = { render_hard_rt, render_set };
 static const clap_plugin_tail_t g_tail = { tail_get };
+/* one parameter, the plugin's own bypass (CLAP_PARAM_IS_BYPASS, id 7, 0 or 1): bypassed, process() writes silence */
+#define FAKE_EXT_BYPASS_ID 7u
+
+static void apply_params(const clap_input_events_t *in)
+{
+    uint32_t k, n = in ? in->size(in) : 0;
+
+    for (k = 0; k < n; k++)
+    {
+        const clap_event_header_t *h = in->get(in, k);
+
+        if (h->space_id == CLAP_CORE_EVENT_SPACE_ID && h->type == CLAP_EVENT_PARAM_VALUE &&
+            ((const clap_event_param_value_t *)h)->param_id == FAKE_EXT_BYPASS_ID)
+            g_stats.bypass = ((const clap_event_param_value_t *)h)->value;
+    }
+}
+
+static uint32_t params_count(const clap_plugin_t *plugin) { (void)plugin; return 1; }
+
+static bool params_get_info(const clap_plugin_t *plugin, uint32_t index, clap_param_info_t *info)
+{
+    (void)plugin;
+    if (index != 0)
+        return false;
+    memset(info, 0, sizeof(*info));
+    info->id = FAKE_EXT_BYPASS_ID;
+    info->flags = CLAP_PARAM_IS_BYPASS | CLAP_PARAM_IS_STEPPED | CLAP_PARAM_IS_AUTOMATABLE;
+    snprintf(info->name, sizeof(info->name), "Bypass");
+    info->min_value = 0.0;
+    info->max_value = 1.0;
+    info->default_value = 0.0;
+    return true;
+}
+
+static bool params_get_value(const clap_plugin_t *plugin, clap_id id, double *value)
+{
+    (void)plugin;
+    if (id != FAKE_EXT_BYPASS_ID)
+        return false;
+    *value = g_stats.bypass;
+    return true;
+}
+
+static bool params_value_to_text(const clap_plugin_t *plugin, clap_id id, double value, char *out, uint32_t size)
+{
+    (void)plugin;
+    (void)id;
+    snprintf(out, size, "%s", value >= 0.5 ? "on" : "off");
+    return true;
+}
+
+static bool params_text_to_value(const clap_plugin_t *plugin, clap_id id, const char *text, double *value)
+{
+    (void)plugin;
+    (void)id;
+    *value = !strcmp(text, "on") ? 1.0 : 0.0;
+    return true;
+}
+
+static void params_flush(const clap_plugin_t *plugin, const clap_input_events_t *in, const clap_output_events_t *out)
+{
+    (void)plugin;
+    (void)out;
+    apply_params(in);
+}
+
+static const clap_plugin_params_t g_params = { params_count, params_get_info, params_get_value, params_value_to_text,
+                                               params_text_to_value, params_flush };
+
 static const clap_plugin_state_t g_state = { state_save, state_load };
 static const clap_plugin_state_context_t g_context = { context_save, context_load };
 static const clap_plugin_audio_ports_activation_t g_activation = { activation_while_processing, activation_set };
@@ -347,7 +438,9 @@ static const void *plugin_get_extension(const clap_plugin_t *plugin, const char 
     if (!strcmp(id, CLAP_EXT_STATE))
         return &g_state;
     if (!strcmp(id, CLAP_EXT_STATE_CONTEXT))
-        return &g_context;
+        return g_stats.no_state_context ? NULL : &g_context;
+    if (!strcmp(id, CLAP_EXT_PARAMS))
+        return &g_params;
     if (!strcmp(id, CLAP_EXT_AUDIO_PORTS_ACTIVATION))
         return &g_activation;
     if (!strcmp(id, OMX_CLAP_EXT_RESOURCE_HINTS_DRAFT) && g_hints.offer)

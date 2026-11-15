@@ -1450,7 +1450,8 @@ static void resource_hints_read(struct omx_clap_instance *in)
  * on `bin`: a failure drops it. */
 static uint32_t param_count_of(struct omx_clap_instance *in, uint32_t *rescan);
 
-/* a one-event input list, and an output list that keeps nothing: what the host hands params.flush outside a cycle */
+/* a one-event input list, and an output list that keeps nothing: what the host hands params.flush outside a cycle (a
+ * property set, and preset_bypass_off, whose plugin may answer the value it was given, which the next get_value reads) */
 struct one_event
 {
     const clap_event_header_t *event;
@@ -4089,18 +4090,72 @@ static int state_load_done(struct omx_clap_instance *in, int stopped)
     return 0;
 }
 
-int omx_clap_host_state_load(struct omx_clap_instance *in, const void *buf, size_t len)
+/* A preset never carries the plugin's own bypass (omx-clap-core#20): after a load for a preset, each parameter flagged
+ * CLAP_PARAM_IS_BYPASS that does not read its minimum is set back to it through params.flush, a main-thread call the
+ * plugin takes while it does not process, which state_load_begin made so. One place, for every host this library
+ * runs (the console, plugin-hostd, the Zynthian adapter). A project or session load keeps the plugin's own last state,
+ * bypassed included. */
+static void preset_bypass_off(struct omx_clap_instance *in)
+{
+    uint32_t n, i;
+
+    if (!in->params || !in->params->flush)
+        return;
+    n = param_count_of(in, NULL);
+    for (i = 0; i < n; i++)
+    {
+        clap_param_info_t info;
+        double value;
+        clap_event_param_value_t ev;
+        struct one_event one = { &ev.header };
+        const clap_input_events_t ie = { &one, one_event_size, one_event_get };
+        const clap_output_events_t oe = { NULL, drop_event };
+
+        memset(&info, 0, sizeof(info));
+        if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "params.get_info", in->params->get_info, in->plugin, i, &info) ||
+            !(info.flags & CLAP_PARAM_IS_BYPASS))
+            continue;
+        if (OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "params.get_value", in->params->get_value, in->plugin, info.id, &value) &&
+            value == info.min_value)
+            continue;
+        memset(&ev, 0, sizeof(ev));
+        ev.header.size = sizeof(ev);
+        ev.header.space_id = CLAP_CORE_EVENT_SPACE_ID;
+        ev.header.type = CLAP_EVENT_PARAM_VALUE;
+        ev.param_id = info.id;
+        ev.cookie = info.cookie;
+        ev.note_id = -1;
+        ev.port_index = -1;
+        ev.channel = -1;
+        ev.key = -1;
+        ev.value = info.min_value;
+        OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "params.flush", in->params->flush, in->plugin, &ie, &oe);
+    }
+}
+
+/* the plugin's state.load, or state-context's load with `context` when `ext` offers it, inside state_load_begin and
+ * state_load_done; a preset's bypass is set off before the instance runs again */
+static int state_load_as(struct omx_clap_instance *in, const clap_plugin_state_context_t *ext, uint32_t context, const void *buf,
+                         size_t len)
 {
     struct bounded_stream b = { NULL, buf, len, len, 0, 0 };
     const clap_istream_t is = { &b, istream_read };
     int stopped, ok, applied;
 
-    if (!in->state || !buf)
-        return -1;
     stopped = state_load_begin(in);
-    ok = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "state.load", in->state->load, in->plugin, &is);
+    ok = ext ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ext.load", ext->load, in->plugin, &is, context)
+             : OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "state.load", in->state->load, in->plugin, &is);
+    if (ok && context == CLAP_STATE_CONTEXT_FOR_PRESET)
+        preset_bypass_off(in);
     applied = state_load_done(in, stopped);
     return !ok ? -1 : applied;
+}
+
+int omx_clap_host_state_load(struct omx_clap_instance *in, const void *buf, size_t len)
+{
+    if (!in->state || !buf)
+        return -1;
+    return state_load_as(in, NULL, 0, buf, len);    // no context: a project or session restore keeps the bypass
 }
 
 int omx_clap_host_state_save_context(struct omx_clap_instance *in, uint32_t context, void *buf, size_t cap, size_t *len)
@@ -4121,19 +4176,13 @@ int omx_clap_host_state_save_context(struct omx_clap_instance *in, uint32_t cont
 
 int omx_clap_host_state_load_context(struct omx_clap_instance *in, uint32_t context, const void *buf, size_t len)
 {
-    struct bounded_stream b = { NULL, buf, len, len, 0, 0 };
-    const clap_istream_t is = { &b, istream_read };
     const clap_plugin_state_context_t *ext = in ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, CLAP_EXT_STATE_CONTEXT) : NULL;
-    int stopped, ok, applied;
 
     if (!in || !buf || context < CLAP_STATE_CONTEXT_FOR_PRESET || context > CLAP_STATE_CONTEXT_FOR_PROJECT)
         return -1;
     if (!ext || !ext->load)
-        return omx_clap_host_state_load(in, buf, len);
-    stopped = state_load_begin(in);
-    ok = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ext.load", ext->load, in->plugin, &is, context);
-    applied = state_load_done(in, stopped);
-    return !ok ? -1 : applied;
+        return in->state ? state_load_as(in, NULL, context, buf, len) : -1;
+    return state_load_as(in, ext, context, buf, len);
 }
 
 uint32_t omx_clap_host_property_count(struct omx_clap_instance *in)

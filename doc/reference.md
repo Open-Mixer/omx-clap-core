@@ -782,7 +782,12 @@ What a plugin may ask of any host besides its audio and its parameters:
 - `clap.state-context`: `omx_clap_host_state_save_context` and
   `omx_clap_host_state_load_context` with `CLAP_STATE_CONTEXT_FOR_PRESET`,
   `_DUPLICATE` or `_PROJECT`; a plugin without the extension saves and loads
-  its plain state for each.
+  its plain state for each. A preset never carries bypass: after a load for
+  `_FOR_PRESET` the plugin's own bypass (the parameter flagged
+  `CLAP_PARAM_IS_BYPASS`) is set back to off before the plugin runs again, so
+  a preset saved bypassed elsewhere does not silence the plugin it is recalled
+  on. Bypass is the host's, per stage; a project or session reload keeps the
+  plugin's own last state, bypassed included (omx-clap-core#20).
 - `org.openmixer.properties/1`, a plugin's file and text properties: the host
   answers `org.openmixer.properties` in `clap.event-registry`, reads the
   plugin's table once at load (P1 to P3: unique ids, no symbol a parameter's,

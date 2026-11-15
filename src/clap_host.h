@@ -934,7 +934,9 @@ OMX_CLAP_EXPORT int omx_clap_host_property_set(struct omx_clap_instance *in, cla
 #define OMX_CLAP_HOST_NOT_APPLIED (-3)
 
 /** Load the plugin state from `buf`, `len` bytes: 0 once applied, -1 when the plugin has no state extension or refuses
- * it, OMX_CLAP_HOST_NOT_APPLIED when it took it and had not run since by the wait's end. */
+ * it, OMX_CLAP_HOST_NOT_APPLIED when it took it and had not run since by the wait's end. A project or session restore:
+ * the bypass the state holds is kept (a preset's load is omx_clap_host_state_load_context with
+ * CLAP_STATE_CONTEXT_FOR_PRESET). */
 OMX_CLAP_EXPORT int omx_clap_host_state_load(struct omx_clap_instance *in, const void *buf, size_t len);
 
 /** preset-load from a file location: 0 once applied; -1 when the plugin has no such extension or refuses;
@@ -1051,7 +1053,11 @@ OMX_CLAP_EXPORT int omx_clap_resource_hint_figure(const omx_resource_hints_t *hi
 OMX_CLAP_EXPORT int omx_clap_host_state_save_context(struct omx_clap_instance *in, uint32_t context, void *buf, size_t cap, size_t *len);
 
 /** state-context's load, the same way (OMX_CLAP_HOST_NOT_APPLIED included): the plain state load for a plugin without
- * the extension. Control thread. */
+ * the extension. For CLAP_STATE_CONTEXT_FOR_PRESET the plugin's own bypass (each parameter flagged
+ * CLAP_PARAM_IS_BYPASS) is set back to off after the load, before the plugin runs again: a preset never carries bypass,
+ * so a preset saved bypassed elsewhere does not silence the plugin it is recalled on (omx-clap-core#20). A load for a
+ * project or a duplicate, like omx_clap_host_state_load, keeps the plugin's own last state, bypassed included. Control
+ * thread. */
 OMX_CLAP_EXPORT int omx_clap_host_state_load_context(struct omx_clap_instance *in, uint32_t context, const void *buf, size_t len);
 
 /** Tell the plugin how it is rendered (clap.render): CLAP_RENDER_REALTIME, or CLAP_RENDER_OFFLINE before a render that is

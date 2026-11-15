@@ -33,8 +33,9 @@ import socket
 import sys
 import tempfile
 
-sys.path.insert(0, os.environ.get('PLUGIN_HOSTD_TESTS_LIB') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'plugin-hostd', 'tests', 'lib'))
-import plugin_hostd_client  # noqa: E402  plugin-hostd-tests' lib/plugin_hostd_client.py
+if os.environ.get('PLUGIN_HOSTD_CLIENT_DIR'):
+    sys.path.insert(0, os.environ['PLUGIN_HOSTD_CLIENT_DIR'])  # a plugin-hostd-protocol checkout's clients/python
+import plugin_hostd_client  # noqa: E402  the protocol's client: python3-plugin-hostd-client (plugin-hostd-protocol issue 45)
 
 HOST = 'omx-clap-host'
 OWNER = 'omx-clap-core'

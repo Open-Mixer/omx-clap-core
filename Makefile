@@ -442,7 +442,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -1841,3 +1841,9 @@ test-abi-guard: tests/abi_guard_test
 
 bench-abi-guard: tests/abi_guard_bench
 	tests/abi_guard_bench
+
+# no workflow sizes its parallel jobs from the host's nproc (tools/no-host-nproc.sh: its self-test, then the scan)
+.PHONY: test-no-host-nproc
+test-no-host-nproc:
+	sh tools/no-host-nproc.sh --self-test
+	sh tools/no-host-nproc.sh

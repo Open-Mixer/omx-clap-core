@@ -720,10 +720,15 @@ jobs:
       - name: Build
         run: make
 
+      # the parallel jobs from the job's CPU quota and the runner's declared CPUs, never the host's nproc
+      - name: The parallel jobs this runner may run
+        uses: Open-Mixer/.github/.github/actions/jobs@openmixer-v1
+        with:
+          max: ${{ vars.OMX_RUNNER_CPUS || '3' }}
       - name: The sabotage of the host's chain guards
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            CHAIN_SABOTAGE_PARALLEL=$(nproc) CHAIN_SABOTAGE_ARM_SECONDS=180 make test-chain-host-sabotage PLUGIN_HOSTD=/tmp/plugin-hostd/plugin-hostd
+            CHAIN_SABOTAGE_PARALLEL="$OMX_JOBS" CHAIN_SABOTAGE_ARM_SECONDS=180 make test-chain-host-sabotage PLUGIN_HOSTD=/tmp/plugin-hostd/plugin-hostd
           else
             echo "::warning::test-chain-host-sabotage SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
@@ -760,8 +765,13 @@ jobs:
           dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.16.0'
           pkg-config --atleast-version=0.32.0 omxdsp
 
+      # the parallel jobs from the job's CPU quota and the runner's declared CPUs, never the host's nproc
+      - name: The parallel jobs this runner may run
+        uses: Open-Mixer/.github/.github/actions/jobs@openmixer-v1
+        with:
+          max: ${{ vars.OMX_RUNNER_CPUS || '3' }}
       - name: The sabotage of the no-copy LV2 adapter
-        run: DIRECT_SABOTAGE_JOBS=$(nproc) make test-lv2-direct-sabotage
+        run: DIRECT_SABOTAGE_JOBS="$OMX_JOBS" make test-lv2-direct-sabotage
 
   # The ABI of libomx-clap-core.so.1 against the baseline of the last release: an addition needs a new minor, a removal or a
   # change needs a new soname major. Nothing here needs jack or the protocol library.

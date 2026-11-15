@@ -136,6 +136,18 @@ static inline void cpu_relax(void)
 #endif
 }
 
+/* The calling thread's kernel id, for thread_pool_follow. glibc 2.42 and later read it from the thread's descriptor
+   (pthread_gettid_np: no system call), which the audio thread may call on its first request; an older glibc has only
+   the system call, made once for each thread that makes a request. */
+static pid_t pool_own_tid(void)
+{
+#if defined(__GLIBC__) && __GLIBC_PREREQ(2, 42)
+    return pthread_gettid_np(pthread_self());
+#else
+    return (pid_t)syscall(SYS_gettid);
+#endif
+}
+
 static void futex_wait(_Atomic uint32_t *word, uint32_t expected, const struct timespec *timeout)
 {
     syscall(SYS_futex, (uint32_t *)word, FUTEX_WAIT_PRIVATE, expected, timeout, NULL, 0);
@@ -422,7 +434,7 @@ int thread_pool_run(struct omx_clap_instance *in, uint32_t num, uint64_t budget_
     // who asks, for thread_pool_follow: the kernel id is read once for each thread that makes a request
     if (!pthread_equal(atomic_load_explicit(&g_audio_self, memory_order_relaxed), pthread_self()))
     {
-        atomic_store_explicit(&g_audio_tid, (int)syscall(SYS_gettid), memory_order_relaxed);
+        atomic_store_explicit(&g_audio_tid, (int)pool_own_tid(), memory_order_relaxed);
         atomic_store_explicit(&g_audio_self, pthread_self(), memory_order_relaxed);
     }
     atomic_store_explicit(&g_job, in, memory_order_relaxed);

@@ -23,7 +23,7 @@ BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
+BuildRequires: (omx-contract-devel >= 3.19.0 with omx-contract-devel < 4)
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
@@ -86,7 +86,7 @@ Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
+Requires: (omx-contract-devel >= 3.19.0 with omx-contract-devel < 4)
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -101,7 +101,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: (omx-contract-data >= 3.18.0 with omx-contract-data < 4)
+Requires: (omx-contract-data >= 3.19.0 with omx-contract-data < 4)
 # the files lived in omx-clap-core-devel before this package
 Conflicts: omx-clap-core-devel < %{version}-%{release}
 
@@ -285,7 +285,7 @@ the English source sentence.
 # END langpacks
 
 %changelog
-* Sat Nov 14 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
+* Sun Nov 15 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
 - org.openmixer.properties/1: a plugin's file and text properties. The host
   answers the event space, reads the table once at load and offers
   omx_clap_host_property_count, _info, _get and _set (version node
@@ -302,7 +302,14 @@ the English source sentence.
   patch_set and this host's property_set, and compares them on the oracle;
   test-parity-lv2 builds the fixture bundles again in a fresh tree (#80).
 - Built against plugin-hostd-protocol >= 0.5.10, whose line splitter reads a
-  quoted-escaped value.
+  quoted-escaped value, and omx-contract >= 3.19.0 and below 4 (was 3.18.0),
+  the 3.19.0 pass's newest of each (D30). The CI jobs state the same.
+- A preset never leaves the plugin bypassed (#74); fuzz_manifest takes a read
+  failure for no candidate (#84); the coverage self-test holds up beside other
+  tests (#76).
+- CI: the jobs take their cells from check-matrix (#73), a same_pass dispatch
+  input reaches the channel-installability gate (#85), explicit artifact
+  retention (#82).
 
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
 - Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and

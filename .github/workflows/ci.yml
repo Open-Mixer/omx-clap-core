@@ -225,14 +225,6 @@ jobs:
       - name: Every file a comment can be written in opens with its licence
         uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
 
-      # the units table and the JSON string writer are omx-contract's, the protocol plugin-hostd-protocol's: no copy of
-      # either is in this tree (tests/no_contract_copy.py, tests/no_protocol_copy.py, each with its self test)
-      - name: No copy of omx-contract's units table or JSON writer
-        run: make test-no-contract-copy
-
-      - name: No copy of plugin-hostd-protocol's tables, headers or rendered verbs
-        run: make check-no-protocol-copy
-
       # the fuzz workflow runs on a tag only, so a fixture changed in a pull request reaches the committed seed corpus
       # here; the generator is plain C and gcc writes the bytes clang does
       - name: The seed corpus is what the fixtures give
@@ -279,19 +271,27 @@ jobs:
       - name: Test the plugin lifecycle and the scanner against the fake plugins
         run: make test-fake
 
-      # the meter reader of effects.c built with -Werror and driven by its test, and each of its rules broken, red: in
-      # make test and in no job until it failed to build on main unseen (int against the unsigned instance limits)
-      - name: Test the meter reader and its sabotage
-        run: make test-effects-meter ${{ github.event_name != 'pull_request' && 'test-effects-meter-sabotage' || '' }}
+      # make test's prerequisites, asked of the Makefile by group (TEST_PLAIN, TEST_MAIN_ONLY, TEST_NS): a target added
+      # to `test:` runs here with no workflow edit, and tests/ci_runs_test_list.py fails if one runs in no step
+      - name: The checks and sabotage arms make test lists
+        run: make $(make -s print-test-plain)
+
+      - name: The sabotage arms that rebuild copies of the sources
+        if: github.event_name != 'pull_request'
+        run: make $(make -s print-test-main-only)
+
+      # the command socket's framing against tests/socket_conformance.py: the target makes a namespace of its own
+      - name: Test the command socket's framing
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make $(make -s print-test-ns)
+          else
+            echo "::warning::the namespace tests SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+          fi
 
       # org.openmixer.panel-description/1 as omx_clap_ext.h states it, against omx-plugins' header, the ABI (#337)
       - name: The panel description's structures are the ABI's
         run: make test-panel-abi
-
-      # each rule of the audio layouts broken in a copy of the sources, the test that guards it red (#92)
-      - name: The sabotage of the audio layouts
-        if: github.event_name != 'pull_request'
-        run: make test-layouts-sabotage
 
       # the chain's cycles on a thread of their own while the control thread changes it, under ThreadSanitizer (#311)
       - name: Test the chain under ThreadSanitizer
@@ -329,20 +329,10 @@ jobs:
         if: github.event_name != 'pull_request'
         run: make test-transport-tsan
 
-      # the cycle gate's sabotage: a gate that never closes must race the deactivate under ThreadSanitizer
-      - name: Sabotage the cycle gate under ThreadSanitizer
-        if: github.event_name != 'pull_request'
-        run: make test-cycle-gate-sabotage
-
       # the thread pool's helpers, hand-out word and completion count against the audio and control threads (#395)
       - name: Test the thread pool under ThreadSanitizer
         if: github.event_name != 'pull_request'
         run: make test-thread-pool-tsan
-
-      # the thread pool's completion wait removed in a copy of the sources, tests/thread_pool_test red on it (#395)
-      - name: The sabotage of the thread pool's completion wait
-        if: github.event_name != 'pull_request'
-        run: make test-thread-pool-sabotage
 
       # a chain costs no more on silence than on the tone: the host reads a block for silence only for a plugin that can
       # sleep on it
@@ -486,18 +476,6 @@ jobs:
             echo "::warning::test-jack-abi SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
-      # The command socket's framing against tests/socket_conformance.py: a command of exactly the receive buffer, many
-      # commands in one write, one command over many writes, clients that leave mid-command, the size limit and a random
-      # chunking fuzz. It checks the protocol library the host links, libplugin-hostd-protocol from the channel; the
-      # log names the library the host loaded.
-      - name: Test the command socket's framing
-        run: |
-          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            make test-socket
-          else
-            echo "::warning::test-socket SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
-          fi
-
       # the verbs data/verbs.json declares for this host, installed as the package installs them, against its socket and
       # its registration table; then the guard's sabotage: a format and what the host owes a verb changed in the
       # declaration, a handler deleted and a verb with no declaration registered in the host, each red
@@ -539,12 +517,6 @@ jobs:
             echo "::warning::test-jack-params SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
-      # the host-ready wait test-jack-params relies on (#191), sabotaged: a host that never logs ready!, a port a
-      # listener already held, a host merely slow. No jack, PipeWire or namespace needed, so this always runs.
-      - name: Test the host-ready wait's two causes, sabotaged
-        if: github.event_name != 'pull_request'
-        run: make test-jack-params-ready-sabotage
-
       # An LV2 plugin through the host: the fixture bundles on LV2_PATH, add lv2:<uri>, the adapter's refusals with their
       # codes in the reply, the control ports by symbol, lv2:enabled as the bypass, state, presets by URI and remove.
       - name: Test an LV2 plugin through the host over jack
@@ -575,20 +547,6 @@ jobs:
           else
             echo "::warning::test-identity-lv2 SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
-
-      # The LV2 parity runner: its rules on fake recordings, each broken once and seen red (tests/lv2_parity.py)
-      - name: Test the LV2 parity rules
-        run: make test-parity-self
-
-      # The CLAP coverage probe: scan parsing, the host loop against a fake host, classify, each rule broken once and
-      # seen red (tests/clap_coverage.py); the desk run, make clap-coverage, is not CI's
-      - name: Test the CLAP coverage probe's rules
-        run: make test-clap-coverage-self
-
-      # docs/clap-compatibility.md against this runner's clap-devel headers: every id they spell a row, every supported
-      # cell naming a test that exists, each rule broken once and seen red (tests/clap_doc_check.sh)
-      - name: Test the CLAP compatibility page against the headers
-        run: make test-clap-doc-check
 
       # no test or bench writes its own send: they source plugin-hostd-tests' lib/protocol.sh (tests/protocol_client_check.sh)
       - name: Test that no script carries its own protocol client

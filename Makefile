@@ -446,8 +446,54 @@ test-ci-runs-test-list:
 	python3 tests/ci_runs_test_list.py --self-test
 	python3 tests/ci_runs_test_list.py .
 
+# `make test`'s prerequisites in the three groups CI runs (ci.yml asks for them by name: print-test-plain,
+# print-test-main-only, print-test-ns), so a target added here runs in CI with no workflow edit; tests/ci_runs_test_list.py
+# holds the workflow to it (test-audit omx-clap-core row 1)
+# plain: every push and pull request
+TEST_PLAIN = test-ci-runs-test-list \
+    test-no-host-nproc \
+    test-scan-json \
+    test-published-comp \
+    test-no-sha256-copy \
+    test-unsupported-copy \
+    test-no-contract-copy \
+    check-no-protocol-copy \
+    test-codes \
+    test-abi-guard \
+    test-scan \
+    test-core \
+    test-xrun-report-sabotage \
+    test-effects-meter \
+    test-meter-rate-source \
+    test-live-list \
+    test-live-list-sabotage \
+    test-state-root \
+    test-state-root-sabotage \
+    test-parity-self \
+    test-clap-coverage-self \
+    test-clap-coverage-ports \
+    test-clap-doc-check \
+    test-thread-pool \
+    test-properties \
+    test-properties-sabotage
+# the sabotage arms that rebuild copies of the sources: CI runs them on a push to main and a tag, not on a pull request
+TEST_MAIN_ONLY = test-layouts-sabotage \
+    test-cycle-gate-sabotage \
+    test-effects-meter-sabotage \
+    test-thread-pool-sabotage \
+    test-jack-params-ready-sabotage
+# the target starts a user, net, pid and mount namespace of its own: CI probes that the runner allows one first
+TEST_NS = test-socket
+.PHONY: print-test-plain print-test-main-only print-test-ns
+print-test-plain:
+	@echo $(TEST_PLAIN)
+print-test-main-only:
+	@echo $(TEST_MAIN_ONLY)
+print-test-ns:
+	@echo $(TEST_NS)
+
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-ci-runs-test-list test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) tests/clap_host_test tests/fake.clap tests/fake_synth.clap
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth

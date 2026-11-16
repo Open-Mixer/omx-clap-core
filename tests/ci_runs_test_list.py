@@ -43,6 +43,16 @@ def named_in_workflow(text):
     return named
 
 
+def expand_groups(root, named):
+    """`make $(make -s print-test-plain)` names what the Makefile's print target answers."""
+    out = set(named)
+    for word in named:
+        if word.startswith("print-test-"):
+            r = subprocess.run(["make", "-s", "-C", root, word], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            out.update(r.stdout.split())
+    return out
+
+
 def reached(rule_map, named):
     seen = set()
     todo = list(named)
@@ -55,9 +65,9 @@ def reached(rule_map, named):
     return seen
 
 
-def check(rule_map, workflow_text):
+def check(rule_map, workflow_text, root="."):
     want = sorted(p for p in rule_map.get("test", ()) if "/" not in p)
-    ran = reached(rule_map, named_in_workflow(workflow_text))
+    ran = reached(rule_map, expand_groups(root, named_in_workflow(workflow_text)))
     return ["%s is a prerequisite of `make test` and runs in no CI step" % t for t in want if t not in ran]
 
 
@@ -77,25 +87,36 @@ def self_test(root):
     failed = 0
     want = sorted(p for p in rule_map["test"] if "/" not in p)
     full = "".join("      - run: make %s\n" % t for t in want)
-    if check(rule_map, full):
+    if check(rule_map, full, root):
         print("FAIL a workflow naming every prerequisite of `test` was refused")
         failed = 1
     else:
         print("ok   a workflow naming every prerequisite of `test` is met")
-    if check(rule_map, "      - run: make test\n"):
+    if check(rule_map, "      - run: make test\n", root):
         print("FAIL `make test` itself was not taken as running its prerequisites")
         failed = 1
     else:
         print("ok   `make test` runs its prerequisites")
+    groups = "      - run: make test-fake\n" + "".join("      - run: make $(make -s print-test-%s)\n" % g for g in ("plain", "main-only", "ns"))
+    if check(rule_map, groups, root):
+        print("FAIL the three print-test groups do not reach every prerequisite of `test`")
+        failed = 1
+    else:
+        print("ok   the three print-test groups reach every prerequisite of `test`")
+    if check(rule_map, groups.replace("main-only", "plain"), root):
+        print("ok   a group left out (main-only) is found")
+    else:
+        print("FAIL a workflow without print-test-main-only was accepted")
+        failed = 1
     victim = want[0]
     left_out = "".join("      - run: make %s\n" % t for t in want if t != victim)
-    if any(victim in line for line in check(rule_map, left_out)):
+    if any(victim in line for line in check(rule_map, left_out, root)):
         print("ok   %s left out of the workflow is found" % victim)
     else:
         print("FAIL %s left out of the workflow is not found" % victim)
         failed = 1
     only_said = left_out + "      # make %s\n      - run: echo make %s\n" % (victim, victim)
-    if any(victim in line for line in check(rule_map, only_said)):
+    if any(victim in line for line in check(rule_map, only_said, root)):
         print("ok   %s only in a comment and an echo is found" % victim)
     else:
         print("FAIL %s only in a comment and an echo counts as run" % victim)
@@ -108,7 +129,7 @@ def main():
         sys.exit(self_test(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     if len(sys.argv) != 2:
         sys.exit("usage: ci_runs_test_list.py <tree> | --self-test")
-    found = check(rules(sys.argv[1]), workflow_text(sys.argv[1]))
+    found = check(rules(sys.argv[1]), workflow_text(sys.argv[1]), sys.argv[1])
     for line in found:
         print("FAIL " + line)
     if found:

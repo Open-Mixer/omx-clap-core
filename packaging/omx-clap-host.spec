@@ -102,8 +102,6 @@ License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
 Requires: (omx-contract-data >= 3.18.0 with omx-contract-data < 4)
-# the files lived in omx-clap-core-devel before this package
-Conflicts: omx-clap-core-devel < %{version}-%{release}
 
 %description -n omx-clap-core-contract
 omx-clap-core's definitions as files in omx-contract's contract directory,
@@ -182,7 +180,6 @@ make test-package
 %{_libdir}/pkgconfig/omx-clap-core.pc
 %{_includedir}/omx-clap-host/
 %{_datadir}/omx-clap-core/omx-clap-core.map
-%{_datadir}/omx-clap-core/libomx-clap-core.so.*.abi
 
 %files -n omx-clap-core-contract
 %license COPYING

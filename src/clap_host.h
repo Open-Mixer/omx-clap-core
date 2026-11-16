@@ -70,35 +70,9 @@
 ************************************************************************************************************************
 */
 
-/** The version of the structures below, the stage's and the instance's: a field is only ever appended, and each append
- * raises it (2: the instance's tempo and transport, 0.3; 3: the host's published transport and the auxiliary inputs, 0.7;
- * 4: the plugin's clap.meters/1 declarations, 0.7; 5: the stage's releases_dropped, in its tail padding, 0.10; 6: the
- * instance's note ids, beside its stage; 7: the instance's note output; 8: the plugin's clap.voice-info, 0.11; 9: the
- * instance's MPE zones, a lower and an upper, 0.11; 10: what the plugin tells the host's note-ports, note-name and
- * voice-info, 0.12; 11: timers, file descriptors, the thread pool, the tail and the sleep, 0.12; 12:
- * libomx-clap-core.so.1, every audio port described (struct omx_clap_port), up to OMX_HOSTED_STAGE_AUX_INPUTS and
- * OMX_HOSTED_STAGE_AUX_OUTPUTS auxiliary ports of up to OMX_HOSTED_STAGE_PORT_CHANNELS channels, and the configuration's
- * lane_channels; 13: the stage's wide bounce, wide_in, wide_out and wide, carried by omx_clap_run_ports; 14: the
- * plugin's clap.surround and clap.ambisonic, which describe a surround and an ambisonic port, the ports rescan the
- * tick reports, the plugin's clap.configurable-audio-ports and clap.audio-ports-config, which
- * omx_clap_host_request_layout asks, and the stage's count of bound auxiliary output channels; 15: the pass-through
- * placement; 16: the CPU idle hold (#296): the configuration's idle_hold_us, the instance's idle_held,
- * omx_clap_host_idle_hold_set and omx_clap_host_idle_hold; 17: the plugin's resource hints (#323), the instance's
- * resource_hints and resource_hints_why, omx_clap_host_resource_hints; 18: the audio role's named slot (#104), the
- * instance's audio_slot, omx_clap_host_name_slot; 19: the thread pool (#395), the instance's pool_use, pool_priority,
- * pool_held and pool_late, struct omx_clap_thread_pool_info, omx_clap_host_thread_pool_use, omx_clap_host_thread_pool and
- * omx_clap_host_thread_pool_late; 20: every call into the plugin through the guard (abi_guard.h), the instance's abi,
- * the stage's guard_off in its tail padding, and omx_clap_host_abi_clobber; 21: the bypass dry-path delay (#1), the
- * instance's bypass_delay after keeps_on, reached by the stage through guard_off as struct omx_clap_guard_tail lays it
- * out).
- * configure accepts every ABI from OMX_CLAP_CORE_ABI_OLDEST up to its own, so a consumer of an older header keeps
- * working, and refuses a newer one: a consumer whose inline code reaches an appended field is refused by a library
- * whose instance lacks it. The soname-1 train runs 12 to 14 across the PRs of #92, OLDEST following ABI until the
- * first libomx-clap-core.so.1 release, which freezes it: nothing of the major is released, and the stage, embedded in
- * the instance, grows inside it. A removal or a reorder is a new major of the library. */
+/** The version of the structures below, the stage's and the instance's. configure accepts this ABI only, at exactly the
+ * size this header gives the configuration: a consumer built against another header is refused, not merged. */
 #define OMX_CLAP_CORE_ABI               21u
-#define OMX_CLAP_CORE_ABI_OLDEST        18u  ///< the oldest header ABI the library accepts: follows OMX_CLAP_CORE_ABI until
-                                             ///< the first release of libomx-clap-core.so.1
 
 /** The most meters of clap.meters/1 an instance reads; a plugin declaring more has none in process (docs/meters.md). */
 #define OMX_CLAP_METER_COUNT_MAX        16u
@@ -663,19 +637,8 @@ struct omx_clap_instance
 */
 
 /** The defaults: clamp, scan and warm-up on, note inputs refused, the declared extensions only, the host named for the
- * library. Fills
- * `abi` and `size` too: start from it. Stamps the library's own current sizeof regardless of how large `config`
- * actually is (#301): a caller whose own struct is smaller, because it was compiled against an older header and not
- * rebuilt since, is overrun once that struct has grown past its size. omx_clap_host_config_default_sized is the call
- * that cannot do that; prefer it. */
+ * library. Fills `abi` and `size` too: start from it. */
 OMX_CLAP_EXPORT void omx_clap_host_config_default(struct omx_clap_host_config *config);
-
-/** Like omx_clap_host_config_default, but never touches a byte past caller_size (0.15.0, #301): pass sizeof(*config)
- * so the write is bounded to the struct as the CALLER compiled it, not to the library's own, possibly larger, current
- * one. config is filled up to whichever of caller_size and the library's own sizeof is smaller, and `size` is set to
- * that, not to the library's full size. caller_size too short to carry even `version` (the same floor
- * omx_clap_host_configure holds a config to) is refused: config is left untouched, not partly overwritten. */
-OMX_CLAP_EXPORT void omx_clap_host_config_default_sized(struct omx_clap_host_config *config, uint32_t caller_size);
 
 /** Set the process's configuration, once, before the first binary is opened. -1: the ABI differs, a binary is open
  * already or a configuration was set. */

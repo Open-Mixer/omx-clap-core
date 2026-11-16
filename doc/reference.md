@@ -77,9 +77,7 @@ second: a change inside the second after a line waits for the next tick that
 is a second on, and the line then carries the count at that time. The line has
 no instance number, the count is the whole host's. A host that has had no xrun
 writes none. A controller attributes a window's xruns to every plugin the
-host holds (plugin-hostd's grouping planner reads it this way); a host that
-never writes the line, such as an older omx-clap-host or mod-host, is read as
-one with no xruns.
+host holds (plugin-hostd's grouping planner reads it this way).
 
 The count is what JACK's callback reports. PipeWire's libjack calls it for an
 xrun the graph's driver reports (an audio device that ran dry), and not for a

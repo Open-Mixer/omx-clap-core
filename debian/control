@@ -88,8 +88,6 @@ Package: omx-clap-core-contract
 Architecture: all
 Multi-Arch: foreign
 Depends: omx-contract-data (>= 3.18.0~), omx-contract-data (<< 4~), ${misc:Depends}
-Breaks: libomx-clap-core-dev (<< ${source:Version})
-Replaces: libomx-clap-core-dev (<< ${source:Version})
 Description: omx-clap-core's definitions in omx-contract's contract directory
  omx-clap-core's definitions as files in omx-contract's contract directory,
  for any program that reads them at run time: the hosting limits and refusal
@@ -121,8 +119,6 @@ Package: omx-clap-host-l10n-ca
 Section: localization
 Architecture: all
 Depends: omx-clap-core-contract (= ${source:Version}), ${misc:Depends}
-Breaks: omx-clap-core-contract (<< 0.32.1~)
-Replaces: omx-clap-core-contract (<< 0.32.1~)
 Description: ca catalog of omx-clap-host's codes
  The sentences of omx-clap-host's codes in the language ca, read by every
  surface that shows them on a host in that locale; without it a surface shows

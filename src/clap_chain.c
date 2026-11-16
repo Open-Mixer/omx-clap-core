@@ -114,11 +114,10 @@ struct omx_clap_chain
 ************************************************************************************************************************
 */
 
-/* a structure's `abi` and `size` are ones the library reads: an ABI it knows, at exactly the size that ABI gives the
- * structure (one ABI so far, its size this build's) */
+/* a structure's `abi` and `size` are ones the library reads: this build's ABI at exactly this build's size */
 static int abi_ok(uint32_t abi, uint32_t size, size_t size_abi1)
 {
-    return abi >= OMX_CLAP_CHAIN_ABI_OLDEST && abi <= OMX_CLAP_CHAIN_ABI && size == size_abi1;
+    return abi == OMX_CLAP_CHAIN_ABI && size == size_abi1;
 }
 
 /* the member with `id`, its index in slot[], or -1 */

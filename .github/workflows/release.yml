@@ -30,10 +30,6 @@ on:
         description: 'Build fc44 x86_64 and trixie amd64 only and publish them to the staging channel for the next layer; publishes nothing to the real channel'
         type: boolean
         default: false
-      staged-deps:
-        description: 'Ignored by the shared workflows, kept for this wave only'
-        type: string
-        default: ''
       staging:
         description: 'Build against the staging channel, above the real one: a dry run only, never a tag or a publish'
         type: boolean
@@ -54,9 +50,6 @@ on:
       staged:
         type: boolean
         default: false
-      staged-deps:
-        type: string
-        default: ''
       staging:
         description: 'Build against the staging channel, above the real one: a dry run only, never a tag or a publish'
         type: boolean
@@ -72,16 +65,10 @@ permissions:
   actions: read
 
 jobs:
-  # the library's ABI against the baseline of the last release, before any build minutes are spent
-  abi:
-    uses: ./.github/workflows/abi.yml
-
   rpm:
-    needs: abi
     uses: Open-Mixer/.github/.github/workflows/build-rpm.yml@openmixer-v1
     with:
       staged: ${{ inputs.staged == true }}
-      staged-deps: ${{ inputs.staged-deps || '' }}
       staging: ${{ inputs.staging == true }}
       same-pass: ${{ inputs.same_pass || '' }}
       package-name: omx-clap-host
@@ -92,11 +79,9 @@ jobs:
   # or skipped RPM job skips this one, so no DEB is published after a failed RPM.
   # beside the RPMs: the two publish jobs share one concurrency group, so their pushes never race
   deb:
-    needs: abi
     uses: Open-Mixer/.github/.github/workflows/build-deb.yml@openmixer-v1
     with:
       staged: ${{ inputs.staged == true }}
-      staged-deps: ${{ inputs.staged-deps || '' }}
       staging: ${{ inputs.staging == true }}
       same-pass: ${{ inputs.same_pass || '' }}
       package-name: omx-clap-host

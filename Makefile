@@ -302,7 +302,6 @@ install-lib: $(CORE_SO)
 	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
 	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
-	if [ -f abi/$(CORE_SONAME).abi ]; then install -m 644 abi/$(CORE_SONAME).abi $(DESTDIR)$(DATADIR)/$(CORE)/; fi
 
 # the LV2 adapter: the archive, its one header and its pkg-config file, what a program that hosts LV2 plugins as CLAP
 # plugins builds against; lilv is the program's to have at run time (the adapter dlopens liblilv-0.so.0)
@@ -442,7 +441,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -481,6 +480,13 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
 
+# no backward-compatibility machinery: the current ABI only, no recorded-baseline ABI gate, no Breaks/Replaces/Conflicts,
+# no ignored release input (tests/no_backcompat.py; the self-test plants each old thing in a copy and finds it)
+.PHONY: test-no-backcompat
+test-no-backcompat:
+	python3 tests/no_backcompat.py --self-test
+	python3 tests/no_backcompat.py .
+
 # a development package's lib*.so is a symlink to the shared library another package ships: each one depends on that
 # package, deb and rpm, or a machine with the development package alone links nothing (#96)
 .PHONY: test-dev-so-runtime-dep
@@ -495,8 +501,10 @@ test-build-floors:
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh --self-test
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
 
+test: test-no-backcompat
 test: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
-test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align test-abi-format
+test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)
@@ -967,38 +975,6 @@ test-thread-pool-sabotage: tests/thread_pool_test.c tests/test_util.h $(CORE_SRC
 # the plugin's resource hints (#323) through the core, against fake_ext's declaration of two
 tests/resource_hints_test: tests/resource_hints_test.c tests/test_util.h $(CORE_SO)
 	$(CC) $(INCS) $(CFLAGS) -Werror -o $@ $< $(CORE_LINK_TEST) -ldl -lpthread -lm
-
-# the ABI: abidw records what the library exports and the types its public headers reach, abidiff compares a build with the
-# baseline of the last release. An addition is a compatible change and a new minor; a removal or a change is a new soname major.
-ABI_BASELINE = abi/$(CORE_SONAME).abi
-ABI_LAYOUT = abi/$(CORE_SONAME).layout
-
-abi-stage: $(CORE_SO)
-	rm -rf build/abi
-	$(MAKE) install-lib DESTDIR=$(CURDIR)/build/abi PREFIX=/usr LIBDIR=/usr/lib
-
-# record the baseline: the release commit does this and commits abi/
-abi-baseline: abi-stage
-	mkdir -p abi
-	abidw --headers-dir build/abi/usr/include --out-file $(ABI_BASELINE) build/abi/usr/lib/$(CORE_FILE)
-	CC="$(CC)" CPPFLAGS="$(CLAP_CFLAGS) $(DSP_CFLAGS)" sh tests/abi-layout.sh build/abi/usr/include $(ABI_LAYOUT) $(VERSION) --record
-
-# abi-check.sh's reading of abidiff, sabotaged: a fixture library whose member points to a structure, the pointee grown
-# (ok) and changed five ways that must each FAIL (tests/abi-check-sabotage.sh, #323); needs gcc, abidw and abidiff
-.PHONY: test-abi-sabotage
-test-abi-sabotage:
-	sh tests/abi-check-sabotage.sh
-
-# libabigail's dump leaves _Atomic members out (#117): abi-layout.sh reads every member's offset, size and type with
-# pahole and holds them to abi/<soname>.layout, recorded with the baseline
-# tests/abi-check.sh where abidw writes another ABI-XML format than the baseline's: compared on the declared ABI cell only
-.PHONY: test-abi-format
-test-abi-format:
-	sh tests/abi-format-test.sh
-
-abi-check: abi-stage
-	sh tests/abi-check.sh build/abi/usr/lib/$(CORE_FILE) build/abi/usr/include $(ABI_BASELINE)
-	CC="$(CC)" CPPFLAGS="$(CLAP_CFLAGS) $(DSP_CFLAGS)" sh tests/abi-layout.sh build/abi/usr/include $(ABI_LAYOUT) $(VERSION)
 
 # the library as a program outside this tree sees it: installed into a prefix of its own, found through its pkg-config file
 # and linked by that alone, with the defaults; the export list and the libraries it names are read off the file

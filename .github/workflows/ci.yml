@@ -143,7 +143,6 @@ jobs:
           base: omx-clap-core-contract
           owner: omx-clap-core
           spec: packaging/omx-clap-host.spec
-          moved: ca:0.32.1
 
   docs:
     name: make docs (the public headers are fully documented)
@@ -200,7 +199,7 @@ jobs:
       - name: Install the build tools
         run: |
           dnf install -y --setopt=install_weak_deps=False git gcc make python3 perl-interpreter diffutils pkgconf-pkg-config clap-devel openssl-devel \
-            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jack-tools jq iproute util-linux procps-ng libasan libubsan libtsan libabigail \
+            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jack-tools jq iproute util-linux procps-ng libasan libubsan libtsan \
             python3-numpy python3-lilv \
             libxcb-devel xorg-x11-server-Xvfb xdotool wayland-devel wayland-protocols-devel weston \
             dnf5-plugins
@@ -316,12 +315,6 @@ jobs:
       - name: The sabotage of the resource hints' guards
         if: github.event_name != 'pull_request'
         run: make test-resource-hints-sabotage
-
-      # abi-check.sh's reading of abidiff against a fixture library: a pointee grown reads ok, a function pointer, a
-      # retyped pointer and a reorder each FAIL (#323)
-      - name: The sabotage of the ABI check's report reading
-        if: github.event_name != 'pull_request'
-        run: make test-abi-sabotage
 
       - name: Test what a plugin reports about its parameters under AddressSanitizer
         if: github.event_name != 'pull_request'
@@ -679,7 +672,7 @@ jobs:
       - name: Install the build tools
         run: |
           dnf install -y --setopt=install_weak_deps=False git gcc make python3 perl-interpreter diffutils pkgconf-pkg-config clap-devel openssl-devel \
-            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jq iproute util-linux procps-ng libasan libubsan libtsan libabigail \
+            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jq iproute util-linux procps-ng libasan libubsan libtsan \
             python3-numpy python3-lilv \
             libxcb-devel xorg-x11-server-Xvfb xdotool wayland-devel wayland-protocols-devel weston \
             dnf5-plugins
@@ -773,12 +766,6 @@ jobs:
       - name: The sabotage of the no-copy LV2 adapter
         run: DIRECT_SABOTAGE_JOBS="$OMX_JOBS" make test-lv2-direct-sabotage
 
-  # The ABI of libomx-clap-core.so.1 against the baseline of the last release: an addition needs a new minor, a removal or a
-  # change needs a new soname major. Nothing here needs jack or the protocol library.
-  abi:
-    name: ABI of libomx-clap-core against its baseline
-    uses: ./.github/workflows/abi.yml
-
   rpm:
     name: RPMs (fc${{ matrix.cell.fedora }}, ${{ matrix.cell.arch }}), installed in a clean root
     needs: [checks, changes]
@@ -870,7 +857,7 @@ jobs:
             printf '%s\n' '/usr/lib*/libomx-clap-core.so' '/usr/lib*/pkgconfig/omx-clap-core.pc' /usr/include/omx-clap-host/clap_host.h \
               /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_core_vocabulary.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
               /usr/include/omx-clap-host/clap_host_extensions.h /usr/include/omx-clap-host/omx_clap_ext.h /usr/include/omx-clap-host/omx_msgring.h /usr/include/omx-clap-host/clap_meters.h /usr/include/omx-clap-host/omx_clap_raw.h /usr/include/omx-clap-host/omx_clap_midi.h /usr/include/omx-clap-host/clap_chain.h /usr/include/omx-clap-host/abi_guard.h \
-              /usr/share/omx-clap-core/omx-clap-core.map /usr/share/omx-clap-core/libomx-clap-core.so.1.abi \
+              /usr/share/omx-clap-core/omx-clap-core.map \
               /usr/share/licenses/omx-clap-core-devel/COPYING /usr/share/doc/omx-clap-core-devel/README.md | sort > expected.txt
             diff -u <(sed 's,/usr/lib64/,/usr/lib*/,' files.txt) expected.txt
           done
@@ -1150,8 +1137,6 @@ jobs:
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json contract-files.txt
           ! grep -q '^/usr/share/omx-contract/' dev-files.txt
           dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Architecture: all$'
-          dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Breaks: libomx-clap-core-dev \(<< '
-          dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Replaces: libomx-clap-core-dev \(<< '
           for deb in debs/libomx-clap-core1_*.deb debs/libomx-clap-core-dev_*.deb; do
             dpkg -I "$deb" | grep -E '^ Depends:.*omx-clap-core-contract \(= '
           done

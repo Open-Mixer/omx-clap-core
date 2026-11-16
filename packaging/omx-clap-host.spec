@@ -183,6 +183,7 @@ make test-package
 %{_includedir}/omx-clap-host/
 %{_datadir}/omx-clap-core/omx-clap-core.map
 %{_datadir}/omx-clap-core/libomx-clap-core.so.*.abi
+%{_datadir}/omx-clap-core/fixtures/
 
 %files -n omx-clap-core-contract
 %license COPYING

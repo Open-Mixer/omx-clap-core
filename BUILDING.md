@@ -52,6 +52,16 @@ puts the fixtures a program that drives the worker tests itself against
 and `jack_identity`) in
 `<PREFIX>/libexec/omx-clap-host/tests`; the omx-clap-host-tests package carries them.
 
+    make install-fixtures DESTDIR=<root> PREFIX=/usr
+
+puts the sources of the fault fixtures and of the worker-gain LV2 bundle, with
+`fixtures.mk` that builds them, in `<PREFIX>/share/omx-clap-core/fixtures`;
+`omx-clap-core.pc` names it (`pkg-config --variable=fixturesdir omx-clap-core`)
+and omx-clap-core-devel carries it. A consumer's tests build them into a
+directory of their own:
+`make -f <fixturesdir>/fixtures.mk FIXTURES_OUT=<dir> fixtures lv2-worker-gain`
+(`make test-fixtures-install` checks it from a scratch prefix).
+
     make test-jack CLAP_TEST_PLUGIN=<omx-delay>.clap
 
 runs `tests/jack_e2e.sh`: the host over jack inside a PipeWire of its own

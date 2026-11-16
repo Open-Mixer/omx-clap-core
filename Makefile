@@ -442,7 +442,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: test-panel-tables-follow-contract test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -713,6 +713,15 @@ tests/lv2_locate_test: tests/lv2_locate_test.c src/lv2_locate.c src/lv2_locate.h
 # ABI, as omx-plugins-devel installs it (pkg-config omxplugins): omx-plugins builds on this tree, so the header is read
 # here, never copied
 .PHONY: test-panel-abi
+# the panel families, widgets and display kinds are omx-contract's (#104): built against a contract fixture that
+# declares one more of each, omx_clap_ext.h's tables carry it with no edit here
+.PHONY: test-panel-tables-follow-contract
+test-panel-tables-follow-contract: tests/panel_tables_follow_contract
+	./tests/panel_tables_follow_contract
+
+tests/panel_tables_follow_contract: tests/panel_tables_follow_contract.c src/omx_clap_ext.h tests/fixtures/contract-one-more-family/omxcontract/omx_vocabulary.h
+	$(CC) -Itests/fixtures/contract-one-more-family -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
+
 test-panel-abi: tests/panel_abi_test
 	./tests/panel_abi_test
 

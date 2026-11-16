@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# The parameter units and the JSON string writer are omx-contract's, and this tree keeps no copy of either: the units
+# The parameter units, the panel families, widgets and display kinds (#104) and the JSON string writer are
+# omx-contract's, and this tree keeps no copy of any: the units
 # are <omxcontract/omx_param_units.h>'s OMX_PARAM_UNITS(X) (omx_clap_ext.h names that table and spells no row), and a
 # JSON string is written by <omxcontract/omx_json_write.h> (omx_json_escape_byte, omx_json_write_string,
 # omx_json_string), never by an escape loop of a file's own. A copy that comes back drifts from the sheet the other
@@ -27,6 +28,13 @@ MARKS = [
     # one row of the sheet, by the words only the units sheet holds
     (re.compile(r'\bX\(\s*(?:0x[0-9A-Fa-f]+|\d+)[uU]?\s*,\s*"(?:db|hz|semitone12TET|midiNote|dbfs|lufs)"\s*\)'),
      "a row of the units sheet"),
+    # a panel family, widget or display-kind table spelled out (#104): the alias
+    # `#define OMX_CLAP_PANEL_FAMILIES(X) OMX_PANEL_FAMILIES(X)` opens with a name, a copy with a row
+    (re.compile(r"^#\s*define\s+\w*_(?:FAMILIES|WIDGETS|DISPLAY_KINDS)\(X\)(?:[ \t]*\\\n|[ \t])*X\(", re.M),
+     "a panel family, widget or display-kind table of its own"),
+    # one row of those lists, by the words only they hold
+    (re.compile(r'\bX\(\s*\d+[uU]?\s*,\s*"(?:dynamics|deesser|modulation|utility|gain_reduction_bar|transfer_curve|eq_response)"'),
+     "a row of the contract's panel words"),
     # the \u00XX escape of a control byte, formatted by hand
     (re.compile(r"\\\\u%0\d*[xX]"), "a \\u escape loop of its own"),
     # a quote or a backslash escaped by hand, through a format
@@ -71,6 +79,10 @@ def self_test():
          "a units table of its own"),
         ("lv2/clap/one_row.h", "static const struct { unsigned c; const char *w; } u[] = { X(13u, \"db\") };\n",
          "a row of the units sheet"),
+        ("src/panel_copy.h", "#define OLD_PANEL_FAMILIES(X) \\\n    X(0, \"none\", NONE) X(1, \"gate\", GATE)\n",
+         "a panel family, widget or display-kind table of its own"),
+        ("tools/one_family.c", "static const char *f[] = { X(2u, \"dynamics\", DYNAMICS) };\n",
+         "a row of the contract's panel words"),
         ("src/json_copy.c", "static void esc(char *o, unsigned c) { snprintf(o, 8, \"\\\\u%04x\", c); }\n",
          "a \\u escape loop of its own"),
         ("tools/json_copy.c", "static void esc(FILE *f, int c) { fprintf(f, \"\\\\%c\", c); }\n",
@@ -116,7 +128,7 @@ def main():
         print("FAIL no contract copy: " + c)
     if found:
         return 1
-    print("ok   no copy of omx-contract's units table or JSON writer: %d files scanned"
+    print("ok   no copy of omx-contract's units table, panel words or JSON writer: %d files scanned"
           % len([f for f in tracked(tree) if f.startswith(SCANNED) and f.endswith(SUFFIXES)]))
     return 0
 

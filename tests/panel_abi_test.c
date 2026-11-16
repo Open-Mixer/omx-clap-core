@@ -6,7 +6,7 @@
  */
 
 /* org.openmixer.panel-description/1 as omx_clap_ext.h states it, held to the ABI, omx-plugins' omx_panel_description.h as
- * omx-plugins-devel installs it: the id, every code's value, the size and every member's offset of the five table
+ * omx-plugins-devel installs it: the id, every code's value but the contract's lists', the size and every member's offset of the five table
  * structures and of the extension, at compile time; then each table's row filled by omx-plugins' own omx_panel_get and
  * read back through this tree's structures, member by member. */
 
@@ -66,17 +66,14 @@ AT(omx_clap_plugin_panel_description_t, omx_clap_plugin_panel_description_ext_t,
 _Static_assert(OMX_CLAP_PANEL_DESCRIPTION_KEY_SIZE == OMX_CLAP_PANEL_KEY_SIZE, "a key's size");
 _Static_assert(OMX_CLAP_PANEL_DESCRIPTION_NAME_SIZE == OMX_CLAP_PANEL_NAME_SIZE, "a label's size");
 
+/* The families, widgets and display kinds are omx-contract's lists, which this tree and omx-plugins each build from the
+ * contract and each hold to it in its own repository (#104: tests/panel_tables_follow_contract.c here); the codes
+ * compared below are the ones both spell. */
 #define CODE(prefix, code, id) _Static_assert(prefix##id == code, #prefix #id " is " #code);
 #define TABLE(code, name, id) CODE(OMX_CLAP_PANEL_, code, id)
-#define FAMILY(code, name, id) CODE(OMX_CLAP_FAMILY_, code, id)
-#define WIDGET(code, name, id) CODE(OMX_CLAP_WIDGET_, code, id)
-#define DISPLAY_KIND(code, name, id) CODE(OMX_CLAP_DISPLAY_, code, id)
 #define DISPLAY_SOURCE(code, name, id) CODE(OMX_CLAP_DISPLAY_FROM_, code, id)
 #define PLACEMENT(code, name, id) CODE(OMX_CLAP_PLACEMENT_, code, id)
 OMX_CLAP_PANEL_TABLES(TABLE)
-OMX_CLAP_PANEL_FAMILIES(FAMILY)
-OMX_CLAP_PANEL_WIDGETS(WIDGET)
-OMX_CLAP_PANEL_DISPLAY_KINDS(DISPLAY_KIND)
 OMX_CLAP_PANEL_DISPLAY_SOURCES(DISPLAY_SOURCE)
 OMX_CLAP_PANEL_PLACEMENTS(PLACEMENT)
 

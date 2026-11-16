@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+name: lint
+
+# The ONE workflow of this repository that runs on a pull request (delivery pipeline §12: no heavy Action on a push or a
+# pull request; Open-Mixer/omx-clap-core#86), and never on a push. Seconds-long checks only. The tests, the sabotages,
+# the ABI comparison and the package matrices are ci.yml's, run by workflow_dispatch on the head ref before a merge
+# (gh workflow run ci.yml --ref <branch>); fuzz.yml and release.yml run on a v* tag and by dispatch.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # the shared trigger gate: every other workflow here runs on a v* tag or by workflow_dispatch, never on a push or a
+  # pull request; this file is the one it allows
+  trigger-gate:
+    name: trigger gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Open-Mixer/.github/.github/actions/trigger-gate@openmixer-v1
+        with:
+          lint-workflow: lint.yml
+
+  version:
+    name: VERSION agrees with the spec and debian/changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # the file VERSION is the one version the Makefile, the library and the programs carry
+      - name: VERSION is the spec's Version and the newest debian/changelog entry
+        run: make version-check
+
+  # the checks every OpenMixer repository runs on what it publishes: commit messages, private references, no local copy
+  # of either (the commit-msg hook the shared stub byte for byte), from Open-Mixer/.github and nowhere else
+  public-sources:
+    uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1

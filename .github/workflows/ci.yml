@@ -2,14 +2,15 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 name: ci
 
-# The tests that need no audio server run on every push and pull request; on workflow_dispatch the RPMs are
-# also built as artifacts, on both architectures, and installed in a clean container. Nothing is signed or published
-# here: release.yml is a release, run from a version tag, and its dry run is the last job.
+# By workflow_dispatch only (delivery pipeline §12, Open-Mixer/omx-clap-core#86: no heavy Action on a push or a pull
+# request): the tests that need no audio server, the sabotages, the ABI comparison, the RPMs and DEBs built as
+# artifacts on both architectures and installed in a clean container, and the release dry run. Nothing is signed or
+# published here: release.yml is a release, run from a version tag. Before a merge, dispatch this workflow on the pull
+# request's head ref (gh workflow run ci.yml --ref <branch>) so its checks attach to the head commit; the seconds-long
+# checks (the trigger gate, the VERSION check, public-sources) run on every pull request in lint.yml, the one workflow
+# allowed there.
 
 on:
-  pull_request:
-  push:
-    branches: [main, dedupe/all]
   workflow_dispatch:
 
 permissions:
@@ -29,9 +30,9 @@ env:
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
   OMX_CONTRACT_REF: v3.12.0
 
-# Two tiers (owner ruling 2026-11-09: heavy workflows on tags, pull requests quick). A pull request runs the plain test
-# tier and one package arm (fc44 x86_64, trixie amd64). The sanitizer tiers (address, thread), every sabotage of a guard,
-# the full package matrix and the release dry run run on push to main, on tags and on dispatch, before a release.
+# Every run is a dispatch, so every job runs whole: the sanitizer tiers (address, thread), every sabotage of a guard,
+# the full package matrix and the release dry run. The pull-request arms below (the `github.event_name == 'pull_request'`
+# conditions of the owner ruling of 2026-11-09) no longer select anything, since no pull request runs this workflow.
 jobs:
   # no Fedora release written into a job: the cells come from check-matrix (rule 11-10, ruling D25)
   fedora-cells:
@@ -43,8 +44,8 @@ jobs:
           sparse-checkout: .github/workflows
       - uses: Open-Mixer/.github/.github/actions/fedora-cells@openmixer-v1
 
-  # The packages (and the jobs that need this one) run only on workflow_dispatch: a pull request or a push runs the tests
-  # alone (owner 2026-11-09). release.yml builds on a v* tag; fast-release dispatches this workflow on a release head.
+  # The packages (and the jobs that need this one) run on workflow_dispatch, which is every run now. release.yml builds
+  # on a v* tag; fast-release dispatches this workflow on a release head.
   changes:
     name: what the pull request changes
     runs-on: ubuntu-latest
@@ -52,29 +53,14 @@ jobs:
     outputs:
       packages: ${{ steps.diff.outputs.packages }}
     steps:
-      # Packaging runs only on workflow_dispatch (the release dry run fast-release dispatches on a release head);
-      # a pull request or a push runs the tests alone. release.yml builds and publishes on a v* tag.
+      # Packaging runs on workflow_dispatch (the release dry run fast-release dispatches on a release head), which is
+      # every run of this workflow. release.yml builds and publishes on a v* tag.
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then echo "packages=true"; else echo "packages=false"; fi >> "$GITHUB_OUTPUT"
 
-  version:
-    name: VERSION agrees with the spec and debian/changelog
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-
-      # the file VERSION is the one version the Makefile, the library and the programs carry
-      - name: VERSION is the spec's Version and the newest debian/changelog entry
-        run: make version-check
-
-  # the checks every OpenMixer repository runs on what it publishes: commit messages, private references, no local copy
-  # of either (the commit-msg hook the shared stub byte for byte), from Open-Mixer/.github and nowhere else
-  public-sources:
-    uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
   # the Fedora cells the contract, build and two sabotage jobs run, and the rpm job's: check-matrix's answer
   # (rule 11-10: fc45 beside fc44; the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:

@@ -1863,3 +1863,15 @@ bench-abi-guard: tests/abi_guard_bench
 test-no-host-nproc:
 	sh tools/no-host-nproc.sh --self-test
 	sh tools/no-host-nproc.sh
+
+# The dependency floors are written once, in packaging/deps.txt; the spec and debian/control are generated from it with
+# Open-Mixer/.github's deps-render. make deps writes them, make deps-check refuses drift (name a checkout of that
+# repository: make deps-check DOTGITHUB=<dir>).
+DOTGITHUB ?=
+.PHONY: deps deps-check
+deps:
+	@test -n "$(DOTGITHUB)" || { echo "$@: name a checkout of Open-Mixer/.github: make $@ DOTGITHUB=<dir>" >&2; exit 2; }
+	$(DOTGITHUB)/.github/actions/deps-render/render.sh --write .
+deps-check:
+	@test -n "$(DOTGITHUB)" || { echo "$@: name a checkout of Open-Mixer/.github: make $@ DOTGITHUB=<dir>" >&2; exit 2; }
+	$(DOTGITHUB)/.github/actions/deps-render/render.sh --check .

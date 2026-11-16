@@ -50,6 +50,7 @@
 #include <clap/plugin.h>
 #include <clap/string-sizes.h>
 #include <omxcontract/omx_param_units.h>
+#include <omxcontract/omx_vocabulary.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -176,7 +177,8 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 #define OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES 4096u
 
 /*
- * The codes, X(code, name, enumerator): the name is omx-plugins' word for the code (tools/panel-description.mjs), the
+ * The codes, X(code, name, enumerator): the name is the word for the code (omx-contract's, or omx-plugins'
+ * tools/panel-description.mjs for the tables, sources and placements), the
  * enumerator the one omx_panel_description.h gives it after its prefix (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_,
  * OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_).
  */
@@ -186,20 +188,21 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
     X(0, "sections", SECTIONS) X(1, "controls", CONTROLS) X(2, "roles", ROLES) X(3, "displays", DISPLAYS) \
     X(4, "placement_defaults", PLACEMENT_DEFAULTS)
 
-/** The families: which house view can draw the plugin and which roles it may bind. Append only. */
-#define OMX_CLAP_PANEL_FAMILIES(X) \
-    X(0, "none", NONE) X(1, "gate", GATE) X(2, "dynamics", DYNAMICS) X(3, "limiter", LIMITER) X(4, "deesser", DEESSER) \
-    X(5, "eq", EQ) X(6, "filter", FILTER) X(7, "drive", DRIVE) X(8, "modulation", MODULATION) X(9, "delay", DELAY) \
-    X(10, "reverb", REVERB) X(11, "pitch", PITCH)
+/*
+ * The families, widgets and display kinds are omx-contract's, never restated here (#104): its PANEL_FAMILIES,
+ * PANEL_WIDGETS and PANEL_DISPLAY_KINDS, rendered as X(code, "word", NAME) in <omxcontract/omx_vocabulary.h>, the code
+ * being the word's place in the contract's order (append only there). A family the contract adds is served here with
+ * no edit (tests/panel_tables_follow_contract.c, tests/no_contract_copy.py).
+ */
+
+/** The families: which house view can draw the plugin and which roles it may bind. */
+#define OMX_CLAP_PANEL_FAMILIES(X) OMX_PANEL_FAMILIES(X)
 
 /** The widgets: auto leaves the widget to the host, from the parameter. */
-#define OMX_CLAP_PANEL_WIDGETS(X) \
-    X(0, "auto", AUTO) X(1, "knob", KNOB) X(2, "fader", FADER) X(3, "switch", SWITCH) X(4, "selector", SELECTOR)
+#define OMX_CLAP_PANEL_WIDGETS(X) OMX_PANEL_WIDGETS(X)
 
-/** The displays. Append only. */
-#define OMX_CLAP_PANEL_DISPLAY_KINDS(X) \
-    X(0, "gain_reduction_bar", GAIN_REDUCTION_BAR) X(1, "transfer_curve", TRANSFER_CURVE) X(2, "eq_response", EQ_RESPONSE) \
-    X(3, "meter", METER)
+/** The displays. */
+#define OMX_CLAP_PANEL_DISPLAY_KINDS(X) OMX_PANEL_DISPLAY_KINDS(X)
 
 /** Where a display's data comes from. */
 #define OMX_CLAP_PANEL_DISPLAY_SOURCES(X) \

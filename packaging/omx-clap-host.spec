@@ -23,7 +23,7 @@ BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
+BuildRequires: (omx-contract-devel >= 3.20.0 with omx-contract-devel < 4)
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
@@ -86,7 +86,7 @@ Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
+Requires: (omx-contract-devel >= 3.20.0 with omx-contract-devel < 4)
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 

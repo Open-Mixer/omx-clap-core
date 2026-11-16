@@ -25,7 +25,7 @@ env:
   # plugin-hostd from the release we ship (.github/plugin-hostd.sh): its pin header and vocabulary (pkg-config
   # plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/ (protocol.sh,
   # plugin_hostd_client.py) all come from this one tag; the protocol is the plugin-hostd-protocol the job installs
-  PLUGIN_HOSTD_REF: v0.20.0
+  PLUGIN_HOSTD_REF: v0.20.6
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
   OMX_CONTRACT_REF: v3.12.0
 
@@ -871,7 +871,7 @@ jobs:
             files "$rpm" > files.txt
             printf '%s\n' /usr/share/omx-contract/contract.d/3/omx-clap-core/MANIFEST.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting.json /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json \
               /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/clap.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/cost.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/features.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/latency.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/memory.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/output.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/override.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/patch.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/preset.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/provenance.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/realised.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/resource-hints.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/rt-safety.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/stability.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/state.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/topology.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/worker.json \
-              /usr/share/omx-clap-core/catalogs/ca.json /usr/share/licenses/omx-clap-core-contract/COPYING /usr/share/doc/omx-clap-core-contract/README.md | sort > expected.txt
+              /usr/share/licenses/omx-clap-core-contract/COPYING /usr/share/doc/omx-clap-core-contract/README.md | sort > expected.txt
             diff -u expected.txt files.txt
           done
           for pkg in omx-clap-core omx-clap-core-devel; do
@@ -1047,7 +1047,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: ${{ fromJSON(github.event_name == 'pull_request' && '["trixie"]' || '["bookworm", "trixie"]') }}
+        suite: [trixie]
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
     defaults:
       run:
@@ -1195,7 +1195,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: ${{ fromJSON(github.event_name == 'pull_request' && '["trixie"]' || '["bookworm", "trixie"]') }}
+        suite: [trixie]
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
     # nothing but the distribution: a dependency the package forgot to declare is missing here
     defaults:

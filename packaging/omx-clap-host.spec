@@ -287,6 +287,7 @@ the English source sentence.
 %changelog
 * Mon Nov 16 2026 Pau Aliagas <commits@openmixer.org> - 0.32.6-1
 - packaging only: floors only (no ceilings), omx-contract floor 3.19.0, the -dev package depends on the library package.
+- the utility panel family: OMX_CLAP_PANEL_FAMILIES gains code 12, utility (append only), as omx-contract 3.19.0 has it.
 
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
 - Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and

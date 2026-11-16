@@ -7,7 +7,7 @@
 # This table must EQUAL the contract's, word and code, in order: a family the contract has and this table lacks is a plugin
 # whose panel description a host here cannot name.
 #
-#   python3 tests/panel_families_match_contract.py <contract dir>   (a checkout or the installed one: <dir>/data/panel.json)
+#   python3 tests/panel_families_match_contract.py <omx-contract dir>   (the installed one: <contractdir>/<schema major>/omx-contract, holding panel.json)
 import json
 import os
 import re
@@ -23,13 +23,13 @@ def table():
 
 
 def contract(directory):
-    words = json.load(open(os.path.join(directory, "data", "panel.json"), encoding="utf-8"))["PANEL_FAMILIES"]["words"]
+    words = json.load(open(os.path.join(directory, "panel.json"), encoding="utf-8"))["PANEL_FAMILIES"]["words"]
     return list(enumerate(words))
 
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit("usage: panel_families_match_contract.py <contract dir>")
+        sys.exit("usage: panel_families_match_contract.py <omx-contract dir>")
     ours, theirs = table(), contract(sys.argv[1])
     if ours != theirs:
         print("panel families differ from omx-contract's PANEL_FAMILIES (code, word):")

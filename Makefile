@@ -1101,8 +1101,12 @@ test-no-sha256-copy:
 # the panel families table (OMX_CLAP_PANEL_FAMILIES) equals omx-contract's PANEL_FAMILIES, word and code, in order
 # (tests/panel_families_match_contract.py)
 .PHONY: test-panel-families
+# read from the INSTALLED omx-contract (its contract directory, <contractdir>/<schema_major>/omx-contract/panel.json, named by
+# omx-contract.pc), never a sibling checkout
+OMX_CONTRACT_PANEL_DIR = $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null)/$(shell $(PKG_CONFIG) --variable=schema_major omx-contract 2>/dev/null)/omx-contract
 test-panel-families:
-	python3 tests/panel_families_match_contract.py $(OMX_CONTRACT_DIR)
+	@$(PKG_CONFIG) --exists omx-contract || { echo "test-panel-families: omx-contract is not installed (install omx-contract-devel)" >&2; exit 1; }
+	python3 tests/panel_families_match_contract.py $(OMX_CONTRACT_PANEL_DIR)
 
 .PHONY: test-no-contract-copy
 test-no-contract-copy:

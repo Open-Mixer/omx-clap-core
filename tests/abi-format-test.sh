@@ -14,7 +14,7 @@ fails=0
 check() { if [ "$1" = 0 ]; then echo "ok   $2"; else echo "FAIL $2"; fails=$((fails + 1)); fi; }
 
 mkdir -p "$work/bin" "$work/root/usr/lib" "$work/inc"
-lib=$work/root/usr/lib/libomx-clap-core.so.0.33.0
+lib=$work/root/usr/lib/libomx-clap-core.so.0.32.6
 : >"$lib"
 cat >"$work/bin/abidw" <<'EOF'
 #!/bin/sh

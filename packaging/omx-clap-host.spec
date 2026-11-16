@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.33.0
+Version:        0.32.6
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -285,31 +285,8 @@ the English source sentence.
 # END langpacks
 
 %changelog
-* Sun Nov 15 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
-- org.openmixer.properties/1: a plugin's file and text properties. The host
-  answers the event space, reads the table once at load and offers
-  omx_clap_host_property_count, _info, _get and _set (version node
-  OMX_CLAP_CORE_0.33); a set reaches the plugin as one property event at the
-  next block, or through params.flush while no cycle runs. The LV2 adapter
-  forges it into the plugin's patch:Set and sends one patch:Get after an
-  activate (#15, #77).
-- ABI 22: the instance's layout grew at its tail (abi-check: compatible), so
-  this is a minor release.
-- omx-clap-host answers property_list, property_info, property_get and
-  property_set, declared in data/verbs.json with the codes -106 to -109 and
-  their sentences in every language; a value is one quoted-escaped word (#78).
-- The LV2 parity harness sets a property through both hosts, mod-host's
-  patch_set and this host's property_set, and compares them on the oracle;
-  test-parity-lv2 builds the fixture bundles again in a fresh tree (#80).
-- Built against plugin-hostd-protocol >= 0.5.10, whose line splitter reads a
-  quoted-escaped value, and omx-contract >= 3.19.0 and below 4 (was 3.18.0),
-  the 3.19.0 pass's newest of each (D30). The CI jobs state the same.
-- A preset never leaves the plugin bypassed (#74); fuzz_manifest takes a read
-  failure for no candidate (#84); the coverage self-test holds up beside other
-  tests (#76).
-- CI: the jobs take their cells from check-matrix (#73), a same_pass dispatch
-  input reaches the channel-installability gate (#85), explicit artifact
-  retention (#82).
+* Mon Nov 16 2026 Pau Aliagas <commits@openmixer.org> - 0.32.6-1
+- packaging only: floors only (no ceilings), omx-contract floor 3.19.0, the -dev package depends on the library package.
 
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
 - Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and

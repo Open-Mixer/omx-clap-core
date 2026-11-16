@@ -720,10 +720,15 @@ jobs:
       - name: Build
         run: make
 
+      # the parallel jobs from the job's CPU quota and the runner's declared CPUs, never the host's nproc
+      - name: The parallel jobs this runner may run
+        uses: Open-Mixer/.github/.github/actions/jobs@openmixer-v1
+        with:
+          max: ${{ vars.OMX_RUNNER_CPUS || '3' }}
       - name: The sabotage of the host's chain guards
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            CHAIN_SABOTAGE_PARALLEL=$(nproc) CHAIN_SABOTAGE_ARM_SECONDS=180 make test-chain-host-sabotage PLUGIN_HOSTD=/tmp/plugin-hostd/plugin-hostd
+            CHAIN_SABOTAGE_PARALLEL="$OMX_JOBS" CHAIN_SABOTAGE_ARM_SECONDS=180 make test-chain-host-sabotage PLUGIN_HOSTD=/tmp/plugin-hostd/plugin-hostd
           else
             echo "::warning::test-chain-host-sabotage SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
@@ -760,8 +765,13 @@ jobs:
           dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0'
           pkg-config --atleast-version=0.32.0 omxdsp
 
+      # the parallel jobs from the job's CPU quota and the runner's declared CPUs, never the host's nproc
+      - name: The parallel jobs this runner may run
+        uses: Open-Mixer/.github/.github/actions/jobs@openmixer-v1
+        with:
+          max: ${{ vars.OMX_RUNNER_CPUS || '3' }}
       - name: The sabotage of the no-copy LV2 adapter
-        run: DIRECT_SABOTAGE_JOBS=$(nproc) make test-lv2-direct-sabotage
+        run: DIRECT_SABOTAGE_JOBS="$OMX_JOBS" make test-lv2-direct-sabotage
 
   # The ABI of libomx-clap-core.so.1 against the baseline of the last release: an addition needs a new minor, a removal or a
   # change needs a new soname major. Nothing here needs jack or the protocol library.
@@ -872,6 +882,17 @@ jobs:
             printf '%s\n' /usr/share/omx-contract/contract.d/3/omx-clap-core/MANIFEST.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting.json /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json \
               /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/clap.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/cost.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/features.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/latency.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/memory.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/output.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/override.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/patch.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/preset.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/provenance.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/realised.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/resource-hints.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/rt-safety.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/stability.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/state.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/topology.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/worker.json \
               /usr/share/licenses/omx-clap-core-contract/COPYING /usr/share/doc/omx-clap-core-contract/README.md | sort > expected.txt
+            diff -u expected.txt files.txt
+          done
+          # every language the spec packs has its own RPM holding its catalog and nothing else: the Catalan catalog left
+          # the contract package for omx-clap-host-langpack-ca with the language packs (#30)
+          langs=$(sed -n 's/^%package langpack-//p' packaging/omx-clap-host.spec)
+          test -n "$langs" || { echo "::error::packaging/omx-clap-host.spec packs no language"; exit 1; }
+          for lang in $langs; do
+            set -- rpms/omx-clap-host-langpack-$lang-[0-9]*.noarch.rpm
+            test -f "$1" || { echo "::error::no omx-clap-host-langpack-$lang RPM"; exit 1; }
+            files "$1" > files.txt
+            echo /usr/share/omx-clap-core/catalogs/$lang.json > expected.txt
             diff -u expected.txt files.txt
           done
           for pkg in omx-clap-core omx-clap-core-devel; do

@@ -440,7 +440,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy test-panel-families check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy test-panel-families check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -486,8 +486,15 @@ test-dev-so-runtime-dep:
 	python3 tests/dev_so_runtime_dep.py --self-test
 	python3 tests/dev_so_runtime_dep.py .
 
-test: test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
-test-fake: test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align test-abi-format
+# the installed build dependencies meet the spec's ranges before anything runs (tests/build-floors.sh): a stale set is
+# refused by name here, never read later as undefined references in the consumer link (the staged verify of 0.32.5)
+.PHONY: test-build-floors
+test-build-floors:
+	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh --self-test
+	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
+
+test: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align test-abi-format
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)
@@ -1004,6 +1011,8 @@ tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap-core.pc.in
 	rm -rf build/stage
 	$(MAKE) install-lib PREFIX=$(CURDIR)/build/stage/usr LIBDIR=$(CURDIR)/build/stage/usr/lib
 	$(PKG_CONFIG) --exists clap || printf 'Name: clap\nDescription: the headers named by CLAP_CFLAGS\nVersion: 1\nCflags: $(CLAP_CFLAGS)\n' > build/stage/usr/lib/pkgconfig/clap.pc
+	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(PKG_CONFIG) --print-errors --exists omx-clap-core \
+	    || { echo "core_link_test: the installed packages do not meet the Requires of the staged omx-clap-core.pc (pkg-config's words above): a stale set, not a link error" >&2; exit 1; }
 	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(CC) -O2 -Wall -Wextra -Werror -std=gnu99 -D_GNU_SOURCE -DOMX_EXPECT_VERSION_NUM=$(VERSION_NUM)u -o $@ $< \
 	    $$($(PKG_CONFIG) --cflags --libs omx-clap-core) -Wl,-rpath,$(CURDIR)/build/stage/usr/lib -lpthread -lm
 
@@ -1852,3 +1861,9 @@ test-abi-guard: tests/abi_guard_test
 
 bench-abi-guard: tests/abi_guard_bench
 	tests/abi_guard_bench
+
+# no workflow sizes its parallel jobs from the host's nproc (tools/no-host-nproc.sh: its self-test, then the scan)
+.PHONY: test-no-host-nproc
+test-no-host-nproc:
+	sh tools/no-host-nproc.sh --self-test
+	sh tools/no-host-nproc.sh

@@ -728,6 +728,15 @@ tests/panel_abi_test: tests/panel_abi_test.c src/omx_clap_ext.h
 	@$(PKG_CONFIG) --exists omxplugins || { echo "test-panel-abi: no omx-plugins-devel (pkg-config omxplugins), whose omx_panel_description.h is the ABI" >&2; exit 1; }
 	$(CC) -Isrc $(shell $(PKG_CONFIG) --cflags omxplugins) $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
 
+# OMX_CLAP_PANEL_DISPLAY_KINDS, words and codes, held to omx-panel's DISPLAY_KINDS, the vocabulary source (node; omx-panel's
+# tree from OMX_PANEL_DIR, default the installed /usr/share/omx-panel; red, never a skip, when it is not there). CI runs it
+# in the contract job; the package builds do not (no omx-panel in their BuildRequires)
+OMX_PANEL_DIR ?= /usr/share/omx-panel
+.PHONY: test-display-kinds
+test-display-kinds:
+	OMX_PANEL_DIR=$(OMX_PANEL_DIR) node tests/display-kinds-check.mjs src/omx_clap_ext.h
+	OMX_PANEL_DIR=$(OMX_PANEL_DIR) node tests/display-kinds-check.mjs --self-test src/omx_clap_ext.h
+
 # the parameter contract's SHA-256, canonical fingerprint and shortest decimals against answers computed elsewhere
 test-param-contract: tests/param_contract_test
 	./tests/param_contract_test

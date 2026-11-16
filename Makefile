@@ -481,8 +481,15 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
 
-test: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
-test-fake: test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align test-abi-format
+# the installed build dependencies meet the spec's ranges before anything runs (tests/build-floors.sh): a stale set is
+# refused by name here, never read later as undefined references in the consumer link (the staged verify of 0.32.5)
+.PHONY: test-build-floors
+test-build-floors:
+	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh --self-test
+	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
+
+test: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
+test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align test-abi-format
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)
@@ -999,6 +1006,8 @@ tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap-core.pc.in
 	rm -rf build/stage
 	$(MAKE) install-lib PREFIX=$(CURDIR)/build/stage/usr LIBDIR=$(CURDIR)/build/stage/usr/lib
 	$(PKG_CONFIG) --exists clap || printf 'Name: clap\nDescription: the headers named by CLAP_CFLAGS\nVersion: 1\nCflags: $(CLAP_CFLAGS)\n' > build/stage/usr/lib/pkgconfig/clap.pc
+	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(PKG_CONFIG) --print-errors --exists omx-clap-core \
+	    || { echo "core_link_test: the installed packages do not meet the Requires of the staged omx-clap-core.pc (pkg-config's words above): a stale set, not a link error" >&2; exit 1; }
 	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(CC) -O2 -Wall -Wextra -Werror -std=gnu99 -D_GNU_SOURCE -DOMX_EXPECT_VERSION_NUM=$(VERSION_NUM)u -o $@ $< \
 	    $$($(PKG_CONFIG) --cflags --libs omx-clap-core) -Wl,-rpath,$(CURDIR)/build/stage/usr/lib -lpthread -lm
 

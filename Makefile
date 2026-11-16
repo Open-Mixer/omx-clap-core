@@ -440,7 +440,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy test-panel-families check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -1089,6 +1089,12 @@ test-no-sha256-copy:
 # the parameter units and the JSON string writer are omx-contract's (<omxcontract/omx_param_units.h>,
 # <omxcontract/omx_json_write.h>): no source under src/, lv2/ or tools/ spells a units row or an escape loop of its own
 # (tests/no_contract_copy.py, with its self test)
+# the panel families table (OMX_CLAP_PANEL_FAMILIES) equals omx-contract's PANEL_FAMILIES, word and code, in order
+# (tests/panel_families_match_contract.py)
+.PHONY: test-panel-families
+test-panel-families:
+	python3 tests/panel_families_match_contract.py $(OMX_CONTRACT_DIR)
+
 .PHONY: test-no-contract-copy
 test-no-contract-copy:
 	python3 tests/no_contract_copy.py --self-test

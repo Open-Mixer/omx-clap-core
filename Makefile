@@ -481,6 +481,13 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
 
+# a development package's lib*.so is a symlink to the shared library another package ships: each one depends on that
+# package, deb and rpm, or a machine with the development package alone links nothing (#96)
+.PHONY: test-dev-so-runtime-dep
+test-dev-so-runtime-dep:
+	python3 tests/dev_so_runtime_dep.py --self-test
+	python3 tests/dev_so_runtime_dep.py .
+
 # the installed build dependencies meet the spec's ranges before anything runs (tests/build-floors.sh): a stale set is
 # refused by name here, never read later as undefined references in the consumer link (the staged verify of 0.32.5)
 .PHONY: test-build-floors
@@ -488,8 +495,8 @@ test-build-floors:
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh --self-test
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
 
-test: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align
-test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-pc-range-parity test-identity-align test-abi-format
+test: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align test-abi-format
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)

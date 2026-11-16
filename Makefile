@@ -710,6 +710,7 @@ tests/lv2_locate_test: tests/lv2_locate_test.c src/lv2_locate.c src/lv2_locate.h
 # org.openmixer.panel-description/1 as src/omx_clap_ext.h states it, held to omx-plugins' omx_panel_description.h, the
 # ABI, as omx-plugins-devel installs it (pkg-config omxplugins): omx-plugins builds on this tree, so the header is read
 # here, never copied
+# (the display kinds' codes are not held to it: omx-panel's DISPLAY_KINDS is their source, test-display-kinds)
 .PHONY: test-panel-abi
 test-panel-abi: tests/panel_abi_test
 	./tests/panel_abi_test

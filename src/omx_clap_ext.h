@@ -199,7 +199,7 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 /** The displays. Append only. */
 #define OMX_CLAP_PANEL_DISPLAY_KINDS(X) \
     X(0, "gain_reduction_bar", GAIN_REDUCTION_BAR) X(1, "transfer_curve", TRANSFER_CURVE) X(2, "eq_response", EQ_RESPONSE) \
-    X(3, "meter", METER)
+    X(3, "meter", METER) X(4, "time_response", TIME_RESPONSE)
 
 /** Where a display's data comes from. */
 #define OMX_CLAP_PANEL_DISPLAY_SOURCES(X) \

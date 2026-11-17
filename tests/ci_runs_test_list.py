@@ -7,7 +7,10 @@
 # (test-effects-meter, 2026-11); the CI steps now run the groups the Makefile declares (print-test-plain,
 # print-test-main-only, print-test-ns), and this check holds the workflow to them.
 #
-# A target runs in CI when a `make ...` line of a workflow names it, or names a target that has it as a prerequisite,
+# The targets in scope: every prerequisite of `test:` and every other test-* or check-* target of the Makefile, except
+# those it lists in DESK_ONLY (run on a desk, with the reason beside the list).
+#
+# A target runs in CI when a `make ...` line of an enabled step's `run:` value names it, or names a target that has it as a prerequisite,
 # directly or through other targets (the Makefile's own database, `make -pRrq`, answers that). A comment or an echo
 # that spells a target is not a run.
 #
@@ -31,10 +34,40 @@ def rules(root):
     return found
 
 
-def named_in_workflow(text):
-    """The words of every `make` line that is a command: not a comment, not an echo."""
-    named = set()
+def run_lines(text):
+    """The commands of every enabled step's `run:` value: the inline one or the block scalar under it. A step's name, a
+    comment, a step with `if: false` and an echo are not runs."""
+    steps, cur = [], None
     for line in text.splitlines():
+        if re.match(r"^\s*-\s", line):
+            cur = []
+            steps.append(cur)
+        if cur is not None:
+            cur.append(line)
+    out = []
+    for step in steps:
+        if any(re.match(r"^\s*(-\s+)?if:\s*['\"]?false['\"]?\s*(#.*)?$", l) for l in step):
+            continue
+        i = 0
+        while i < len(step):
+            m = re.match(r"^(\s*)(?:-\s+)?run:\s*(.*)$", step[i])
+            i += 1
+            if not m:
+                continue
+            key_indent, value = len(m.group(1)), m.group(2).strip()
+            if re.match(r"^[|>][+-]?\d*\s*(#.*)?$", value):
+                while i < len(step) and (not step[i].strip() or len(step[i]) - len(step[i].lstrip()) > key_indent):
+                    out.append(step[i])
+                    i += 1
+            elif value and not value.startswith("#"):
+                out.append(value)
+    return out
+
+
+def named_in_workflow(text):
+    """The words of every `make` command line of an enabled run: not a comment, not an echo."""
+    named = set()
+    for line in run_lines(text):
         stripped = line.strip()
         if stripped.startswith("#") or re.search(r"\becho\b", stripped) or not re.search(r"\bmake\b", stripped):
             continue
@@ -65,10 +98,23 @@ def reached(rule_map, named):
     return seen
 
 
+def desk_only(root):
+    """The targets the Makefile names as run on a desk only (print-desk-only), each with its reason beside the list."""
+    r = subprocess.run(["make", "-s", "-C", root, "print-desk-only"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return set(r.stdout.split())
+
+
+def wanted(rule_map, root="."):
+    """Every prerequisite of `test:` and every other test-* or check-* target, bar the desk-only ones."""
+    desk = desk_only(root)
+    own = {t for t in rule_map if re.match(r"^(test|check)-[\w-]+$", t)}
+    return sorted(t for t in own | set(rule_map.get("test", ())) if "/" not in t and t not in desk)
+
+
 def check(rule_map, workflow_text, root="."):
-    want = sorted(p for p in rule_map.get("test", ()) if "/" not in p)
+    want = wanted(rule_map, root)
     ran = reached(rule_map, expand_groups(root, named_in_workflow(workflow_text)))
-    return ["%s is a prerequisite of `make test` and runs in no CI step" % t for t in want if t not in ran]
+    return ["%s is a test target and runs in no CI step" % t for t in want if t not in ran]
 
 
 def workflow_text(root):
@@ -85,19 +131,20 @@ def self_test(root):
         print("FAIL the control: make's database has no prerequisites for `test`")
         return 1
     failed = 0
-    want = sorted(p for p in rule_map["test"] if "/" not in p)
+    want = wanted(rule_map, root)
     full = "".join("      - run: make %s\n" % t for t in want)
+    others = "".join("      - run: make %s\n" % t for t in want if t not in rule_map["test"])
     if check(rule_map, full, root):
         print("FAIL a workflow naming every prerequisite of `test` was refused")
         failed = 1
     else:
         print("ok   a workflow naming every prerequisite of `test` is met")
-    if check(rule_map, "      - run: make test\n", root):
-        print("FAIL `make test` itself was not taken as running its prerequisites")
+    if check(rule_map, "      - run: make test\n" + others, root):
+        print("FAIL `make test` and the targets outside it were not taken as running them")
         failed = 1
     else:
         print("ok   `make test` runs its prerequisites")
-    groups = "      - run: make test-fake\n" + "".join("      - run: make $(make -s print-test-%s)\n" % g for g in ("plain", "main-only", "ns"))
+    groups = "      - run: make test-fake\n" + others + "".join("      - run: make $(make -s print-test-%s)\n" % g for g in ("plain", "main-only", "ns"))
     if check(rule_map, groups, root):
         print("FAIL the three print-test groups do not reach every prerequisite of `test`")
         failed = 1
@@ -108,7 +155,17 @@ def self_test(root):
     else:
         print("FAIL a workflow without print-test-main-only was accepted")
         failed = 1
-    victim = want[0]
+    outside = [t for t in want if t not in rule_map["test"]]
+    if not outside:
+        print("FAIL the control: every test-* target is a prerequisite of `test`")
+        return 1
+    # the first target that only its own run line reaches (test-package, say, is reached through test-fake)
+    victim = outside[0]
+    for t in outside:
+        text = "".join("      - run: make %s\n" % u for u in want if u != t)
+        if any(t in line for line in check(rule_map, text, root)):
+            victim = t
+            break
     left_out = "".join("      - run: make %s\n" % t for t in want if t != victim)
     if any(victim in line for line in check(rule_map, left_out, root)):
         print("ok   %s left out of the workflow is found" % victim)
@@ -128,6 +185,8 @@ def self_test(root):
         "        run: make $(make -s print-test-plain)\n"
         "      - name: The sabotage arms make test-main-only runs\n"
         "        run: make $(make -s print-test-main-only)\n"
+        "      - run: make test-fake\n"
+        + others.replace("      - run:", "      - name: others\n        run:") +
         "      - name: The namespace checks of make test\n"
         "        run: |\n"
         "          if unshare true; then\n"

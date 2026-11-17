@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas
+#
+# The dependency FLOORS of this repository, written here and nowhere else. No ceilings: the packages carry none.
+# The RPM spec and debian/control are generated from this file and refused when they differ (deps-render in
+# Open-Mixer/.github: render.sh --write, render.sh --check; make deps, make deps-check DOTGITHUB=<checkout>).
+# The Makefile and tests/build-floors.sh read the floors from the spec; the workflows install from the spec and control
+# (dnf builddep, apt-get build-dep) and name no version.
+#
+# <rpm name>                   <deb name>                   <floor>
+plugin-hostd-protocol-devel    libplugin-hostd-protocol-dev 0.5.9
+plugin-hostd-protocol          libplugin-hostd-protocol0    0.5.9
+plugin-db-devel                plugin-db-dev                0.4.2
+clap-devel                     clap-headers                 1.2.10
+omx-dsp-devel                  libomxdsp-dev                0.32.0
+omx-contract-devel             libomx-contract-dev          3.18.0
+omx-contract-data              omx-contract-data            3.18.0

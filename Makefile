@@ -461,6 +461,13 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
+# omx-clap-core is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
+# packaging (#117); it owns the panel-description layout. The run-time plugins test-jack loads are not headers.
+.PHONY: test-no-upward-deps
+test-no-upward-deps:
+	bash tests/no-upward-deps-check.sh --self-test
+	bash tests/no-upward-deps-check.sh
+
 .PHONY: test-no-hostd-build-dep
 test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
@@ -502,8 +509,8 @@ test-build-floors:
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
 
 test: test-no-backcompat
-test: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
-test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)

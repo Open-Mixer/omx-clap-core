@@ -1,7 +1,7 @@
 omx-clap-host (0.32.6) unstable; urgency=medium
 
-  * packaging only: floors only (no ceilings), omx-contract floor 3.20.0, the -dev package depends on the library package.
-  * the utility panel family: OMX_CLAP_PANEL_FAMILIES gains code 12, utility (append only), as omx-contract 3.20.0 has it.
+  * packaging only: floors only (no ceilings), omx-contract floor 3.19.0, the -dev package depends on the library package.
+  * the utility panel family: OMX_CLAP_PANEL_FAMILIES gains code 12, utility (append only), as omx-contract 3.19.0 has it.
   * no Breaks, Replaces or Conflicts between our packages (the channel prunes the old ones), and the CLAP headers take a floor only (clap-devel / clap-headers >= 1.2.10).
 
  -- Pau Aliagas <commits@openmixer.org>  Mon, 16 Nov 2026 12:00:00 +0100

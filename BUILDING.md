@@ -54,14 +54,14 @@ and `jack_identity`) in
 
     make test-jack CLAP_TEST_PLUGIN=<omx-delay>.clap
 
-(`test-jack`, `test-identity` and the omx-delay arm of `test-scan` load omx-delay,
-a plugin of omx-plugins, which this repository's CI does not install: they run
-on a desk only and are the Makefile's `DESK_ONLY` list.)
-
 runs `tests/jack_e2e.sh`: the host over jack inside a PipeWire of its own
 (a private user, net and pid namespace, its own runtime dir, torn down on
 exit), every command over the socket and the graph read back after each
 one. The PipeWire of the session that runs it is never touched.
+
+`test-jack`, `test-identity` and the omx-delay arm of `test-scan` load omx-delay,
+a plugin of omx-plugins, which this repository's CI does not install: they run
+on a desk only and are the Makefile's `DESK_ONLY` list.
 
     make test-jack-synth
 

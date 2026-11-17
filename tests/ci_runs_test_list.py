@@ -27,7 +27,6 @@ import subprocess
 import sys
 
 
-
 def rules(root):
     """target -> set of prerequisites, from make's own database (every `test:` line, included files, pattern rules out)."""
     db = subprocess.run(["make", "-pRrq", "-C", root], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout
@@ -86,7 +85,7 @@ def run_lines(text):
 
 def step_runs(step):
     """The run commands of one step's lines, none when its own `if:` never holds."""
-    if any((m := re.match(r"^\s*(?:-\s+)?if:\s*(.*)$", l)) and disabled(m.group(1)) for l in step):
+    if any((m := re.match(r"^\s*(?:-\s+)?if:\s*(.*)$", line)) and disabled(m.group(1)) for line in step):
         return []
     out = []
     i = 0
@@ -131,10 +130,32 @@ def make_words(line):
     return words
 
 
+def commands(lines):
+    """The shell commands of run lines: a line ending in a backslash is joined to the next, and the body of a heredoc
+    (up to its delimiter line) is text for the command it feeds, not commands."""
+    out, pending, delimiter = [], "", None
+    for line in lines:
+        if delimiter is not None:
+            if line.strip() == delimiter:
+                delimiter = None
+            continue
+        if line.rstrip().endswith("\\"):
+            pending += line.rstrip()[:-1] + " "
+            continue
+        line, pending = pending + line, ""
+        out.append(line)
+        m = re.search(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1", line)
+        if m:
+            delimiter = m.group(2)
+    if pending:
+        out.append(pending)
+    return out
+
+
 def named_in_workflow(text):
     """The words of every `make` invocation of an enabled run."""
     named = set()
-    for line in run_lines(text):
+    for line in commands(run_lines(text)):
         named |= make_words(line)
     return named
 
@@ -261,7 +282,7 @@ def self_test(root):
         failed = 1
     else:
         print("ok   a workflow with the three group run lines is met")
-    no_runs = "".join(l + "\n" for l in steps.splitlines() if l.lstrip().startswith(("steps:", "- name:")))
+    no_runs = "".join(ln + "\n" for ln in steps.splitlines() if ln.lstrip().startswith(("steps:", "- name:")))
     if check(rule_map, no_runs, root):
         print("ok   the group run lines deleted, the step names left, is found")
     else:

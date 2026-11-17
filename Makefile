@@ -512,7 +512,8 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
 # omx-clap-core is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
-# packaging (#117); it owns the panel-description layout. The run-time plugins test-jack loads are not headers.
+# packaging (#117); it owns the panel-description layout. No omx-plugins package is installed either, plugins included:
+# the tests that load a published plugin (test-jack, test-identity, test-scan's omx-delay arm) are desk-only (DESK_ONLY).
 .PHONY: test-no-upward-deps
 test-no-upward-deps:
 	bash tests/no-upward-deps-check.sh --self-test

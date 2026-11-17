@@ -543,6 +543,17 @@ jobs:
             echo "::warning::test-jack-lv2 SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
+      # patch_set and patch_get, sabotaged: the verbs unregistered and the numeric property's parameter path dropped, each
+      # arm red on the check that names it
+      - name: Test the patch verbs, sabotaged
+        if: github.event_name != 'pull_request'
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make test-jack-lv2-patch-sabotage
+          else
+            echo "::warning::test-jack-lv2-patch-sabotage SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+          fi
+
       # preset_list, preset_get and preset_load over the socket: fake_synth's preset-discovery factory and the LV2 fixture
       # bundle through the adapter. The verbs' declarations are plugin-hostd 0.13's, from the tests checkout, searched
       # after the pinned headers (omx-clap-core#383).
@@ -592,8 +603,9 @@ jobs:
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-chain-host
             make test-chain-identity
+            make test-chain-host-stall
           else
-            echo "::warning::test-chain-host and test-chain-identity SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+            echo "::warning::test-chain-host, test-chain-identity and test-chain-host-stall SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
       # The chain's members walked on JACK's thread while the control thread joins, frees and lets go of members, the
@@ -621,7 +633,7 @@ jobs:
 
       - name: Name what this job does not run
         run: |
-          echo "test-jack and test-identity are NOT run here: they load omx-delay (.clap from the omx-plugins-clap package, .lv2 from omx-plugins-lv2)."
+          echo "test-jack and test-identity are NOT run here: they load omx-delay, a plugin of omx-plugins, and this repository's CI installs nothing of it (DESK_ONLY in the Makefile)."
           echo "They stay in the Makefile for the desk: make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity."
 
   # each guard of the host's chain broken in a copy of the sources, the chain tests red on it (#104). About a quarter of an

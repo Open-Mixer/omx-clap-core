@@ -12,14 +12,13 @@
 # debian/control (the changelogs are history, docs/ prose). A failure is a line that
 #   includes <omx-plugins/...>,
 #   asks pkg-config for omxplugins, or
-#   names omx-plugins-devel / omx-plugins-dev (a build or install of the headers).
-# Left alone on purpose: the omx-plugins-clap and omx-plugins-lv2 PLUGIN binaries test-jack, test-identity and
-# test-published-comp load at run time; they are plugins under test, not headers the build reads.
+#   names an omx-plugins package (omx-plugins-devel, -clap, -lv2, ...): nothing here installs one, plugins included.
+# The tests that load a published omx-plugins plugin live in omx-plugins.
 # --self-test runs the check on a scratch tree once clean and once per planted return, each of which must fail.
 # Exit 0 held; 1 an upward dependency; 2 usage.
 set -euo pipefail
 
-PATTERN='(#[[:space:]]*include[[:space:]]*[<"]omx-plugins/|omxplugins|omx-plugins-(devel|dev)([^[:alnum:]_-]|$))'
+PATTERN='(#[[:space:]]*include[[:space:]]*[<"]omx-plugins/|omxplugins|omx-plugins-[[:alnum:]]+)'
 
 scan() {
     local root=$1 rc=0 f hits

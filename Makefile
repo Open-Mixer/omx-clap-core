@@ -347,18 +347,6 @@ PLUGIN_HOSTD_TABLES ?=
 # the package installs, and holds the data the text lists, on the fixtures that between them list every kind of line
 # (FAKE_CONTRACT=good: fake.clap offers its parameter contract, so the contract lines are among them)
 SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_compressor.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_panel.clap tests/fake_tool.clap tests/crash.clap
-# omx-plugins' omx-comp, as its package installs it: the scan states its clap.meters/1 meters and its
-# org.openmixer.param-contract/1 entries by value (tests/published-comp-scan.py). A desk without omx-plugins-clap skips
-# by name; CI, where the package is installed, never does.
-CLAP_COMP_PLUGIN ?= /usr/lib/clap/omx-comp.clap
-.PHONY: test-published-comp
-test-published-comp: $(SCAN_PROG)
-	@if [ ! -e "$(CLAP_COMP_PLUGIN)" ] && [ -z "$$CI" ]; then \
-		echo "skip: $(CLAP_COMP_PLUGIN) not found (install omx-plugins-clap or set CLAP_COMP_PLUGIN)"; \
-	else \
-		python3 -I tests/published-comp-scan.py ./$(SCAN_PROG) $(CLAP_COMP_PLUGIN); \
-	fi
-
 .PHONY: test-scan-json
 test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
@@ -453,7 +441,6 @@ test-ci-runs-test-list:
 TEST_PLAIN = test-ci-runs-test-list \
     test-no-host-nproc \
     test-scan-json \
-    test-published-comp \
     test-no-sha256-copy \
     test-unsupported-copy \
     test-no-contract-copy \
@@ -475,16 +462,25 @@ TEST_PLAIN = test-ci-runs-test-list \
     test-clap-doc-check \
     test-thread-pool \
     test-properties \
-    test-properties-sabotage
+    test-properties-sabotage \
+    test-state-busy \
+    test-package
 # the sabotage arms that rebuild copies of the sources: CI runs them on a push to main and a tag, not on a pull request
 TEST_MAIN_ONLY = test-layouts-sabotage \
     test-cycle-gate-sabotage \
     test-effects-meter-sabotage \
     test-thread-pool-sabotage \
-    test-jack-params-ready-sabotage
+    test-jack-params-ready-sabotage \
+    test-transport-sabotage
 # the target starts a user, net, pid and mount namespace of its own: CI probes that the runner allows one first
 TEST_NS = test-socket
-.PHONY: print-test-plain print-test-main-only print-test-ns
+# run on a desk, in no CI step: they load omx-delay, a plugin of omx-plugins (make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>;
+# make test-identity), and the lower layer's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh). The
+# check tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step.
+DESK_ONLY = test-jack test-identity
+.PHONY: print-test-plain print-test-main-only print-test-ns print-desk-only
+print-desk-only:
+	@echo $(DESK_ONLY)
 print-test-plain:
 	@echo $(TEST_PLAIN)
 print-test-main-only:

@@ -8,10 +8,10 @@
 # (dnf builddep, apt-get build-dep) and name no version.
 #
 # <rpm name>                   <deb name>                   <floor>
-plugin-hostd-protocol-devel    libplugin-hostd-protocol-dev 0.5.9
-plugin-hostd-protocol          libplugin-hostd-protocol0    0.5.9
+plugin-hostd-protocol-devel    libplugin-hostd-protocol-dev 0.5.10
+plugin-hostd-protocol          libplugin-hostd-protocol0    0.5.10
 plugin-db-devel                plugin-db-dev                0.4.2
 clap-devel                     clap-headers                 1.2.10
 omx-dsp-devel                  libomxdsp-dev                0.32.0
-omx-contract-devel             libomx-contract-dev          3.18.0
-omx-contract-data              omx-contract-data            3.18.0
+omx-contract-devel             libomx-contract-dev          3.19.0
+omx-contract-data              omx-contract-data            3.19.0

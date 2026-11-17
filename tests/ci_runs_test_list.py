@@ -121,6 +121,36 @@ def self_test(root):
     else:
         print("FAIL %s only in a comment and an echo counts as run" % victim)
         failed = 1
+    # a real workflow: the step NAMES spell make test, the groups' run lines are what runs
+    steps = (
+        "    steps:\n"
+        "      - name: The checks and sabotage arms make test lists\n"
+        "        run: make $(make -s print-test-plain)\n"
+        "      - name: The sabotage arms make test-main-only runs\n"
+        "        run: make $(make -s print-test-main-only)\n"
+        "      - name: The namespace checks of make test\n"
+        "        run: |\n"
+        "          if unshare true; then\n"
+        "            make $(make -s print-test-ns)\n"
+        "          fi\n"
+    )
+    if check(rule_map, steps, root):
+        print("FAIL a workflow with the three group run lines was refused")
+        failed = 1
+    else:
+        print("ok   a workflow with the three group run lines is met")
+    no_runs = "".join(l + "\n" for l in steps.splitlines() if l.lstrip().startswith(("steps:", "- name:")))
+    if check(rule_map, no_runs, root):
+        print("ok   the group run lines deleted, the step names left, is found")
+    else:
+        print("FAIL step names that spell `make test` count as a run: the three group run lines deleted stays green")
+        failed = 1
+    disabled = steps.replace("        run: make $(make -s print-test-plain)", "        if: false\n        run: make $(make -s print-test-plain)")
+    if check(rule_map, disabled, root):
+        print("ok   a step with `if: false` is not a run")
+    else:
+        print("FAIL a step with `if: false` counts as a run")
+        failed = 1
     return failed
 
 

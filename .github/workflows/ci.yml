@@ -150,7 +150,6 @@ jobs:
           base: omx-clap-core-contract
           owner: omx-clap-core
           spec: packaging/omx-clap-host.spec
-          moved: ca:0.32.1
 
   docs:
     name: make docs (the public headers are fully documented)
@@ -1157,8 +1156,8 @@ jobs:
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json contract-files.txt
           ! grep -q '^/usr/share/omx-contract/' dev-files.txt
           dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Architecture: all$'
-          dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Breaks: libomx-clap-core-dev \(<< '
-          dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Replaces: libomx-clap-core-dev \(<< '
+          # floors only between our packages: no Breaks, Replaces or Conflicts (the channel prunes the old packages)
+          if dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ (Breaks|Replaces|Conflicts):'; then exit 1; fi
           for deb in debs/libomx-clap-core1_*.deb debs/libomx-clap-core-dev_*.deb; do
             dpkg -I "$deb" | grep -E '^ Depends:.*omx-clap-core-contract \(= '
           done

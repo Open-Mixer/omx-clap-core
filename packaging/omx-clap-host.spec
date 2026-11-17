@@ -18,7 +18,7 @@ BuildRequires: plugin-hostd-protocol-devel >= 0.5.10
 BuildRequires: plugin-db-devel >= 0.4.2
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
 # distribution's own is older)
-BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
+BuildRequires: clap-devel >= 1.2.10
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: omx-dsp-devel >= 0.32.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
@@ -82,7 +82,7 @@ Its documentation is on openmixer.org.
 Summary: Build a program that hosts CLAP plugins on omx-clap-core
 License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
+Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
 Requires: omx-dsp-devel >= 0.32.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
@@ -102,8 +102,6 @@ License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
 Requires: omx-contract-data >= 3.19.0
-# the files lived in omx-clap-core-devel before this package
-Conflicts: omx-clap-core-devel < %{version}-%{release}
 
 %description -n omx-clap-core-contract
 omx-clap-core's definitions as files in omx-contract's contract directory,
@@ -116,7 +114,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
+Requires: clap-devel >= 1.2.10
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig
@@ -288,6 +286,7 @@ the English source sentence.
 * Mon Nov 16 2026 Pau Aliagas <commits@openmixer.org> - 0.32.6-1
 - packaging only: floors only (no ceilings), omx-contract floor 3.19.0, the -dev package depends on the library package.
 - the utility panel family: OMX_CLAP_PANEL_FAMILIES gains code 12, utility (append only), as omx-contract 3.19.0 has it.
+- no Breaks, Replaces or Conflicts between our packages (the channel prunes the old ones), and the CLAP headers take a floor only (clap-devel / clap-headers >= 1.2.10).
 
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
 - Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and

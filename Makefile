@@ -812,19 +812,22 @@ tests/xrun_report_test: tests/xrun_report_test.c src/xrun_report.h
 	$(CC) -Isrc $(CFLAGS) -Werror -pthread -o $@ $<
 
 # the sabotage of each guard: a report with no once-a-second limit, one that writes a count already written, one that
-# loses a count to a plain increment: each reds the test
+# loses a count to a plain increment: each reds the test. The plain increment is a load, the test's rendezvous and a
+# store, so the test forces the interleaving that loses a note instead of hoping the scheduler finds it
 test-xrun-report-sabotage: tests/xrun_report_test.c src/xrun_report.h
 	mkdir -p build/xrun-report-sabotage
 	for arm in rate repeat atomic; do \
 	    case $$arm in \
 	    rate) sed -e 's|now_ms - report->written_at_ms < XRUN_REPORT_MIN_INTERVAL_MS|now_ms == (uint64_t)-1|' src/xrun_report.h ;; \
 	    repeat) sed -e 's|if (seen == report->written)|if (0)|' src/xrun_report.h ;; \
-	    atomic) sed -e 's|atomic_fetch_add_explicit(&report->count, 1, memory_order_relaxed);|atomic_store_explicit(\&report->count, atomic_load_explicit(\&report->count, memory_order_relaxed) + 1, memory_order_relaxed);|' src/xrun_report.h ;; \
+	    atomic) sed -e 's|atomic_fetch_add_explicit(&report->count, 1, memory_order_relaxed);|uint_fast64_t seen = atomic_load_explicit(\&report->count, memory_order_relaxed); xrun_report_test_interleave(); atomic_store_explicit(\&report->count, seen + 1, memory_order_relaxed);|' src/xrun_report.h ;; \
 	    esac > build/xrun-report-sabotage/xrun_report.h; \
 	    ! cmp -s src/xrun_report.h build/xrun-report-sabotage/xrun_report.h || { echo "sabotage $$arm changed nothing"; exit 1; }; \
 	    $(CC) -Ibuild/xrun-report-sabotage $(CFLAGS) -Werror -pthread -o build/xrun-report-sabotage/test $<; \
 	    if ./build/xrun-report-sabotage/test > build/xrun-report-sabotage/$$arm.log 2>&1; then echo "sabotage $$arm: test stayed green"; exit 1; fi; \
 	    grep -q '^FAIL' build/xrun-report-sabotage/$$arm.log || { echo "sabotage $$arm: no FAIL line"; exit 1; }; \
+	    [ $$arm != atomic ] || grep -q '^FAIL two notes whose load and store interleave' build/xrun-report-sabotage/$$arm.log || \
+	        { echo "sabotage atomic: the forced interleaving did not red"; exit 1; }; \
 	    echo "sabotage $$arm: red as it should"; \
 	done
 

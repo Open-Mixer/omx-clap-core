@@ -332,6 +332,7 @@ install-contract:
 	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.0.0 or later, or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	install -D -m 644 contract.d/scan/scan.json $(DESTDIR)$(CONTRACTDIR)/scan/scan.json
+	install -D -m 644 contract.d/scan/catalogs/*.json -t $(DESTDIR)$(CONTRACTDIR)/scan/catalogs
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 

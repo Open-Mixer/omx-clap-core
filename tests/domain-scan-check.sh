@@ -16,4 +16,5 @@ $tool render --target c --package scan --contract-dir contract.d --out "$work"
 cmp src/scan_vocabulary.h "$work/scan_vocabulary.h" || { echo "domain-scan-check: src/scan_vocabulary.h is not the render of contract.d/scan" >&2; exit 1; }
 grep -qx '#define OMX_SCAN_DOCUMENTS_COUNT 2u' src/scan_vocabulary.h
 grep -qx '#define OMX_SCAN_FIELD_SCOPES_COUNT 13u' src/scan_vocabulary.h
+$tool validate --contract-dir contract.d | grep -q ", valid, 6 catalogs" || { echo "domain-scan-check: the scan domain and its 6 catalogs do not validate" >&2; exit 1; }
 echo "domain-scan-check: ok"

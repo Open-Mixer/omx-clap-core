@@ -747,7 +747,7 @@ static void clap_panel(const struct omx_clap_instance *in)
         const omx_clap_panel_description_display_t *d = SCAN_PANEL_ROW(&p, SCAN_PANEL_DISPLAYS, omx_clap_panel_description_display_t, i);
 
         snprintf(scope, sizeof(scope), "display:%u", p.table[SCAN_PANEL_DISPLAYS].index[i]);
-        record_code(scope, "omx_clap_panel_display.kind", scan_panel_display_kind_enum(d->kind), d->kind);
+        record_number(scope, "omx_clap_panel_display.kind", d->kind);
         record_number(scope, "omx_clap_panel_display.section", d->section);
         record_code(scope, "omx_clap_panel_display.source", scan_panel_display_source_enum(d->source), d->source);
         record_id(scope, "omx_clap_panel_display.meter_ids[0]", d->meter_ids[0]);

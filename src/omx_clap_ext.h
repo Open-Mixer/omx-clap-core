@@ -179,7 +179,7 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 /*
  * The codes, X(code, name, enumerator), declared here: the name is the code's word (omx-plugins'
  * tools/panel-description.mjs writes the same), the enumerator the one this header gives it after its prefix
- * (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_, OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_),
+ * (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_, OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_),
  * which omx-plugins' include/omx_panel_description.h copies and holds to this installed header (its make panel-abi).
  */
 
@@ -197,11 +197,6 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 /** The widgets: auto leaves the widget to the host, from the parameter. */
 #define OMX_CLAP_PANEL_WIDGETS(X) \
     X(0, "auto", AUTO) X(1, "knob", KNOB) X(2, "fader", FADER) X(3, "switch", SWITCH) X(4, "selector", SELECTOR)
-
-/** The displays. Append only. */
-#define OMX_CLAP_PANEL_DISPLAY_KINDS(X) \
-    X(0, "gain_reduction_bar", GAIN_REDUCTION_BAR) X(1, "transfer_curve", TRANSFER_CURVE) X(2, "eq_response", EQ_RESPONSE) \
-    X(3, "meter", METER) X(4, "time_response", TIME_RESPONSE)
 
 /** Where a display's data comes from. */
 #define OMX_CLAP_PANEL_DISPLAY_SOURCES(X) \
@@ -241,7 +236,7 @@ typedef struct omx_clap_panel_description_role
 /** A display drawn over a section. */
 typedef struct omx_clap_panel_description_display
 {
-    uint32_t kind;  ///< an OMX_CLAP_PANEL_DISPLAY_KINDS code
+    uint32_t kind;  ///< a display kind code; omx-panel owns the words and their codes (its `panel` domain), this tree carries the number
     uint32_t section;  ///< an index into the sections
     uint32_t source;  ///< an OMX_CLAP_PANEL_DISPLAY_SOURCES code
     uint32_t meter_ids[2];  ///< the clap.meters/1 ids it reads, CLAP_INVALID_ID for none

@@ -177,9 +177,10 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 #define OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES 4096u
 
 /*
- * The codes, X(code, name, enumerator): the name is omx-plugins' word for the code (tools/panel-description.mjs), the
- * enumerator the one omx_panel_description.h gives it after its prefix (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_,
- * OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_).
+ * The codes, X(code, name, enumerator), declared here: the name is the code's word (omx-plugins'
+ * tools/panel-description.mjs writes the same), the enumerator the one this header gives it after its prefix
+ * (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_, OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_),
+ * which omx-plugins' include/omx_panel_description.h copies and holds to this installed header (its make panel-abi).
  */
 
 /** The tables, in the order a host walks them. */

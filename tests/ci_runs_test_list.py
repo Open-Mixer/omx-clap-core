@@ -2,23 +2,27 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas
 #
-# Every prerequisite of the Makefile's `test:` runs in CI. The workflow's steps used to be a hand-typed list of make
-# targets beside the Makefile's own, and a target added to `test:` ran in no job until it failed unseen on main
-# (test-effects-meter, 2026-11); the CI steps now run the groups the Makefile declares (print-test-plain,
-# print-test-main-only, print-test-ns), and this check holds the workflow to them.
+# Every test target of the Makefile runs in CI. The workflow's steps used to be a hand-typed list of make targets beside
+# the Makefile's own, and a target added to `test:` ran in no job until it failed unseen on main (test-effects-meter,
+# 2026-11); the CI steps now run the groups the Makefile declares (print-test-plain, print-test-main-only,
+# print-test-ns), and this check holds the workflow to them.
 #
-# The targets in scope: every prerequisite of `test:` and every other test-* or check-* target of the Makefile, except
-# those it lists in DESK_ONLY (run on a desk, with the reason beside the list).
+# In scope: every prerequisite of `test:` and every other test-* or check-* target of the Makefile, except those the
+# Makefile lists in DESK_ONLY (print-desk-only), which it runs on a desk with the reason beside the list.
 #
-# A target runs in CI when a `make ...` line of an enabled step's `run:` value names it, or names a target that has it as a prerequisite,
-# directly or through other targets (the Makefile's own database, `make -pRrq`, answers that). A comment or an echo
-# that spells a target is not a run.
+# A target runs in CI when a `make ...` invocation in the `run:` value of an enabled step of an enabled job names it, or
+# names a target that has it as a prerequisite, directly or through other targets (the Makefile's own database,
+# `make -pRrq`, answers that). The line is read as the shell reads it: a step name, a comment (whole line or trailing),
+# a quoted string (a printf), the arguments of echo or printf, a step or job whose `if:` is false or `${{ false }}` are
+# not runs.
 #
-#   ci_runs_test_list.py <tree>       0 when every phony prerequisite of `test:` runs in CI, 1 naming each that does not
-#   ci_runs_test_list.py --self-test  a target left out of a scratch workflow, and one a comment only mentions, are found
+#   ci_runs_test_list.py <tree>       0 when every in-scope target runs in CI, 1 naming each that does not
+#   ci_runs_test_list.py --self-test  a target left out of a scratch workflow, and one only a name, comment, echo, printf
+#                                     or disabled step or job spells, are found
 import glob
 import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -34,45 +38,104 @@ def rules(root):
     return found
 
 
+def disabled(value):
+    """An `if:` value that is never true: false, 'false', ${{ false }}, with or without a trailing comment."""
+    value = re.sub(r"\s+#.*$", "", value.strip()).strip()
+    m = re.fullmatch(r"\$\{\{\s*(.*?)\s*\}\}", value)
+    value = (m.group(1) if m else value).strip().strip("'\"").strip()
+    return value == "false"
+
+
 def run_lines(text):
-    """The commands of every enabled step's `run:` value: the inline one or the block scalar under it. A step's name, a
-    comment, a step with `if: false` and an echo are not runs."""
-    steps, cur = [], None
-    for line in text.splitlines():
-        if re.match(r"^\s*-\s", line):
-            cur = []
-            steps.append(cur)
-        if cur is not None:
-            cur.append(line)
+    """The commands of every enabled step's `run:` value, in every enabled job: the inline one or the block scalar under
+    it. A step name, a comment, a step or a job with a never-true `if:` are not runs."""
     out = []
-    for step in steps:
-        if any(re.match(r"^\s*(-\s+)?if:\s*['\"]?false['\"]?\s*(#.*)?$", l) for l in step):
+    job_off = False
+    step = None
+    steps = []
+
+    def flush():
+        nonlocal step
+        if step is not None and not job_off:
+            steps.append(step)
+        step = None
+
+    def finish_job():
+        nonlocal steps
+        flush()
+        for st in steps:
+            out.extend(step_runs(st))
+        steps = []
+
+    for line in text.splitlines():
+        if re.match(r"^\S", line) or re.match(r"^  [\w-]+:\s*(#.*)?$", line):
+            finish_job()
+            job_off = False
             continue
-        i = 0
-        while i < len(step):
-            m = re.match(r"^(\s*)(?:-\s+)?run:\s*(.*)$", step[i])
-            i += 1
-            if not m:
-                continue
-            key_indent, value = len(m.group(1)), m.group(2).strip()
-            if re.match(r"^[|>][+-]?\d*\s*(#.*)?$", value):
-                while i < len(step) and (not step[i].strip() or len(step[i]) - len(step[i].lstrip()) > key_indent):
-                    out.append(step[i])
-                    i += 1
-            elif value and not value.startswith("#"):
-                out.append(value)
+        m = re.match(r"^    if:\s*(.*)$", line)
+        if m:
+            job_off = job_off or disabled(m.group(1))
+        if re.match(r"^\s*-\s", line):
+            flush()
+            step = []
+        if step is not None:
+            step.append(line)
+    finish_job()
     return out
 
 
+def step_runs(step):
+    """The run commands of one step's lines, none when its own `if:` never holds."""
+    if any((m := re.match(r"^\s*(?:-\s+)?if:\s*(.*)$", l)) and disabled(m.group(1)) for l in step):
+        return []
+    out = []
+    i = 0
+    while i < len(step):
+        m = re.match(r"^(\s*)(?:-\s+)?run:\s*(.*)$", step[i])
+        i += 1
+        if not m:
+            continue
+        key_indent, value = len(m.group(1)), m.group(2).strip()
+        if re.match(r"^[|>][+-]?\d*\s*(#.*)?$", value):
+            while i < len(step) and (not step[i].strip() or len(step[i]) - len(step[i].lstrip()) > key_indent):
+                out.append(step[i])
+                i += 1
+        elif value:
+            out.append(value)
+    return out
+
+
+def make_words(line):
+    """The words each `make` invocation of one shell line is given: the line is tokenised as the shell would, so a
+    comment, a quoted string (a printf, an echo) and the arguments of echo or printf are text, not invocations."""
+    # an expression `${{ cond && 'a' || 'b' }}` names what its quoted strings spell: either may run
+    line = re.sub(r"\$\{\{(.*?)\}\}", lambda m: " ".join(re.findall(r"'([^']*)'", m.group(1))), line)
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    lexer.commenters = "#"
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return set()
+    words, start, i = set(), 0, 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if re.fullmatch(r"[;&|()<>]+", tok):
+            start = i + 1
+        elif tok == "make" and not {"echo", "printf"} & set(tokens[start:i]):
+            j = i + 1
+            while j < len(tokens) and not re.fullmatch(r"[;&|()<>]+", tokens[j]):
+                words.update(re.findall(r"[A-Za-z][\w./-]*", tokens[j]))
+                j += 1
+        i += 1
+    return words
+
+
 def named_in_workflow(text):
-    """The words of every `make` command line of an enabled run: not a comment, not an echo."""
+    """The words of every `make` invocation of an enabled run."""
     named = set()
     for line in run_lines(text):
-        stripped = line.strip()
-        if stripped.startswith("#") or re.search(r"\becho\b", stripped) or not re.search(r"\bmake\b", stripped):
-            continue
-        for word in re.findall(r"[A-Za-z][\w./-]*", stripped.split("make", 1)[1]):
-            named.add(word)
+        named |= make_words(line)
     return named
 
 
@@ -244,7 +307,7 @@ def main():
         print("FAIL " + line)
     if found:
         sys.exit(1)
-    print("ok   every prerequisite of `make test` runs in CI")
+    print("ok   every test target runs in CI (bar the desk-only ones)")
 
 
 if __name__ == "__main__":

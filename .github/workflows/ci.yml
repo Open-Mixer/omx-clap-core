@@ -230,14 +230,7 @@ jobs:
       - name: Every file a comment can be written in opens with its licence
         uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
 
-      # the units table and the JSON string writer are omx-contract's, the protocol plugin-hostd-protocol's: no copy of
-      # either is in this tree (tests/no_contract_copy.py, tests/no_protocol_copy.py, each with its self test)
-      - name: No copy of omx-contract's units table or JSON writer
-        run: make test-no-contract-copy
-
-      - name: No copy of plugin-hostd-protocol's tables, headers or rendered verbs
-        run: make check-no-protocol-copy
-
+      # the no-contract-copy and no-protocol-copy checks run in the groups the Makefile declares (TEST_PLAIN)
       - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
         run: make test-no-upward-deps
 
@@ -633,8 +626,8 @@ jobs:
 
       - name: Name what this job does not run
         run: |
-          echo "test-jack and test-identity are NOT run here: they load omx-delay, a plugin of omx-plugins, and this repository's CI installs nothing of it (DESK_ONLY in the Makefile)."
-          echo "They stay in the Makefile for the desk: make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity."
+          echo "test-jack, test-identity and test-scan's omx-delay arm are NOT run here: they load omx-delay, a plugin of omx-plugins, and this repository's CI installs nothing of it (DESK_ONLY in the Makefile)."
+          echo "They stay in the Makefile for the desk: make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity; make test-scan."
 
   # each guard of the host's chain broken in a copy of the sources, the chain tests red on it (#104). About a quarter of an
   # hour of host runs, in a job of its own beside build and test, on the same container and the same setup.

@@ -428,7 +428,8 @@ clean:
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
-# every prerequisite of `test:` runs in a CI step (tests/ci_runs_test_list.py, test-audit omx-clap-core row 1)
+# every test-* and check-* target, the prerequisites of `test:` among them, runs in a CI step bar those DESK_ONLY lists
+# (tests/ci_runs_test_list.py, test-audit omx-clap-core row 1)
 .PHONY: test-ci-runs-test-list
 test-ci-runs-test-list:
 	python3 tests/ci_runs_test_list.py --self-test
@@ -473,9 +474,10 @@ TEST_MAIN_ONLY = test-layouts-sabotage \
     test-transport-sabotage
 # the target starts a user, net, pid and mount namespace of its own: CI probes that the runner allows one first
 TEST_NS = test-socket
-# run on a desk, in no CI step: they load omx-delay, a plugin of omx-plugins (make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>;
-# make test-identity; test-scan's omx-delay arm, the rest of which test-fake runs), and the lower layer's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh). The
-# check tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step.
+# run on a desk, in no CI step: test-jack and test-identity load omx-delay, a plugin of omx-plugins (make test-jack
+# CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity), and so does test-scan's omx-delay arm (test-fake runs the rest of
+# that test on the fake plugins). This repository's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh).
+# tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step; BUILDING.md names these three.
 TEST_DESK = test-scan
 DESK_ONLY = test-jack test-identity $(TEST_DESK)
 .PHONY: print-test-plain print-test-main-only print-test-ns print-desk-only

@@ -45,7 +45,7 @@ self_test() {
     mkdir -p "$tmp/clean/src" "$tmp/clean/tests" "$tmp/clean/.github/workflows" "$tmp/clean/packaging" "$tmp/clean/debian"
     printf 'test:\n\t$(CC) -Isrc -o t t.c\n' >"$tmp/clean/Makefile"
     printf '#include <clap/clap.h>\n' >"$tmp/clean/src/a.c"
-    printf 'run: dnf install -y omx-dsp-devel omx-dsp-devel\n' >"$tmp/clean/.github/workflows/ci.yml"
+    printf 'run: dnf install -y omx-dsp-devel cjson-devel\n' >"$tmp/clean/.github/workflows/ci.yml"
     printf 'BuildRequires: gcc\n\n%%changelog\n' >"$tmp/clean/packaging/x.spec"
     printf 'Source: x\nBuild-Depends: gcc\n' >"$tmp/clean/debian/control"
     if ! "$0" --root "$tmp/clean" >/dev/null; then echo "FAIL the clean tree is refused"; return 1; fi

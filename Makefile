@@ -300,7 +300,6 @@ install-lib: $(CORE_SO)
 	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
 	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
-	if [ -f abi/$(CORE_SONAME).abi ]; then install -m 644 abi/$(CORE_SONAME).abi $(DESTDIR)$(DATADIR)/$(CORE)/; fi
 
 # the LV2 adapter: the archive, its one header and its pkg-config file, what a program that hosts LV2 plugins as CLAP
 # plugins builds against; lilv is the program's to have at run time (the adapter dlopens liblilv-0.so.0)
@@ -346,18 +345,6 @@ PLUGIN_HOSTD_TABLES ?=
 # the package installs, and holds the data the text lists, on the fixtures that between them list every kind of line
 # (FAKE_CONTRACT=good: fake.clap offers its parameter contract, so the contract lines are among them)
 SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_compressor.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_panel.clap tests/fake_tool.clap tests/crash.clap
-# omx-plugins' omx-comp, as its package installs it: the scan states its clap.meters/1 meters and its
-# org.openmixer.param-contract/1 entries by value (tests/published-comp-scan.py). A desk without omx-plugins-clap skips
-# by name; CI, where the package is installed, never does.
-CLAP_COMP_PLUGIN ?= /usr/lib/clap/omx-comp.clap
-.PHONY: test-published-comp
-test-published-comp: $(SCAN_PROG)
-	@if [ ! -e "$(CLAP_COMP_PLUGIN)" ] && [ -z "$$CI" ]; then \
-		echo "skip: $(CLAP_COMP_PLUGIN) not found (install omx-plugins-clap or set CLAP_COMP_PLUGIN)"; \
-	else \
-		python3 -I tests/published-comp-scan.py ./$(SCAN_PROG) $(CLAP_COMP_PLUGIN); \
-	fi
-
 .PHONY: test-scan-json
 test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
@@ -439,8 +426,70 @@ clean:
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
+# every test-* and check-* target, the prerequisites of `test:` among them, runs in a CI step bar those DESK_ONLY lists
+# (tests/ci_runs_test_list.py, test-audit omx-clap-core row 1)
+.PHONY: test-ci-runs-test-list
+test-ci-runs-test-list:
+	python3 tests/ci_runs_test_list.py --self-test
+	python3 tests/ci_runs_test_list.py .
+
+# `make test`'s prerequisites in the three groups CI runs (ci.yml asks for them by name: print-test-plain,
+# print-test-main-only, print-test-ns), so a target added here runs in CI with no workflow edit; tests/ci_runs_test_list.py
+# holds the workflow to it (test-audit omx-clap-core row 1)
+# plain: every push and pull request
+TEST_PLAIN = test-ci-runs-test-list \
+    test-no-host-nproc \
+    test-scan-json \
+    test-no-sha256-copy \
+    test-unsupported-copy \
+    test-no-contract-copy \
+    check-no-protocol-copy \
+    test-codes \
+    test-abi-guard \
+    test-core \
+    test-xrun-report-sabotage \
+    test-effects-meter \
+    test-meter-rate-source \
+    test-live-list \
+    test-live-list-sabotage \
+    test-state-root \
+    test-state-root-sabotage \
+    test-parity-self \
+    test-clap-coverage-self \
+    test-clap-coverage-ports \
+    test-clap-doc-check \
+    test-thread-pool \
+    test-properties \
+    test-properties-sabotage \
+    test-state-busy \
+    test-package
+# the sabotage arms that rebuild copies of the sources: CI runs them on a push to main and a tag, not on a pull request
+TEST_MAIN_ONLY = test-layouts-sabotage \
+    test-cycle-gate-sabotage \
+    test-effects-meter-sabotage \
+    test-thread-pool-sabotage \
+    test-jack-params-ready-sabotage \
+    test-transport-sabotage
+# the target starts a user, net, pid and mount namespace of its own: CI probes that the runner allows one first
+TEST_NS = test-socket
+# run on a desk, in no CI step: test-jack and test-identity load omx-delay, a plugin of omx-plugins (make test-jack
+# CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity), and so does test-scan's omx-delay arm (test-fake runs the rest of
+# that test on the fake plugins). This repository's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh).
+# tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step; BUILDING.md names these three.
+TEST_DESK = test-scan
+DESK_ONLY = test-jack test-identity $(TEST_DESK)
+.PHONY: print-test-plain print-test-main-only print-test-ns print-desk-only
+print-desk-only:
+	@echo $(DESK_ONLY)
+print-test-plain:
+	@echo $(TEST_PLAIN)
+print-test-main-only:
+	@echo $(TEST_MAIN_ONLY)
+print-test-ns:
+	@echo $(TEST_NS)
+
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard test-abi-sabotage tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) $(TEST_DESK) tests/clap_host_test tests/fake.clap tests/fake_synth.clap
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -460,6 +509,14 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
+# omx-clap-core is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
+# packaging (#117); it owns the panel-description layout. No omx-plugins package is installed either, plugins included:
+# the tests that load a published plugin (test-jack, test-identity, test-scan's omx-delay arm) are desk-only (DESK_ONLY).
+.PHONY: test-no-upward-deps
+test-no-upward-deps:
+	bash tests/no-upward-deps-check.sh --self-test
+	bash tests/no-upward-deps-check.sh
+
 .PHONY: test-no-hostd-build-dep
 test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
@@ -471,6 +528,13 @@ test-no-hostd-build-dep:
 test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
+
+# no backward-compatibility machinery: the current ABI only, no recorded-baseline ABI gate, no Breaks/Replaces/Conflicts,
+# no ignored release input (tests/no_backcompat.py; the self-test plants each old thing in a copy and finds it)
+.PHONY: test-no-backcompat
+test-no-backcompat:
+	python3 tests/no_backcompat.py --self-test
+	python3 tests/no_backcompat.py .
 
 # a development package's lib*.so is a symlink to the shared library another package ships: each one depends on that
 # package, deb and rpm, or a machine with the development package alone links nothing (#96)
@@ -486,8 +550,10 @@ test-build-floors:
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh --self-test
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
 
-test: test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
-test-fake: test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align test-abi-format
+test: test-no-backcompat
+test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)
@@ -700,16 +766,25 @@ test-lv2-locate: tests/lv2_locate_test tests/param_contract_test
 tests/lv2_locate_test: tests/lv2_locate_test.c src/lv2_locate.c src/lv2_locate.h tests/test_util.h
 	$(CC) -Isrc $(CFLAGS) -Werror -o $@ tests/lv2_locate_test.c src/lv2_locate.c -lm
 
-# org.openmixer.panel-description/1 as src/omx_clap_ext.h states it, held to omx-plugins' omx_panel_description.h, the
-# ABI, as omx-plugins-devel installs it (pkg-config omxplugins): omx-plugins builds on this tree, so the header is read
-# here, never copied
+# org.openmixer.panel-description/1 as src/omx_clap_ext.h declares it: omx-clap-core owns the layout, so
+# tests/panel_abi_test.c pins the size and every member's offset itself. omx-plugins holds its copy to this tree's
+# installed header (its make panel-abi); nothing here reads omx-plugins
+# (the display kinds' codes are not held to it: omx-panel's DISPLAY_KINDS is their source, test-display-kinds)
 .PHONY: test-panel-abi
 test-panel-abi: tests/panel_abi_test
 	./tests/panel_abi_test
 
 tests/panel_abi_test: tests/panel_abi_test.c src/omx_clap_ext.h
-	@$(PKG_CONFIG) --exists omxplugins || { echo "test-panel-abi: no omx-plugins-devel (pkg-config omxplugins), whose omx_panel_description.h is the ABI" >&2; exit 1; }
-	$(CC) -Isrc $(shell $(PKG_CONFIG) --cflags omxplugins) $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
+	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
+
+# OMX_CLAP_PANEL_DISPLAY_KINDS, words and codes, held to omx-panel's DISPLAY_KINDS, the vocabulary source (node; omx-panel's
+# tree from OMX_PANEL_DIR, default the installed /usr/share/omx-panel; red, never a skip, when it is not there). CI runs it
+# in the contract job; the package builds do not (no omx-panel in their BuildRequires)
+OMX_PANEL_DIR ?= /usr/share/omx-panel
+.PHONY: test-display-kinds
+test-display-kinds:
+	OMX_PANEL_DIR=$(OMX_PANEL_DIR) node tests/display-kinds-check.mjs src/omx_clap_ext.h
+	OMX_PANEL_DIR=$(OMX_PANEL_DIR) node tests/display-kinds-check.mjs --self-test src/omx_clap_ext.h
 
 # the parameter contract's SHA-256, canonical fingerprint and shortest decimals against answers computed elsewhere
 test-param-contract: tests/param_contract_test
@@ -795,19 +870,22 @@ tests/xrun_report_test: tests/xrun_report_test.c src/xrun_report.h
 	$(CC) -Isrc $(CFLAGS) -Werror -pthread -o $@ $<
 
 # the sabotage of each guard: a report with no once-a-second limit, one that writes a count already written, one that
-# loses a count to a plain increment: each reds the test
+# loses a count to a plain increment: each reds the test. The plain increment is a load, the test's rendezvous and a
+# store, so the test forces the interleaving that loses a note instead of hoping the scheduler finds it
 test-xrun-report-sabotage: tests/xrun_report_test.c src/xrun_report.h
 	mkdir -p build/xrun-report-sabotage
 	for arm in rate repeat atomic; do \
 	    case $$arm in \
 	    rate) sed -e 's|now_ms - report->written_at_ms < XRUN_REPORT_MIN_INTERVAL_MS|now_ms == (uint64_t)-1|' src/xrun_report.h ;; \
 	    repeat) sed -e 's|if (seen == report->written)|if (0)|' src/xrun_report.h ;; \
-	    atomic) sed -e 's|atomic_fetch_add_explicit(&report->count, 1, memory_order_relaxed);|atomic_store_explicit(\&report->count, atomic_load_explicit(\&report->count, memory_order_relaxed) + 1, memory_order_relaxed);|' src/xrun_report.h ;; \
+	    atomic) sed -e 's|atomic_fetch_add_explicit(&report->count, 1, memory_order_relaxed);|uint_fast64_t seen = atomic_load_explicit(\&report->count, memory_order_relaxed); xrun_report_test_interleave(); atomic_store_explicit(\&report->count, seen + 1, memory_order_relaxed);|' src/xrun_report.h ;; \
 	    esac > build/xrun-report-sabotage/xrun_report.h; \
 	    ! cmp -s src/xrun_report.h build/xrun-report-sabotage/xrun_report.h || { echo "sabotage $$arm changed nothing"; exit 1; }; \
 	    $(CC) -Ibuild/xrun-report-sabotage $(CFLAGS) -Werror -pthread -o build/xrun-report-sabotage/test $<; \
 	    if ./build/xrun-report-sabotage/test > build/xrun-report-sabotage/$$arm.log 2>&1; then echo "sabotage $$arm: test stayed green"; exit 1; fi; \
 	    grep -q '^FAIL' build/xrun-report-sabotage/$$arm.log || { echo "sabotage $$arm: no FAIL line"; exit 1; }; \
+	    [ $$arm != atomic ] || grep -q '^FAIL two notes whose load and store interleave' build/xrun-report-sabotage/$$arm.log || \
+	        { echo "sabotage atomic: the forced interleaving did not red"; exit 1; }; \
 	    echo "sabotage $$arm: red as it should"; \
 	done
 
@@ -958,38 +1036,6 @@ test-thread-pool-sabotage: tests/thread_pool_test.c tests/test_util.h $(CORE_SRC
 # the plugin's resource hints (#323) through the core, against fake_ext's declaration of two
 tests/resource_hints_test: tests/resource_hints_test.c tests/test_util.h $(CORE_SO)
 	$(CC) $(INCS) $(CFLAGS) -Werror -o $@ $< $(CORE_LINK_TEST) -ldl -lpthread -lm
-
-# the ABI: abidw records what the library exports and the types its public headers reach, abidiff compares a build with the
-# baseline of the last release. An addition is a compatible change and a new minor; a removal or a change is a new soname major.
-ABI_BASELINE = abi/$(CORE_SONAME).abi
-ABI_LAYOUT = abi/$(CORE_SONAME).layout
-
-abi-stage: $(CORE_SO)
-	rm -rf build/abi
-	$(MAKE) install-lib DESTDIR=$(CURDIR)/build/abi PREFIX=/usr LIBDIR=/usr/lib
-
-# record the baseline: the release commit does this and commits abi/
-abi-baseline: abi-stage
-	mkdir -p abi
-	abidw --headers-dir build/abi/usr/include --out-file $(ABI_BASELINE) build/abi/usr/lib/$(CORE_FILE)
-	CC="$(CC)" CPPFLAGS="$(CLAP_CFLAGS) $(DSP_CFLAGS)" sh tests/abi-layout.sh build/abi/usr/include $(ABI_LAYOUT) $(VERSION) --record
-
-# abi-check.sh's reading of abidiff, sabotaged: a fixture library whose member points to a structure, the pointee grown
-# (ok) and changed five ways that must each FAIL (tests/abi-check-sabotage.sh, #323); needs gcc, abidw and abidiff
-.PHONY: test-abi-sabotage
-test-abi-sabotage:
-	sh tests/abi-check-sabotage.sh
-
-# libabigail's dump leaves _Atomic members out (#117): abi-layout.sh reads every member's offset, size and type with
-# pahole and holds them to abi/<soname>.layout, recorded with the baseline
-# tests/abi-check.sh where abidw writes another ABI-XML format than the baseline's: compared on the declared ABI cell only
-.PHONY: test-abi-format
-test-abi-format:
-	sh tests/abi-format-test.sh
-
-abi-check: abi-stage
-	sh tests/abi-check.sh build/abi/usr/lib/$(CORE_FILE) build/abi/usr/include $(ABI_BASELINE)
-	CC="$(CC)" CPPFLAGS="$(CLAP_CFLAGS) $(DSP_CFLAGS)" sh tests/abi-layout.sh build/abi/usr/include $(ABI_LAYOUT) $(VERSION)
 
 # the library as a program outside this tree sees it: installed into a prefix of its own, found through its pkg-config file
 # and linked by that alone, with the defaults; the export list and the libraries it names are read off the file

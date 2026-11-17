@@ -75,6 +75,15 @@ jobs:
   # of either (the commit-msg hook the shared stub byte for byte), from Open-Mixer/.github and nowhere else
   public-sources:
     uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
+  # the dependency floors: the spec and debian/control state the floors packaging/deps.txt declares, and no ceiling. The
+  # engine is Open-Mixer/.github's deps-render, at the same openmixer-v1 ref every shared action of this repository uses
+  deps-render:
+    name: the floors are packaging/deps.txt's
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Open-Mixer/.github/.github/actions/deps-render@openmixer-v1
   # the Fedora cells the contract, build and two sabotage jobs run, and the rpm job's: check-matrix's answer
   # (rule 11-10: fc45 beside fc44; the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:
@@ -134,6 +143,13 @@ jobs:
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
+      # the display kinds this tree owns are omx-panel's DISPLAY_KINDS, the vocabulary source, word for word and in order
+      - name: Install omx-panel
+        run: dnf install -y --setopt=install_weak_deps=False 'omx-panel >= 0.13.8'
+
+      - name: The display kinds are omx-panel's
+        run: make test-display-kinds
+
       # one pack per listed language from the spec and debian/control, and the catalogs through omx-contract's release
       # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30)
       - name: The language packs
@@ -143,7 +159,6 @@ jobs:
           base: omx-clap-core-contract
           owner: omx-clap-core
           spec: packaging/omx-clap-host.spec
-          moved: ca:0.32.1
 
   docs:
     name: make docs (the public headers are fully documented)
@@ -200,44 +215,34 @@ jobs:
       - name: Install the build tools
         run: |
           dnf install -y --setopt=install_weak_deps=False git gcc make python3 perl-interpreter diffutils pkgconf-pkg-config clap-devel openssl-devel \
-            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jack-tools jq iproute util-linux procps-ng libasan libubsan libtsan libabigail \
+            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jack-tools jq iproute util-linux procps-ng libasan libubsan libtsan \
             python3-numpy python3-lilv \
             libxcb-devel xorg-x11-server-Xvfb xdotool wayland-devel wayland-protocols-devel weston \
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
-      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm;
-      # and omx-plugins-devel, whose omx_panel_description.h is the ABI test-panel-abi holds src/omx_clap_ext.h to
+      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       - uses: actions/checkout@v4
 
-      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
+      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
           dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
-          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
           pkg-config --exists plugin-hostd-protocol
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
-          pkg-config --modversion omxplugins
           command -v mod-host
 
       - name: Every file a comment can be written in opens with its licence
         uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
 
-      # packaging/deps.txt is the one place a floor is written: the spec and debian/control follow it
-      - name: The dependency floors are the ones packaging/deps.txt declares
-        uses: Open-Mixer/.github/.github/actions/deps-render@openmixer-v1
-
-      # the units table and the JSON string writer are omx-contract's, the protocol plugin-hostd-protocol's: no copy of
-      # either is in this tree (tests/no_contract_copy.py, tests/no_protocol_copy.py, each with its self test)
-      - name: No copy of omx-contract's units table or JSON writer
-        run: make test-no-contract-copy
-
-      - name: No copy of plugin-hostd-protocol's tables, headers or rendered verbs
-        run: make check-no-protocol-copy
+      # the no-contract-copy and no-protocol-copy checks run in the groups the Makefile declares (TEST_PLAIN)
+      - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
+        run: make test-no-upward-deps
 
       # the fuzz workflow runs on a tag only, so a fixture changed in a pull request reaches the committed seed corpus
       # here; the generator is plain C and gcc writes the bytes clang does
@@ -285,19 +290,27 @@ jobs:
       - name: Test the plugin lifecycle and the scanner against the fake plugins
         run: make test-fake
 
-      # the meter reader of effects.c built with -Werror and driven by its test, and each of its rules broken, red: in
-      # make test and in no job until it failed to build on main unseen (int against the unsigned instance limits)
-      - name: Test the meter reader and its sabotage
-        run: make test-effects-meter ${{ github.event_name != 'pull_request' && 'test-effects-meter-sabotage' || '' }}
+      # make test's prerequisites, asked of the Makefile by group (TEST_PLAIN, TEST_MAIN_ONLY, TEST_NS): a target added
+      # to `test:` runs here with no workflow edit, and tests/ci_runs_test_list.py fails if one runs in no step
+      - name: The checks and sabotage arms make test lists
+        run: make $(make -s print-test-plain)
 
-      # org.openmixer.panel-description/1 as omx_clap_ext.h states it, against omx-plugins' header, the ABI (#337)
-      - name: The panel description's structures are the ABI's
-        run: make test-panel-abi
-
-      # each rule of the audio layouts broken in a copy of the sources, the test that guards it red (#92)
-      - name: The sabotage of the audio layouts
+      - name: The sabotage arms that rebuild copies of the sources
         if: github.event_name != 'pull_request'
-        run: make test-layouts-sabotage
+        run: make $(make -s print-test-main-only)
+
+      # the command socket's framing against tests/socket_conformance.py: the target makes a namespace of its own
+      - name: Test the command socket's framing
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make $(make -s print-test-ns)
+          else
+            echo "::warning::the namespace tests SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+          fi
+
+      # org.openmixer.panel-description/1 as omx_clap_ext.h declares it: sizes and offsets pinned here (#337, #117)
+      - name: The panel description's structures are the layout omx_clap_ext.h declares
+        run: make test-panel-abi
 
       # the chain's cycles on a thread of their own while the control thread changes it, under ThreadSanitizer (#311)
       - name: Test the chain under ThreadSanitizer
@@ -322,12 +335,6 @@ jobs:
         if: github.event_name != 'pull_request'
         run: make test-resource-hints-sabotage
 
-      # abi-check.sh's reading of abidiff against a fixture library: a pointee grown reads ok, a function pointer, a
-      # retyped pointer and a reorder each FAIL (#323)
-      - name: The sabotage of the ABI check's report reading
-        if: github.event_name != 'pull_request'
-        run: make test-abi-sabotage
-
       - name: Test what a plugin reports about its parameters under AddressSanitizer
         if: github.event_name != 'pull_request'
         run: make test-untrusted-asan
@@ -341,20 +348,10 @@ jobs:
         if: github.event_name != 'pull_request'
         run: make test-transport-tsan
 
-      # the cycle gate's sabotage: a gate that never closes must race the deactivate under ThreadSanitizer
-      - name: Sabotage the cycle gate under ThreadSanitizer
-        if: github.event_name != 'pull_request'
-        run: make test-cycle-gate-sabotage
-
       # the thread pool's helpers, hand-out word and completion count against the audio and control threads (#395)
       - name: Test the thread pool under ThreadSanitizer
         if: github.event_name != 'pull_request'
         run: make test-thread-pool-tsan
-
-      # the thread pool's completion wait removed in a copy of the sources, tests/thread_pool_test red on it (#395)
-      - name: The sabotage of the thread pool's completion wait
-        if: github.event_name != 'pull_request'
-        run: make test-thread-pool-sabotage
 
       # a chain costs no more on silence than on the tone: the host reads a block for silence only for a plugin that can
       # sleep on it
@@ -498,18 +495,6 @@ jobs:
             echo "::warning::test-jack-abi SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
-      # The command socket's framing against tests/socket_conformance.py: a command of exactly the receive buffer, many
-      # commands in one write, one command over many writes, clients that leave mid-command, the size limit and a random
-      # chunking fuzz. It checks the protocol library the host links, libplugin-hostd-protocol from the channel; the
-      # log names the library the host loaded.
-      - name: Test the command socket's framing
-        run: |
-          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            make test-socket
-          else
-            echo "::warning::test-socket SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
-          fi
-
       # the verbs data/verbs.json declares for this host, installed as the package installs them, against its socket and
       # its registration table; then the guard's sabotage: a format and what the host owes a verb changed in the
       # declaration, a handler deleted and a verb with no declaration registered in the host, each red
@@ -551,12 +536,6 @@ jobs:
             echo "::warning::test-jack-params SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
-      # the host-ready wait test-jack-params relies on (#191), sabotaged: a host that never logs ready!, a port a
-      # listener already held, a host merely slow. No jack, PipeWire or namespace needed, so this always runs.
-      - name: Test the host-ready wait's two causes, sabotaged
-        if: github.event_name != 'pull_request'
-        run: make test-jack-params-ready-sabotage
-
       # An LV2 plugin through the host: the fixture bundles on LV2_PATH, add lv2:<uri>, the adapter's refusals with their
       # codes in the reply, the control ports by symbol, lv2:enabled as the bypass, state, presets by URI and remove.
       - name: Test an LV2 plugin through the host over jack
@@ -565,6 +544,17 @@ jobs:
             make test-jack-lv2
           else
             echo "::warning::test-jack-lv2 SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+          fi
+
+      # patch_set and patch_get, sabotaged: the verbs unregistered and the numeric property's parameter path dropped, each
+      # arm red on the check that names it
+      - name: Test the patch verbs, sabotaged
+        if: github.event_name != 'pull_request'
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make test-jack-lv2-patch-sabotage
+          else
+            echo "::warning::test-jack-lv2-patch-sabotage SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
       # preset_list, preset_get and preset_load over the socket: fake_synth's preset-discovery factory and the LV2 fixture
@@ -587,20 +577,6 @@ jobs:
           else
             echo "::warning::test-identity-lv2 SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
-
-      # The LV2 parity runner: its rules on fake recordings, each broken once and seen red (tests/lv2_parity.py)
-      - name: Test the LV2 parity rules
-        run: make test-parity-self
-
-      # The CLAP coverage probe: scan parsing, the host loop against a fake host, classify, each rule broken once and
-      # seen red (tests/clap_coverage.py); the desk run, make clap-coverage, is not CI's
-      - name: Test the CLAP coverage probe's rules
-        run: make test-clap-coverage-self
-
-      # docs/clap-compatibility.md against this runner's clap-devel headers: every id they spell a row, every supported
-      # cell naming a test that exists, each rule broken once and seen red (tests/clap_doc_check.sh)
-      - name: Test the CLAP compatibility page against the headers
-        run: make test-clap-doc-check
 
       # no test or bench writes its own send: they source plugin-hostd-tests' lib/protocol.sh (tests/protocol_client_check.sh)
       - name: Test that no script carries its own protocol client
@@ -630,8 +606,9 @@ jobs:
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-chain-host
             make test-chain-identity
+            make test-chain-host-stall
           else
-            echo "::warning::test-chain-host and test-chain-identity SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+            echo "::warning::test-chain-host, test-chain-identity and test-chain-host-stall SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
       # The chain's members walked on JACK's thread while the control thread joins, frees and lets go of members, the
@@ -659,8 +636,8 @@ jobs:
 
       - name: Name what this job does not run
         run: |
-          echo "test-jack and test-identity are NOT run here: they load omx-delay (.clap from the omx-plugins-clap package, .lv2 from omx-plugins-lv2)."
-          echo "They stay in the Makefile for the desk: make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity."
+          echo "test-jack, test-identity and test-scan's omx-delay arm are NOT run here: they load omx-delay, a plugin of omx-plugins, and this repository's CI installs nothing of it (DESK_ONLY in the Makefile)."
+          echo "They stay in the Makefile for the desk: make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity; make test-scan."
 
   # each guard of the host's chain broken in a copy of the sources, the chain tests red on it (#104). About a quarter of an
   # hour of host runs, in a job of its own beside build and test, on the same container and the same setup.
@@ -684,28 +661,26 @@ jobs:
       - name: Install the build tools
         run: |
           dnf install -y --setopt=install_weak_deps=False git gcc make python3 perl-interpreter diffutils pkgconf-pkg-config clap-devel openssl-devel \
-            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jq iproute util-linux procps-ng libasan libubsan libtsan libabigail \
+            lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jq iproute util-linux procps-ng libasan libubsan libtsan \
             python3-numpy python3-lilv \
             libxcb-devel xorg-x11-server-Xvfb xdotool wayland-devel wayland-protocols-devel weston \
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
-      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm;
-      # and omx-plugins-devel, whose omx_panel_description.h is the ABI test-panel-abi holds src/omx_clap_ext.h to
+      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       - uses: actions/checkout@v4
 
-      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
+      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
           dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
-          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
           pkg-config --exists plugin-hostd-protocol
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
-          pkg-config --modversion omxplugins
           command -v mod-host
 
       - uses: actions/checkout@v4
@@ -778,12 +753,6 @@ jobs:
           max: ${{ vars.OMX_RUNNER_CPUS || '3' }}
       - name: The sabotage of the no-copy LV2 adapter
         run: DIRECT_SABOTAGE_JOBS="$OMX_JOBS" make test-lv2-direct-sabotage
-
-  # The ABI of libomx-clap-core.so.1 against the baseline of the last release: an addition needs a new minor, a removal or a
-  # change needs a new soname major. Nothing here needs jack or the protocol library.
-  abi:
-    name: ABI of libomx-clap-core against its baseline
-    uses: ./.github/workflows/abi.yml
 
   rpm:
     name: RPMs (fc${{ matrix.cell.fedora }}, ${{ matrix.cell.arch }}), installed in a clean root
@@ -879,7 +848,7 @@ jobs:
             printf '%s\n' '/usr/lib*/libomx-clap-core.so' '/usr/lib*/pkgconfig/omx-clap-core.pc' /usr/include/omx-clap-host/clap_host.h \
               /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_core_vocabulary.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
               /usr/include/omx-clap-host/clap_host_extensions.h /usr/include/omx-clap-host/omx_clap_ext.h /usr/include/omx-clap-host/omx_msgring.h /usr/include/omx-clap-host/clap_meters.h /usr/include/omx-clap-host/omx_clap_raw.h /usr/include/omx-clap-host/omx_clap_midi.h /usr/include/omx-clap-host/clap_chain.h /usr/include/omx-clap-host/abi_guard.h \
-              /usr/share/omx-clap-core/omx-clap-core.map /usr/share/omx-clap-core/libomx-clap-core.so.1.abi \
+              /usr/share/omx-clap-core/omx-clap-core.map \
               /usr/share/licenses/omx-clap-core-devel/COPYING /usr/share/doc/omx-clap-core-devel/README.md | sort > expected.txt
             diff -u <(sed 's,/usr/lib64/,/usr/lib*/,' files.txt) expected.txt
           done
@@ -1159,8 +1128,6 @@ jobs:
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json contract-files.txt
           ! grep -q '^/usr/share/omx-contract/' dev-files.txt
           dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Architecture: all$'
-          dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Breaks: libomx-clap-core-dev \(<< '
-          dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Replaces: libomx-clap-core-dev \(<< '
           for deb in debs/libomx-clap-core1_*.deb debs/libomx-clap-core-dev_*.deb; do
             dpkg -I "$deb" | grep -E '^ Depends:.*omx-clap-core-contract \(= '
           done

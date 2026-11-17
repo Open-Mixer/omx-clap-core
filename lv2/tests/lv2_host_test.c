@@ -57,6 +57,11 @@
  *             past 16 bits answers 0 under the event map and refuses the plugin before instantiate, and one that maps
  *             midi:MidiEvent to 0 refuses it too; an atom MIDI port and an event port each way, in both orders, the
  *             first the note path's.
+ *   missing   #undeclared, the original ll-plugins' shape (no feature in its TTL, uri-map's callback called unchecked
+ *             at instantiate): under a list without uri-map, without event, or without both, strict or not, refused
+ *             hosting.features.missing before its binary is opened, a MIDI echo running beside it still running; and a
+ *             fuzz of lists with features left out, each in a child, where the feature probe (which calls every
+ *             callback it is handed) runs and #undeclared runs or is refused by name: no list kills the process.
  *   cv        the CV fixture's CV input and output read in index order with their names; sixteen CV inputs and sixteen
  *             CV outputs admitted in port order with their names (#268: no cap of their own, they count against the
  *             auxiliary limit of 64 a side, t_layouts) and each of the sixteen proven by value through run(); at every
@@ -1582,6 +1587,134 @@ static void without_uri_map(void)
     lv2_plugin_close(p);
 }
 
+/* ---- a plugin missing a host feature: refused by name, never a crash ---- */
+
+static const char *const *list_without2(const char *a, const char *b);
+
+/* the MIDI echo answers a note in with the same note out: the plugin already running beside a refused one */
+static int echo_answers(struct lv2_instance *in)
+{
+    static const uint8_t note[3] = { 0x90, 0x3c, 0x64 };
+    struct got g;
+
+    memset(&g, 0, sizeof(g));
+    lv2_instance_midi_in_add(in, 3, note, 3);
+    lv2_instance_run(in, BLOCK);
+    midi_out_each(in, collect, &g);
+    return g.n == 1 && same_message(&g, 0, 3, note, 3);
+}
+
+/* #undeclared, the original ll-plugins' shape (no feature in its TTL, uri-map's callback called unchecked), under a
+ * list that leaves out what its ev:EventPort needs: refused hosting.features.missing before its binary is opened, under
+ * strict options or not, and the echo running beside it keeps running. Without the refusal it is instantiated and
+ * jumps to address 0, and the whole process dies. */
+static void undeclared_refused(const char *const *list, int strict, const char *label)
+{
+    const struct lv2_core_config config = { list, 1000u, 4096u, 0u, NULL, NULL };
+    char why[LV2_CORE_WHY_MAX] = "";
+    struct omx_lv2_feature_options o;
+    struct lv2_plugin *echo, *p;
+    struct lv2_instance *running, *in = NULL;
+
+    CHECK(lv2_core_configure(&config, why) == 0, "%s: configured", label);
+    omx_lv2_feature_options_init(&o);
+    o.strict = strict;
+    CHECK(lv2_core_feature_options_set(&o, why) == 0, "%s: strict %d", label, strict);
+    echo = open_plugin(g_midi, MIDI_URI, why);
+    running = echo && lv2_plugin_load(echo, why) == 0 ? lv2_instance_new(echo) : NULL;
+    CHECK(running && lv2_instance_activate(running, 48000.0, 1, BLOCK, why) == 0 && echo_answers(running),
+          "%s: the MIDI echo runs (%s)", label, why);
+    p = open_plugin(g_ev, EV_URI "#undeclared", why);
+    if (p && lv2_plugin_load(p, why) == 0 && (in = lv2_instance_new(p)) != NULL)
+        lv2_instance_activate(in, 48000.0, 1, BLOCK, why);
+    CHECK(!p && strcmp(why, LV2_CODE_FEATURES_MISSING) == 0, "%s: #undeclared refused hosting.features.missing (%s)", label, why);
+    CHECK(ev_seen() == NULL, "%s: before its binary was opened", label);
+    CHECK(running && echo_answers(running), "%s: the MIDI echo beside it still runs", label);
+    lv2_instance_free(in);
+    lv2_plugin_close(p);
+    lv2_instance_free(running);
+    lv2_plugin_close(echo);
+}
+
+static void undeclared_without_both(void)
+{
+    undeclared_refused(list_without2(LV2_URI_MAP_URI, LV2_EVENT_URI), 1, "undeclared, no uri-map nor event");
+}
+
+static void undeclared_without_both_lax(void)
+{
+    undeclared_refused(list_without2(LV2_URI_MAP_URI, LV2_EVENT_URI), 0, "undeclared, no uri-map nor event, not strict");
+}
+
+static void undeclared_without_uri_map(void)
+{
+    undeclared_refused(list_without(LV2_URI_MAP_URI), 1, "undeclared, no uri-map");
+}
+
+static void undeclared_without_event(void)
+{
+    undeclared_refused(list_without(LV2_EVENT_URI), 1, "undeclared, no event");
+}
+
+/* the fuzz: lists of the provided features with some left out (each one alone, then 48 drawn from a fixed seed). Under
+ * each, the feature probe (which calls every callback it is handed) instantiates, activates and runs, and #undeclared is
+ * either refused hosting.features.missing or runs: no feature reaches a plugin with NULL data or a NULL callback, and
+ * no list kills the process. */
+static uint32_t g_fuzz_mask;
+
+static void fuzz_list(void)
+{
+    static const char *list[64];
+    struct lv2_core_config config = { list, 1000u, 4096u, 0u, NULL, NULL };
+    char why[LV2_CORE_WHY_MAX] = "";
+    uint32_t i, k = 0;
+    const char *what[2] = { LV2_FEATURE_PROBE_URI, EV_URI "#undeclared" };
+    const char *dir[2] = { g_fp, g_ev };
+    int j;
+
+    for (i = 0; lv2_core_provided[i]; i++)
+        if (!(g_fuzz_mask & (1u << i)))
+            list[k++] = lv2_core_provided[i];
+    list[k] = NULL;
+    CHECK(lv2_core_configure(&config, why) == 0, "fuzz 0x%x: configured", g_fuzz_mask);
+    for (j = 0; j < 2; j++)
+    {
+        struct lv2_plugin *p = open_plugin(dir[j], what[j], why);
+        struct lv2_instance *in = p && lv2_plugin_load(p, why) == 0 ? lv2_instance_new(p) : NULL;
+        int ran = in && lv2_instance_activate(in, 48000.0, 1, BLOCK, why) == 0;
+
+        if (ran)
+            lv2_instance_run(in, BLOCK);
+        if (j == 0)
+            CHECK(ran, "fuzz 0x%x: the probe instantiates and runs (%s)", g_fuzz_mask, why);
+        else
+            CHECK(ran || (!p && strcmp(why, LV2_CODE_FEATURES_MISSING) == 0),
+                  "fuzz 0x%x: #undeclared runs or is refused hosting.features.missing (%s)", g_fuzz_mask, why);
+        lv2_instance_free(in);
+        lv2_plugin_close(p);
+    }
+}
+
+static void t_missing_feature(void)
+{
+    uint32_t n = 0, i, seed = 0x5eedu;
+    char label[64];
+
+    in_child("undeclared, no uri-map nor event", undeclared_without_both);
+    in_child("undeclared, no uri-map nor event, not strict", undeclared_without_both_lax);
+    in_child("undeclared, no uri-map", undeclared_without_uri_map);
+    in_child("undeclared, no event", undeclared_without_event);
+    while (lv2_core_provided[n])
+        n++;
+    for (i = 0; i < n + 48u; i++)
+    {
+        seed = seed * 1664525u + 1013904223u;
+        g_fuzz_mask = i < n ? 1u << i : (seed >> 8) & ((1u << n) - 1u);
+        snprintf(label, sizeof(label), "fuzz 0x%x", g_fuzz_mask);
+        in_child(label, fuzz_list);
+    }
+}
+
 /* the echo through the instance: what goes in comes out at its frame, a note one key up, the rest as it came */
 static void t_event_run(void)
 {
@@ -1959,6 +2092,17 @@ static const char *const *list_without(const char *uri)
 
     for (i = 0; lv2_core_provided[i]; i++)
         if (strcmp(lv2_core_provided[i], uri) != 0)
+            g_list[k++] = lv2_core_provided[i];
+    g_list[k] = NULL;
+    return g_list;
+}
+
+static const char *const *list_without2(const char *a, const char *b)
+{
+    uint32_t k = 0, i;
+
+    for (i = 0; lv2_core_provided[i]; i++)
+        if (strcmp(lv2_core_provided[i], a) != 0 && strcmp(lv2_core_provided[i], b) != 0)
             g_list[k++] = lv2_core_provided[i];
     g_list[k] = NULL;
     return g_list;
@@ -2357,6 +2501,7 @@ int main(int argc, char **argv)
     in_child("event big buffer", event_big);
     in_child("event wide table", event_wide_table);
     in_child("event zero id", event_zero_id);
+    t_missing_feature();
     CHECK(!lilv_mapped(), "no lilv in this process before its first bundle");
     CHECK(lv2_core_configure(&config, why) == 0, "configure every provider (%s)", why);
     t_one_bundle();

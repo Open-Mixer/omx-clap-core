@@ -58,7 +58,7 @@ BuildRequires: omx-contract-devel >= 3.18.0
 BuildRequires: omx-dsp-devel >= 0.32.0
 BuildRequires: plugin-hostd-protocol-devel >= 0.5.9
 BuildRequires: plugin-db-devel >= 0.4.2
-BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
+BuildRequires: clap-devel >= 1.2.10
 S
     plant() { # plant <module> <version>
         printf 'Name: %s\nDescription: planted\nVersion: %s\nCflags:\n' "$1" "$2" > "$t/pc/$1.pc"

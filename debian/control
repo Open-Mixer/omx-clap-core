@@ -6,7 +6,7 @@ Section: sound
 Priority: optional
 Maintainer: Pau Aliagas <linuxnow@gmail.com>
 # clap-headers: 1.2.10, the channel's one CLAP floor for every distribution, served by the channel (Debian has none)
-Build-Depends: debhelper-compat (= 13), clap-headers (>= 1.2.10~), clap-headers (<< 2~), liblilv-dev, lv2-dev, libjack-jackd2-dev | libjack-dev, libxcb1-dev, libssl-dev, libplugin-hostd-protocol-dev (>= 0.5.9~), libomxdsp-dev (>= 0.32.0~), libomx-contract-dev (>= 3.18.0~), plugin-db-dev (>= 0.4.2~), pkgconf, python3
+Build-Depends: debhelper-compat (= 13), clap-headers (>= 1.2.10~), liblilv-dev, lv2-dev, libjack-jackd2-dev | libjack-dev, libxcb1-dev, libssl-dev, libplugin-hostd-protocol-dev (>= 0.5.9~), libomxdsp-dev (>= 0.32.0~), libomx-contract-dev (>= 3.18.0~), plugin-db-dev (>= 0.4.2~), pkgconf, python3
 Standards-Version: 4.6.2
 Homepage: https://github.com/Open-Mixer/omx-clap-core
 Rules-Requires-Root: no
@@ -65,7 +65,7 @@ Package: libomx-clap-core-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: libomx-clap-core1 (= ${binary:Version}), libomx-contract-dev (>= 3.18.0~), libomxdsp-dev (>= 0.32.0~), omx-clap-core-contract (= ${source:Version}), clap-headers (>= 1.2.10~), clap-headers (<< 2~), ${misc:Depends}
+Depends: libomx-clap-core1 (= ${binary:Version}), libomx-contract-dev (>= 3.18.0~), libomxdsp-dev (>= 0.32.0~), omx-clap-core-contract (= ${source:Version}), clap-headers (>= 1.2.10~), ${misc:Depends}
 Description: build a program that hosts CLAP plugins on libomx-clap-core
  What you need to write a program that hosts CLAP plugins on libomx-clap-core:
  the headers, the pkg-config file, and the list of functions the library
@@ -77,8 +77,6 @@ Package: omx-clap-core-contract
 Architecture: all
 Multi-Arch: foreign
 Depends: omx-contract-data (>= 3.18.0~), ${misc:Depends}
-Breaks: libomx-clap-core-dev (<< ${source:Version})
-Replaces: libomx-clap-core-dev (<< ${source:Version})
 Description: omx-clap-core's definitions in omx-contract's contract directory
  omx-clap-core's definitions as files in omx-contract's contract directory,
  for any program that reads them at run time: the hosting limits and refusal
@@ -91,7 +89,7 @@ Package: libomx-clap-lv2-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: libomx-clap-core-dev (= ${binary:Version}), clap-headers (>= 1.2.10~), clap-headers (<< 2~), libssl-dev, pkgconf, ${misc:Depends}
+Depends: libomx-clap-core-dev (= ${binary:Version}), clap-headers (>= 1.2.10~), libssl-dev, pkgconf, ${misc:Depends}
 Description: LV2 adapter of omx-clap-host, as a static library to link
  libomx-clap-lv2 is the LV2 adapter omx-clap-host links in, for a program of
  your own that hosts plugins on libomx-clap-core: it loads an LV2 plugin
@@ -110,8 +108,6 @@ Package: omx-clap-host-l10n-ca
 Section: localization
 Architecture: all
 Depends: omx-clap-core-contract (= ${source:Version}), ${misc:Depends}
-Breaks: omx-clap-core-contract (<< 0.32.1~)
-Replaces: omx-clap-core-contract (<< 0.32.1~)
 Description: ca catalog of omx-clap-host's codes
  The sentences of omx-clap-host's codes in the language ca, read by every
  surface that shows them on a host in that locale; without it a surface shows

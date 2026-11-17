@@ -21,7 +21,6 @@ BuildRequires: plugin-db-devel >= 0.4.2
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
 # distribution's own is older)
 BuildRequires: clap-devel >= 1.2.10
-BuildRequires: clap-devel < 2
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: omx-dsp-devel >= 0.32.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
@@ -87,7 +86,6 @@ Summary: Build a program that hosts CLAP plugins on omx-clap-core
 License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
-Requires: clap-devel < 2
 # hosted_stage.h includes omx-dsp's headers
 Requires: omx-dsp-devel >= 0.32.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
@@ -107,8 +105,6 @@ License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
 Requires: omx-contract-data >= 3.18.0
-# the files lived in omx-clap-core-devel before this package
-Conflicts: omx-clap-core-devel < %{version}-%{release}
 
 %description -n omx-clap-core-contract
 omx-clap-core's definitions as files in omx-contract's contract directory,
@@ -122,7 +118,6 @@ Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
-Requires: clap-devel < 2
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig
@@ -188,7 +183,6 @@ make test-package
 %{_libdir}/pkgconfig/omx-clap-core.pc
 %{_includedir}/omx-clap-host/
 %{_datadir}/omx-clap-core/omx-clap-core.map
-%{_datadir}/omx-clap-core/libomx-clap-core.so.*.abi
 
 %files -n omx-clap-core-contract
 %license COPYING

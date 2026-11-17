@@ -49,7 +49,7 @@ def deb_problems(root):
             if m:
                 dev_of.setdefault(m.group(1), []).append(pkg)
             m = SO_N.search(line)
-            if m and not line.endswith(".abi"):
+            if m:
                 runtime_of[m.group(1)] = pkg
     out = []
     for lib, devs in sorted(dev_of.items()):
@@ -98,7 +98,7 @@ def rpm_problems(root):
             if m:
                 dev_of.setdefault(m.group(1), []).append(pkg)
             m = SO_N.search(f)
-            if m and not f.endswith(".abi"):
+            if m:
                 runtime_of[m.group(1)] = pkg
     out = []
     for lib, devs in sorted(dev_of.items()):

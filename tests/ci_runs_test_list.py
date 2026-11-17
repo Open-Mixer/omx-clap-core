@@ -210,6 +210,27 @@ def self_test(root):
     else:
         print("FAIL a step with `if: false` counts as a run")
         failed = 1
+    plain = "        run: make $(make -s print-test-plain)"
+    for what, line in (("a trailing comment that spells the make command", "        run: true  # make $(make -s print-test-plain)"),
+                       ("a printf that prints the make command", "        run: printf '%s\\n' \"make $(make -s print-test-plain)\"")):
+        if check(rule_map, steps.replace(plain, line), root):
+            print("ok   %s is not a run" % what)
+        else:
+            print("FAIL %s counts as a run" % what)
+            failed = 1
+    for cond in ("false", "${{ false }}"):
+        job = "jobs:\n  g:\n    if: %s\n%s" % (cond, steps)
+        if check(rule_map, job, root):
+            print("ok   a job with `if: %s` is not a run" % cond)
+        else:
+            print("FAIL a job with `if: %s` counts as a run" % cond)
+            failed = 1
+    job = "jobs:\n  g:\n    if: github.event_name != 'pull_request'\n%s" % steps
+    if check(rule_map, job, root):
+        print("FAIL a job with a real condition was refused")
+        failed = 1
+    else:
+        print("ok   a job with a real `if:` is a run")
     return failed
 
 

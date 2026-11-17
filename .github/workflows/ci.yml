@@ -212,21 +212,19 @@ jobs:
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
-      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm;
-      # and omx-plugins-devel, whose omx_panel_description.h is the ABI test-panel-abi holds src/omx_clap_ext.h to
+      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       - uses: actions/checkout@v4
 
-      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
+      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
           pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
-          pkg-config --modversion omxplugins
           command -v mod-host
 
       - name: Every file a comment can be written in opens with its licence
@@ -239,6 +237,9 @@ jobs:
 
       - name: No copy of plugin-hostd-protocol's tables, headers or rendered verbs
         run: make check-no-protocol-copy
+
+      - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
+        run: make test-no-upward-deps
 
       # the fuzz workflow runs on a tag only, so a fixture changed in a pull request reaches the committed seed corpus
       # here; the generator is plain C and gcc writes the bytes clang does
@@ -291,8 +292,8 @@ jobs:
       - name: Test the meter reader and its sabotage
         run: make test-effects-meter ${{ github.event_name != 'pull_request' && 'test-effects-meter-sabotage' || '' }}
 
-      # org.openmixer.panel-description/1 as omx_clap_ext.h states it, against omx-plugins' header, the ABI (#337)
-      - name: The panel description's structures are the ABI's
+      # org.openmixer.panel-description/1 as omx_clap_ext.h declares it: sizes and offsets pinned here (#337, #117)
+      - name: The panel description's structures are the layout omx_clap_ext.h declares
         run: make test-panel-abi
 
       # each rule of the audio layouts broken in a copy of the sources, the test that guards it red (#92)
@@ -685,21 +686,19 @@ jobs:
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
-      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm;
-      # and omx-plugins-devel, whose omx_panel_description.h is the ABI test-panel-abi holds src/omx_clap_ext.h to
+      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       - uses: actions/checkout@v4
 
-      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
+      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
           pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
-          pkg-config --modversion omxplugins
           command -v mod-host
 
       - uses: actions/checkout@v4

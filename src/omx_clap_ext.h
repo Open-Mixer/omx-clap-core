@@ -152,10 +152,11 @@ typedef struct omx_clap_plugin_param_contract_ext
 /*
  * The panel a plugin publishes: its family, its sections in order, each control's parameter, section, widget, label and
  * visibility rule, the roles its parameters play in the family, the displays drawn over a section and the per-placement
- * defaults. Units, travels, scales and enumeration labels are the parameters' own and are not restated. omx-plugins'
- * faces serve it from their include/omx_panel_description.h, which is the ABI: the structures below have its layout
- * under other names, so a face may include both, and tests/panel_abi_test.c holds them to it, size and offset. The
- * fingerprint is the lowercase hex SHA-256 of the canonical serialisation omx-plugins' tools/panel-description.mjs writes.
+ * defaults. Units, travels, scales and enumeration labels are the parameters' own and are not restated. omx-clap-core
+ * owns this layout: tests/panel_abi_test.c pins the size and every member's offset of the structures below, and
+ * omx-plugins holds its include/omx_panel_description.h, which its faces serve it from, to this installed header (its
+ * make panel-abi), so a face may include both. Nothing here reads omx-plugins. The fingerprint is the lowercase hex
+ * SHA-256 of the canonical serialisation omx-plugins' tools/panel-description.mjs writes.
  *
  * The host walks five tables, each by count and get, in their published order.
  */

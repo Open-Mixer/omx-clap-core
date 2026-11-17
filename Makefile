@@ -461,6 +461,13 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
+# omx-clap-core is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
+# packaging (#117); it owns the panel-description layout. The run-time plugins test-jack loads are not headers.
+.PHONY: test-no-upward-deps
+test-no-upward-deps:
+	bash tests/no-upward-deps-check.sh --self-test
+	bash tests/no-upward-deps-check.sh
+
 .PHONY: test-no-hostd-build-dep
 test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
@@ -502,8 +509,8 @@ test-build-floors:
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
 
 test: test-no-backcompat
-test: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
-test-fake: test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
@@ -717,17 +724,16 @@ test-lv2-locate: tests/lv2_locate_test tests/param_contract_test
 tests/lv2_locate_test: tests/lv2_locate_test.c src/lv2_locate.c src/lv2_locate.h tests/test_util.h
 	$(CC) -Isrc $(CFLAGS) -Werror -o $@ tests/lv2_locate_test.c src/lv2_locate.c -lm
 
-# org.openmixer.panel-description/1 as src/omx_clap_ext.h states it, held to omx-plugins' omx_panel_description.h, the
-# ABI, as omx-plugins-devel installs it (pkg-config omxplugins): omx-plugins builds on this tree, so the header is read
-# here, never copied
+# org.openmixer.panel-description/1 as src/omx_clap_ext.h declares it: omx-clap-core owns the layout, so
+# tests/panel_abi_test.c pins the size and every member's offset itself. omx-plugins holds its copy to this tree's
+# installed header (its make panel-abi); nothing here reads omx-plugins
 # (the display kinds' codes are not held to it: omx-panel's DISPLAY_KINDS is their source, test-display-kinds)
 .PHONY: test-panel-abi
 test-panel-abi: tests/panel_abi_test
 	./tests/panel_abi_test
 
 tests/panel_abi_test: tests/panel_abi_test.c src/omx_clap_ext.h
-	@$(PKG_CONFIG) --exists omxplugins || { echo "test-panel-abi: no omx-plugins-devel (pkg-config omxplugins), whose omx_panel_description.h is the ABI" >&2; exit 1; }
-	$(CC) -Isrc $(shell $(PKG_CONFIG) --cflags omxplugins) $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
+	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
 
 # OMX_CLAP_PANEL_DISPLAY_KINDS, words and codes, held to omx-panel's DISPLAY_KINDS, the vocabulary source (node; omx-panel's
 # tree from OMX_PANEL_DIR, default the installed /usr/share/omx-panel; red, never a skip, when it is not there). CI runs it

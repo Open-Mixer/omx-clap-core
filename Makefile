@@ -447,7 +447,6 @@ TEST_PLAIN = test-ci-runs-test-list \
     check-no-protocol-copy \
     test-codes \
     test-abi-guard \
-    test-scan \
     test-core \
     test-xrun-report-sabotage \
     test-effects-meter \
@@ -475,9 +474,10 @@ TEST_MAIN_ONLY = test-layouts-sabotage \
 # the target starts a user, net, pid and mount namespace of its own: CI probes that the runner allows one first
 TEST_NS = test-socket
 # run on a desk, in no CI step: they load omx-delay, a plugin of omx-plugins (make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>;
-# make test-identity), and the lower layer's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh). The
+# make test-identity; test-scan's omx-delay arm, the rest of which test-fake runs), and the lower layer's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh). The
 # check tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step.
-DESK_ONLY = test-jack test-identity
+TEST_DESK = test-scan
+DESK_ONLY = test-jack test-identity $(TEST_DESK)
 .PHONY: print-test-plain print-test-main-only print-test-ns print-desk-only
 print-desk-only:
 	@echo $(DESK_ONLY)
@@ -489,7 +489,7 @@ print-test-ns:
 	@echo $(TEST_NS)
 
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) tests/clap_host_test tests/fake.clap tests/fake_synth.clap
+test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) $(TEST_DESK) tests/clap_host_test tests/fake.clap tests/fake_synth.clap
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth

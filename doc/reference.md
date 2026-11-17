@@ -910,8 +910,8 @@ instance that is initialised, read and destroyed without being activated:
   `null` when the hint is unknown, never 0; `refused` with the code when
   the declaration is refused, every figure then `null`. The text form is
   one line of the declared hints. Absent when the plugin states none;
-- the panel the plugin publishes (`org.openmixer.panel-description/1`,
-  omx-plugins' `include/omx_panel_description.h`), in the extension's own
+- the panel the plugin publishes (`org.openmixer.panel-description/1`, as
+  `src/omx_clap_ext.h` declares it), in the extension's own
   shape: `family`, `fingerprint`, then its five tables in their published
   order, `sections` (`key`, `labelKey`, `label`), `controls` (`paramId`,
   `section`, `widget`, `labelKey`, `label`, `visibleParamId`, `visibleMask`),

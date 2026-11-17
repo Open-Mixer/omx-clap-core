@@ -59,6 +59,10 @@ runs `tests/jack_e2e.sh`: the host over jack inside a PipeWire of its own
 exit), every command over the socket and the graph read back after each
 one. The PipeWire of the session that runs it is never touched.
 
+`test-jack`, `test-identity` and the omx-delay arm of `test-scan` load omx-delay,
+a plugin of omx-plugins, which this repository's CI does not install: they run
+on a desk only and are the Makefile's `DESK_ONLY` list.
+
     make test-jack-synth
 
 runs `tests/jack_synth_e2e.sh` in the same kind of namespace: the host with

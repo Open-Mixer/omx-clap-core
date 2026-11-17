@@ -12,14 +12,13 @@
 # debian/control (the changelogs are history, docs/ prose). A failure is a line that
 #   includes <omx-plugins/...>,
 #   asks pkg-config for omxplugins, or
-#   names omx-plugins-devel / omx-plugins-dev (a build or install of the headers).
-# Left alone on purpose: the omx-plugins-clap and omx-plugins-lv2 PLUGIN binaries test-jack, test-identity and
-# test-published-comp load at run time; they are plugins under test, not headers the build reads.
+#   names an omx-plugins package (omx-plugins-devel, -clap, -lv2, ...): nothing here installs one, plugins included.
+# The tests that load a published omx-plugins plugin live in omx-plugins.
 # --self-test runs the check on a scratch tree once clean and once per planted return, each of which must fail.
 # Exit 0 held; 1 an upward dependency; 2 usage.
 set -euo pipefail
 
-PATTERN='(#[[:space:]]*include[[:space:]]*[<"]omx-plugins/|omxplugins|omx-plugins-(devel|dev)([^[:alnum:]_-]|$))'
+PATTERN='(#[[:space:]]*include[[:space:]]*[<"]omx-plugins/|omxplugins|omx-plugins-[[:alnum:]]+)'
 
 scan() {
     local root=$1 rc=0 f hits
@@ -46,7 +45,7 @@ self_test() {
     mkdir -p "$tmp/clean/src" "$tmp/clean/tests" "$tmp/clean/.github/workflows" "$tmp/clean/packaging" "$tmp/clean/debian"
     printf 'test:\n\t$(CC) -Isrc -o t t.c\n' >"$tmp/clean/Makefile"
     printf '#include <clap/clap.h>\n' >"$tmp/clean/src/a.c"
-    printf 'run: dnf install -y omx-dsp-devel omx-plugins-clap omx-plugins-lv2\n' >"$tmp/clean/.github/workflows/ci.yml"
+    printf 'run: dnf install -y omx-dsp-devel cjson-devel\n' >"$tmp/clean/.github/workflows/ci.yml"
     printf 'BuildRequires: gcc\n\n%%changelog\n' >"$tmp/clean/packaging/x.spec"
     printf 'Source: x\nBuild-Depends: gcc\n' >"$tmp/clean/debian/control"
     if ! "$0" --root "$tmp/clean" >/dev/null; then echo "FAIL the clean tree is refused"; return 1; fi
@@ -55,6 +54,8 @@ self_test() {
         "src/planted.c|#include <omx-plugins/omx_panel_description.h>|an include"
         "Makefile|	@pkg-config --exists omxplugins|a pkg-config ask"
         ".github/workflows/ci.yml|          dnf install -y omx-plugins-devel|a CI install"
+        ".github/workflows/ci.yml|          dnf install -y omx-dsp-devel omx-plugins-clap|a CI install of the CLAP plugin package"
+        ".github/workflows/ci.yml|          dnf install -y omx-plugins-lv2|a CI install of the LV2 plugin package"
         "packaging/x.spec|BuildRequires: omx-plugins-devel|a spec BuildRequires"
         "debian/control|Build-Depends: omx-plugins-dev|a debian Build-Depends"
     )

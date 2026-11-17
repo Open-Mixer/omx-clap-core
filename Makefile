@@ -347,18 +347,6 @@ PLUGIN_HOSTD_TABLES ?=
 # the package installs, and holds the data the text lists, on the fixtures that between them list every kind of line
 # (FAKE_CONTRACT=good: fake.clap offers its parameter contract, so the contract lines are among them)
 SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_compressor.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_panel.clap tests/fake_tool.clap tests/crash.clap
-# omx-plugins' omx-comp, as its package installs it: the scan states its clap.meters/1 meters and its
-# org.openmixer.param-contract/1 entries by value (tests/published-comp-scan.py). A desk without omx-plugins-clap skips
-# by name; CI, where the package is installed, never does.
-CLAP_COMP_PLUGIN ?= /usr/lib/clap/omx-comp.clap
-.PHONY: test-published-comp
-test-published-comp: $(SCAN_PROG)
-	@if [ ! -e "$(CLAP_COMP_PLUGIN)" ] && [ -z "$$CI" ]; then \
-		echo "skip: $(CLAP_COMP_PLUGIN) not found (install omx-plugins-clap or set CLAP_COMP_PLUGIN)"; \
-	else \
-		python3 -I tests/published-comp-scan.py ./$(SCAN_PROG) $(CLAP_COMP_PLUGIN); \
-	fi
-
 .PHONY: test-scan-json
 test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
@@ -440,8 +428,70 @@ clean:
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
+# every test-* and check-* target, the prerequisites of `test:` among them, runs in a CI step bar those DESK_ONLY lists
+# (tests/ci_runs_test_list.py, test-audit omx-clap-core row 1)
+.PHONY: test-ci-runs-test-list
+test-ci-runs-test-list:
+	python3 tests/ci_runs_test_list.py --self-test
+	python3 tests/ci_runs_test_list.py .
+
+# `make test`'s prerequisites in the three groups CI runs (ci.yml asks for them by name: print-test-plain,
+# print-test-main-only, print-test-ns), so a target added here runs in CI with no workflow edit; tests/ci_runs_test_list.py
+# holds the workflow to it (test-audit omx-clap-core row 1)
+# plain: every push and pull request
+TEST_PLAIN = test-ci-runs-test-list \
+    test-no-host-nproc \
+    test-scan-json \
+    test-no-sha256-copy \
+    test-unsupported-copy \
+    test-no-contract-copy \
+    check-no-protocol-copy \
+    test-codes \
+    test-abi-guard \
+    test-core \
+    test-xrun-report-sabotage \
+    test-effects-meter \
+    test-meter-rate-source \
+    test-live-list \
+    test-live-list-sabotage \
+    test-state-root \
+    test-state-root-sabotage \
+    test-parity-self \
+    test-clap-coverage-self \
+    test-clap-coverage-ports \
+    test-clap-doc-check \
+    test-thread-pool \
+    test-properties \
+    test-properties-sabotage \
+    test-state-busy \
+    test-package
+# the sabotage arms that rebuild copies of the sources: CI runs them on a push to main and a tag, not on a pull request
+TEST_MAIN_ONLY = test-layouts-sabotage \
+    test-cycle-gate-sabotage \
+    test-effects-meter-sabotage \
+    test-thread-pool-sabotage \
+    test-jack-params-ready-sabotage \
+    test-transport-sabotage
+# the target starts a user, net, pid and mount namespace of its own: CI probes that the runner allows one first
+TEST_NS = test-socket
+# run on a desk, in no CI step: test-jack and test-identity load omx-delay, a plugin of omx-plugins (make test-jack
+# CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity), and so does test-scan's omx-delay arm (test-fake runs the rest of
+# that test on the fake plugins). This repository's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh).
+# tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step; BUILDING.md names these three.
+TEST_DESK = test-scan
+DESK_ONLY = test-jack test-identity $(TEST_DESK)
+.PHONY: print-test-plain print-test-main-only print-test-ns print-desk-only
+print-desk-only:
+	@echo $(DESK_ONLY)
+print-test-plain:
+	@echo $(TEST_PLAIN)
+print-test-main-only:
+	@echo $(TEST_MAIN_ONLY)
+print-test-ns:
+	@echo $(TEST_NS)
+
 # the CLAP lifecycle against a plugin, no jack needed; the layouts the host refuses come from a fake .clap
-test: test-no-host-nproc test-scan-json test-published-comp test-no-sha256-copy test-unsupported-copy test-no-contract-copy check-no-protocol-copy test-codes test-abi-guard tests/clap_host_test tests/fake.clap tests/fake_synth.clap test-scan test-core test-socket test-layouts-sabotage test-cycle-gate-sabotage test-xrun-report-sabotage test-effects-meter test-effects-meter-sabotage test-meter-rate-source test-live-list test-live-list-sabotage test-state-root test-state-root-sabotage test-parity-self test-clap-coverage-self test-clap-coverage-ports test-clap-doc-check test-thread-pool test-thread-pool-sabotage test-jack-params-ready-sabotage test-properties test-properties-sabotage
+test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) $(TEST_DESK) tests/clap_host_test tests/fake.clap tests/fake_synth.clap
 	./tests/clap_host_test $(CLAP_TEST_PLUGIN) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap)
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
@@ -462,7 +512,8 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
 # omx-clap-core is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
-# packaging (#117); it owns the panel-description layout. The run-time plugins test-jack loads are not headers.
+# packaging (#117); it owns the panel-description layout. No omx-plugins package is installed either, plugins included:
+# the tests that load a published plugin (test-jack, test-identity, test-scan's omx-delay arm) are desk-only (DESK_ONLY).
 .PHONY: test-no-upward-deps
 test-no-upward-deps:
 	bash tests/no-upward-deps-check.sh --self-test

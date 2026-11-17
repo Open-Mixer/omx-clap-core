@@ -46,8 +46,8 @@ def disabled(value):
 
 
 def run_lines(text):
-    """The commands of every enabled step's `run:` value, in every enabled job: the inline one or the block scalar under
-    it. A step name, a comment, a step or a job with a never-true `if:` are not runs."""
+    """The `run:` lines of every enabled step, one list per step, in every enabled job: the inline value or the block
+    scalar under it. A step name, a comment, a step or a job with a never-true `if:` are not runs."""
     out = []
     job_off = False
     step = None
@@ -63,7 +63,7 @@ def run_lines(text):
         nonlocal steps
         flush()
         for st in steps:
-            out.extend(step_runs(st))
+            out.append(step_runs(st))
         steps = []
 
     for line in text.splitlines():
@@ -131,8 +131,9 @@ def make_words(line):
 
 
 def commands(lines):
-    """The shell commands of run lines: a line ending in a backslash is joined to the next, and the body of a heredoc
-    (up to its delimiter line) is text for the command it feeds, not commands."""
+    """The shell commands of one step's run lines: a line ending in a backslash is joined to the next, and the body of
+    a heredoc (up to its delimiter line) is text for the command it feeds, not commands. A here-string (<<<) is not a
+    heredoc. The state is the step's own: a heredoc never runs on into the next step."""
     out, pending, delimiter = [], "", None
     for line in lines:
         if delimiter is not None:
@@ -144,7 +145,7 @@ def commands(lines):
             continue
         line, pending = pending + line, ""
         out.append(line)
-        m = re.search(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1", line)
+        m = re.search(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_]\w*)\1", line)
         if m:
             delimiter = m.group(2)
     if pending:
@@ -155,8 +156,9 @@ def commands(lines):
 def named_in_workflow(text):
     """The words of every `make` invocation of an enabled run."""
     named = set()
-    for line in commands(run_lines(text)):
-        named |= make_words(line)
+    for step in run_lines(text):
+        for line in commands(step):
+            named |= make_words(line)
     return named
 
 

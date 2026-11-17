@@ -16,6 +16,11 @@
 
 #include "omx_clap_ext.h"
 
+/* PRECONDITION: the pins below are the LP64 layout (x86_64, aarch64): 8-byte pointers and an 8-byte, 8-aligned double.
+ * Every target this tree ships for is LP64; a 32-bit build fails here, by name, before any offset could mislead. */
+_Static_assert(sizeof(void *) == 8, "precondition: LP64 (8-byte pointers); the panel layout pins below are LP64's");
+_Static_assert(sizeof(double) == 8 && _Alignof(double) == 8, "precondition: LP64 (8-byte, 8-aligned double); the pins below rely on it");
+
 #define SIZE(type, bytes) _Static_assert(sizeof(type) == (bytes), "the size of " #type " is " #bytes)
 #define AT(type, member, bytes) \
     _Static_assert(offsetof(type, member) == (bytes), #type "." #member " is at " #bytes)

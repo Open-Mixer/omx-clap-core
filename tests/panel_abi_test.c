@@ -8,7 +8,8 @@
 /* org.openmixer.panel-description/1 as omx_clap_ext.h declares it. omx-clap-core owns this layout: the structures are
  * pinned here, size and every member's offset, so a change to one is a change to this file, reviewed as the ABI change
  * it is. omx-plugins holds its omx_panel_*_row structures to this tree's installed header (its make panel-abi); this
- * tree reads nothing of omx-plugins. The extension's members are all pointers, pinned in units of one. */
+ * tree reads nothing of omx-plugins. The extension's members are all pointers, pinned in units of sizeof(void *);
+ * the table structures' numbers are the LP64 layout, a precondition stated below. */
 
 #include <stddef.h>
 #include <stdio.h>

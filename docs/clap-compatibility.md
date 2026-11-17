@@ -54,7 +54,7 @@ The tests named below:
 | `tests/clap_unoffered_test.c` | the log of ids the host did not offer, from the audio role and the control thread (`make test-fake`) |
 | `tests/clap_scan_test.c` | omx-clap-scan against the fakes, `tests/fake_panel.clap`'s published panel among them, and a plugin that crashes (`make test-fake`) |
 | `tests/param_contract_test.c` | the rules of `org.openmixer.param-contract/1` (`tests/param_contract_test.c`, in `make test-fake`) |
-| `tests/panel_abi_test.c` | `org.openmixer.panel-description/1` as `src/omx_clap_ext.h` declares it: the id, sizes and offsets pinned in the test, which omx-plugins holds its copy to (`make test-panel-abi`) |
+| `tests/panel_abi_test.c` | `org.openmixer.panel-description/1` as `src/omx_clap_ext.h` declares it: the id, sizes and offsets pinned in the test (`make test-panel-abi`), LP64 a stated precondition; omx-plugins holds its copy to the installed header (its `make panel-abi`) |
 | `tests/jack_info_e2e.sh` | omx-clap-host over jack: `track_info`, the remote pages, `param_info` (`make test-jack-info`) |
 | `tests/jack_meters_e2e.sh` | omx-clap-host over jack: the meters as `output_set` lines (`make test-jack-meters`) |
 | `tests/jack_window_e2e.sh` | omx-clap-host over jack and Xvfb: a plugin's own window over `clap.gui` and X11, embedded and floating, its timer and X descriptor on the tick, the refusals by code (`make test-jack-window`) |

@@ -315,6 +315,18 @@ def self_test(root):
     else:
         print("FAIL a make command inside a heredoc body counts as a run")
         failed = 1
+    herestring = steps.replace(plain, "        run: |\n          grep -q a <<<abc\n          make $(make -s print-test-plain)")
+    if check(rule_map, herestring, root):
+        print("FAIL a here-string (<<<) was read as a heredoc: the make after it was reported unreached")
+        failed = 1
+    else:
+        print("ok   a here-string is not a heredoc: the make after it is a run")
+    open_doc = "      - run: |\n          cat <<EOF\n" + steps
+    if check(rule_map, open_doc, root):
+        print("FAIL a heredoc left open in one step swallowed the next step's commands")
+        failed = 1
+    else:
+        print("ok   a heredoc ends with its step: the next step's make is a run")
     joined = "      - run: |\n          make -C . \\\n" + " \\\n".join("            " + t for t in want) + "\n"
     if check(rule_map, joined, root):
         print("FAIL targets on the continuation lines of one make command were reported unreached")

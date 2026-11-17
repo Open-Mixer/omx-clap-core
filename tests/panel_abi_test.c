@@ -22,7 +22,6 @@
 
 _Static_assert(OMX_CLAP_PANEL_DESCRIPTION_KEY_SIZE == 64, "a key's size");
 _Static_assert(OMX_CLAP_PANEL_DESCRIPTION_NAME_SIZE == 256, "a label's size");
-_Static_assert(CLAP_INVALID_ID == 0xffffffffu, "no parameter is CLAP_INVALID_ID");
 
 SIZE(omx_clap_panel_description_section_t, 384);
 AT(omx_clap_panel_description_section_t, key, 0);
@@ -76,6 +75,7 @@ static int g_failures;
 int main(void)
 {
     CHECK(strcmp(OMX_CLAP_EXT_PANEL_DESCRIPTION, "org.openmixer.panel-description/1") == 0, "the extension id: %s", OMX_CLAP_EXT_PANEL_DESCRIPTION);
+    CHECK(CLAP_INVALID_ID == 0xffffffffu, "no parameter is CLAP_INVALID_ID");
     printf("%s\n", g_failures == 0 ? "panel abi test ok" : "panel abi test FAILED");
     return g_failures == 0 ? 0 : 1;
 }

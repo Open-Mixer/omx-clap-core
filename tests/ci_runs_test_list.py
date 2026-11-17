@@ -288,6 +288,18 @@ def self_test(root):
         else:
             print("FAIL a job with `if: %s` counts as a run" % cond)
             failed = 1
+    heredoc = steps.replace(plain, "        run: |\n          cat <<EOF\n          make $(make -s print-test-plain)\n          EOF")
+    if check(rule_map, heredoc, root):
+        print("ok   a make command inside a heredoc body is not a run")
+    else:
+        print("FAIL a make command inside a heredoc body counts as a run")
+        failed = 1
+    joined = "      - run: |\n          make -C . \\\n" + " \\\n".join("            " + t for t in want) + "\n"
+    if check(rule_map, joined, root):
+        print("FAIL targets on the continuation lines of one make command were reported unreached")
+        failed = 1
+    else:
+        print("ok   a make command continued over lines names every target on them")
     job = "jobs:\n  g:\n    if: github.event_name != 'pull_request'\n%s" % steps
     if check(rule_map, job, root):
         print("FAIL a job with a real condition was refused")

@@ -1250,6 +1250,12 @@ test-jack-pool: $(PROG) tests/fake_pool.clap
 test-jack-abi: $(PROG) tests/fake.clap
 	OMX_HOST_EVENTS_ABI_CLOBBER='$(call host_declared,OMX_HOST_EVENTS_ABI_CLOBBER)' ./tests/jack_abi_e2e.sh
 
+# the host told to end (SIGTERM, SIGINT, SIGHUP) closes every JACK client it opened: one that dies without
+# jack_client_close strands the mutexes of jackd's metadata environment for good (tests/jack_close_e2e.sh)
+.PHONY: test-jack-close
+test-jack-close: $(PROG) tests/jack_xrun_shim.so tests/fake.clap
+	./tests/jack_close_e2e.sh
+
 test-jack-xruns: $(PROG) tests/jack_xrun_shim.so tests/fake.clap
 	OMX_HOST_EVENTS_XRUNS='$(call host_declared,OMX_HOST_EVENTS_XRUNS)' ./tests/jack_xruns_e2e.sh
 

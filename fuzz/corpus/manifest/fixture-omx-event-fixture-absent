@@ -10,6 +10,11 @@
     lv2:binary <omx-event-fixture.so> ;
     rdfs:seeAlso <omx-event-fixture.ttl> .
 
+<urn:openmixer:test:event-fixture#undeclared>
+    a lv2:Plugin ;
+    lv2:binary <omx-event-fixture.so> ;
+    rdfs:seeAlso <omx-event-fixture.ttl> .
+
 <urn:openmixer:test:event-fixture#two>
     a lv2:Plugin ;
     lv2:binary <omx-event-fixture.so> ;

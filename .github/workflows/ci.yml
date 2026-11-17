@@ -134,6 +134,13 @@ jobs:
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
+      # the display kinds this tree owns are omx-panel's DISPLAY_KINDS, the vocabulary source, word for word and in order
+      - name: Install omx-panel
+        run: dnf install -y --setopt=install_weak_deps=False 'omx-panel >= 0.13.8'
+
+      - name: The display kinds are omx-panel's
+        run: make test-display-kinds
+
       # one pack per listed language from the spec and debian/control, and the catalogs through omx-contract's release
       # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30)
       - name: The language packs
@@ -205,26 +212,34 @@ jobs:
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
-      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm;
-      # and omx-plugins-devel, whose omx_panel_description.h is the ABI test-panel-abi holds src/omx_clap_ext.h to
+      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       - uses: actions/checkout@v4
 
-      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
+      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel omx-plugins-clap
-          test -e /usr/lib/clap/omx-comp.clap  # make test-published-comp scans the published omx-comp
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
           pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
-          pkg-config --modversion omxplugins
           command -v mod-host
 
       - name: Every file a comment can be written in opens with its licence
         uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
+
+      # the units table and the JSON string writer are omx-contract's, the protocol plugin-hostd-protocol's: no copy of
+      # either is in this tree (tests/no_contract_copy.py, tests/no_protocol_copy.py, each with its self test)
+      - name: No copy of omx-contract's units table or JSON writer
+        run: make test-no-contract-copy
+
+      - name: No copy of plugin-hostd-protocol's tables, headers or rendered verbs
+        run: make check-no-protocol-copy
+
+      - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
+        run: make test-no-upward-deps
 
       # the fuzz workflow runs on a tag only, so a fixture changed in a pull request reaches the committed seed corpus
       # here; the generator is plain C and gcc writes the bytes clang does
@@ -290,8 +305,8 @@ jobs:
             echo "::warning::the namespace tests SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
-      # org.openmixer.panel-description/1 as omx_clap_ext.h states it, against omx-plugins' header, the ABI (#337)
-      - name: The panel description's structures are the ABI's
+      # org.openmixer.panel-description/1 as omx_clap_ext.h declares it: sizes and offsets pinned here (#337, #117)
+      - name: The panel description's structures are the layout omx_clap_ext.h declares
         run: make test-panel-abi
 
       # the chain's cycles on a thread of their own while the control thread changes it, under ThreadSanitizer (#311)
@@ -637,21 +652,19 @@ jobs:
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
-      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm;
-      # and omx-plugins-devel, whose omx_panel_description.h is the ABI test-panel-abi holds src/omx_clap_ext.h to
+      # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       - uses: actions/checkout@v4
 
-      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, mod-host and omx-plugins-devel from the OpenMixer channel
+      - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host omx-plugins-devel
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.18.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
           pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
           pkg-config --atleast-version=0.32.0 omxdsp
           pkg-config --atleast-version=3.12.0 omx-contract
-          pkg-config --modversion omxplugins
           command -v mod-host
 
       - uses: actions/checkout@v4

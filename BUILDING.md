@@ -347,13 +347,13 @@ one rename step, and broken by R1, R2, R4 or R5, each named; and the mover with
 `FAKE_MOVER_CONTRACT`, whose `params.rescan` keeps the contract (`keep`) or
 changes a symbol (`follow`, refused under R3).
 
-`make test-panel-abi` holds `org.openmixer.panel-description/1` as
-`omx_clap_ext.h` states it to omx-plugins' `omx_panel_description.h`, the ABI,
-as omx-plugins-devel installs it (`pkg-config omxplugins`): the id, every code,
-the size and member offsets of each structure, and a row of each table filled
-by omx-plugins' `omx_panel_get` read back member by member. omx-plugins builds
-on this tree, so the header is read from its package, never copied; the target
-fails, naming the package, where it is not installed. CI installs it.
+`make test-panel-abi` pins `org.openmixer.panel-description/1` as
+`omx_clap_ext.h` declares it: the id, and the size and member offsets of each
+structure, stated once in `tests/panel_abi_test.c`. omx-clap-core owns that
+layout; omx-plugins holds its `omx_panel_description.h` to this tree's
+installed header (its `make panel-abi`). Nothing here needs an omx-plugins
+package: `make test-no-upward-deps` fails on an include, a pkg-config ask or a
+devel package of it in the build, tests, CI or packaging.
 
 The readers of bytes from disk (the preset file, its state body and the
 `manifest.ttl` `lv2_locate` scans) have libFuzzer harnesses in `fuzz/`, built

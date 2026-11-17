@@ -428,7 +428,8 @@ jobs:
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-jack-close
           else
-            echo "::warning::test-jack-close SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+            echo "::error::test-jack-close cannot run: this runner refuses a private user and pid namespace with its own /proc"
+            exit 1
           fi
 
       # The auxiliary ports over jack with the fake plugins: a side chain heard, an auxiliary output read, a bypassed one silent.

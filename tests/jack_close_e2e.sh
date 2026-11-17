@@ -48,12 +48,15 @@ pids=()
 cleanup() {
     exec 3>&- 2>/dev/null
     for p in "${pids[@]}"; do kill "$p" 2>/dev/null; done
-    kill -TERM -- -1 2>/dev/null
+    # everything left in the namespace, only ever from pid 1 of it: anywhere else -1 is every process the user may signal
+    if [ "$$" = 1 ]; then kill -TERM -- -1 2>/dev/null; fi
     wait 2>/dev/null
     rm -rf "${runtime:?}"
 }
 trap cleanup EXIT
-[ "$$" = 1 ]; step $? "pid 1 of a private pid namespace"
+rc=1
+if [ "$$" = 1 ]; then rc=0; fi
+step "$rc" "pid 1 of a private pid namespace"
 
 ip link set lo up
 
@@ -63,12 +66,11 @@ for _ in $(seq 50); do [ -S "$runtime/pipewire-0" ] && break; sleep 0.1; done
 [ -S "$runtime/pipewire-0" ] || { echo "pipewire did not come up" >&2; cat "$runtime/pw.log" >&2; exit 2; }
 step 0 "private pipewire on $runtime"
 
-PROTOCOL_TIMEOUT=5
 shimlog=$runtime/shim.log
 
 # one_signal <name>: a host with a plugin, sent the signal; it leaves, and closed every client it activated
 one_signal() {
-    local name=$1 opened closed
+    local name=$1 opened closed rc
     : >"$shimlog"
     LD_PRELOAD=$shim JACK_XRUN_SHIM_LOG=$shimlog "$host" -n -p "$port" >"$runtime/host.log" 2>&1 &
     host_pid=$!
@@ -77,7 +79,9 @@ one_signal() {
     step $? "SIG$name: omx-clap-host ready"
     exec 3<>"/dev/tcp/127.0.0.1/$port"
     reply=$(send "add clap:$fake#org.omx-clap-host.test.passthrough 1")
-    [ "$reply" = "resp 1" ]; step $? "SIG$name: a plugin added: $reply"
+    rc=1
+    if [ "$reply" = "resp 1" ]; then rc=0; fi
+    step "$rc" "SIG$name: a plugin added: $reply"
     for _ in $(seq 50); do grep -q '^activate ' "$shimlog" && break; sleep 0.1; done
     grep -q '^activate ' "$shimlog"; step $? "SIG$name: the plugin's client is active"
     kill -"$name" "$host_pid"
@@ -87,8 +91,8 @@ one_signal() {
     exec 3>&-
     opened=$(sed -n 's/^activate //p' "$shimlog" | sort -u)
     closed=$(sed -n 's/^close //p' "$shimlog" | sort -u)
-    [ -n "$opened" ] && [ -z "$(comm -23 <(echo "$opened") <(echo "$closed"))" ]
-    step $? "SIG$name: every client it activated was closed: activated $(echo $opened), closed $(echo $closed)"
+    [ -n "$opened" ] && [ -z "$(comm -23 <(echo "$opened") <(echo "$closed"))" ]; rc=$?
+    step "$rc" "SIG$name: every client it activated was closed: activated ${opened//$'\n'/ }, closed ${closed//$'\n'/ }"
 }
 
 one_signal TERM

@@ -26,14 +26,12 @@ CORE_MAP = src/omx-clap-core.map
 CORE_TS = ts/omx-clap-core-hosting.js ts/omx-clap-core-hosting.d.ts ts/omx-clap-core-vocabulary.js ts/omx-clap-core-vocabulary.d.ts
 
 # The library ranges the installed omx-clap-core.pc names in Requires.private, read from the one place they are declared,
-# the spec's BuildRequires `(<devel> >= <floor> with <devel> < <ceiling>)` (#66): $(call spec_range,<devel>,1|2) is the
-# floor or the ceiling. debian/control states them again for the deb; tests/pc_range_parity.py holds both to the spec.
+# the spec's BuildRequires `<devel> >= <floor>` (#66): $(call spec_range,<devel>) is the
+# floor (floors only, no ceiling). debian/control states them again for the deb; tests/pc_range_parity.py holds both to the spec.
 SPEC = packaging/omx-clap-host.spec
-spec_range = $(shell sed -n -E 's/^BuildRequires:[[:space:]]*\($(1)[[:space:]]*>=[[:space:]]*([0-9.]+)[[:space:]]+with[[:space:]]+$(1)[[:space:]]*<[[:space:]]*([0-9.]+)\).*/\$(2)/p' $(SPEC))
-OMX_CONTRACT_FLOOR = $(call spec_range,omx-contract-devel,1)
-OMX_CONTRACT_CEILING = $(call spec_range,omx-contract-devel,2)
-OMXDSP_FLOOR = $(call spec_range,omx-dsp-devel,1)
-OMXDSP_CEILING = $(call spec_range,omx-dsp-devel,2)
+spec_range = $(shell sed -n -E 's/^BuildRequires:[[:space:]]*$(1)[[:space:]]*>=[[:space:]]*([0-9.]+)[[:space:]]*$$/\1/p' $(SPEC))
+OMX_CONTRACT_FLOOR = $(call spec_range,omx-contract-devel)
+OMXDSP_FLOOR = $(call spec_range,omx-dsp-devel)
 
 PKG_CONFIG ?= pkg-config
 
@@ -292,12 +290,12 @@ install-lib: $(CORE_SO)
 	ln -sf $(CORE_FILE) $(DESTDIR)$(LIBDIR)/$(CORE_SONAME)
 	ln -sf $(CORE_SONAME) $(DESTDIR)$(LIBDIR)/$(CORE_SO)
 	install -m 644 $(CORE_HEADERS) $(DESTDIR)$(INCLUDEDIR)/omx-clap-host/
-	@for v in '$(OMX_CONTRACT_FLOOR)' '$(OMX_CONTRACT_CEILING)' '$(OMXDSP_FLOOR)' '$(OMXDSP_CEILING)'; do \
-	  printf '%s\n' "$$v" | grep -qxE '[0-9]+(\.[0-9]+)*' || { echo "install-lib: $(SPEC) declares no single omx-contract-devel and omx-dsp-devel BuildRequires range (got '$$v')" >&2; exit 1; }; done
+	@for v in '$(OMX_CONTRACT_FLOOR)' '$(OMXDSP_FLOOR)'; do \
+	  printf '%s\n' "$$v" | grep -qxE '[0-9]+(\.[0-9]+)*' || { echo "install-lib: $(SPEC) declares no single omx-contract-devel and omx-dsp-devel BuildRequires floor (got '$$v')" >&2; exit 1; }; done
 	sed -e 's,@PREFIX@,$(PREFIX),' -e 's,@LIBDIR@,$(LIBDIR),' -e 's,@INCLUDEDIR@,$(INCLUDEDIR),' \
 	    -e 's,@DATADIR@,$(DATADIR),' -e 's,@VERSION@,$(CORE_VERSION),' \
-	    -e 's,@OMX_CONTRACT_FLOOR@,$(OMX_CONTRACT_FLOOR),' -e 's,@OMX_CONTRACT_CEILING@,$(OMX_CONTRACT_CEILING),' \
-	    -e 's,@OMXDSP_FLOOR@,$(OMXDSP_FLOOR),' -e 's,@OMXDSP_CEILING@,$(OMXDSP_CEILING),' \
+	    -e 's,@OMX_CONTRACT_FLOOR@,$(OMX_CONTRACT_FLOOR),' \
+	    -e 's,@OMXDSP_FLOOR@,$(OMXDSP_FLOOR),' \
 	    omx-clap-core.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
 	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
@@ -462,6 +460,7 @@ TEST_PLAIN = test-ci-runs-test-list \
     test-clap-doc-check \
     test-thread-pool \
     test-properties \
+    test-panel-families \
     test-properties-sabotage \
     test-state-busy \
     test-package
@@ -1146,6 +1145,15 @@ test-no-sha256-copy:
 # the parameter units and the JSON string writer are omx-contract's (<omxcontract/omx_param_units.h>,
 # <omxcontract/omx_json_write.h>): no source under src/, lv2/ or tools/ spells a units row or an escape loop of its own
 # (tests/no_contract_copy.py, with its self test)
+# the panel families table (OMX_CLAP_PANEL_FAMILIES) equals omx-contract's PANEL_FAMILIES, word and code, in order
+# (tests/panel_families_match_contract.py), read from the INSTALLED omx-contract (its contract directory, <contractdir>/
+# <schema_major>/omx-contract/panel.json, named by omx-contract.pc), never a sibling checkout
+OMX_CONTRACT_PANEL_DIR = $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null)/$(shell $(PKG_CONFIG) --variable=schema_major omx-contract 2>/dev/null)/omx-contract
+.PHONY: test-panel-families
+test-panel-families:
+	@$(PKG_CONFIG) --exists omx-contract || { echo "test-panel-families: omx-contract is not installed (install omx-contract-devel)" >&2; exit 1; }
+	python3 tests/panel_families_match_contract.py $(OMX_CONTRACT_PANEL_DIR)
+
 .PHONY: test-no-contract-copy
 test-no-contract-copy:
 	python3 tests/no_contract_copy.py --self-test

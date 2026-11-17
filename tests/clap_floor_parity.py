@@ -4,10 +4,10 @@
 #
 # The rpm spec's clap-devel and debian/control's clap-headers name the same CLAP headers, pinned from the same
 # .github clap-headers source. A build from one packaging must not take headers the other refuses, so every floor
-# and every ceiling the two files declare for them must be the one value.
+# the two files declare for them must be the one value. Floors only (owner rule): a ceiling on either is refused.
 #
-#   clap_floor_parity.py <tree>       0 when the spec and debian/control agree
-#   clap_floor_parity.py --self-test  a floor or ceiling moved out of step, planted in a scratch tree, is found
+#   clap_floor_parity.py <tree>       0 when the spec and debian/control state the same floor and no ceiling
+#   clap_floor_parity.py --self-test  a floor moved out of step, or a ceiling, planted in a scratch tree, is found
 import glob
 import os
 import re
@@ -15,61 +15,63 @@ import shutil
 import sys
 import tempfile
 
-SPEC_RE = re.compile(r"clap-devel\s*>=\s*([\d.]+)\s+with\s+clap-devel\s*<\s*([\d.]+)")
-CONTROL_RE = re.compile(r"clap-headers\s*\(>=\s*([\d.]+)~\),\s*clap-headers\s*\(<<\s*([\d.]+)~\)")
+SPEC_RE = re.compile(r"clap-devel\s*>=\s*([\d.]+)")
+CONTROL_RE = re.compile(r"clap-headers\s*\(>=\s*([\d.]+)~?\)")
+SPEC_CEIL_RE = re.compile(r"clap-devel\s*<")
+CONTROL_CEIL_RE = re.compile(r"clap-headers\s*\(<")
 
 
-def spec_pins(root):
-    found = []
-    for path in glob.glob(os.path.join(root, "packaging", "*.spec")):
-        with open(path, encoding="utf-8") as f:
-            for n, line in enumerate(f, 1):
-                m = SPEC_RE.search(line)
-                if m:
-                    found.append((m.group(1), m.group(2), "%s:%d" % (os.path.relpath(path, root), n)))
-    return found
-
-
-def control_pins(root):
-    path = os.path.join(root, "debian", "control")
+def scan(path, root, floor_re, ceil_re):
+    """(floor, where) for every line naming a floor; (None, where) for every line naming a ceiling."""
     found = []
     with open(path, encoding="utf-8") as f:
         for n, line in enumerate(f, 1):
-            m = CONTROL_RE.search(line)
+            if line.lstrip().startswith(("#", "-", "*")):
+                continue
+            where = "%s:%d" % (os.path.relpath(path, root), n)
+            m = floor_re.search(line)
             if m:
-                found.append((m.group(1), m.group(2), "%s:%d" % (os.path.relpath(path, root), n)))
+                found.append((m.group(1), where))
+            if ceil_re.search(line):
+                found.append((None, where))
     return found
 
 
-def check(root):
-    pins = spec_pins(root) + control_pins(root)
-    if not pins:
-        return ["no clap-devel/clap-headers floor and ceiling found at all"]
-    floors = sorted(set(p[0] for p in pins))
-    ceilings = sorted(set(p[1] for p in pins))
+def pins(root):
     found = []
+    for path in glob.glob(os.path.join(root, "packaging", "*.spec")):
+        found += scan(path, root, SPEC_RE, SPEC_CEIL_RE)
+    return found + scan(os.path.join(root, "debian", "control"), root, CONTROL_RE, CONTROL_CEIL_RE)
+
+
+def check(root):
+    found_pins = pins(root)
+    if not any(f for f, _ in found_pins):
+        return ["no clap-devel/clap-headers floor found at all"]
+    found = ["%s: a ceiling on the CLAP headers; floors only" % where for f, where in found_pins if f is None]
+    floors = sorted(set(f for f, _ in found_pins if f))
     if len(floors) > 1:
-        for floor, ceiling, where in pins:
-            found.append("%s: floor %s, the tree also has %s" % (where, floor, ", ".join(f for f in floors if f != floor)))
-    if len(ceilings) > 1:
-        for floor, ceiling, where in pins:
-            found.append("%s: ceiling %s, the tree also has %s" % (where, ceiling, ", ".join(c for c in ceilings if c != ceiling)))
+        for floor, where in found_pins:
+            if floor:
+                found.append("%s: floor %s, the tree also has %s" % (where, floor, ", ".join(f for f in floors if f != floor)))
     return found
 
 
 def self_test():
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if check(here):
-        print("FAIL the control: this tree's CLAP floor and ceiling already disagree", check(here))
+        print("FAIL the control: this tree's CLAP floors already disagree or carry a ceiling", check(here))
         return 1
-    print("ok   the tree's spec and debian/control agree")
+    print("ok   the tree's spec and debian/control agree, floors only")
     arms = [
-        ("packaging/omx-clap-host.spec", "clap-devel >= 1.2.10 with clap-devel < 2", "clap-devel >= 1.2.7 with clap-devel < 2",
+        ("packaging/omx-clap-host.spec", "BuildRequires: clap-devel >= 1.2.10", "BuildRequires: clap-devel >= 1.2.7",
          "one spec line back at the old floor"),
-        ("debian/control", "clap-headers (>= 1.2.10~), clap-headers (<< 2~)", "clap-headers (>= 1.2.9~), clap-headers (<< 2~)",
+        ("debian/control", "clap-headers (>= 1.2.10~),", "clap-headers (>= 1.2.9~),",
          "a control line at a different floor"),
-        ("packaging/omx-clap-host.spec", "clap-devel >= 1.2.10 with clap-devel < 2", "clap-devel >= 1.2.10 with clap-devel < 3",
-         "a spec line at a different ceiling"),
+        ("packaging/omx-clap-host.spec", "BuildRequires: clap-devel >= 1.2.10", "BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)",
+         "a spec line with a ceiling"),
+        ("debian/control", "clap-headers (>= 1.2.10~),", "clap-headers (>= 1.2.10~), clap-headers (<< 2~),",
+         "a control line with a ceiling"),
     ]
     failed = 0
     for rel, before, after, what in arms:
@@ -102,10 +104,10 @@ def main():
         sys.exit(__doc__ or "usage: clap_floor_parity.py <tree> | --self-test")
     found = check(sys.argv[1])
     for line in found:
-        print("FAIL the CLAP floor/ceiling does not match across packagings: " + line)
+        print("FAIL the CLAP floor does not match across packagings, or a ceiling: " + line)
     if found:
         sys.exit(1)
-    print("ok   the spec and debian/control state the same CLAP floor and ceiling")
+    print("ok   the spec and debian/control state the same CLAP floor and no ceiling")
 
 
 if __name__ == "__main__":

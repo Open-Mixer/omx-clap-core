@@ -26,7 +26,7 @@ omx-clap-host (0.33.0) unstable; urgency=medium
     and the xrun report sabotage forces the interleaving that loses a note
     (#120).
 
- -- Pau Aliagas <commits@openmixer.org>  Tue, 17 Nov 2026 21:32:03 +0000
+ -- Pau Aliagas <linuxnow@gmail.com>  Tue, 17 Nov 2026 21:32:03 +0000
 
 omx-clap-host (0.32.5) unstable; urgency=medium
 

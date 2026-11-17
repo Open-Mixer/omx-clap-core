@@ -285,7 +285,7 @@ the English source sentence.
 # END langpacks
 
 %changelog
-* Tue Nov 17 2026 Pau Aliagas <commits@openmixer.org> - 0.33.0-1
+* Tue Nov 17 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
 - Built against omx-contract >= 3.19.0 and plugin-hostd-protocol >= 0.5.10,
   floors only: no ceilings on our own packages, no Breaks, Replaces or
   Conflicts between them (the channel prunes the old ones), and the CLAP

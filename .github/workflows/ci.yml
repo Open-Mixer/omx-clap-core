@@ -431,6 +431,17 @@ jobs:
             echo "::warning::test-jack-meters SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
+      # The host told to end (SIGTERM, SIGINT, SIGHUP) closes every JACK client it activated: one that dies without
+      # jack_client_close strands the mutexes of jackd's metadata environment for good.
+      - name: Test that the host closes its JACK clients when told to end
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make test-jack-close
+          else
+            echo "::error::test-jack-close cannot run: this runner refuses a private user and pid namespace with its own /proc"
+            exit 1
+          fi
+
       # The auxiliary ports over jack with the fake plugins: a side chain heard, an auxiliary output read, a bypassed one silent.
       - name: Test the auxiliary ports over jack
         run: |

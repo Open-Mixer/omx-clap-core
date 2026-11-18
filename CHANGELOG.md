@@ -4,6 +4,9 @@
 
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
+- omx-clap-host closes its JACK clients on SIGHUP as it does on SIGTERM and SIGINT: a host killed by the default action
+  left its clients open, and a client that dies without jack_client_close strands nine of the fixed pool of mutexes
+  of jackd's metadata store (tests/jack_close_e2e.sh).
 - org.openmixer.properties/1, a plugin's file and text properties: the host answers the event space, reads the
   table once at load (P1-P3), and offers omx_clap_host_property_count, _info, _get and _set (version node
   OMX_CLAP_CORE_0.33); a set reaches the plugin as one OMX_CLAP_EVENT_PROPERTY_SET at the next block, or through

@@ -88,9 +88,9 @@
 ************************************************************************************************************************
 */
 
-/* SIGTERM and SIGINT run term_signal on whichever thread the kernel picks, PipeWire's loop threads among them, and two
- * signals can run it on two threads at once: running is atomic, and the socket is finished once, by the first of the
- * signal and quit to get there (finish) */
+/* SIGTERM, SIGINT and SIGHUP run term_signal on whichever thread the kernel picks, PipeWire's loop threads among them,
+ * and two signals can run it on two threads at once: running is atomic, and the socket is finished once, by the first
+ * of the signal and quit to get there (finish) */
 static atomic_int running;
 static atomic_flag finished = ATOMIC_FLAG_INIT;
 static volatile int quitting;
@@ -946,6 +946,8 @@ int main(int argc, char **argv)
     sigemptyset(&sig.sa_mask);
     sigaction(SIGTERM, &sig, NULL);
     sigaction(SIGINT, &sig, NULL);
+    // a hangup ends the host as a terminate does: the default action would kill it with its JACK clients still open
+    sigaction(SIGHUP, &sig, NULL);
 
     protocol_verbose(verbose);
 

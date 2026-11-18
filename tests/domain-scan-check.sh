@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 # The scan domain (contract.d/scan/scan.json) held to the consumer-move recipe (omx-contract docs/consumer-move.md, steps 1 to 4):
-#   1. the document conforms: $schema, the exact $id, info.x-owner omx-clap-core, info.x-stability experimental, every item prefixed
-#      SCAN_, and it validates with its six catalogs by omx-contract's reader;
+#   1. the document conforms and is in the one formatting: $schema, the exact $id, info.x-owner omx-clap-core, info.x-stability
+#      experimental, every item prefixed SCAN_, SCAN_FIELD_SCOPES ending in the meter word (x-code 13, appended, never moved), and it
+#      validates with its six catalogs by omx-contract's reader and holds omx-contract fmt --check;
 #   2. no scan_vocabulary.h exists or is included, anywhere in the tree;
 #   3. the codes header src/scan_codes.h is the render (--check), and holds only the items marked x-c-codes (SCAN_FIELD_SCOPES,
 #      the scopes the field dump indexes by), never SCAN_DOCUMENTS.
@@ -26,15 +27,20 @@ node -e '
   for (const n of Object.keys(d.components.schemas)) if (!n.startsWith("SCAN_")) bad.push("item " + n + " is not prefixed SCAN_");
   if (d.components.schemas.SCAN_FIELD_SCOPES?.["x-c-codes"] !== true) bad.push("SCAN_FIELD_SCOPES is not marked x-c-codes");
   if ("x-c-codes" in (d.components.schemas.SCAN_DOCUMENTS ?? {})) bad.push("SCAN_DOCUMENTS is marked x-c-codes, and no C switches on it");
+  const scopes = d.components.schemas.SCAN_FIELD_SCOPES?.oneOf ?? [];
+  const last = scopes[scopes.length - 1];
+  if (scopes.length !== 14 || last?.const !== "meter" || last?.["x-code"] !== 13) bad.push("SCAN_FIELD_SCOPES does not end with the meter word at x-code 13 (it has " + scopes.length + " words, the last " + last?.const + ")");
   if (bad.length) { console.error(bad.join("\n")); process.exit(1); }
 ' "$doc" || fail "the scan document breaks the recipe (step 1)"
 $tool validate --contract-dir contract.d | grep -q ", valid, 6 catalogs" || fail "the scan domain and its 6 catalogs do not validate"
+$tool fmt --check --contract-dir contract.d >/dev/null || fail "the scan document is not in the one formatting: omx-contract fmt --contract-dir contract.d"
 if [ -e src/scan_vocabulary.h ] || git grep -n 'scan_vocabulary' -- . ':!tests/domain-scan-check.sh' | grep -q .; then
   fail "scan_vocabulary.h exists or is still named (step 3): $(git grep -n 'scan_vocabulary' -- . ':!tests/domain-scan-check.sh' | head -3 | tr '\n' ' ')"
 fi
 [ -f src/scan_codes.h ] || fail "src/scan_codes.h is absent (step 2)"
 $tool render --target c --package scan --contract-dir contract.d --out "$work"
 cmp src/scan_codes.h "$work/scan_codes.h" || fail "src/scan_codes.h is not the render of contract.d/scan"
-grep -q 'OMX_SCAN_FIELD_SCOPES_PLACEMENT_DEFAULT' src/scan_codes.h || fail "the codes header lacks the SCAN_FIELD_SCOPES words"
+grep -qx '#define OMX_SCAN_FIELD_SCOPES_METER 13u' src/scan_codes.h || fail "the codes header lacks the meter word at 13"
+grep -qx '#define OMX_SCAN_FIELD_SCOPES_COUNT 14u' src/scan_codes.h || fail "the codes header does not count 14 scopes"
 ! grep -q 'OMX_SCAN_DOCUMENTS' src/scan_codes.h || fail "the codes header holds SCAN_DOCUMENTS, which no C switches on"
 echo "domain-scan-check: ok"

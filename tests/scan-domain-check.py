@@ -7,10 +7,12 @@
 #   5. OMX_CONTRACT_PATH is a ':' list standing where the contract directory stands, the first directory holding the domain wins;
 #      only a command line reads it (this scanner is one), the library never does;
 #   6. a missing, invalid or too-old domain is refused by name at start-up: exit 78, naming the domain and the code.
-# usage: scan-domain-check.py <omx-clap-scan> <fake.clap> <contract.d of this tree>
+#      the meter scope too: the dump of a plugin that publishes meters writes the domain's word for it, not a literal.
+#   (the recipe's test 5, the library entry ignoring OMX_CONTRACT_PATH, is n/a here: only this command line opens the domain.)
+# usage: scan-domain-check.py <omx-clap-scan> <fake.clap> <contract.d of this tree> <fake_compressor.clap>
 import json, os, re, shutil, subprocess, sys, tempfile
 
-scan, fake, real = sys.argv[1:4]
+scan, fake, real, compressor = sys.argv[1:5]
 bad = []
 work = tempfile.mkdtemp(prefix='scan-domain.')
 
@@ -54,6 +56,21 @@ else:
     if 'parameter' not in s: bad.append(f'a changed word: the dump has no "parameter" scope (it has {sorted(s)}): the scopes are literals, not the domain\'s words')
     if 'param' in s: bad.append('a changed word: the dump still writes "param"')
 
+# the meter scope, from a plugin that publishes meters (the compressor fixture's clash plugin writes twelve meter records)
+mid = 'org.omx-clap-host.test.compressor-clash'
+def meters(path_var):
+    env = {k: v for k, v in os.environ.items() if k != 'OMX_CONTRACT_PATH'}
+    env['OMX_CONTRACT_PATH'] = path_var
+    return subprocess.run([scan, '--fields', f'clap:{os.path.abspath(compressor)}#{mid}'], capture_output=True, text=True, env=env)
+r = meters(real)
+if r.returncode != 0 or 'meter' not in scopes(r): bad.append(f'the real domain: a plugin with meters must dump the meter scope (exit {r.returncode}, scopes {sorted(scopes(r))})')
+def rename_meter(doc):
+    for w in doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf']:
+        if w['const'] == 'meter': w['const'] = 'meters'
+r = meters(fixture('meters', rename_meter))
+if r.returncode != 0: bad.append(f'a changed meter word: --fields exits {r.returncode}: {r.stderr.strip()[:160]}')
+elif 'meters' not in scopes(r) or 'meter' in scopes(r): bad.append(f'a changed meter word: the dump has scopes {sorted(scopes(r))}: the meter scope is a literal, not the domain\'s word')
+
 # 5. a ':' list: the first directory that holds the domain wins; a directory without it is passed over
 r = dump(f'{os.path.join(work, "nowhere")}:{changed}:{real}')
 if r.returncode != 0 or 'parameter' not in scopes(r): bad.append(f'a path list: the first directory holding the domain must win (exit {r.returncode}, scopes {sorted(scopes(r))})')
@@ -78,6 +95,10 @@ def drop_scope(doc):
     doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] = [w for w in doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] if w['const'] != 'role']
 d = fixture('missingword', drop_scope)
 refused('a domain without a scope the scanner writes', d, 'contract.word.unknown')
+def drop_meter(doc):
+    doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] = [w for w in doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] if w['const'] != 'meter']
+d = fixture('nometer', drop_meter)
+refused('a domain without the meter scope', d, 'contract.word.unknown')
 
 shutil.rmtree(work, ignore_errors=True)
 if bad:

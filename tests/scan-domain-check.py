@@ -91,12 +91,15 @@ d = fixture('wrongid', lambda doc: doc.update({'$id': 'https://openmixer.org/con
 refused('a document of another id', d, 'contract.manifest.invalid')
 d = fixture('old', lambda doc: doc['info'].update({'version': '0.0.1'}))
 refused('a too-old domain', d, 'contract.package.too-old')
-def drop_scope(doc):
-    doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] = [w for w in doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] if w['const'] != 'role']
+def drop_word(doc, word):
+    # the loader holds a word's x-code to its place in the list: the words that stay are renumbered, so the refusal is the missing word's
+    words = [w for w in doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] if w['const'] != word]
+    for i, w in enumerate(words): w['x-code'] = i
+    doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] = words
+def drop_scope(doc): drop_word(doc, 'role')
 d = fixture('missingword', drop_scope)
 refused('a domain without a scope the scanner writes', d, 'contract.word.unknown')
-def drop_meter(doc):
-    doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] = [w for w in doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] if w['const'] != 'meter']
+def drop_meter(doc): drop_word(doc, 'meter')
 d = fixture('nometer', drop_meter)
 refused('a domain without the meter scope', d, 'contract.word.unknown')
 

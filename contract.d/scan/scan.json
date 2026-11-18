@@ -33,6 +33,7 @@
       "SCAN_FIELD_SCOPES": {
         "description": "The scopes of a field dump record, as written before the first TAB; an indexed scope is followed by `:<index>`. Named here, owned by their writers: omx-clap-core's scan (docs/scan.md there) and plugin-hostd's field dump (docs/formats.md there) keep the code that writes them.",
         "x-since": "3.7.0",
+        "x-c-codes": true,
         "oneOf": [
           {
             "const": "plugin",
@@ -125,8 +126,7 @@
             "x-code": 12,
             "x-text": "A per-placement come-up value of the panel description, indexed."
           }
-        ],
-        "x-c-codes": true
+        ]
       }
     }
   }

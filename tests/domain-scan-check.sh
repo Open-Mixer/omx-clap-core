@@ -34,8 +34,12 @@ node -e '
 ' "$doc" || fail "the scan document breaks the recipe (step 1)"
 $tool validate --contract-dir contract.d | grep -q ", valid, 6 catalogs" || fail "the scan domain and its 6 catalogs do not validate"
 $tool fmt --check --contract-dir contract.d >/dev/null || fail "the scan document is not in the one formatting: omx-contract fmt --contract-dir contract.d"
-if [ -e src/scan_vocabulary.h ] || git grep -n 'scan_vocabulary' -- . ':!tests/domain-scan-check.sh' | grep -q .; then
-  fail "scan_vocabulary.h exists or is still named (step 3): $(git grep -n 'scan_vocabulary' -- . ':!tests/domain-scan-check.sh' | head -3 | tr '\n' ' ')"
+# plain grep, not git grep: a job whose checkout git calls dubious (a container) makes git grep fail silently and the check pass over nothing
+rc=0
+hits=$(grep -rIn 'scan_vocabulary' --exclude-dir=.git --exclude-dir=build --exclude=domain-scan-check.sh . 2>/dev/null) || rc=$?
+[ "$rc" -le 1 ] || fail "the search for scan_vocabulary could not run (grep exit $rc): the check would pass over nothing"
+if [ -e src/scan_vocabulary.h ] || [ -n "$hits" ]; then
+  fail "scan_vocabulary.h exists or is still named (step 3): $(printf '%s' "$hits" | head -3 | tr '\n' ' ')"
 fi
 [ -f src/scan_codes.h ] || fail "src/scan_codes.h is absent (step 2)"
 $tool render --target c --package scan --contract-dir contract.d --out "$work"

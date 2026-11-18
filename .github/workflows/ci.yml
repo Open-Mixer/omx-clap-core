@@ -114,7 +114,7 @@ jobs:
       image: ${{ matrix.cell.image }}
     steps:
       - name: The tools
-        run: dnf install -y --setopt=install_weak_deps=False git make nodejs python3 pkgconf-pkg-config diffutils
+        run: dnf install -y --setopt=install_weak_deps=False git make nodejs python3 pkgconf-pkg-config diffutils gcc
 
       - uses: actions/checkout@v4
 

@@ -509,7 +509,7 @@ test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) $(TEST_DESK) tests/clap_host_te
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
 test-scan: $(SCAN_PROG) tests/clap_scan_test tests/fake.clap tests/crash.clap tests/fake_synth.clap tests/fake_panel.clap
-	@$(call run_or_skip_clap_test_plugin,./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) $(CLAP_TEST_PLUGIN) $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap))
+	@$(call run_or_skip_clap_test_plugin,OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) $(CLAP_TEST_PLUGIN) $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap))
 
 # the scanner's sources and the core compiled directly into the test, bypassing the shared library so the whole walk
 # carries AddressSanitizer's instrumentation: a directory of real .clap files listed, then everything main() built
@@ -583,7 +583,7 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 	./tests/clap_state_busy_test $(abspath tests/fake_state.clap)
 	./tests/idle_hold_test $(abspath tests/fake.clap)
 	./tests/clap_host_test - $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(abspath tests/fake_mover.clap) $(abspath tests/fault-17.clap)
-	./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
+	OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
 
 # every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_core_vocabulary.h, the render of
 # data/hosting/: no hand-typed "hosting." literal, no name that header lacks (tests/hosting-codes-check.sh, with its sabotage arms); and

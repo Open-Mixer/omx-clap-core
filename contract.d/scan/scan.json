@@ -1,9 +1,11 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openmixer.org/contract/scan",
   "info": {
     "title": "The documents a plugin scan writes and the scopes of its field dump",
     "version": "1.0.0",
-    "x-owner": "omx-clap-core"
+    "x-owner": "omx-clap-core",
+    "x-stability": "experimental"
   },
   "components": {
     "schemas": {
@@ -123,7 +125,8 @@
             "x-code": 12,
             "x-text": "A per-placement come-up value of the panel description, indexed."
           }
-        ]
+        ],
+        "x-c-codes": true
       }
     }
   }

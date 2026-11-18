@@ -20,7 +20,7 @@ CORE_VERSION = $(VERSION)
 CORE_SO = lib$(CORE).so
 CORE_SONAME = $(CORE_SO).$(CORE_MAJOR)
 CORE_FILE = $(CORE_SO).$(CORE_VERSION)
-CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_core_vocabulary.h src/scan_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
+CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_core_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
 CORE_MAP = src/omx-clap-core.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
 CORE_TS = ts/omx-clap-core-hosting.js ts/omx-clap-core-hosting.d.ts ts/omx-clap-core-vocabulary.js ts/omx-clap-core-vocabulary.d.ts
@@ -160,6 +160,10 @@ CORE_OBJ = $(CORE_SRC:.c=.o) src/abi_guard.o
 # and needs neither jack nor the protocol library
 SCAN_SRC = src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c
 SCAN_OBJ = $(SCAN_SRC:.c=.o)
+# the scanner reads the scan domain's words at start-up through libomx-domain (omx-contract's C loader, docs/consumer-move.md)
+DOMAIN_CFLAGS = $(shell $(PKG_CONFIG) --cflags libomx-domain)
+DOMAIN_LIBS = $(shell $(PKG_CONFIG) --libs libomx-domain)
+src/scan_fields.o: CPPFLAGS += $(DOMAIN_CFLAGS)
 
 # the LV2 adapter, libomx-clap-lv2.a: lv2/core is the LV2 host with no CLAP in it, lv2/clap the shim that presents one LV2
 # plugin as one CLAP plugin. A static archive, position-independent so a shared object can link it; lilv is never linked,
@@ -199,7 +203,7 @@ $(PROTOCOL_LIB):
 endif
 
 $(SCAN_PROG): $(SCAN_OBJ) $(LV2_LIB) $(CORE_SO)
-	$(CC) $(SCAN_OBJ) $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK) $(PIN_LIBS) $(LDFLAGS) -ldl -lpthread -lm -o $@
+	$(CC) $(SCAN_OBJ) $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK) $(PIN_LIBS) $(DOMAIN_LIBS) $(LDFLAGS) -ldl -lpthread -lm -o $@
 
 # the preset census (tools/preset-census.c): every plugin's preset-discovery factory, preset-load and state, one TSV line
 # each; built on demand, never installed
@@ -354,6 +358,8 @@ test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
 
 .PHONY: test-fields
+# omx-clap-scan --fields reads the scan domain at start-up; a test harness points it at this tree's contract.d (OMX_CONTRACT_PATH, a ':' list)
+test-fields: export OMX_CONTRACT_PATH = $(abspath contract.d)
 test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap
 	python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(OMX_CONTRACT_DIR)/data/formats $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) $(PLUGIN_HOSTD_TABLES)
 	python3 tests/scan-domain-check.py ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath contract.d)

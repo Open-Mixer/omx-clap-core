@@ -1078,12 +1078,12 @@ jobs:
 
       - uses: Open-Mixer/.github/.github/actions/build-deb@openmixer-v1
 
-      # the protocol library and omx-contract's data the package depends on, from the channel, for the smoke test's container, which has only
+      # the protocol library, omx-contract's data and its domain loader (libomx-domain0, which the host links) the package depends on, from the channel, for the smoke test's container, which has only
       # the distribution
       - name: Fetch libplugin-hostd-protocol0 for the smoke test
         run: |
           set -euo pipefail
-          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data
+          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data libomx-domain0
 
       # what the smoke test runs the installed package against, built here for the architecture
       - name: Build the smoke test fixtures
@@ -1170,6 +1170,7 @@ jobs:
             debs/*.deb
             proto-debs/libplugin-hostd-protocol0_*.deb
             proto-debs/omx-contract-data_*.deb
+            proto-debs/libomx-domain0_*.deb
             smoke
           if-no-files-found: error
           retention-days: 1
@@ -1200,10 +1201,11 @@ jobs:
           set -euo pipefail
           apt-get update -qq
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap-core1_*.deb ./debs/omx-clap-core-contract_*_all.deb \
-            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb
+            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
           dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -E 'libplugin-hostd-protocol0 \(>= 0\.5\.[0-9]+' | grep -qF 'libplugin-hostd-protocol0 (<< 0.6~)'
           dpkg -s libomx-clap-core1 | grep '^Status: install ok installed'
+          dpkg -s libomx-domain0 | grep '^Status: install ok installed'
           # the contract directory's files come with the runtime library, no -dev installed
           dpkg -s omx-clap-core-contract | grep '^Status: install ok installed'
           test -s /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json

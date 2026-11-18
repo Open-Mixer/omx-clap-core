@@ -356,6 +356,7 @@ test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 .PHONY: test-fields
 test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap
 	python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(OMX_CONTRACT_DIR)/data/formats $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) $(PLUGIN_HOSTD_TABLES)
+	python3 tests/scan-domain-check.py ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath contract.d)
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 	python3 tests/resource-hints-check.py --self-test ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 

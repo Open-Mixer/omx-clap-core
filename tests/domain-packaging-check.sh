@@ -14,7 +14,7 @@ set -eu
 fail() { echo "domain-packaging-check: $1" >&2; exit 1; }
 spec=packaging/omx-clap-host.spec
 # the installer, in make install-contract
-grep -Eq 'install-contract-dir\.sh\)? +--domain +contract\.d/scan( |$)' Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/scan"
+grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contract\.d/scan( |$)' Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/scan"
 ! grep -En '^[[:space:]]*install .*contract\.d/scan' Makefile || fail "Makefile: a hand-written install line for contract.d/scan (the installer's domain mode installs it)"
 # the data package lists it
 contract_files=$(awk '/^%files -n omx-clap-core-contract/{f=1;next} /^%files|^%package|^%changelog/{f=0} f' "$spec")
@@ -30,6 +30,6 @@ grep -Eq '^Build-Depends:|^ +libomx-domain-dev \(>= 3\.20\.0~\)' debian/control 
 awk '/^Package: omx-clap-host$/{f=1;next} /^Package:/{f=0} f' debian/control | grep -Eq '^Depends:.*libomx-domain0 \(>= 3\.20\.0~\)' || fail "debian/control: omx-clap-host does not depend on libomx-domain0 (>= 3.20.0~)"
 awk '/^Package: omx-clap-host$/{f=1;next} /^Package:/{f=0} f' debian/control | grep -Eq '^Depends:.*omx-clap-core-contract \(= \$\{source:Version\}\)' || fail "debian/control: omx-clap-host does not depend on omx-clap-core-contract at its own version"
 # omx-contract at 3.20.0 everywhere the tree names it
-low=$(grep -En '(omx-contract(-devel|-data)?|libomx-contract-dev) *(>=|\(>=) *3\.1[0-9]\.[0-9]+' "$spec" debian/control || true)
+low=$( { awk '/^%changelog/{exit} {print FILENAME":"FNR":"$0}' "$spec"; awk '{print FILENAME":"FNR":"$0}' debian/control; } | grep -E '(omx-contract(-devel|-data)?|libomx-contract-dev) *(>=|\(>=) *3\.1[0-9]\.[0-9]+' || true)
 [ -z "$low" ] || fail "an omx-contract floor below 3.20.0 is still declared: $(printf '%s' "$low" | head -3 | tr '\n' ' ')"
 echo "domain-packaging-check: ok"

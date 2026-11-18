@@ -640,7 +640,7 @@ static void clap_meters(const struct omx_clap_instance *in)
         if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "meters.get_info", ext->get_info, p, i, &m))
             continue;
         m.name[sizeof(m.name) - 1] = '\0';
-        snprintf(scope, sizeof(scope), "meter:%u", i);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(METER), i);
         record_number(scope, "clap_meter_info.id", m.id);
         record_text(scope, "clap_meter_info.name", m.name);
         record_named_code(scope, "clap_meter_info.kind", m.kind < 3 ? kinds[m.kind] : NULL, m.kind);

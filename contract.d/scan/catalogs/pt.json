@@ -10,6 +10,7 @@
     "SCAN_FIELD_SCOPES.audio_out": {"text": "Uma porta de saída de áudio, indexada.", "by": "machine", "model": "draft-prose", "source": "5069d9296e97a6318c2c1530d7380ad5997efab3d7b3669c6681fe254dc221a7"},
     "SCAN_FIELD_SCOPES.control": {"text": "Um controle da descrição do painel, indexado.", "by": "machine", "model": "draft-prose", "source": "343d25f05ecc9b09137a4e3df619d5b9f6bbffc6fb0fe951af71f5853653c74e"},
     "SCAN_FIELD_SCOPES.display": {"text": "Uma exibição da descrição do painel, indexada.", "by": "machine", "model": "draft-prose", "source": "fcfcdd9df06bfbdec27e293e0f50151a976b1663620ad44e2a580589e14d48e1"},
+    "SCAN_FIELD_SCOPES.meter": {"text": "Um medidor de um plugin que publica a extensão de medidores, indexado.", "by": "machine", "model": "draft-prose", "source": "ebe0950c884bcab453c556e3538f9de26847e37095fbce5023eeb9aaa42dc61a"},
     "SCAN_FIELD_SCOPES.note_in": {"text": "Uma porta de entrada de nota, indexada.", "by": "machine", "model": "draft-prose", "source": "f0b1d11ab6791a331705f41fb0f84a2bcf5bc12a1c6c493f7f736073b2146c00"},
     "SCAN_FIELD_SCOPES.note_out": {"text": "Uma porta de saída de nota, indexada.", "by": "machine", "model": "draft-prose", "source": "236dcada81e039fa1a7af83830efaf7e825c893e129464dc8de330f6b4a556d3"},
     "SCAN_FIELD_SCOPES.panel": {"text": "A descrição do painel de um plugin que atende `org.openmixer.panel-description/1`: sua família e sua impressão digital.", "by": "machine", "model": "draft-prose", "source": "d6c60f413c791ccee86e232694bc71af000b23e7d9ee8e7393c1b92171ef4b42"},

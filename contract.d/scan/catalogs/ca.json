@@ -10,6 +10,7 @@
     "SCAN_FIELD_SCOPES.audio_out": {"text": "Un port de sortida d'àudio, indexat.", "by": "machine", "model": "draft-prose", "source": "5069d9296e97a6318c2c1530d7380ad5997efab3d7b3669c6681fe254dc221a7"},
     "SCAN_FIELD_SCOPES.control": {"text": "Un control de la descripció del panell, indexat.", "by": "machine", "model": "draft-prose", "source": "343d25f05ecc9b09137a4e3df619d5b9f6bbffc6fb0fe951af71f5853653c74e"},
     "SCAN_FIELD_SCOPES.display": {"text": "Una visualització de la descripció del panell, indexada.", "by": "machine", "model": "draft-prose", "source": "fcfcdd9df06bfbdec27e293e0f50151a976b1663620ad44e2a580589e14d48e1"},
+    "SCAN_FIELD_SCOPES.meter": {"text": "Un mesurador d’un connector que publica l’extensió de mesuradors, indexat.", "by": "machine", "model": "draft-prose", "source": "ebe0950c884bcab453c556e3538f9de26847e37095fbce5023eeb9aaa42dc61a"},
     "SCAN_FIELD_SCOPES.note_in": {"text": "Un port d'entrada de notes, indexat.", "by": "machine", "model": "draft-prose", "source": "f0b1d11ab6791a331705f41fb0f84a2bcf5bc12a1c6c493f7f736073b2146c00"},
     "SCAN_FIELD_SCOPES.note_out": {"text": "Un port de sortida de notes, indexat.", "by": "machine", "model": "draft-prose", "source": "236dcada81e039fa1a7af83830efaf7e825c893e129464dc8de330f6b4a556d3"},
     "SCAN_FIELD_SCOPES.panel": {"text": "La descripció del panell d'un connector que serveix `org.openmixer.panel-description/1`: la seva família i la seva empremta.", "by": "machine", "model": "draft-prose", "source": "d6c60f413c791ccee86e232694bc71af000b23e7d9ee8e7393c1b92171ef4b42"},

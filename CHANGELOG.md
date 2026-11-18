@@ -5,7 +5,7 @@
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
 - The `scan` domain (contract.d/scan/scan.json and its six catalogs, owner omx-clap-core, `info.x-stability` experimental): SCAN_DOCUMENTS and
-  SCAN_FIELD_SCOPES, moved here from omx-contract's data/scan.json (omx-contract#81, move 1). omx-clap-scan --fields reads the scopes of
+  SCAN_FIELD_SCOPES (the 13 scopes it came with and a `meter` scope, x-code 13), moved here from omx-contract's data/scan.json (omx-contract#81, move 1). omx-clap-scan --fields reads the scopes of
   its dump from the domain at start-up (through libomx-domain; OMX_CONTRACT_PATH, a ':' list, names the directories for a command
   line and a test) and refuses by name, exit 78, when the domain is absent, invalid or too old. src/scan_codes.h holds the one item C
   indexes by, SCAN_FIELD_SCOPES, as constants; there is no scan vocabulary header.

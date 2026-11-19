@@ -95,10 +95,11 @@ jobs:
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
+      # the checkout comes first: dnf builddep reads the spec from it
+      - uses: actions/checkout@v4
+
       - name: Install omx-contract-devel from the OpenMixer channel
         run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
-
-      - uses: actions/checkout@v4
 
       # fuzz-sabotage applies each mutant with git and restores it with git checkout
       - name: Let git work in the checkout

@@ -341,15 +341,26 @@ install-contract:
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 
 # contract.d/hosting/hosting.json is what tools/render-domain.py derives from data/hosting.json and data/hosting/*.json
-# (python3 only); fmt and validate are omx-contract's, OMX_CONTRACT_DIR a checkout or the installed /usr/lib/omx-contract
+# (python3 only); the refusals (a word added or removed under an unchanged version, an x-code moved, a version going
+# down), fmt and validate are omx-contract's (3.20.1), OMX_CONTRACT_DIR a checkout or the installed /usr/lib/omx-contract.
+# fmt and validate read the hosting domain alone: another domain's document is its owner's gate
+DOMAIN_NEW = build/domain/hosting.json
+OMX_CONTRACT_CLI = node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs
 check-domain:
-	python3 tools/render-domain.py --check data VERSION contract.d/hosting/hosting.json
-	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs fmt --check --contract-dir contract.d
-	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs validate --contract-dir contract.d
+	@test -f contract.d/hosting/hosting.json || { echo "check-domain: no contract.d/hosting/hosting.json: run make render-domain" >&2; exit 1; }
+	@mkdir -p build/domain
+	python3 tools/render-domain.py data VERSION contract.d/hosting/hosting.json $(DOMAIN_NEW)
+	$(OMX_CONTRACT_CLI) domain check $(DOMAIN_NEW) contract.d/hosting/hosting.json
+	@cmp -s $(DOMAIN_NEW) contract.d/hosting/hosting.json || { echo "check-domain: contract.d/hosting/hosting.json is not what data/hosting*.json and VERSION render: run make render-domain" >&2; exit 1; }
+	@rm -rf build/domain/only && mkdir -p build/domain/only && cp -r contract.d/hosting build/domain/only/
+	$(OMX_CONTRACT_CLI) fmt --check --contract-dir build/domain/only
+	$(OMX_CONTRACT_CLI) validate --contract-dir build/domain/only
 
 render-domain:
-	@mkdir -p contract.d/hosting
-	python3 tools/render-domain.py data VERSION contract.d/hosting/hosting.json
+	@mkdir -p contract.d/hosting build/domain
+	python3 tools/render-domain.py data VERSION contract.d/hosting/hosting.json $(DOMAIN_NEW)
+	@if test -f contract.d/hosting/hosting.json; then $(OMX_CONTRACT_CLI) domain check $(DOMAIN_NEW) contract.d/hosting/hosting.json; fi
+	cp $(DOMAIN_NEW) contract.d/hosting/hosting.json
 
 # the hosting domain: installed, opened by the loader (omx-domain) with every code of data/, check-domain's arms
 test-domain:

@@ -6,7 +6,7 @@
 # contract.d/hosting/hosting.json, the loader (omx-domain, over omx_domain_open_at) opens it, and every HOSTING_* item
 # lists exactly the codes data/hosting.json and data/hosting/*.json define. data/ stays the one source; the domain file is
 # what tools/render-domain.py derives from it. `make check-domain` is red on a missing file, a hand edit and an
-# un-rendered data change; the render refuses a word added or removed under an unchanged VERSION and an x-code that moved.
+# un-rendered data change; the refusals (a word added or removed under an unchanged VERSION, an x-code that moved, a version going down) are omx-contract's `domain check`, and validate holds every item's x-since.
 #   env: INSTALL_CONTRACT_DIR (install-contract-dir.sh, 3.20.0 or later), OMX_DOMAIN (the omx-domain command),
 #        OMX_CONTRACT_DIR (an omx-contract checkout or install, for check-domain's fmt and validate)
 set -eu

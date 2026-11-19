@@ -27,7 +27,7 @@ env:
   # plugin_hostd_client.py) all come from this one tag; the protocol is the plugin-hostd-protocol the job installs
   PLUGIN_HOSTD_REF: 54eee2956b1af815d2e1fd2fb8218a77bb6679db  # plugin-hostd main with #166 and #167 (machine.c); a release tag replaces it
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
-  OMX_CONTRACT_REF: v3.20.0
+  OMX_CONTRACT_REF: v3.20.1
 
 # Two tiers (owner ruling 2026-11-09: heavy workflows on tags, pull requests quick). A pull request runs the plain test
 # tier and one package arm (fc44 x86_64, trixie amd64). The sanitizer tiers (address, thread), every sabotage of a guard,

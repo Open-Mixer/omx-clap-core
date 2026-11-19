@@ -8,12 +8,11 @@ HOSTING_* codes item of them (each item's doc is its description), each code as 
 as title, its English text as description, its place in the item as x-code. Nothing here is typed twice.
 
 The domain's version is VERSION. An item's x-since is the domain version that first carried the item: the version the
-file already records for it, and the current version for an item the file does not yet have. The document is
-append-only under one version, and the render refuses by name to replace the file with one that adds or removes a code
-while the version is unchanged, or that moves the x-code of a code the file already has (a new code is appended, after
-the existing ones). --check applies the same refusals before it compares.
+file already records for it, and the current version for an item the file does not yet have. The refusals (a word added
+or removed under an unchanged version, an x-code moved, a version going down) are omx-contract's `domain check`, which the
+Makefile runs on the new document against the committed one; this script only writes the new document.
 
-    render-domain.py [--check] <data dir> <VERSION file> <out file>
+    render-domain.py <data dir> <VERSION file> <committed file> <new file>
 """
 import glob
 import json
@@ -58,60 +57,22 @@ def render(data_dir, version, old):
     return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
 
 
-def words_of(doc):
-    return {i: {w["const"]: w["x-code"] for w in b["oneOf"]} for i, b in doc["components"]["schemas"].items()}
-
-
-def refusals(old, new):
-    """what a document that replaces `old` must not do, each by item and code"""
-    out = []
-    ow, nw = words_of(old), words_of(new)
-    if old["info"]["version"] == new["info"]["version"]:
-        for item in sorted(set(ow) | set(nw)):
-            added = sorted(set(nw.get(item, {})) - set(ow.get(item, {})))
-            removed = sorted(set(ow.get(item, {})) - set(nw.get(item, {})))
-            if added or removed:
-                out.append(f"{item}: words added or removed while the version is unchanged ({new['info']['version']}): "
-                           f"added {added}, removed {removed}: bump VERSION")
-    for item in sorted(set(ow) & set(nw)):
-        for word in sorted(set(ow[item]) & set(nw[item])):
-            if ow[item][word] != nw[item][word]:
-                out.append(f"{item}: x-code moved: {word} was {ow[item][word]}, is {nw[item][word]}: "
-                           "a new word is appended after the existing ones")
-    return out
-
-
 def main(argv):
-    check = argv[:1] == ["--check"]
-    args = argv[1:] if check else argv
-    if len(args) != 3:
+    if len(argv) != 4:
         sys.exit(__doc__)
-    data_dir, version_file, out = args
+    data_dir, version_file, committed, out = argv
     version = open(version_file).read().strip()
     old = None
     try:
-        have = open(out).read()
-    except OSError as e:
-        if check:
-            sys.exit(f"render-domain.py: {out}: {e.strerror}: run make render-domain")
-        have = None
-    if have is not None:
-        try:
-            old = json.loads(have)
-            words_of(old)
-        except (ValueError, KeyError, TypeError):
-            old = None  # a file that is no document of this shape is only stale
-    text = render(data_dir, version, old)
-    if old is not None:
-        problems = refusals(old, json.loads(text))
-        if problems:
-            sys.exit("".join(f"render-domain.py: {out}: {m}\n" for m in problems).rstrip("\n"))
-    if check:
-        if have != text:
-            sys.exit(f"render-domain.py: {out} is not what data/hosting*.json and VERSION render: run make render-domain")
-        return
+        old = json.load(open(committed))
+    except OSError:
+        pass  # no committed document yet: every item is new
+    except ValueError:
+        old = None  # a file that is no document is only stale
+    if old is not None and not isinstance(old.get("components", {}).get("schemas"), dict):
+        old = None
     with open(out, "w") as f:
-        f.write(text)
+        f.write(render(data_dir, version, old))
 
 
 main(sys.argv[1:])

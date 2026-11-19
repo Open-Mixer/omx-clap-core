@@ -451,6 +451,7 @@ test-ci-runs-test-list:
 # holds the workflow to it (test-audit omx-clap-core row 1)
 # plain: every push and pull request
 TEST_PLAIN = test-ci-runs-test-list \
+    test-domain-x-since \
     test-release-same-pass \
     test-no-host-nproc \
     test-scan-json \
@@ -537,6 +538,12 @@ test-no-upward-deps:
 test-release-same-pass:
 	python3 tests/release_same_pass.py --self-test
 	python3 tests/release_same_pass.py .
+
+# an item's x-since is a version of its own domain document, never above its info.version (omx-contract#127, #128)
+.PHONY: test-domain-x-since
+test-domain-x-since:
+	python3 tests/domain_x_since.py --self-test
+	python3 tests/domain_x_since.py
 
 .PHONY: test-no-hostd-build-dep
 test-no-hostd-build-dep:

@@ -70,6 +70,7 @@ jobs:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
           rpm-releases: '["45"]'
           rpm-arches: '["x86_64"]'
+          x86-runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
 
 
   fuzz:

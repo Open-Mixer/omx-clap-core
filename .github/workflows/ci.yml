@@ -111,13 +111,15 @@ jobs:
           rpm-releases: '["45"]'
           rpm-arches: ${{ github.event_name == 'pull_request' && '["x86_64"]' || '["x86_64", "aarch64"]' }}
       # the deb and deb-smoke jobs' cells: trixie on each architecture's own runner (the channel's development debs are
-      # trixie arm64 only; an amd64 container resolves an arm64 -dev package that dpkg refuses), arm64 alone on a pull request
+      # trixie arm64 only; an amd64 container resolves an arm64 -dev package that dpkg refuses), arm64 alone on a pull request;
+      # an amd64 cell keeps the self-hosted runner it ran on (OMX_RUNNER, the hosted one for a fork)
       - id: d
         uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
         with:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
           deb-releases: '["trixie"]'
           deb-arches: ${{ github.event_name == 'pull_request' && '["arm64"]' || '["amd64", "arm64"]' }}
+          x86-runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
 
   contract:
     needs: checks

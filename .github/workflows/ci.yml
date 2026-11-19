@@ -122,7 +122,7 @@ jobs:
       - name: Add the OpenMixer channel
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
       - name: omx-contract
-        run: dnf install -y --setopt=install_weak_deps=False 'omx-contract >= 3.20.0' 'omx-contract < 4' 'omx-contract-devel >= 3.20.0' 'omx-contract-devel < 4' 'libomx-domain-devel >= 3.20.0'
+        run: dnf install -y --setopt=install_weak_deps=False 'omx-contract >= 3.20.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0'
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
       # (plugin-hostd-protocol#27: a stale staged contract package outranked the channel)
       - name: Every omx package comes from the channel

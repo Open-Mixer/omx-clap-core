@@ -23,7 +23,7 @@ BuildRequires: pkgconfig(libcrypto)
 BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: (omx-contract-devel >= 3.20.0 with omx-contract-devel < 4)
+BuildRequires: omx-contract-devel >= 3.20.0
 # the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (3.20.0 the first
 # release that ships it, with the installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
 BuildRequires: libomx-domain-devel >= 3.20.0
@@ -93,7 +93,7 @@ Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
 Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: (omx-contract-devel >= 3.20.0 with omx-contract-devel < 4)
+Requires: omx-contract-devel >= 3.20.0
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -108,7 +108,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: (omx-contract-data >= 3.20.0 with omx-contract-data < 4)
+Requires: omx-contract-data >= 3.20.0
 
 %description -n omx-clap-core-contract
 omx-clap-core's definitions as files in omx-contract's contract directory,

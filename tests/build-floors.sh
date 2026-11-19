@@ -54,8 +54,8 @@ self_test() {
     t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
     local fail=0; ok() { echo "ok   $*"; }; bad() { echo "FAIL $*"; fail=1; }
     cat > "$t/spec" <<'S'
-BuildRequires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
-BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
+BuildRequires: omx-contract-devel >= 3.18.0
+BuildRequires: omx-dsp-devel >= 0.32.0
 BuildRequires: (plugin-hostd-protocol-devel >= 0.5.9 with plugin-hostd-protocol-devel < 0.6)
 BuildRequires: (plugin-db-devel >= 0.4.2 with plugin-db-devel < 0.5)
 S
@@ -68,17 +68,19 @@ S
     if out=$(PKG_CONFIG_LIBDIR=$t/pc PKG_CONFIG_PATH='' check "$t/spec" 2>&1); then bad "a package below its floor passed: $out"
     elif grep -q 'REFUSED omx-contract-devel 3.17.1 installed is below the spec.s floor 3.18.0' <<< "$out"; then ok "below the floor is refused by name, with the floor and the installed version"
     else bad "below the floor: refused, but not by name: $out"; fi
-    plant omx-contract 3.18.1; plant omxdsp 0.33.0
+    plant omx-contract 3.18.1; plant plugin-hostd-protocol 0.6.0
     if out=$(PKG_CONFIG_LIBDIR=$t/pc PKG_CONFIG_PATH='' check "$t/spec" 2>&1); then bad "a package at its ceiling passed: $out"
-    elif grep -q 'REFUSED omx-dsp-devel 0.33.0 installed is at or past the spec.s ceiling 0.33' <<< "$out"; then ok "at the ceiling is refused by name"
+    elif grep -q 'REFUSED plugin-hostd-protocol-devel 0.6.0 installed is at or past the spec.s ceiling 0.6' <<< "$out"; then ok "at a stated ceiling is refused by name"
     else bad "at the ceiling: $out"; fi
+    plant plugin-hostd-protocol 0.5.9; plant omxdsp 0.99.0; plant omx-contract 4.2.0
+    out=$(PKG_CONFIG_LIBDIR=$t/pc PKG_CONFIG_PATH='' check "$t/spec" 2>&1) && ok "a package with a floor and no ceiling is met at any later version" || bad "a floor-only package refused at a later version: $out"
     plant omxdsp 0.32.1; rm "$t/pc/plugin-db.pc"
     if out=$(PKG_CONFIG_LIBDIR=$t/pc PKG_CONFIG_PATH='' check "$t/spec" 2>&1); then bad "a missing package passed: $out"
     elif grep -q 'plugin-db-devel (plugin-db) is not installed' <<< "$out"; then ok "a missing package is named"
     else bad "missing: $out"; fi
     sed -i '/omx-contract-devel/d' "$t/spec"
     out=$(PKG_CONFIG_LIBDIR=$t/pc PKG_CONFIG_PATH='' check "$t/spec" 2>&1) && rc=0 || rc=$?
-    [ $rc = 2 ] && grep -q 'states no (>= floor with < ceiling) range for omx-contract-devel' <<< "$out" && ok "a spec without a package's range is unread (2), named" || bad "no range: rc=$rc $out"
+    [ $rc = 2 ] && grep -q 'states no range (>= floor, optionally with < ceiling) for omx-contract-devel' <<< "$out" && ok "a spec without a package's range is unread (2), named" || bad "no range: rc=$rc $out"
     [ $fail = 0 ] && echo "build-floors self-test ok"; return $fail
 }
 

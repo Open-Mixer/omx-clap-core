@@ -37,4 +37,8 @@ low=$( { awk '/^%changelog/{exit} {print FILENAME":"FNR":"$0}' "$spec"; awk '{pr
 ceil=$( { awk '/^%changelog/{exit} {print FILENAME":"FNR":"$0}' "$spec"; awk '{print FILENAME":"FNR":"$0}' debian/control; awk '{print FILENAME":"FNR":"$0}' .github/workflows/ci.yml; } \
   | grep -E "(omx-contract(-devel|-data)?|libomx-contract-dev)[ ']*(<|<<|\(<<|\(<) *[0-9]|(omx-contract(-devel|-data)?|libomx-contract-dev)[^;]*(with|and) +(omx-contract(-devel|-data)?|libomx-contract-dev) *< *[0-9]" || true)
 [ -z "$ceil" ] || fail "omx-contract is bounded above (floors only, no ceiling): $(printf '%s' "$ceil" | head -3 | cut -c1-150 | tr '\n' ' ')"
+# omx-dsp the same: floor 0.33.0 (the release the scanner and the host are built on) in every place, and no ceiling
+dsp=$( { awk '/^%changelog/{exit} {print FILENAME":"FNR":"$0}' "$spec"; awk '{print FILENAME":"FNR":"$0}' debian/control; awk '{print FILENAME":"FNR":"$0}' .github/workflows/ci.yml; } \
+  | grep -E "(omx-dsp(-devel)?|libomxdsp-dev)[ ']*(<|<<|\(<<|\(<) *0\.[0-9]|(omx-dsp(-devel)?|libomxdsp-dev)[ ']*(>=|\(>=) *0\.(2[0-9]|3[0-2])\.|with +omx-dsp-devel *<|atleast-version=0\.3[0-2]\.[0-9]+ omxdsp" || true)
+[ -z "$dsp" ] || fail "omx-dsp is bounded above or has a floor below 0.33.0 (floors only, >= 0.33.0): $(printf '%s' "$dsp" | head -3 | cut -c1-150 | tr '\n' ' ')"
 echo "domain-packaging-check: ok"

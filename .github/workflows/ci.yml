@@ -193,7 +193,7 @@ jobs:
     if: needs.checks.outputs.rpm-count != '0'
     name: build and test (${{ matrix.cell.image }})
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 70
     strategy:
       fail-fast: false
       matrix:

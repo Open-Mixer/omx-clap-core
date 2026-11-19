@@ -35,7 +35,7 @@ on:
         type: boolean
         default: false
       same_pass:
-        description: 'Packages other repositories release in the same pass, space separated: the channel-installability gate reports a range they fall outside of, instead of failing on it'
+        description: 'Packages other repositories release later in the same pass, space separated; empty reads .github/release-same-pass at the commit built'
         type: string
         default: ''
   workflow_call:
@@ -65,12 +65,40 @@ permissions:
   actions: read
 
 jobs:
+  # The packages other repositories release LATER in this same pass, for the channel-installability gate's same-pass
+  # (a breakage they cause or suffer is reported, not red): a dispatch's same_pass input, else the tracked
+  # .github/release-same-pass at the very commit this run builds (the tag on a push), one package per line, # comments
+  # allowed. The file is reviewed like code, lives on its release branch and goes with it; never a repository variable,
+  # which is mutable, unversioned and can outlive its pass to excuse a later break. tests/release_same_pass.py holds
+  # this wiring to plugin-hostd's.
+  samepass:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.read.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/release-same-pass
+          sparse-checkout-cone-mode: false
+      - id: read
+        run: |
+          f=.github/release-same-pass
+          [ -f "$f" ] || { echo "list=" >>"$GITHUB_OUTPUT"; echo "no $f at this commit: nothing released in the same pass"; exit 0; }
+          names=$(sed -e 's/#.*//' "$f" | tr -s ' \t\r\n' '\n' | sed '/^$/d')
+          for n in $names; do
+            [[ "$n" =~ ^[a-z0-9][a-z0-9.+-]*$ ]] || { echo "::error::$f: '$n' is not a package name"; exit 1; }
+          done
+          list=$(echo $names)
+          echo "list=$list" >>"$GITHUB_OUTPUT"
+          echo "same pass from $f: ${list:-none}"
+
   rpm:
+    needs: samepass
     uses: Open-Mixer/.github/.github/workflows/build-rpm.yml@openmixer-v1
     with:
       staged: ${{ inputs.staged == true }}
       staging: ${{ inputs.staging == true }}
-      same-pass: ${{ inputs.same_pass || '' }}
+      same-pass: ${{ inputs.same_pass || needs.samepass.outputs.list }}
       package-name: omx-clap-host
       publish: ${{ github.event_name == 'push' || inputs.publish == true }}
       arch-matrix: ${{ (github.event_name != 'push' && inputs.arm == false) && '["x86_64"]' || '["x86_64", "aarch64"]' }}
@@ -79,11 +107,12 @@ jobs:
   # or skipped RPM job skips this one, so no DEB is published after a failed RPM.
   # beside the RPMs: the two publish jobs share one concurrency group, so their pushes never race
   deb:
+    needs: samepass
     uses: Open-Mixer/.github/.github/workflows/build-deb.yml@openmixer-v1
     with:
       staged: ${{ inputs.staged == true }}
       staging: ${{ inputs.staging == true }}
-      same-pass: ${{ inputs.same_pass || '' }}
+      same-pass: ${{ inputs.same_pass || needs.samepass.outputs.list }}
       package-name: omx-clap-host
       publish: ${{ github.event_name == 'push' || inputs.publish == true }}
       arch-matrix: ${{ (github.event_name != 'push' && inputs.arm == false) && '["amd64"]' || '["amd64", "arm64"]' }}

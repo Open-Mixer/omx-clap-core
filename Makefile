@@ -438,6 +438,7 @@ test-ci-runs-test-list:
 # holds the workflow to it (test-audit omx-clap-core row 1)
 # plain: every push and pull request
 TEST_PLAIN = test-ci-runs-test-list \
+    test-release-same-pass \
     test-no-host-nproc \
     test-scan-json \
     test-no-sha256-copy \
@@ -516,6 +517,13 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 test-no-upward-deps:
 	bash tests/no-upward-deps-check.sh --self-test
 	bash tests/no-upward-deps-check.sh
+
+# the release workflow passes the same-pass list to its shared build calls, read from .github/release-same-pass at the commit
+# it builds, as plugin-hostd does (tests/release_same_pass.py holds the wiring to that)
+.PHONY: test-release-same-pass
+test-release-same-pass:
+	python3 tests/release_same_pass.py --self-test
+	python3 tests/release_same_pass.py .
 
 .PHONY: test-no-hostd-build-dep
 test-no-hostd-build-dep:

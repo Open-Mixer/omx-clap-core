@@ -1164,7 +1164,7 @@ static int open_clap(const char *path, const char *id, struct omx_clap_instance 
     if (!binary)
     {
         fprintf(stderr, "%s\n", reason);
-        return ERR_LV2_INVALID_URI;
+        return ERR_HOST_INVALID_URI;
     }
     count = omx_clap_host_binary_count(binary);
     for (i = 0; i < count; i++)
@@ -1178,7 +1178,7 @@ static int open_clap(const char *path, const char *id, struct omx_clap_instance 
     {
         fprintf(stderr, "no plugin %s in %s\n", id, path);
         omx_clap_host_binary_close(binary);
-        return ERR_LV2_INVALID_URI;
+        return ERR_HOST_INVALID_URI;
     }
     ret = omx_clap_host_open(path, id, clap, why);
     omx_clap_host_binary_close(binary);
@@ -1186,7 +1186,7 @@ static int open_clap(const char *path, const char *id, struct omx_clap_instance 
     {
         fprintf(stderr, "%s: %s\n", id, why);
         snprintf(g_add_reason, sizeof(g_add_reason), "%s", why);
-        return ERR_LV2_INSTANTIATION;
+        return ERR_HOST_INSTANTIATION;
     }
     return SUCCESS;
 }
@@ -1264,7 +1264,7 @@ static int open_lv2(const char *uri, effect_t *effect)
     {
         fprintf(stderr, "%s: %s: the LV2 adapter is not configured\n", uri, OMX_HOSTING_NO_REALISATION);
         snprintf(g_add_reason, sizeof(g_add_reason), "%s", OMX_HOSTING_NO_REALISATION);
-        return ERR_LV2_INSTANTIATION;
+        return ERR_HOST_INSTANTIATION;
     }
     switch (lv2_locate(NULL, uri, lv2_candidate, &search))
     {
@@ -1272,17 +1272,17 @@ static int open_lv2(const char *uri, effect_t *effect)
         // a manifest's own allocation failed: a read failure, never that no bundle holds the URI
         fprintf(stderr, "%s: a manifest on the LV2 path could not be read\n", uri);
         snprintf(g_add_reason, sizeof(g_add_reason), "a manifest on the LV2 path could not be read");
-        return ERR_LV2_INSTANTIATION;
+        return ERR_HOST_INSTANTIATION;
     case 0:
         if (search.why[0])
         {
             // a bundle that may hold it could not be read: lilv missing, or the bundle broken
             fprintf(stderr, "%s: %s\n", uri, search.why);
             snprintf(g_add_reason, sizeof(g_add_reason), "%s", search.why);
-            return ERR_LV2_INSTANTIATION;
+            return ERR_HOST_INSTANTIATION;
         }
         fprintf(stderr, "%s: no bundle on the LV2 path holds it\n", uri);
-        return ERR_LV2_INVALID_URI;
+        return ERR_HOST_INVALID_URI;
     default:
         break;
     }
@@ -1295,7 +1295,7 @@ static int open_lv2(const char *uri, effect_t *effect)
         lv2_reason(why);
         fprintf(stderr, "%s: %s\n", uri, why);
         snprintf(g_add_reason, sizeof(g_add_reason), "%s", why);
-        return ERR_LV2_INSTANTIATION;
+        return ERR_HOST_INSTANTIATION;
     }
     return SUCCESS;
 }
@@ -1364,7 +1364,7 @@ static int clap_param_set(struct omx_clap_instance *clap, clap_id id, double val
     uint32_t state;
 
     if (omx_clap_host_param_row_of(clap, id, &row) != 0)
-        return ERR_LV2_INVALID_PARAM_SYMBOL;
+        return ERR_HOST_INVALID_PARAM_SYMBOL;
     if (!isfinite(value))
         return ERR_INVALID_OPERATION;   // both comparisons below are false for NaN: it would go through unclamped
     if (value < row.min)
@@ -1382,10 +1382,10 @@ static int clap_param_set(struct omx_clap_instance *clap, clap_id id, double val
 static int clap_param_get(struct omx_clap_instance *clap, clap_id id, double *value)
 {
     if (!omx_clap_host_param_readable(clap, id))
-        return ERR_LV2_INVALID_PARAM_SYMBOL;
+        return ERR_HOST_INVALID_PARAM_SYMBOL;
     omx_clap_host_settle(clap, QUEUE_SETTLE_US);
     if (omx_clap_host_param_read(clap, id, value) != 0)
-        return ERR_LV2_INVALID_PARAM_SYMBOL;
+        return ERR_HOST_INVALID_PARAM_SYMBOL;
     return SUCCESS;
 }
 
@@ -1404,19 +1404,19 @@ static int clap_state_save(struct omx_clap_instance *clap, const char *filename)
     if (!buffer || omx_clap_host_state_save(clap, buffer, OMX_HOSTED_STAGE_STATE_MAX_BYTES, &length) != 0)
     {
         free(buffer);
-        return ERR_LV2_CANT_LOAD_STATE;
+        return ERR_HOST_CANT_LOAD_STATE;
     }
 
     file = fopen(filename, "wb");
     if (!file)
     {
         free(buffer);
-        return ERR_LV2_CANT_LOAD_STATE;
+        return ERR_HOST_CANT_LOAD_STATE;
     }
     ok = fwrite(buffer, 1, length, file) == length;
     ok = fclose(file) == 0 && ok;
     free(buffer);
-    return ok ? SUCCESS : ERR_LV2_CANT_LOAD_STATE;
+    return ok ? SUCCESS : ERR_HOST_CANT_LOAD_STATE;
 }
 
 static int clap_state_load(struct omx_clap_instance *clap, const char *filename)
@@ -1431,13 +1431,13 @@ static int clap_state_load(struct omx_clap_instance *clap, const char *filename)
 
     file = fopen(filename, "rb");
     if (!file)
-        return ERR_LV2_CANT_LOAD_STATE;
+        return ERR_HOST_CANT_LOAD_STATE;
 
     buffer = malloc(OMX_HOSTED_STAGE_STATE_MAX_BYTES);
     if (!buffer)
     {
         fclose(file);
-        return ERR_LV2_CANT_LOAD_STATE;
+        return ERR_HOST_CANT_LOAD_STATE;
     }
     length = fread(buffer, 1, OMX_HOSTED_STAGE_STATE_MAX_BYTES, file);
     ok = !ferror(file) && length < OMX_HOSTED_STAGE_STATE_MAX_BYTES;
@@ -1446,7 +1446,7 @@ static int clap_state_load(struct omx_clap_instance *clap, const char *filename)
     if (ok)
         ok = omx_clap_host_state_load(clap, buffer, length) == 0;
     free(buffer);
-    return ok ? SUCCESS : ERR_LV2_CANT_LOAD_STATE;
+    return ok ? SUCCESS : ERR_HOST_CANT_LOAD_STATE;
 }
 
 /* The lane's width asked of an inactive plugin (request_layout): -c channels on each main port, mono or stereo, the
@@ -3064,7 +3064,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
     if (lv2_uri)
         id = lv2_uri;
     else if (parse_uri(uri, path, sizeof(path), &id) != 0)
-        return ERR_LV2_INVALID_URI;
+        return ERR_HOST_INVALID_URI;
     if (!INSTANCE_IS_VALID(instance))
         return ERR_INSTANCE_INVALID;
     if (instance_exist(instance))
@@ -3117,7 +3117,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
     if (lv2_uri && lv2_params_build(effect) != 0)
     {
         fprintf(stderr, "%s: its parameters cannot be read\n", id);
-        error = ERR_LV2_INSTANTIATION;
+        error = ERR_HOST_INSTANTIATION;
         goto error;
     }
     if (layout_record(effect, pin, id) != 0)
@@ -3127,7 +3127,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
     }
     if (outputs_build(effect) != 0)
     {
-        error = ERR_LV2_INSTANTIATION;
+        error = ERR_HOST_INSTANTIATION;
         goto error;
     }
     // the lane's width asked before the ports are registered from the description: a plugin that cannot offer it
@@ -3139,7 +3139,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
         {
             fprintf(stderr, "%s: %s\n", id, why);
             snprintf(g_add_reason, sizeof(g_add_reason), "%s", why);
-            error = ERR_LV2_INSTANTIATION;
+            error = ERR_HOST_INSTANTIATION;
             goto error;
         }
     }
@@ -3207,7 +3207,7 @@ int effects_add(const char *uri, int instance, const char *client_name)
             lv2_reason(why);
         fprintf(stderr, "%s: %s\n", id, why);
         snprintf(g_add_reason, sizeof(g_add_reason), "%s", why);
-        error = ERR_LV2_INSTANTIATION;
+        error = ERR_HOST_INSTANTIATION;
         goto error;
     }
     atomic_store_explicit(&effect->rate, (double)jack_get_sample_rate(effect->jack_client), memory_order_relaxed);
@@ -3539,7 +3539,7 @@ int effects_set_parameter(int effect_id, const char *control_symbol, float value
         return SUCCESS;
     }
     if (param_of(&g_effects[effect_id], control_symbol, &id, &lv2) != 0)
-        return ERR_LV2_INVALID_PARAM_SYMBOL;
+        return ERR_HOST_INVALID_PARAM_SYMBOL;
     if (lv2_bypass_param(lv2))
     {
         omx_clap_host_bypass(g_effects[effect_id].clap, (value > 0.5f) != (lv2->hold > 0.5));
@@ -3563,7 +3563,7 @@ int effects_get_parameter(int effect_id, const char *control_symbol, float *valu
         return SUCCESS;
     }
     if (param_of(&g_effects[effect_id], control_symbol, &id, &lv2) != 0)
-        return ERR_LV2_INVALID_PARAM_SYMBOL;
+        return ERR_HOST_INVALID_PARAM_SYMBOL;
     if (lv2_bypass_param(lv2))
     {
         const int processing = lv2->hold > 0.5;
@@ -3636,7 +3636,7 @@ int effects_patch_set(int effect_id, const char *uri, const char *value)
             break;
         nanosleep(&ms, NULL);
     }
-    return strcmp(g_patch_why, OMX_HOSTING_PATCH_NOT_WRITABLE) == 0 ? ERR_LV2_INVALID_PARAM_SYMBOL : ERR_INVALID_OPERATION;
+    return strcmp(g_patch_why, OMX_HOSTING_PATCH_NOT_WRITABLE) == 0 ? ERR_HOST_INVALID_PARAM_SYMBOL : ERR_INVALID_OPERATION;
 }
 
 int effects_patch_get(int effect_id, const char *uri, char *buf, size_t size)
@@ -3664,7 +3664,7 @@ int effects_patch_get(int effect_id, const char *uri, char *buf, size_t size)
     if (!patch_is_text(plugin, uri))
     {
         snprintf(g_patch_why, sizeof(g_patch_why), "%s", OMX_HOSTING_PATCH_NOT_WRITABLE);
-        return ERR_LV2_INVALID_PARAM_SYMBOL;
+        return ERR_HOST_INVALID_PARAM_SYMBOL;
     }
     // what the plugin last reported, else what the host last wrote
     omx_clap_lv2_patch_text_get(plugin, uri, buf, (uint32_t)size);
@@ -4085,7 +4085,7 @@ static int preset_loaded(int r)
 {
     if (r == 0)
         return SUCCESS;
-    return r == OMX_CLAP_HOST_NOT_APPLIED ? OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_APPLIED_RESP : ERR_LV2_INVALID_PRESET_URI;
+    return r == OMX_CLAP_HOST_NOT_APPLIED ? OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_APPLIED_RESP : ERR_HOST_INVALID_PRESET_URI;
 }
 
 int effects_preset_load(int effect_id, const char *location)
@@ -4101,7 +4101,7 @@ int effects_preset_load(int effect_id, const char *location)
     if (!clap->preset_load)
         return ERR_INVALID_OPERATION;
     if (snprintf(key, sizeof(key), "%s", location) >= (int)sizeof(key))
-        return ERR_LV2_INVALID_PRESET_URI;
+        return ERR_HOST_INVALID_PRESET_URI;
     preset_key_decode(key);
     // an LV2 preset is named by its URI, as mod-host takes it, a file: URI too (a preset of the user's, or the bundle's
     // own <default-preset>): the world's URI of the preset that key resolves to, else the key as it is
@@ -4138,8 +4138,8 @@ int effects_preset_load(int effect_id, const char *location)
 /* a preset verb's refusal: "resp -104 <code>", the code one of plugin-hostd's preset refusals (docs/presets.md) */
 static int preset_refuse(char *reply, size_t size, const char *code)
 {
-    snprintf(reply, size, "resp %d %s", ERR_LV2_INVALID_PRESET_URI, code);
-    return ERR_LV2_INVALID_PRESET_URI;
+    snprintf(reply, size, "resp %d %s", ERR_HOST_INVALID_PRESET_URI, code);
+    return ERR_HOST_INVALID_PRESET_URI;
 }
 
 static int pj_set_string(struct pj *obj, const char *key, const char *text)
@@ -4443,7 +4443,7 @@ int effects_preset_load_reply(int effect_id, const char *location, char *reply, 
     if (strncmp(location, HOST_PRESET_KEY_PLUGIN, strlen(HOST_PRESET_KEY_PLUGIN)) &&
         strncmp(location, HOST_PRESET_KEY_FILE, strlen(HOST_PRESET_KEY_FILE)))
         return ret;
-    if (ret == ERR_LV2_INVALID_PRESET_URI || ret == ERR_INVALID_OPERATION)
+    if (ret == ERR_HOST_INVALID_PRESET_URI || ret == ERR_INVALID_OPERATION)
         return preset_refuse(reply, size, PRESET_CODE_NOT_OFFERED);
     if (ret == OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_APPLIED_RESP)
         return preset_refuse(reply, size, PRESET_CODE_NOT_APPLIED);
@@ -4562,14 +4562,14 @@ int effects_preset_show(int effect_id, const char *location, char **reply)
             preset_show_body(pj_get(&doc, "state")) != 0)
         {
             pj_free(&doc);
-            return ERR_LV2_INVALID_PRESET_URI;
+            return ERR_HOST_INVALID_PRESET_URI;
         }
         files = pj_get(pj_get(&doc, "state"), "files");
         for (i = 0; files && files->type == PJ_ARRAY && i < files->n; i++)
             if (preset_show_body(&files->kids[i]) != 0)
             {
                 pj_free(&doc);
-                return ERR_LV2_INVALID_PRESET_URI;
+                return ERR_HOST_INVALID_PRESET_URI;
             }
         ret = preset_show_reply(&doc, reply);
         pj_free(&doc);
@@ -4587,7 +4587,7 @@ int effects_preset_show(int effect_id, const char *location, char **reply)
         if (effects_preset_list(effect_id) < 0)
             return ERR_INVALID_OPERATION;     // the listing was refused: preset_show declares no code of preset_list's
     }
-    return ERR_LV2_INVALID_PRESET_URI;
+    return ERR_HOST_INVALID_PRESET_URI;
 }
 
 int effects_state_save(const char *dir)
@@ -4596,7 +4596,7 @@ int effects_state_save(const char *dir)
     int i, ret, error = SUCCESS;
 
     if (access(dir, F_OK) != 0 && mkdir(dir, 0755) != 0)
-        return ERR_LV2_CANT_LOAD_STATE;
+        return ERR_HOST_CANT_LOAD_STATE;
 
     LIVE_EACH_INSTANCE(i)
     {
@@ -5218,7 +5218,7 @@ int effects_param_info(int effect_id, const char *symbol, char *reply, size_t si
     if (!instance_exist(effect_id))
         return ERR_INSTANCE_NON_EXISTS;
     if (param_of(&g_effects[effect_id], symbol, &id, &lv2) != 0 || !omx_clap_host_param_is_row(g_effects[effect_id].clap, id))
-        return ERR_LV2_INVALID_PARAM_SYMBOL;
+        return ERR_HOST_INVALID_PARAM_SYMBOL;
     if (omx_clap_host_param_described(g_effects[effect_id].clap, id, &m) < 0
         || omx_clap_param_number(m.min, min, sizeof(min)) < 0 || omx_clap_param_number(m.max, max, sizeof(max)) < 0
         || omx_clap_param_number(m.def, def, sizeof(def)) < 0 || omx_clap_param_number(m.step, step, sizeof(step)) < 0)
@@ -5340,7 +5340,7 @@ int effects_monitor_output(int effect_id, const char *symbol)
         }
         return SUCCESS;
     }
-    return ERR_LV2_INVALID_PARAM_SYMBOL;
+    return ERR_HOST_INVALID_PARAM_SYMBOL;
 }
 
 /* monitor_output_off: 0 once `symbol` is no longer monitored, whoever set it; nothing reads it from then on. An output
@@ -5383,7 +5383,7 @@ int effects_monitor_output_off(int effect_id, const char *symbol)
         output_stop(&effect->outputs[i]);
         return SUCCESS;
     }
-    return ERR_LV2_INVALID_PARAM_SYMBOL;
+    return ERR_HOST_INVALID_PARAM_SYMBOL;
 }
 
 /* the connection the command being run came in on: a monitor it sets ends with it (docs/meters.md) */
@@ -5417,7 +5417,7 @@ int effects_meter_held(int effect_id, const char *symbol)
     return -1;
 }
 
-/* the clear of a clip word the reader holds lit: 0 once cleared, ERR_LV2_INVALID_PARAM_SYMBOL for a symbol that is no
+/* the clear of a clip word the reader holds lit: 0 once cleared, ERR_HOST_INVALID_PARAM_SYMBOL for a symbol that is no
  * meter's clip word */
 int effects_meter_clip_clear(int effect_id, const char *symbol)
 {
@@ -5436,5 +5436,5 @@ int effects_meter_clip_clear(int effect_id, const char *symbol)
         meter_tap_clip_clear(&output->tap);
         return SUCCESS;
     }
-    return ERR_LV2_INVALID_PARAM_SYMBOL;
+    return ERR_HOST_INVALID_PARAM_SYMBOL;
 }

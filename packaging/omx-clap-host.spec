@@ -311,6 +311,7 @@ the English source sentence.
 - ci: the deb, rpm and fuzz cells come from check-matrix and run on the runner
   it names, deb cells on arm64 (the channel's trixie development debs are arm64
   only), and Fedora 44 is out, Fedora 45 alone (#147).
+- ci: the commit identity check of public-sources is on (#150).
 
 * Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
 - Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0

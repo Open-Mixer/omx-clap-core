@@ -17,6 +17,7 @@ omx-clap-host (0.33.1) unstable; urgency=medium
   * ci: the deb, rpm and fuzz cells come from check-matrix and run on the runner
     it names, deb cells on arm64 (the channel's trixie development debs are
     arm64 only), and Fedora 44 is out, Fedora 45 alone (#147).
+  * ci: the commit identity check of public-sources is on (#150).
 
  -- Pau Aliagas <linuxnow@gmail.com>  Thu, 19 Nov 2026 18:00:00 +0100
 

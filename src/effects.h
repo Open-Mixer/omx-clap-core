@@ -82,7 +82,7 @@ int effects_preset_save(int effect_id, const char *path, const char *name, char 
 /* preset_load: a preset file (an absolute path) or a key of preset_get; the reply line, a refusal's with its code */
 int effects_preset_load_reply(int effect_id, const char *location, char *reply, size_t size);
 /* preset_show <N> <key | file>: "resp 0 <json>" malloc'd into *reply on SUCCESS (docs/presets.md); a file that is no
- * preset file and a key the plugin does not list answer ERR_LV2_INVALID_PRESET_URI with *reply NULL */
+ * preset file and a key the plugin does not list answer ERR_HOST_INVALID_PRESET_URI with *reply NULL */
 int effects_preset_show(int effect_id, const char *location, char **reply);
 int effects_state_save(const char *dir);
 int effects_state_load(const char *dir);
@@ -109,7 +109,7 @@ int effects_track_info(int effect_id, const char *name, const char *color, const
  * parameter above the port indices, a string or path one through the plugin's patch port (omx_clap_lv2_patch_text_*).
  * patch_get writes the value the plugin last reported, else the host's last write, into `buf` (a number as %.4f). A text
  * write while the previous one waits for its block waits for that block, up to 200 ms. ERR_INSTANCE_NON_EXISTS,
- * ERR_INVALID_OPERATION for a CLAP plugin or a value that is no number, ERR_LV2_INVALID_PARAM_SYMBOL for a URI the
+ * ERR_INVALID_OPERATION for a CLAP plugin or a value that is no number, ERR_HOST_INVALID_PARAM_SYMBOL for a URI the
  * plugin does not list; effects_patch_why() is then the hosting code, "" when there is none. */
 /* the longest patch value, without its NUL: the adapter's 4095 */
 #define OMX_PATCH_VALUE_MAX 4095

@@ -325,12 +325,16 @@ install-tests: $(TEST_FIXTURES)
 CONTRACT_SCHEMA_MAJOR = 3
 CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null),$(DATADIR)/omx-contract/contract.d)
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
-.PHONY: install-contract test-contract
+.PHONY: install-contract test-contract test-domain
 install-contract:
 	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.0.0 or later, or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
+
+# the hosting domain: installed, opened by the loader (omx-domain) with every code of data/, check-domain's arms
+test-domain:
+	INSTALL_CONTRACT_DIR='$(OMX_CONTRACT_SCRIPT)' OMX_CONTRACT_DIR='$(abspath $(OMX_CONTRACT_DIR))' MAKE='$(MAKE)' sh tests/domain-hosting.sh
 
 # data/ installed into a contract directory of its own, read back through omx-contract's reader beside omx-contract's
 # own package, and every file this tree commits as a render of it held to `render --package omx-clap-core`, byte for

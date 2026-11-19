@@ -17,5 +17,6 @@ plugin-hostd-full
 # moves with plugin-hostd in this pass.
 plugin-qualify
 #
-# plugin-db-qualification, the source of plugin-qualification-records, which installs through plugin-qualify.
-plugin-db-qualification
+# plugin-qualification-records: the rpm source and binary, and a deb binary (the deb source is plugin-db-qualification);
+# it installs through plugin-qualify.
+plugin-qualification-records

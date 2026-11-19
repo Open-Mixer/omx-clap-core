@@ -94,6 +94,8 @@ jobs:
       rpm-count: ${{ steps.m.outputs.rpm-count }}
       packages: ${{ steps.p.outputs.rpm }}
       packages-count: ${{ steps.p.outputs.rpm-count }}
+      debs: ${{ steps.d.outputs.deb }}
+      debs-count: ${{ steps.d.outputs.deb-count }}
     steps:
       - id: m
         uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
@@ -108,6 +110,14 @@ jobs:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
           rpm-releases: '["44", "45"]'
           rpm-arches: ${{ github.event_name == 'pull_request' && '["x86_64"]' || '["x86_64", "aarch64"]' }}
+      # the deb and deb-smoke jobs' cells: trixie on each architecture's own runner (the channel's development debs are
+      # trixie arm64 only; an amd64 container resolves an arm64 -dev package that dpkg refuses), arm64 alone on a pull request
+      - id: d
+        uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
+        with:
+          wave: ${{ vars.OMX_RELEASE_MATRIX }}
+          deb-releases: '["trixie"]'
+          deb-arches: ${{ github.event_name == 'pull_request' && '["arm64"]' || '["amd64", "arm64"]' }}
 
   contract:
     needs: checks
@@ -775,7 +785,7 @@ jobs:
     name: RPMs (fc${{ matrix.cell.fedora }}, ${{ matrix.cell.arch }}), installed in a clean root
     needs: [checks, changes]
     if: needs.changes.outputs.packages == 'true' && needs.checks.outputs.packages-count != '0'
-    runs-on: ${{ matrix.cell.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -1056,21 +1066,20 @@ jobs:
           retention-days: 7
 
   deb:
-    name: DEBs (${{ matrix.suite }}, ${{ matrix.arch }}), built and linted
-    needs: changes
-    if: needs.changes.outputs.packages == 'true'
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+    name: DEBs (${{ matrix.cell.suite }}, ${{ matrix.cell.arch }}), built and linted
+    needs: [changes, checks]
+    if: needs.changes.outputs.packages == 'true' && needs.checks.outputs.debs-count != '0'
+    runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        suite: [trixie]
-        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
+        cell: ${{ fromJSON(needs.checks.outputs.debs) }}
     defaults:
       run:
         shell: bash
     container:
-      image: debian:${{ matrix.suite }}
+      image: ${{ matrix.cell.image }}
     steps:
       - name: Install the build tools
         run: |
@@ -1196,7 +1205,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: omx-clap-host-ci-debs-${{ matrix.suite }}-${{ matrix.arch }}
+          name: omx-clap-host-ci-debs-${{ matrix.cell.suite }}-${{ matrix.cell.arch }}
           path: |
             debs/*.deb
             proto-debs/libplugin-hostd-protocol0_*.deb
@@ -1207,25 +1216,24 @@ jobs:
           retention-days: 1
 
   deb-smoke:
-    name: DEBs (${{ matrix.suite }}, ${{ matrix.arch }}), installed in a clean container
-    needs: deb
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+    name: DEBs (${{ matrix.cell.suite }}, ${{ matrix.cell.arch }}), installed in a clean container
+    needs: [deb, checks]
+    runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        suite: [trixie]
-        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
+        cell: ${{ fromJSON(needs.checks.outputs.debs) }}
     # nothing but the distribution: a dependency the package forgot to declare is missing here
     defaults:
       run:
         shell: bash
     container:
-      image: debian:${{ matrix.suite }}
+      image: ${{ matrix.cell.image }}
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: omx-clap-host-ci-debs-${{ matrix.suite }}-${{ matrix.arch }}
+          name: omx-clap-host-ci-debs-${{ matrix.cell.suite }}-${{ matrix.cell.arch }}
 
       - name: Install the package with its dependencies from the distribution
         run: |

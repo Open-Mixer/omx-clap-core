@@ -76,7 +76,7 @@ jobs:
     name: fuzz the preset, state and manifest readers (${{ matrix.cell.image }})
     needs: [checks, changes]
     if: (needs.changes.outputs.fuzz == 'true') && needs.checks.outputs.rpm-count != '0'
-    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.cell.runner }}
     # a backstop: fuzz-run spends 60 s on each harness and fuzz-sabotage runs seeds only, so the job ends well inside it
     timeout-minutes: 30
     strategy:

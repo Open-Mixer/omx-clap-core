@@ -1,3 +1,10 @@
+omx-clap-host (0.33.1) unstable; urgency=medium
+
+  * omx-clap-core-contract publishes the hosting codes as the hosting domain
+    (contract.d/hosting, rendered from data/); omx-contract floor 3.20.1.
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Thu, 19 Nov 2026 18:30:00 +0100
+
 omx-clap-host (0.33.0) unstable; urgency=medium
 
   * Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0

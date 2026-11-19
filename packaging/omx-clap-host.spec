@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.33.0
+Version:        0.33.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -294,6 +294,10 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.1-1
+- omx-clap-core-contract publishes the hosting codes as the hosting domain
+  (contract.d/hosting, rendered from data/); omx-contract floor 3.20.1.
+
 * Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
 - Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0
   (was 0.32.0 and below 0.33), omx-contract >= 3.20.0 (was 3.18.0 and below 4),

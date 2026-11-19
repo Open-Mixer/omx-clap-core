@@ -143,6 +143,15 @@ jobs:
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
+      # libomx-domain ships omx-domain, the loader's command: make test-domain opens the installed hosting domain with it;
+      # check-domain holds contract.d/hosting/hosting.json to what tools/render-domain.py derives from data/hosting*.json
+      - name: libomx-domain
+        run: dnf install -y --setopt=install_weak_deps=False libomx-domain
+      - name: make check-domain
+        run: make check-domain OMX_CONTRACT_DIR=/usr/lib/omx-contract
+      - name: make test-domain
+        run: make test-domain OMX_CONTRACT_DIR=/usr/lib/omx-contract
+
       # the display kinds this tree owns are omx-panel's DISPLAY_KINDS, the vocabulary source, word for word and in order
       - name: Install omx-panel
         run: dnf install -y --setopt=install_weak_deps=False 'omx-panel >= 0.13.8'

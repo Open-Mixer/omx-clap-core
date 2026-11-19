@@ -482,5 +482,5 @@ The file `VERSION` holds the one version of the whole tree: the programs, `libom
 (its file is `libomx-clap-core.so.<major>.<minor>.<patch>`) and `libomx-clap-lv2`, with the
 `.pc` files and the manual pages. The Makefile reads it and hands it to the compiler, so no
 source file spells it. A release is: put the
-version in `VERSION`, the spec's `Version` and a new top entry of `debian/changelog`, and tag `v<version>`. `make version-check` and the version job in CI refuse a tree
+version in `VERSION`, the spec's `Version` and a new top entry of `debian/changelog`, run `make render-domain` and commit `contract.d/hosting/hosting.json` (it carries `VERSION`; see the README's release steps), and tag `v<version>`. `make version-check` and the version job in CI refuse a tree
 whose files disagree. There is no changelog file: git history is the changelog.

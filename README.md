@@ -53,6 +53,15 @@ longer walk-through ([docs/overview.md](docs/overview.md)); every command
 [docs/clap-compatibility.md](docs/clap-compatibility.md)); building from source
 ([BUILDING.md](BUILDING.md)).
 
+Release steps
+-------------
+
+The domain document `contract.d/hosting/hosting.json` (the hosting codes, read by the omx-contract loader) takes its
+version from `VERSION` and is rendered from `data/hosting.json` and `data/hosting/*.json` by `tools/render-domain.py`.
+After the `VERSION` bump and before the release commit, run `make render-domain` and commit the file: `make
+check-domain`, which CI runs, stays red until it is run. A code added to or removed from the data under an unchanged
+`VERSION` is refused by name, and so is a code whose x-code moved (a new code is appended after the existing ones).
+
 Licence
 -------
 

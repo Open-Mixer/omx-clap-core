@@ -325,12 +325,25 @@ install-tests: $(TEST_FIXTURES)
 CONTRACT_SCHEMA_MAJOR = 3
 CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null),$(DATADIR)/omx-contract/contract.d)
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
-.PHONY: install-contract test-contract test-domain
+.PHONY: install-contract test-contract test-domain check-domain render-domain
 install-contract:
 	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.0.0 or later, or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
+	# the hosting domain, by the installer's domain mode: <contractdir>/hosting/hosting.json, as it is (no schema major)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/hosting $(DESTDIR)$(CONTRACTDIR)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
+
+# contract.d/hosting/hosting.json is what tools/render-domain.py derives from data/hosting.json and data/hosting/*.json
+# (python3 only); fmt and validate are omx-contract's, OMX_CONTRACT_DIR a checkout or the installed /usr/lib/omx-contract
+check-domain:
+	python3 tools/render-domain.py --check data VERSION contract.d/hosting/hosting.json
+	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs fmt --check --contract-dir contract.d
+	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs validate --contract-dir contract.d
+
+render-domain:
+	@mkdir -p contract.d/hosting
+	python3 tools/render-domain.py data VERSION contract.d/hosting/hosting.json
 
 # the hosting domain: installed, opened by the loader (omx-domain) with every code of data/, check-domain's arms
 test-domain:

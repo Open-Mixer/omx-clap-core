@@ -221,9 +221,9 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.33.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
           pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
-          pkg-config --atleast-version=0.32.0 omxdsp
+          pkg-config --atleast-version=0.33.0 omxdsp
           pkg-config --atleast-version=3.20.0 omx-contract
           command -v mod-host
 
@@ -669,9 +669,9 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.33.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
           pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
-          pkg-config --atleast-version=0.32.0 omxdsp
+          pkg-config --atleast-version=0.33.0 omxdsp
           pkg-config --atleast-version=3.20.0 omx-contract
           command -v mod-host
 
@@ -738,8 +738,8 @@ jobs:
       - name: Install omx-dsp-devel and omx-contract-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.32.0' 'omx-dsp-devel < 0.33' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0'
-          pkg-config --atleast-version=0.32.0 omxdsp
+          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.33.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0'
+          pkg-config --atleast-version=0.33.0 omxdsp
 
       # the parallel jobs from the job's CPU quota and the runner's declared CPUs, never the host's nproc
       - name: The parallel jobs this runner may run

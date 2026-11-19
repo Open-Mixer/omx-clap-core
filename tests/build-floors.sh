@@ -33,18 +33,20 @@ check() { # check <spec>: one line per package, exit 1 on any refusal
     [ -r "$spec" ] || { echo "build-floors: no spec $spec" >&2; return 2; }
     while read -r devel mod; do
         [ -n "$devel" ] || continue
-        floor=$(sed -n -E "s/^BuildRequires:[[:space:]]*\(${devel}[[:space:]]*>=[[:space:]]*([0-9.]+)[[:space:]]+with[[:space:]]+${devel}[[:space:]]*<[[:space:]]*([0-9.]+)\).*/\1/p" "$spec")
-        ceiling=$(sed -n -E "s/^BuildRequires:[[:space:]]*\(${devel}[[:space:]]*>=[[:space:]]*([0-9.]+)[[:space:]]+with[[:space:]]+${devel}[[:space:]]*<[[:space:]]*([0-9.]+)\).*/\2/p" "$spec")
-        [ -n "$floor" ] && [ -n "$ceiling" ] || { echo "build-floors: $spec states no (>= floor with < ceiling) range for $devel" >&2; return 2; }
+        # a floor, `<devel> >= F` or `(<devel> >= F with <devel> < C)`: the ceiling is optional (floors only is the rule; a package
+        # that keeps one is held to it)
+        floor=$(sed -n -E "s/^BuildRequires:[[:space:]]*\(?${devel}[[:space:]]*>=[[:space:]]*([0-9.]+).*/\1/p" "$spec" | head -1)
+        ceiling=$(sed -n -E "s/^BuildRequires:[[:space:]]*\(${devel}[[:space:]]*>=[[:space:]]*[0-9.]+[[:space:]]+with[[:space:]]+${devel}[[:space:]]*<[[:space:]]*([0-9.]+)\).*/\1/p" "$spec" | head -1)
+        [ -n "$floor" ] || { echo "build-floors: $spec states no range (>= floor, optionally with < ceiling) for $devel" >&2; return 2; }
         if ! have=$("$PKG_CONFIG" --modversion "$mod" 2>/dev/null); then
-            echo "build-floors: $devel ($mod) is not installed: the spec needs >= $floor < $ceiling"; rc=1; continue
+            echo "build-floors: $devel ($mod) is not installed: the spec needs >= $floor${ceiling:+ < $ceiling}"; rc=1; continue
         fi
         if [ "$(vercmp "$have" "$floor")" -lt 0 ]; then
             echo "build-floors: REFUSED $devel $have installed is below the spec's floor $floor (a stale channel or staging set: the suites would read as link or render errors)"; rc=1
-        elif [ "$(vercmp "$have" "$ceiling")" -ge 0 ]; then
+        elif [ -n "$ceiling" ] && [ "$(vercmp "$have" "$ceiling")" -ge 0 ]; then
             echo "build-floors: REFUSED $devel $have installed is at or past the spec's ceiling $ceiling"; rc=1
         else
-            echo "ok   build-floors: $devel $have within >= $floor < $ceiling"
+            echo "ok   build-floors: $devel $have within >= $floor${ceiling:+ < $ceiling}"
         fi
     done <<< "$MODULES"
     return $rc

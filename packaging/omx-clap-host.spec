@@ -20,7 +20,7 @@ BuildRequires: (plugin-db-devel >= 0.4.2 with plugin-db-devel < 0.5)
 # distribution's own is older)
 BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
+BuildRequires: omx-dsp-devel >= 0.33.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
 BuildRequires: omx-contract-devel >= 3.20.0
@@ -91,7 +91,7 @@ License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
 Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
 # hosted_stage.h includes omx-dsp's headers
-Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
+Requires: omx-dsp-devel >= 0.33.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
 Requires: omx-contract-devel >= 3.20.0
 Requires: omx-clap-core-contract = %{version}-%{release}

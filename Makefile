@@ -25,9 +25,9 @@ CORE_MAP = src/omx-clap-core.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
 CORE_TS = ts/omx-clap-core-hosting.js ts/omx-clap-core-hosting.d.ts ts/omx-clap-core-vocabulary.js ts/omx-clap-core-vocabulary.d.ts
 
-# The library floors the installed omx-clap-core.pc names in Requires.private, read from the one place they are declared,
-# the spec's BuildRequires `<devel> >= <floor>` (#66; floors only, no ceiling): $(call spec_floor,<devel>) is the floor.
-# debian/control states them again for the deb; tests/pc_range_parity.py holds both to the spec.
+# The library floors the installed omx-clap-core.pc names in Requires.private, read back from the spec, which is generated
+# from the one place they are declared, packaging/deps.txt: $(call spec_floor,<devel>) is the floor. Floors only: our own
+# packages carry no ceiling. tests/pc_range_parity.py holds the installed .pc to the spec.
 SPEC = packaging/omx-clap-host.spec
 spec_floor = $(shell sed -n -E 's/^BuildRequires:[[:space:]]*$(1)[[:space:]]*>=[[:space:]]*([0-9.]+)[[:space:]]*$$/\1/p' $(SPEC))
 OMX_CONTRACT_FLOOR = $(call spec_floor,omx-contract-devel)
@@ -535,13 +535,6 @@ test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
 	python3 tests/no_hostd_build_dep.py .
 
-# the rpm spec's clap-devel and debian/control's clap-headers name the same CLAP headers: a build from one
-# packaging must not take a floor or ceiling the other refuses (#14)
-.PHONY: test-clap-floor-parity
-test-clap-floor-parity:
-	python3 tests/clap_floor_parity.py --self-test
-	python3 tests/clap_floor_parity.py .
-
 # the installed omx-clap-core.pc and debian/control carry the omx-contract and omx-dsp ranges the spec declares, the one
 # place they are stated (#66); the self-test moves the spec's range and finds the .pc moved with it
 .PHONY: test-pc-range-parity
@@ -571,8 +564,8 @@ test-build-floors:
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
 
 test: test-no-backcompat
-test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
-test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-clap-floor-parity test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
@@ -1261,6 +1254,12 @@ test-jack-pool: $(PROG) tests/fake_pool.clap
 test-jack-abi: $(PROG) tests/fake.clap
 	OMX_HOST_EVENTS_ABI_CLOBBER='$(call host_declared,OMX_HOST_EVENTS_ABI_CLOBBER)' ./tests/jack_abi_e2e.sh
 
+# the host told to end (SIGTERM, SIGINT, SIGHUP) closes every JACK client it opened: one that dies without
+# jack_client_close strands the mutexes of jackd's metadata environment for good (tests/jack_close_e2e.sh)
+.PHONY: test-jack-close
+test-jack-close: $(PROG) tests/jack_xrun_shim.so tests/fake.clap
+	./tests/jack_close_e2e.sh
+
 test-jack-xruns: $(PROG) tests/jack_xrun_shim.so tests/fake.clap
 	OMX_HOST_EVENTS_XRUNS='$(call host_declared,OMX_HOST_EVENTS_XRUNS)' ./tests/jack_xruns_e2e.sh
 
@@ -1920,3 +1919,15 @@ bench-abi-guard: tests/abi_guard_bench
 test-no-host-nproc:
 	sh tools/no-host-nproc.sh --self-test
 	sh tools/no-host-nproc.sh
+
+# The dependency floors are written once, in packaging/deps.txt; the spec and debian/control are generated from it with
+# Open-Mixer/.github's deps-render. make deps writes them, make deps-check refuses drift (name a checkout of that
+# repository: make deps-check DOTGITHUB=<dir>).
+DOTGITHUB ?=
+.PHONY: deps deps-check
+deps:
+	@test -n "$(DOTGITHUB)" || { echo "$@: name a checkout of Open-Mixer/.github: make $@ DOTGITHUB=<dir>" >&2; exit 2; }
+	$(DOTGITHUB)/.github/actions/deps-render/render.sh --write .
+deps-check:
+	@test -n "$(DOTGITHUB)" || { echo "$@: name a checkout of Open-Mixer/.github: make $@ DOTGITHUB=<dir>" >&2; exit 2; }
+	$(DOTGITHUB)/.github/actions/deps-render/render.sh --check .

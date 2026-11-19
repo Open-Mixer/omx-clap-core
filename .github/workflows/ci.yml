@@ -75,6 +75,15 @@ jobs:
   # of either (the commit-msg hook the shared stub byte for byte), from Open-Mixer/.github and nowhere else
   public-sources:
     uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
+  # the dependency floors: the spec and debian/control state the floors packaging/deps.txt declares, and no ceiling. The
+  # engine is Open-Mixer/.github's deps-render, at the same openmixer-v1 ref every shared action of this repository uses
+  deps-render:
+    name: the floors are packaging/deps.txt's
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Open-Mixer/.github/.github/actions/deps-render@openmixer-v1
   # the Fedora cells the contract, build and two sabotage jobs run, and the rpm job's: check-matrix's answer
   # (rule 11-10: fc45 beside fc44; the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:
@@ -122,7 +131,7 @@ jobs:
       - name: Add the OpenMixer channel
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
       - name: omx-contract
-        run: dnf install -y --setopt=install_weak_deps=False 'omx-contract >= 3.20.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0'
+        run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec && dnf install -y --setopt=install_weak_deps=False omx-contract
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
       # (plugin-hostd-protocol#27: a stale staged contract package outranked the channel)
       - name: Every omx package comes from the channel
@@ -221,10 +230,11 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.33.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
-          pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
-          pkg-config --atleast-version=0.33.0 omxdsp
-          pkg-config --atleast-version=3.20.0 omx-contract
+          dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
+          pkg-config --exists plugin-hostd-protocol
+          pkg-config --exists omxdsp
+          pkg-config --exists omx-contract
           command -v mod-host
 
       - name: Every file a comment can be written in opens with its licence
@@ -253,7 +263,7 @@ jobs:
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
 
       - name: Install plugin-db's header, which the build reads
-        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5'
+        run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
 
       - name: Build
         run: make
@@ -422,6 +432,17 @@ jobs:
             make test-jack-meters
           else
             echo "::warning::test-jack-meters SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+          fi
+
+      # The host told to end (SIGTERM, SIGINT, SIGHUP) closes every JACK client it activated: one that dies without
+      # jack_client_close strands the mutexes of jackd's metadata environment for good.
+      - name: Test that the host closes its JACK clients when told to end
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make test-jack-close
+          else
+            echo "::error::test-jack-close cannot run: this runner refuses a private user and pid namespace with its own /proc"
+            exit 1
           fi
 
       # The auxiliary ports over jack with the fake plugins: a side chain heard, an auxiliary output read, a bypassed one silent.
@@ -669,10 +690,11 @@ jobs:
       - name: Install omx-dsp-devel, omx-contract-devel, plugin-hostd-protocol-devel, and mod-host from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.33.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0' 'plugin-hostd-protocol-devel >= 0.5.9' 'plugin-hostd-protocol-devel < 0.6' 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5' cjson-devel mod-host
-          pkg-config --atleast-version=0.5.9 plugin-hostd-protocol
-          pkg-config --atleast-version=0.33.0 omxdsp
-          pkg-config --atleast-version=3.20.0 omx-contract
+          dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
+          pkg-config --exists plugin-hostd-protocol
+          pkg-config --exists omxdsp
+          pkg-config --exists omx-contract
           command -v mod-host
 
       - uses: actions/checkout@v4
@@ -691,7 +713,7 @@ jobs:
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
 
       - name: Install plugin-db's header, which the build reads
-        run: dnf install -y --setopt=install_weak_deps=False 'plugin-db-devel >= 0.4.2' 'plugin-db-devel < 0.5'
+        run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
 
       - name: Build
         run: make
@@ -738,8 +760,8 @@ jobs:
       - name: Install omx-dsp-devel and omx-contract-devel from the OpenMixer channel
         run: |
           set -euo pipefail
-          dnf install -y --setopt=install_weak_deps=False 'omx-dsp-devel >= 0.33.0' 'omx-contract-devel >= 3.20.0' 'libomx-domain-devel >= 3.20.0'
-          pkg-config --atleast-version=0.33.0 omxdsp
+          dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
+          pkg-config --exists omxdsp
 
       # the parallel jobs from the job's CPU quota and the runner's declared CPUs, never the host's nproc
       - name: The parallel jobs this runner may run
@@ -817,7 +839,10 @@ jobs:
             diff -u expected.txt files.txt
             rpm -qp --requires "$rpm" | tee requires.txt
             grep -q 'libplugin-hostd-protocol.so.0' requires.txt
-            grep -qx '(plugin-hostd-protocol(.*) >= 0.5.9 with plugin-hostd-protocol(.*) < 0.6)' requires.txt
+            # the floor is the one packaging/deps.txt declares, read back from the spec generated from it; no ceiling
+            floor=$(sed -n 's/^Requires: plugin-hostd-protocol >= //p' packaging/omx-clap-host.spec)
+            grep -qx "plugin-hostd-protocol >= $floor" requires.txt
+            ! grep -qE '^plugin-hostd-protocol.* < ' requires.txt
             grep -q 'libomx-clap-core.so.1' requires.txt
             grep -q 'omx-clap-core.* = ' requires.txt
             # the window links libxcb, so the package requires it (#180)
@@ -1209,7 +1234,8 @@ jobs:
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap-core1_*.deb ./debs/omx-clap-core-contract_*_all.deb \
             ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
-          dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -E 'libplugin-hostd-protocol0 \(>= 0\.5\.[0-9]+' | grep -qF 'libplugin-hostd-protocol0 (<< 0.6~)'
+          dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0 \(>= [0-9.]+~?\)'
+          ! dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qF 'libplugin-hostd-protocol0 (<<'
           dpkg -s libomx-clap-core1 | grep '^Status: install ok installed'
           dpkg -s libomx-domain0 | grep '^Status: install ok installed'
           # the contract directory's files come with the runtime library, no -dev installed

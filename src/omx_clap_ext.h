@@ -192,7 +192,7 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 #define OMX_CLAP_PANEL_FAMILIES(X) \
     X(0, "none", NONE) X(1, "gate", GATE) X(2, "dynamics", DYNAMICS) X(3, "limiter", LIMITER) X(4, "deesser", DEESSER) \
     X(5, "eq", EQ) X(6, "filter", FILTER) X(7, "drive", DRIVE) X(8, "modulation", MODULATION) X(9, "delay", DELAY) \
-    X(10, "reverb", REVERB) X(11, "pitch", PITCH)
+    X(10, "reverb", REVERB) X(11, "pitch", PITCH) X(12, "utility", UTILITY)
 
 /** The widgets: auto leaves the widget to the host, from the parameter. */
 #define OMX_CLAP_PANEL_WIDGETS(X) \

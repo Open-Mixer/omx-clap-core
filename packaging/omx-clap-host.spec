@@ -13,12 +13,14 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.9 with plugin-hostd-protocol-devel < 0.6)
+# The floors of the requirements below are GENERATED from packaging/deps.txt by Open-Mixer/.github deps-render
+# (render.sh --write); edit that file, not these lines.
+BuildRequires: plugin-hostd-protocol-devel >= 0.5.9
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.4.2 with plugin-db-devel < 0.5)
+BuildRequires: plugin-db-devel >= 0.4.2
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
 # distribution's own is older)
-BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
+BuildRequires: clap-devel >= 1.2.10
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: omx-dsp-devel >= 0.33.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
@@ -38,7 +40,8 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.9 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: plugin-hostd-protocol%{?_isa}
+Requires: plugin-hostd-protocol >= 0.5.9
 # omx-clap-scan reads the scan domain at start-up through the loader, and refuses (status 78) on an install without it: the loader, and
 # the data package that holds the domain (noarch data, so this package's own requirement of it is no cycle)
 Requires: libomx-domain >= 3.20.0
@@ -89,7 +92,7 @@ Its documentation is on openmixer.org.
 Summary: Build a program that hosts CLAP plugins on omx-clap-core
 License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
+Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
 Requires: omx-dsp-devel >= 0.33.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
@@ -121,7 +124,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
+Requires: clap-devel >= 1.2.10
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig

@@ -72,19 +72,36 @@ P
 ADD='w["latencyNew"] = {"code": "hosting.latency.new", "text": {"en": "A new word."}}'
 fresh
 edit "$ADD"
-refused "a word added, the version unchanged" "words added or removed while the version is unchanged"
+refused "a word added, the version unchanged" "word added while info.version stays"
 fresh
 edit 'del w["latencyResolved"]'
-refused "a word removed, the version unchanged" "words added or removed while the version is unchanged"
+refused "a word removed, the version unchanged" "word removed while info.version stays"
 fresh
 edit 'a = w.pop("latencyNonconforming"); w["latencyNonconforming"] = a'
-refused "an x-code swap" "x-code moved"
+refused "an x-code swap" "x-code moved from"
+# the refusals are omx-contract's `domain check`: a version going down is refused too, and the document is untouched
+fresh
+echo 0.1.0 > "$tmp/t/VERSION"
+refused "a version going down" "is below"
+# every item carries an x-since, never above the document's info.version: validate (omx-contract's rule domain-x-since) is red
+since_red() { # <label> <sed script over the domain file>
+  fresh
+  sed -i "$2" "$tmp/t/$D"
+  rm -rf "$tmp/only"; mkdir -p "$tmp/only"; cp -r "$tmp/t/contract.d/hosting" "$tmp/only/"
+  if out=$(node "$OMX_CONTRACT_DIR/bin/omx-contract.mjs" validate --contract-dir "$tmp/only" 2>&1); then echo "FAIL $1: validate is green"; exit 1; fi
+  printf '%s\n' "$out" | grep -q "domain-x-since" || { echo "FAIL $1: validate is red without naming domain-x-since: $out"; exit 1; }
+}
+since_red "an item without x-since" '0,/"x-since": "[0-9.]*",/{/"x-since": "[0-9.]*",/d}'
+since_red "an x-since above info.version" '0,/"x-since": "[0-9.]*"/s//"x-since": "99.0.0"/'
+# every item of the rendered file says the version that first carried it
+n=$(grep -c "\"x-since\": \"$(cat VERSION)\"" "$D"); [ "$n" -ge 19 ] || { echo "FAIL fewer than 19 items carry x-since $(cat VERSION): $n"; exit 1; }
 # a new version with the word appended renders, and the codes of the earlier words stay put
 fresh
 edit "$ADD"
 echo 9.9.9 > "$tmp/t/VERSION"
 $MAKE --no-print-directory -C "$tmp/t" render-domain >/dev/null || { echo "FAIL a word appended under a new version is refused"; exit 1; }
 $MAKE --no-print-directory -C "$tmp/t" check-domain >/dev/null || { echo "FAIL check-domain is red after a render under a new version"; exit 1; }
+[ "$(grep -c '"x-since": "9.9.9"' "$tmp/t/$D")" = 0 ] || { echo "FAIL an item that was there got the new version as its x-since"; exit 1; }
 grep -q '"version": "9.9.9"' "$tmp/t/$D" || { echo "FAIL the domain's version is not VERSION"; exit 1; }
 grep -q '"const": "hosting.latency.new"' "$tmp/t/$D" || { echo "FAIL the appended word is not in the domain file"; exit 1; }
 echo "ok   domain hosting: installed, opened by the loader with every code of data/; check-domain red on missing, hand-edited and unrendered; a word added or removed or an x-code moved under the same version refused; an appended word under a new version renders"

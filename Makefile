@@ -288,12 +288,18 @@ TEST_FIXTURES = tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap t
     tests/socket_conformance.py
 
 # the library, its headers, the pkg-config file and the export list: what a program that hosts CLAP plugins builds against
-install-lib: $(CORE_SO)
-	install -d $(DESTDIR)$(LIBDIR)/pkgconfig $(DESTDIR)$(INCLUDEDIR)/omx-clap-host $(DESTDIR)$(DATADIR)/$(CORE)/ts
+install-lib: $(CORE_SO) install-pc
+	install -d $(DESTDIR)$(INCLUDEDIR)/omx-clap-host $(DESTDIR)$(DATADIR)/$(CORE)/ts
 	install -m 755 $(CORE_FILE) $(DESTDIR)$(LIBDIR)/
 	ln -sf $(CORE_FILE) $(DESTDIR)$(LIBDIR)/$(CORE_SONAME)
 	ln -sf $(CORE_SONAME) $(DESTDIR)$(LIBDIR)/$(CORE_SO)
 	install -m 644 $(CORE_HEADERS) $(DESTDIR)$(INCLUDEDIR)/omx-clap-host/
+	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
+	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
+
+# the pkg-config file, which declares where the rest of the devel package lies (tsdir, fixturesdir)
+install-pc:
+	install -d $(DESTDIR)$(LIBDIR)/pkgconfig
 	@for v in '$(OMX_CONTRACT_FLOOR)' '$(OMXDSP_FLOOR)'; do \
 	  printf '%s\n' "$$v" | grep -qxE '[0-9]+(\.[0-9]+)*' || { echo "install-lib: $(SPEC) declares no single omx-contract-devel and omx-dsp-devel BuildRequires floor (got '$$v')" >&2; exit 1; }; done
 	sed -e 's,@PREFIX@,$(PREFIX),' -e 's,@LIBDIR@,$(LIBDIR),' -e 's,@INCLUDEDIR@,$(INCLUDEDIR),' \
@@ -302,8 +308,18 @@ install-lib: $(CORE_SO)
 	    -e 's,@OMXDSP_FLOOR@,$(OMXDSP_FLOOR),' \
 	    omx-clap-core.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
 	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
-	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
-	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
+
+# the test fixtures' sources and the one makefile that builds them (tests/fixtures.mk), flat under the devel package's
+# fixturesdir: a consumer's tests build them into a directory of their own, never into the installed tree
+install-fixtures:
+	install -d $(DESTDIR)$(DATADIR)/$(CORE)/fixtures/omx-worker-gain.lv2
+	install -m 644 tests/fixtures.mk tests/fault_clap.c $(LV2_FIXTURE_DIR)/lv2_worker_gain.c $(LV2_FIXTURE_DIR)/lv2_worker_gain.h $(DESTDIR)$(DATADIR)/$(CORE)/fixtures/
+	install -m 644 $(LV2_FIXTURE_DIR)/omx-worker-gain.lv2/*.ttl $(DESTDIR)$(DATADIR)/$(CORE)/fixtures/omx-worker-gain.lv2/
+
+.PHONY: install-pc install-fixtures test-fixtures-install
+
+test-fixtures-install:
+	sh tests/fixtures-install-check.sh build/fixtures-install
 
 # the LV2 adapter: the archive, its one header and its pkg-config file, what a program that hosts LV2 plugins as CLAP
 # plugins builds against; lilv is the program's to have at run time (the adapter dlopens liblilv-0.so.0)
@@ -384,7 +400,7 @@ test-contract:
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 
-install: install-lib install-lv2 install-tests install_man install-contract
+install: install-lib install-lv2 install-tests install-fixtures install_man install-contract
 	install -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(UDEVDIR)
 	install -m 755 $(PROG) $(SCAN_PROG) $(DESTDIR)$(BINDIR)
 	install -d $(DESTDIR)$(DATADIR)/omx-clap-host
@@ -1088,14 +1104,6 @@ bench-stage: tests/stage_bench.c src/clap_stage.h src/hosted_stage.h src/hosted_
 	$(CC) -Ibuild/bench-relaxed $(CLAP_CFLAGS) $(CFLAGS) -Werror -DBENCH_LABEL='"relaxed"' -o build/stage_bench_relaxed $< src/abi_guard.S -lm
 	for i in 1 2 3; do ./build/stage_bench_seq_cst; ./build/stage_bench_relaxed; done
 
-# the fault fixtures, one .clap per mode of tests/fault_clap.c: also what a consumer's tests load
-FAULT_MODES = 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
-FIXTURES = $(foreach m,$(FAULT_MODES),tests/fault-$(m).clap)
-fixtures: $(FIXTURES)
-
-tests/fault-%.clap: tests/fault_clap.c
-	$(CC) $(CLAP_CFLAGS) $(CFLAGS) -Werror -shared -DOMX_FAULT_MODE=$* -o $@ $< -lm
-
 tests/fake.clap: tests/fake_plugin.c src/omx_clap_ext.h
 	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -shared -o $@ $<
 
@@ -1446,9 +1454,10 @@ clap-coverage: $(PROG) $(SCAN_PROG)
 
 # the fixture bundles, built into build/lv2: their TTL beside a binary of their own, every symbol a test reads exported
 LV2_FIXTURE_DIR = lv2/tests/fixtures
-# -ffp-contract=off on the fixtures and the tests: an exact oracle (out == in * gain) holds only when neither side
-# fuses a multiply into an add; aarch64's GCC fuses by default and the product's rounding then reads as an error
-LV2_FIXTURE_CFLAGS = -O2 -g -Wall -Wextra -Werror -std=gnu99 -fPIC -shared -D_GNU_SOURCE -pthread -ffp-contract=off $(LV2_CFLAGS)
+# the fault fixtures and the worker-gain bundle: tests/fixtures.mk, the one makefile the devel package ships too, builds
+# them from the sources named here into this tree
+FIXTURES_CFLAGS = $(CFLAGS)
+include tests/fixtures.mk
 LV2_BUNDLES = build/lv2/omx-host-fixture.lv2/omx-host-fixture.so build/lv2/omx-worker-gain.lv2/omx-worker-gain.so \
               build/lv2/omx-lv2-fakes.lv2/omx-lv2-fakes.so build/lv2/omx-patch-fixture.lv2/omx-patch-fixture.so \
               build/lv2/omx-property-fixture.lv2/omx-property-fixture.so \
@@ -1487,11 +1496,6 @@ build/lv2/omx-host-fixture.lv2/omx-host-fixture.so: $(LV2_FIXTURE_DIR)/lv2_host_
 	@mkdir -p $(@D)
 	cp $(LV2_FIXTURE_DIR)/omx-host-fixture.lv2/*.ttl $(@D)/
 	$(CC) $(LV2_FIXTURE_CFLAGS) -o $@ $< -lm
-
-build/lv2/omx-worker-gain.lv2/omx-worker-gain.so: $(LV2_FIXTURE_DIR)/lv2_worker_gain.c $(LV2_FIXTURE_DIR)/lv2_worker_gain.h $(wildcard $(LV2_FIXTURE_DIR)/omx-worker-gain.lv2/*.ttl)
-	@mkdir -p $(@D)
-	cp $(LV2_FIXTURE_DIR)/omx-worker-gain.lv2/*.ttl $(@D)/
-	$(CC) $(LV2_FIXTURE_CFLAGS) -DLV2_WORKER_GAIN_BUNDLE -o $@ $< -lm
 
 build/lv2/omx-time-probe.lv2/omx-time-probe.so: $(LV2_FIXTURE_DIR)/lv2_time_probe.c $(LV2_FIXTURE_DIR)/lv2_time_probe.h $(wildcard $(LV2_FIXTURE_DIR)/omx-time-probe.lv2/*.ttl)
 	@mkdir -p $(@D)

@@ -55,7 +55,7 @@ jobs:
           else
             echo "fuzz=false" >> "$GITHUB_OUTPUT"
           fi
-  # the Fedora cells fuzz runs: check-matrix's answer (Fedora 45 alone: the fc44 builds are dropped;
+  # the Fedora cells fuzz runs: check-matrix's answer (Fedora 45 alone;
   # the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:
     runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}

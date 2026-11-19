@@ -331,7 +331,7 @@ CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
 .PHONY: install-contract test-contract test-domain check-domain render-domain
 install-contract:
-	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.20.0 or later (its --domain mode installs contract.d/scan), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
+	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.20.1 or later (its --domain mode installs contract.d/scan and contract.d/hosting), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR)

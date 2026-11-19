@@ -91,7 +91,7 @@ jobs:
           tools/test/workflow-fedora-check.sh .
       - uses: Open-Mixer/.github/.github/actions/deps-render@openmixer-v1
   # the Fedora cells the contract, build and two sabotage jobs run, and the rpm job's: check-matrix's answer
-  # (Fedora 45 alone: the fc44 builds are dropped; the quick set while a release wave is open, the whole matrix declared here otherwise)
+  # (Fedora 45 alone; the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 5

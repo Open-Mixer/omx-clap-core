@@ -1247,7 +1247,8 @@ jobs:
           set -euo pipefail
           version=$(dpkg-query -W -f='${Version}' omx-clap-host)
           omx-clap-host -V | tee v.txt
-          grep -q "version: ${version%%~*}\$" v.txt
+          upstream=${version%%+*}
+          grep -q "version: ${upstream%%~*}\$" v.txt
           ldd /usr/bin/omx-clap-host | tee ldd.txt
           ! grep -q 'not found' ldd.txt
           grep -q 'libplugin-hostd-protocol\.so\.0 => /' ldd.txt

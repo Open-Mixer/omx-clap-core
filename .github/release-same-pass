@@ -4,12 +4,18 @@
 # channel-installability gate reports a breakage they cause or suffer instead of failing on it. Reviewed like code;
 # goes away with this release branch, so it can never excuse a break in a later pass.
 #
-# openmixer, the console's source package: its binaries cap omx-clap-core, libomx-clap-core1, libomx-clap-core-dev,
-# libomx-clap-lv2-dev and omx-clap-host below 0.33, so omx-clap-core 0.33.0 breaks them until openmixer releases.
-openmixer
-#
 # plugin-hostd, the source of plugin-hostd-contract, plugin-hostd-full and plugin-hostd-devel: the published 0.20.7 caps
 # omx-clap-core-contract and omx-clap-host below 0.33 (the dry run's RED: plugin-hostd-contract needs omx-clap-core-contract
 # < 0.33, plugin-hostd-full needs omx-clap-host < 0.33); its later release in this pass lifts them. omx-panel's reds
 # in the same run are its dependence on plugin-hostd-contract.
 plugin-hostd
+#
+# plugin-hostd-full, the same name as source and binary in deb and rpm: its published 0.20.7 caps omx-clap-host below 0.33.
+plugin-hostd-full
+#
+# plugin-qualify, the source of plugin-qualify and plugin-qualify-contract: 0.20.6 needs plugin-hostd >= 0.20.7, so it
+# moves with plugin-hostd in this pass.
+plugin-qualify
+#
+# plugin-db-qualification, the source of plugin-qualification-records, which installs through plugin-qualify.
+plugin-db-qualification

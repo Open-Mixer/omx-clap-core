@@ -55,7 +55,7 @@ on:
         type: boolean
         default: false
       same_pass:
-        description: 'Packages other repositories release in the same pass, space separated (channel-installability)'
+        description: 'Packages other repositories release later in the same pass, space separated; empty reads .github/release-same-pass at the commit built'
         type: string
         default: ''
 

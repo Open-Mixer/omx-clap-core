@@ -304,6 +304,13 @@ the English source sentence.
   release is 0.6.0, so the floor is plugin-hostd-protocol >= 0.6.0 (was
   0.5.9). Floors only: no ceilings, no Conflicts, Breaks, Replaces or
   Obsoletes, no epoch (#144).
+- clap-core no longer depends upward on omx-panel: OMX_CLAP_PANEL_DISPLAY_KINDS
+  and the check that installed omx-panel are dropped; the display kind table is
+  omx-panel's, the struct field stays a number (an ABI code) and omx-clap-scan
+  prints it as a number (#145).
+- ci: the deb, rpm and fuzz cells come from check-matrix and run on the runner
+  it names, deb cells on arm64 (the channel's trixie development debs are arm64
+  only), and Fedora 44 is out, Fedora 45 alone (#147).
 
 * Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
 - Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0

@@ -32,4 +32,9 @@ awk '/^Package: omx-clap-host$/{f=1;next} /^Package:/{f=0} f' debian/control | g
 # omx-contract at 3.20.0 everywhere the tree names it
 low=$( { awk '/^%changelog/{exit} {print FILENAME":"FNR":"$0}' "$spec"; awk '{print FILENAME":"FNR":"$0}' debian/control; } | grep -E '(omx-contract(-devel|-data)?|libomx-contract-dev) *(>=|\(>=) *3\.1[0-9]\.[0-9]+' || true)
 [ -z "$low" ] || fail "an omx-contract floor below 3.20.0 is still declared: $(printf '%s' "$low" | head -3 | tr '\n' ' ')"
+# a floor and no ceiling: omx-contract's packages are named by their floor only (the rule: floors only), in the spec above its
+# changelog, in debian/control and in the workflow's installs
+ceil=$( { awk '/^%changelog/{exit} {print FILENAME":"FNR":"$0}' "$spec"; awk '{print FILENAME":"FNR":"$0}' debian/control; awk '{print FILENAME":"FNR":"$0}' .github/workflows/ci.yml; } \
+  | grep -E "(omx-contract(-devel|-data)?|libomx-contract-dev)[ ']*(<|<<|\(<<|\(<) *[0-9]|(omx-contract(-devel|-data)?|libomx-contract-dev)[^;]*(with|and) +(omx-contract(-devel|-data)?|libomx-contract-dev) *< *[0-9]" || true)
+[ -z "$ceil" ] || fail "omx-contract is bounded above (floors only, no ceiling): $(printf '%s' "$ceil" | head -3 | cut -c1-150 | tr '\n' ' ')"
 echo "domain-packaging-check: ok"

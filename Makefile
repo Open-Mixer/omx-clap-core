@@ -158,6 +158,10 @@ CORE_OBJ = $(CORE_SRC:.c=.o) src/abi_guard.o
 # and needs neither jack nor the protocol library
 SCAN_SRC = src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c
 SCAN_OBJ = $(SCAN_SRC:.c=.o)
+# the scanner reads the scan domain's words at start-up through libomx-domain (omx-contract's C loader, docs/consumer-move.md)
+DOMAIN_CFLAGS = $(shell $(PKG_CONFIG) --cflags libomx-domain)
+DOMAIN_LIBS = $(shell $(PKG_CONFIG) --libs libomx-domain)
+src/scan_fields.o: CPPFLAGS += $(DOMAIN_CFLAGS)
 
 # the LV2 adapter, libomx-clap-lv2.a: lv2/core is the LV2 host with no CLAP in it, lv2/clap the shim that presents one LV2
 # plugin as one CLAP plugin. A static archive, position-independent so a shared object can link it; lilv is never linked,
@@ -197,7 +201,7 @@ $(PROTOCOL_LIB):
 endif
 
 $(SCAN_PROG): $(SCAN_OBJ) $(LV2_LIB) $(CORE_SO)
-	$(CC) $(SCAN_OBJ) $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK) $(PIN_LIBS) $(LDFLAGS) -ldl -lpthread -lm -o $@
+	$(CC) $(SCAN_OBJ) $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK) $(PIN_LIBS) $(DOMAIN_LIBS) $(LDFLAGS) -ldl -lpthread -lm -o $@
 
 # the preset census (tools/preset-census.c): every plugin's preset-discovery factory, preset-load and state, one TSV line
 # each; built on demand, never installed
@@ -327,8 +331,10 @@ CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
 .PHONY: install-contract test-contract
 install-contract:
-	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.0.0 or later, or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
+	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.20.0 or later (its --domain mode installs contract.d/scan), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
+	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 
@@ -350,8 +356,11 @@ test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
 
 .PHONY: test-fields
-test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap
+# omx-clap-scan --fields reads the scan domain at start-up; a test harness points it at this tree's contract.d (OMX_CONTRACT_PATH, a ':' list)
+test-fields: export OMX_CONTRACT_PATH = $(abspath contract.d)
+test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_compressor.clap
 	python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(OMX_CONTRACT_DIR)/data/formats $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) $(PLUGIN_HOSTD_TABLES)
+	python3 tests/scan-domain-check.py ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath contract.d) $(abspath tests/fake_compressor.clap)
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 	python3 tests/resource-hints-check.py --self-test ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 
@@ -363,6 +372,10 @@ OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-c
 test-contract:
 	rm -rf build/contract
 	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)
+	sh tests/domain-scan-check.sh $(OMX_CONTRACT_DIR)
+	sh tests/domain-packaging-check.sh
+	$(CC) $(shell $(PKG_CONFIG) --cflags libomx-domain) tests/domain_installed_test.c -o build/contract/domain_installed_test $(shell $(PKG_CONFIG) --libs libomx-domain)
+	build/contract/domain_installed_test $(abspath build/contract/dir)
 	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
@@ -494,15 +507,15 @@ test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) $(TEST_DESK) tests/clap_host_te
 
 # the scanner against the fake plugin, one that crashes, a broken file, a directory walk, omx-delay.clap and the fake synth
 test-scan: $(SCAN_PROG) tests/clap_scan_test tests/fake.clap tests/crash.clap tests/fake_synth.clap tests/fake_panel.clap
-	@$(call run_or_skip_clap_test_plugin,./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) $(CLAP_TEST_PLUGIN) $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap))
+	@$(call run_or_skip_clap_test_plugin,OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) $(CLAP_TEST_PLUGIN) $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap))
 
 # the scanner's sources and the core compiled directly into the test, bypassing the shared library so the whole walk
 # carries AddressSanitizer's instrumentation: a directory of real .clap files listed, then everything main() built
 # (roots, files, failures, seen) must be off the heap again. Needs libasan; CI runs it, the package builds do not
 tests/clap_scan_asan: src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c src/layout_pin.h $(CORE_SRC) $(CORE_HEADERS) $(LV2_LIB) src/abi_guard.S $(PROTOCOL_LIB)
-	$(CC) -Isrc -Ilv2/core $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) $(PROTOCOL_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror -fno-omit-frame-pointer \
+	$(CC) -Isrc -Ilv2/core $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) $(PROTOCOL_CFLAGS) $(DOMAIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror -fno-omit-frame-pointer \
 	    -fsanitize=address,undefined -fno-sanitize-recover=all -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u \
-	    -o $@ src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c $(CORE_SRC) $(LV2_LIB) $(CRYPTO_LIBS) src/abi_guard.S $(PROTOCOL_LIBS) -ldl -lpthread -lm
+	    -o $@ src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c $(CORE_SRC) $(LV2_LIB) $(CRYPTO_LIBS) src/abi_guard.S $(PROTOCOL_LIBS) $(DOMAIN_LIBS) -ldl -lpthread -lm
 
 test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 	ASAN_OPTIONS=detect_leaks=1 ./tests/clap_scan_asan $(abspath tests/fake.clap) $(abspath tests/crash.clap) >/dev/null
@@ -561,7 +574,7 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 	./tests/clap_state_busy_test $(abspath tests/fake_state.clap)
 	./tests/idle_hold_test $(abspath tests/fake.clap)
 	./tests/clap_host_test - $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(abspath tests/fake_mover.clap) $(abspath tests/fault-17.clap)
-	./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
+	OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
 
 # every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_core_vocabulary.h, the render of
 # data/hosting/: no hand-typed "hosting." literal, no name that header lacks (tests/hosting-codes-check.sh, with its sabotage arms); and

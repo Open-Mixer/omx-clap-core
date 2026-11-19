@@ -25,9 +25,9 @@ env:
   # plugin-hostd from the release we ship (.github/plugin-hostd.sh): its pin header and vocabulary (pkg-config
   # plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/ (protocol.sh,
   # plugin_hostd_client.py) all come from this one tag; the protocol is the plugin-hostd-protocol the job installs
-  PLUGIN_HOSTD_REF: v0.20.6
+  PLUGIN_HOSTD_REF: 54eee2956b1af815d2e1fd2fb8218a77bb6679db  # plugin-hostd main with #166 and #167 (machine.c); a release tag replaces it
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
-  OMX_CONTRACT_REF: v3.12.0
+  OMX_CONTRACT_REF: v3.20.0
 
 # Two tiers (owner ruling 2026-11-09: heavy workflows on tags, pull requests quick). A pull request runs the plain test
 # tier and one package arm (fc44 x86_64, trixie amd64). The sanitizer tiers (address, thread), every sabotage of a guard,
@@ -123,7 +123,7 @@ jobs:
       image: ${{ matrix.cell.image }}
     steps:
       - name: The tools
-        run: dnf install -y --setopt=install_weak_deps=False git make nodejs python3 pkgconf-pkg-config diffutils
+        run: dnf install -y --setopt=install_weak_deps=False git make nodejs python3 pkgconf-pkg-config diffutils gcc
 
       - uses: actions/checkout@v4
 
@@ -202,7 +202,7 @@ jobs:
     if: needs.checks.outputs.rpm-count != '0'
     name: build and test (${{ matrix.cell.image }})
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 70
     strategy:
       fail-fast: false
       matrix:
@@ -255,6 +255,9 @@ jobs:
           .github/plugin-hostd.sh /tmp/plugin-hostd
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
+          # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
+          make -C /tmp/plugin-hostd install_machine_domain
+          test -s /usr/share/omx-contract/contract.d/machine/machine.json
           echo "PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
           echo "PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib" >> "$GITHUB_ENV"
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
@@ -702,6 +705,9 @@ jobs:
           .github/plugin-hostd.sh /tmp/plugin-hostd
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
+          # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
+          make -C /tmp/plugin-hostd install_machine_domain
+          test -s /usr/share/omx-contract/contract.d/machine/machine.json
           echo "PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
           echo "PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib" >> "$GITHUB_ENV"
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
@@ -870,6 +876,7 @@ jobs:
             files "$rpm" > files.txt
             printf '%s\n' /usr/share/omx-contract/contract.d/3/omx-clap-core/MANIFEST.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting.json /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json \
               /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/clap.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/cost.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/features.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/latency.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/memory.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/output.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/override.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/patch.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/preset.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/provenance.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/realised.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/resource-hints.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/rt-safety.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/stability.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/state.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/topology.json /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/worker.json \
+              /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
               /usr/share/licenses/omx-clap-core-contract/COPYING /usr/share/doc/omx-clap-core-contract/README.md | sort > expected.txt
             diff -u expected.txt files.txt
           done
@@ -1102,12 +1109,12 @@ jobs:
 
       - uses: Open-Mixer/.github/.github/actions/build-deb@openmixer-v1
 
-      # the protocol library and omx-contract's data the package depends on, from the channel, for the smoke test's container, which has only
+      # the protocol library, omx-contract's data and its domain loader (libomx-domain0, which the host links) the package depends on, from the channel, for the smoke test's container, which has only
       # the distribution
       - name: Fetch libplugin-hostd-protocol0 for the smoke test
         run: |
           set -euo pipefail
-          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data
+          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data libomx-domain0
 
       # what the smoke test runs the installed package against, built here for the architecture
       - name: Build the smoke test fixtures
@@ -1137,6 +1144,9 @@ jobs:
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap-core/hosting/features.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json contract-files.txt
+          # the scan domain, installed by the installer's domain mode, with its catalogs, in the same data package
+          grep -qx /usr/share/omx-contract/contract.d/scan/scan.json contract-files.txt
+          grep -qx /usr/share/omx-contract/contract.d/scan/catalogs/ca.json contract-files.txt
           ! grep -q '^/usr/share/omx-contract/' dev-files.txt
           dpkg -I debs/omx-clap-core-contract_*_all.deb | grep -E '^ Architecture: all$'
           for deb in debs/libomx-clap-core1_*.deb debs/libomx-clap-core-dev_*.deb; do
@@ -1191,6 +1201,7 @@ jobs:
             debs/*.deb
             proto-debs/libplugin-hostd-protocol0_*.deb
             proto-debs/omx-contract-data_*.deb
+            proto-debs/libomx-domain0_*.deb
             smoke
           if-no-files-found: error
           retention-days: 1
@@ -1221,11 +1232,12 @@ jobs:
           set -euo pipefail
           apt-get update -qq
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap-core1_*.deb ./debs/omx-clap-core-contract_*_all.deb \
-            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb
+            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
           dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0 \(>= [0-9.]+~?\)'
           ! dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qF 'libplugin-hostd-protocol0 (<<'
           dpkg -s libomx-clap-core1 | grep '^Status: install ok installed'
+          dpkg -s libomx-domain0 | grep '^Status: install ok installed'
           # the contract directory's files come with the runtime library, no -dev installed
           dpkg -s omx-clap-core-contract | grep '^Status: install ok installed'
           test -s /usr/share/omx-contract/contract.d/3/omx-clap-core/verbs.json

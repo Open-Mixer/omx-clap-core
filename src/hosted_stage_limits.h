@@ -34,29 +34,29 @@
 #include <stddef.h>
 
 /** the stage and the host: every number the core reads */
-#define OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES 9990u  ///< the widest instance id a plugin add is given; ids at or past it are the host's own tool instances
-#define OMX_HOSTED_STAGE_MAX_TOOL_INSTANCES 10u  ///< the tool instances the host keeps beyond maxPluginInstances, addressed at maxPluginInstances and up
-#define OMX_HOSTED_STAGE_WARMUP_BLOCKS 64u  ///< the blocks run through a plugin before it is published, the first half at the warm-up level and the rest silent
-#define OMX_HOSTED_STAGE_WARMUP_LEVEL_DBFS -6.0f  ///< the level of the warm-up signal, in dBFS
-#define OMX_HOSTED_STAGE_NON_FINITE_STRIKES 3u  ///< the blocks of non-finite output that strike a stage
-#define OMX_HOSTED_STAGE_CLAMP_DBFS 24.0f  ///< the level the output is clamped at, in dBFS
-#define OMX_HOSTED_STAGE_PARAM_QUEUE_DEPTH 256u  ///< the records the parameter queue holds
-#define OMX_HOSTED_STAGE_EVENTS_PER_BLOCK 64u  ///< the parameter events delivered in one block
-#define OMX_HOSTED_STAGE_UNPUBLISH_POLL_US 100u  ///< the poll interval while an unpublish waits for the audio thread, in microseconds
-#define OMX_HOSTED_STAGE_UNPUBLISH_TIMEOUT_US 2000000u  ///< the longest an unpublish waits for the audio thread, in microseconds
-#define OMX_HOSTED_STAGE_WORKER_POLL_US 1000u  ///< how often an LV2 instance's worker thread polls its request ring, in microseconds
-#define OMX_HOSTED_STAGE_WORKER_RING_BYTES 16384u  ///< the bytes of each of an LV2 instance's two worker rings; a power of two, 16 or more
-#define OMX_HOSTED_STAGE_NOTES_PER_BLOCK 256u  ///< the note events delivered in one block
-#define OMX_HOSTED_STAGE_PORT_CHANNELS 64u  ///< the channels a port is limited to, main or auxiliary
-#define OMX_HOSTED_STAGE_AUX_OUTPUTS 64u  ///< the auxiliary output ports the core accepts beyond the main one
-#define OMX_HOSTED_STAGE_AUX_INPUTS 64u  ///< the auxiliary input ports the core accepts beyond the main one
-#define OMX_HOSTED_STAGE_STATE_MAX_BYTES 1048576u  ///< the largest plugin state the core saves or loads, in bytes
-#define OMX_HOSTED_STAGE_LOG_BYTES 256u  ///< the size of a plugin log message, in bytes
-#define OMX_HOSTED_STAGE_ROLE_POLL_US 1000u  ///< the poll interval while the audio role is taken, in microseconds
-#define OMX_HOSTED_STAGE_ROLE_TIMEOUT_US 200000u  ///< the wait for the audio role past which a stop gives up or take_role says so, in microseconds
-#define OMX_HOSTED_STAGE_PRESET_APPLIED_WAIT_US 1000000u  ///< the wait, after a preset or a state load of an instance that was processing, for its plugin to run once more and so apply it, in microseconds: two blocks of the largest quantum at the lowest rate fit in it; past it the load answers that the preset is not applied yet
-#define OMX_HOSTED_STAGE_PARAM_COUNT_MAX 2048u  ///< the widest parameter count the core trusts
-#define OMX_HOSTED_STAGE_LATENCY_HOLD_MS 250u  ///< the hold before a hosted stage's new latency takes effect, in milliseconds
-#define OMX_HOSTED_STAGE_IDLE_HOLD_US 10u  ///< the latency the library holds /dev/cpu_dma_latency at while an instance is active, in microseconds: 10 keeps the cores in C1
+#define OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES 9990u ///< the widest instance id a plugin add is given; ids at or past it are the host's own tool instances
+#define OMX_HOSTED_STAGE_MAX_TOOL_INSTANCES 10u ///< the tool instances the host keeps beyond maxPluginInstances, addressed at maxPluginInstances and up
+#define OMX_HOSTED_STAGE_WARMUP_BLOCKS 64u ///< the blocks run through a plugin before it is published, the first half at the warm-up level and the rest silent
+#define OMX_HOSTED_STAGE_WARMUP_LEVEL_DBFS -6.0f ///< the level of the warm-up signal, in dBFS
+#define OMX_HOSTED_STAGE_NON_FINITE_STRIKES 3u ///< the blocks of non-finite output that strike a stage
+#define OMX_HOSTED_STAGE_CLAMP_DBFS 24.0f ///< the level the output is clamped at, in dBFS
+#define OMX_HOSTED_STAGE_PARAM_QUEUE_DEPTH 256u ///< the records the parameter queue holds
+#define OMX_HOSTED_STAGE_EVENTS_PER_BLOCK 64u ///< the parameter events delivered in one block
+#define OMX_HOSTED_STAGE_UNPUBLISH_POLL_US 100u ///< the poll interval while an unpublish waits for the audio thread, in microseconds
+#define OMX_HOSTED_STAGE_UNPUBLISH_TIMEOUT_US 2000000u ///< the longest an unpublish waits for the audio thread, in microseconds
+#define OMX_HOSTED_STAGE_WORKER_POLL_US 1000u ///< how often an LV2 instance's worker thread polls its request ring, in microseconds
+#define OMX_HOSTED_STAGE_WORKER_RING_BYTES 16384u ///< the bytes of each of an LV2 instance's two worker rings; a power of two, 16 or more
+#define OMX_HOSTED_STAGE_NOTES_PER_BLOCK 256u ///< the note events delivered in one block
+#define OMX_HOSTED_STAGE_PORT_CHANNELS 64u ///< the channels a port is limited to, main or auxiliary
+#define OMX_HOSTED_STAGE_AUX_OUTPUTS 64u ///< the auxiliary output ports the core accepts beyond the main one
+#define OMX_HOSTED_STAGE_AUX_INPUTS 64u ///< the auxiliary input ports the core accepts beyond the main one
+#define OMX_HOSTED_STAGE_STATE_MAX_BYTES 1048576u ///< the largest plugin state the core saves or loads, in bytes
+#define OMX_HOSTED_STAGE_LOG_BYTES 256u ///< the size of a plugin log message, in bytes
+#define OMX_HOSTED_STAGE_ROLE_POLL_US 1000u ///< the poll interval while the audio role is taken, in microseconds
+#define OMX_HOSTED_STAGE_ROLE_TIMEOUT_US 200000u ///< the wait for the audio role past which a stop gives up or take_role says so, in microseconds
+#define OMX_HOSTED_STAGE_PRESET_APPLIED_WAIT_US 1000000u ///< the wait, after a preset or a state load of an instance that was processing, for its plugin to run once more and so apply it, in microseconds: two blocks of the largest quantum at the lowest rate fit in it; past it the load answers that the preset is not applied yet
+#define OMX_HOSTED_STAGE_PARAM_COUNT_MAX 2048u ///< the widest parameter count the core trusts
+#define OMX_HOSTED_STAGE_LATENCY_HOLD_MS 250u ///< the hold before a hosted stage's new latency takes effect, in milliseconds
+#define OMX_HOSTED_STAGE_IDLE_HOLD_US 10u ///< the latency the library holds /dev/cpu_dma_latency at while an instance is active, in microseconds: 10 keeps the cores in C1
 
 #endif /* HOSTED_STAGE_LIMITS_H */

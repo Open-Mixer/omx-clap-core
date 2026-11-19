@@ -22,10 +22,13 @@ BuildRequires: plugin-db-devel >= 0.4.2
 # distribution's own is older)
 BuildRequires: clap-devel >= 1.2.10
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: omx-dsp-devel >= 0.32.0
+BuildRequires: omx-dsp-devel >= 0.33.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: omx-contract-devel >= 3.18.0
+BuildRequires: omx-contract-devel >= 3.20.0
+# the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (3.20.0 the first
+# release that ships it, with the installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
+BuildRequires: libomx-domain-devel >= 3.20.0
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
@@ -39,6 +42,10 @@ BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
 Requires: plugin-hostd-protocol%{?_isa}
 Requires: plugin-hostd-protocol >= 0.5.9
+# omx-clap-scan reads the scan domain at start-up through the loader, and refuses (status 78) on an install without it: the loader, and
+# the data package that holds the domain (noarch data, so this package's own requirement of it is no cycle)
+Requires: libomx-domain >= 3.20.0
+Requires: omx-clap-core-contract = %{version}-%{release}
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -87,9 +94,9 @@ License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
-Requires: omx-dsp-devel >= 0.32.0
+Requires: omx-dsp-devel >= 0.33.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: omx-contract-devel >= 3.18.0
+Requires: omx-contract-devel >= 3.20.0
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -104,7 +111,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: omx-contract-data >= 3.18.0
+Requires: omx-contract-data >= 3.20.0
 
 %description -n omx-clap-core-contract
 omx-clap-core's definitions as files in omx-contract's contract directory,
@@ -188,6 +195,7 @@ make test-package
 %license COPYING
 %doc README.md
 %{_datadir}/omx-contract/contract.d/3/omx-clap-core/
+%{omx_contract_domain_dir}/scan/
 %dir %{_datadir}/omx-clap-core
 %dir %{_datadir}/omx-clap-core/catalogs
 

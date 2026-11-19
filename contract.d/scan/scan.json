@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openmixer.org/contract/scan",
+  "info": {
+    "title": "The documents a plugin scan writes and the scopes of its field dump",
+    "version": "1.0.0",
+    "x-owner": "omx-clap-core",
+    "x-stability": "experimental"
+  },
+  "components": {
+    "schemas": {
+      "SCAN_DOCUMENTS": {
+        "description": "The documents a plugin scan writes, named here and owned elsewhere: the contract names them so the writers and readers cite one word, and keeps no shape of its own for them.",
+        "x-since": "3.7.0",
+        "x-why": "omx-clap-core and plugin-qualify write one scan document (FreeMixer/omx-contract#157).",
+        "oneOf": [
+          {
+            "const": "CLAP_SCAN_DOCUMENT",
+            "title": "clapScanDocument",
+            "description": "The JSON document of omx-clap-scan, one entry per file with its plugins, parameters and ports. Owned by omx-clap-core, which writes it; its shape is omx-clap-core's reference.",
+            "x-code": 0,
+            "x-text": "The JSON document omx-clap-scan writes, one entry per file with its plugins, its parameters and its ports."
+          },
+          {
+            "const": "FIELD_DUMP",
+            "title": "fieldDump",
+            "description": "The field dump of omx-clap-scan --fields: the line `# omx-clap-scan --fields 1`, the format's version, then one `<scope> TAB <field> TAB <value>` record per field a plugin states. Its scopes are SCAN_FIELD_SCOPES.",
+            "x-code": 1,
+            "x-text": "The field dump omx-clap-scan --fields writes: a version line, then one scope, field and value record per field a plugin states."
+          }
+        ]
+      },
+      "SCAN_FIELD_SCOPES": {
+        "description": "The scopes of a field dump record, as written before the first TAB; an indexed scope is followed by `:<index>`. Named here, owned by their writers: omx-clap-core's scan (docs/scan.md there) and plugin-hostd's field dump (docs/formats.md there) keep the code that writes them.",
+        "x-since": "3.7.0",
+        "x-c-codes": true,
+        "oneOf": [
+          {
+            "const": "plugin",
+            "title": "plugin",
+            "description": "the plugin as a whole",
+            "x-code": 0,
+            "x-text": "The plugin as a whole."
+          },
+          {
+            "const": "param",
+            "title": "param",
+            "description": "a CLAP parameter, indexed in get_info order",
+            "x-code": 1,
+            "x-text": "A CLAP parameter, indexed in get_info order."
+          },
+          {
+            "const": "audio_in",
+            "title": "audioIn",
+            "description": "an audio input port, indexed",
+            "x-code": 2,
+            "x-text": "An audio input port, indexed."
+          },
+          {
+            "const": "audio_out",
+            "title": "audioOut",
+            "description": "an audio output port, indexed",
+            "x-code": 3,
+            "x-text": "An audio output port, indexed."
+          },
+          {
+            "const": "note_in",
+            "title": "noteIn",
+            "description": "a note input port, indexed",
+            "x-code": 4,
+            "x-text": "A note input port, indexed."
+          },
+          {
+            "const": "note_out",
+            "title": "noteOut",
+            "description": "a note output port, indexed",
+            "x-code": 5,
+            "x-text": "A note output port, indexed."
+          },
+          {
+            "const": "port",
+            "title": "port",
+            "description": "an LV2 port, indexed by lv2:index",
+            "x-code": 6,
+            "x-text": "An LV2 port, indexed by its lv2:index."
+          },
+          {
+            "const": "panel",
+            "title": "panel",
+            "description": "the panel description of a plugin that serves org.openmixer.panel-description/1: its family and fingerprint",
+            "x-code": 7,
+            "x-text": "The panel description of a plugin that serves org.openmixer.panel-description/1: its family and its fingerprint."
+          },
+          {
+            "const": "section",
+            "title": "section",
+            "description": "a section of the panel description, indexed",
+            "x-code": 8,
+            "x-text": "A section of the panel description, indexed."
+          },
+          {
+            "const": "control",
+            "title": "control",
+            "description": "a control of the panel description, indexed",
+            "x-code": 9,
+            "x-text": "A control of the panel description, indexed."
+          },
+          {
+            "const": "role",
+            "title": "role",
+            "description": "a role of the panel description, indexed",
+            "x-code": 10,
+            "x-text": "A role of the panel description, indexed."
+          },
+          {
+            "const": "display",
+            "title": "display",
+            "description": "a display of the panel description, indexed",
+            "x-code": 11,
+            "x-text": "A display of the panel description, indexed."
+          },
+          {
+            "const": "placement_default",
+            "title": "placementDefault",
+            "description": "a per-placement come-up value of the panel description, indexed",
+            "x-code": 12,
+            "x-text": "A per-placement come-up value of the panel description, indexed."
+          },
+          {
+            "const": "meter",
+            "title": "meter",
+            "description": "a meter of a plugin that publishes the meters extension, indexed",
+            "x-code": 13,
+            "x-text": "A meter of a plugin that publishes the meters extension, indexed."
+          }
+        ]
+      }
+    }
+  }
+}

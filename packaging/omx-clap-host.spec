@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.33.0
+Version:        0.33.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -25,7 +25,7 @@ BuildRequires: pkgconfig(libcrypto)
 BuildRequires: omx-dsp-devel >= 0.33.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: omx-contract-devel >= 3.20.0
+BuildRequires: omx-contract-devel >= 3.20.1
 # the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (3.20.0 the first
 # release that ships it, with the installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
 BuildRequires: libomx-domain-devel >= 3.20.0
@@ -96,7 +96,7 @@ Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
 Requires: omx-dsp-devel >= 0.33.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: omx-contract-devel >= 3.20.0
+Requires: omx-contract-devel >= 3.20.1
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -111,7 +111,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: omx-contract-data >= 3.20.0
+Requires: omx-contract-data >= 3.20.1
 
 %description -n omx-clap-core-contract
 omx-clap-core's definitions as files in omx-contract's contract directory,
@@ -196,6 +196,7 @@ make test-package
 %doc README.md
 %{_datadir}/omx-contract/contract.d/3/omx-clap-core/
 %{omx_contract_domain_dir}/scan/
+%{omx_contract_domain_dir}/hosting/
 %dir %{_datadir}/omx-clap-core
 %dir %{_datadir}/omx-clap-core/catalogs
 
@@ -293,6 +294,10 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.1-1
+- omx-clap-core-contract publishes the hosting codes as the hosting domain
+  (contract.d/hosting, rendered from data/); omx-contract floor 3.20.1.
+
 * Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
 - Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0
   (was 0.32.0 and below 0.33), omx-contract >= 3.20.0 (was 3.18.0 and below 4),

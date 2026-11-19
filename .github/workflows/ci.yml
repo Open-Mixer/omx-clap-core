@@ -27,7 +27,7 @@ env:
   # plugin_hostd_client.py) all come from this one tag; the protocol is the plugin-hostd-protocol the job installs
   PLUGIN_HOSTD_REF: 54eee2956b1af815d2e1fd2fb8218a77bb6679db  # plugin-hostd main with #166 and #167 (machine.c); a release tag replaces it
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
-  OMX_CONTRACT_REF: v3.20.0
+  OMX_CONTRACT_REF: v3.20.1
 
 # Two tiers (owner ruling 2026-11-09: heavy workflows on tags, pull requests quick). A pull request runs the plain test
 # tier and one package arm (fc44 x86_64, trixie amd64). The sanitizer tiers (address, thread), every sabotage of a guard,
@@ -142,6 +142,15 @@ jobs:
 
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
+
+      # libomx-domain ships omx-domain, the loader's command: make test-domain opens the installed hosting domain with it;
+      # check-domain holds contract.d/hosting/hosting.json to what tools/render-domain.py derives from data/hosting*.json
+      - name: libomx-domain
+        run: dnf install -y --setopt=install_weak_deps=False libomx-domain
+      - name: make check-domain
+        run: make check-domain OMX_CONTRACT_DIR=/usr/lib/omx-contract
+      - name: make test-domain
+        run: make test-domain OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
       # the display kinds this tree owns are omx-panel's DISPLAY_KINDS, the vocabulary source, word for word and in order
       - name: Install omx-panel

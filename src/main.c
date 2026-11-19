@@ -559,7 +559,7 @@ static void preset_show_cb(proto_t *proto)
 
     if (resp == SUCCESS)
         protocol_response(reply, proto);
-    else if (resp == ERR_LV2_INVALID_PRESET_URI)
+    else if (resp == ERR_HOST_INVALID_PRESET_URI)
         protocol_response_int(location[0] == '/' ? OMX_REPLY_PLUGIN_HOSTD_PRESET_INVALID_RESP
                                                  : OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_OFFERED_RESP, proto);
     else
@@ -580,7 +580,7 @@ static void preset_save_cb(proto_t *proto)
         n = snprintf(path, sizeof(path), "%s/%s", dir, file);
     resp = effects_preset_save(atoi(proto->list[1]), n > 0 && (size_t)n < sizeof(path) ? path : NULL, proto->list[4], reply,
                                sizeof(reply));
-    if (resp == SUCCESS || resp == ERR_LV2_INVALID_PRESET_URI)
+    if (resp == SUCCESS || resp == ERR_HOST_INVALID_PRESET_URI)
         protocol_response(reply, proto);
     else
         protocol_response_int(resp, proto);

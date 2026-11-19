@@ -1,0 +1,7 @@
+# Packages other repositories release LATER in this same pass, one per line (release.yml's samepass job): the
+# channel-installability gate reports a breakage they cause or suffer instead of failing on it. Reviewed like code;
+# goes away with this release branch, so it can never excuse a break in a later pass.
+#
+# openmixer, the console's source package: its binaries cap omx-clap-core, libomx-clap-core1, libomx-clap-core-dev,
+# libomx-clap-lv2-dev and omx-clap-host below 0.33, so omx-clap-core 0.33.0 breaks them until openmixer releases.
+openmixer

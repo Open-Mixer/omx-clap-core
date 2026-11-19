@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 # Packages other repositories release LATER in this same pass, one per line (release.yml's samepass job): the
 # channel-installability gate reports a breakage they cause or suffer instead of failing on it. Reviewed like code;
 # goes away with this release branch, so it can never excuse a break in a later pass.

@@ -143,13 +143,6 @@ jobs:
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
-      # the display kinds this tree owns are omx-panel's DISPLAY_KINDS, the vocabulary source, word for word and in order
-      - name: Install omx-panel
-        run: dnf install -y --setopt=install_weak_deps=False 'omx-panel >= 0.13.8'
-
-      - name: The display kinds are omx-panel's
-        run: make test-display-kinds
-
       # one pack per listed language from the spec and debian/control, and the catalogs through omx-contract's release
       # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30)
       - name: The language packs

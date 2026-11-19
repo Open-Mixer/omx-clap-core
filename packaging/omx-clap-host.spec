@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.33.0
+Version:        0.33.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -293,6 +293,18 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.1-1
+- The scan domain's x-since on SCAN_DOCUMENTS and SCAN_FIELD_SCOPES is the
+  domain version that carried them, 1.0.0, not the omx-contract release 3.7.0;
+  a check holds an x-since to a version of its own domain and never above its
+  info.version (#139).
+- The fuzz workflow checks the repository out before dnf builddep reads the
+  spec (#142).
+- The sources use the ERR_HOST_* names of plugin-hostd-protocol, whose first
+  release is 0.6.0, so the floor is plugin-hostd-protocol >= 0.6.0 (was
+  0.5.9). Floors only: no ceilings, no Conflicts, Breaks, Replaces or
+  Obsoletes, no epoch (#144).
+
 * Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
 - Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0
   (was 0.32.0 and below 0.33), omx-contract >= 3.20.0 (was 3.18.0 and below 4),

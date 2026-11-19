@@ -1,3 +1,18 @@
+omx-clap-host (0.33.1) unstable; urgency=medium
+
+  * The scan domain's x-since on SCAN_DOCUMENTS and SCAN_FIELD_SCOPES is the
+    domain version that carried them, 1.0.0, not the omx-contract release
+    3.7.0; a check holds an x-since to a version of its own domain and never
+    above its info.version (#139).
+  * The fuzz workflow checks the repository out before dnf builddep reads the
+    spec (#142).
+  * The sources use the ERR_HOST_* names of plugin-hostd-protocol, whose first
+    release is 0.6.0, so the floor is plugin-hostd-protocol >= 0.6.0 (was
+    0.5.9). Floors only: no ceilings, no Conflicts, Breaks, Replaces or
+    Obsoletes, no epoch (#144).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Thu, 19 Nov 2026 18:00:00 +0100
+
 omx-clap-host (0.33.0) unstable; urgency=medium
 
   * Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0

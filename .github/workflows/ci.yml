@@ -245,6 +245,9 @@ jobs:
           .github/plugin-hostd.sh /tmp/plugin-hostd
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
+          # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
+          make -C /tmp/plugin-hostd install_machine_domain
+          test -s /usr/share/omx-contract/contract.d/machine/machine.json
           echo "PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
           echo "PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib" >> "$GITHUB_ENV"
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd
@@ -680,6 +683,9 @@ jobs:
           .github/plugin-hostd.sh /tmp/plugin-hostd
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
+          # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
+          make -C /tmp/plugin-hostd install_machine_domain
+          test -s /usr/share/omx-contract/contract.d/machine/machine.json
           echo "PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
           echo "PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib" >> "$GITHUB_ENV"
           PKG_CONFIG_PATH=/opt/plugin-hostd/share/pkgconfig pkg-config --modversion plugin-hostd

@@ -390,9 +390,9 @@ test-contract:
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
-	# F2: the code sheet's mapping to omx-contract's standard units (PARAM_UNITS), three arms, with its sabotage (needs omx-contract's grown unit list)
-	python3 -I tests/param-units-map-check.py contract.d build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
-	python3 -I tests/param-units-map-check.py --self-test contract.d build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
+	# F2: the code sheet's mapping to omx-contract's standard units (PARAM_UNITS), with its sabotage (needs omx-contract's grown unit list)
+	python3 -I tests/param-units-map-check.py contract.d build/contract/json/omx-contract.json
+	python3 -I tests/param-units-map-check.py --self-test contract.d build/contract/json/omx-contract.json
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 

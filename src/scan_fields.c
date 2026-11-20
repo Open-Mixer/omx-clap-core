@@ -191,7 +191,7 @@ struct lv2_find {
 ************************************************************************************************************************
 */
 
-/* the extension ids a plugin is asked for, each by its TERM id (omx-contract data/formats/clap) */
+/* the extension ids a plugin is asked for, each by its TERM id (the clap domain, contract.d/clap/clap.json) */
 static const named_t g_extensions[] = {
     { "CLAP_EXT_AMBISONIC", "clap.ambisonic/3" },
     { "CLAP_EXT_AMBISONIC_COMPAT", "clap.ambisonic.draft/3" },

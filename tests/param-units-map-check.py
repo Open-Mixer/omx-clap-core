@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
-"""F2, the code sheet's mapping to the standard units, held by three arms (the call-level test of the sorting row V23d).
+"""F2, the code sheet's mapping to the standard units, held by two arms (the call-level test of the sorting row V23d).
 
-    param-units-map-check.py <contract.d of this tree> <omx-contract.json> [<omx-contract's data/param-contract.json>]
-    param-units-map-check.py --self-test <contract.d of this tree> <omx-contract.json> [<param-contract.json>]
+    param-units-map-check.py <contract.d of this tree> <omx-contract.json>
+    param-units-map-check.py --self-test <contract.d of this tree> <omx-contract.json>
 
 The domain documents are contract.d/omx-param-contract/omx-param-contract.json, contract.d/omx-clap-scale/omx-clap-scale.json
 and contract.d/clap/clap.json (CLAP's flag for the stepped scale); <omx-contract.json> is `omx-contract render --target json` of the contract directory (its items hold PARAM_UNITS and
@@ -13,7 +13,6 @@ word of PARAM_SCALES.
 
   (a) golden: the sheet holds the 29 tokens of omx-contract's sheet at 3.20.2 with their codes, and the four codes of
       260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to a standard id;
-  (b) while omx-contract still holds its own sheet (the optional third file), the 29 tokens and codes are equal to it;
   (c) every mapped id is a key of omx-contract's PARAM_UNITS, and no two codes map to one id. --self-test plants each
       failure (an id removed from a copy of PARAM_UNITS, two codes onto one id, a code moved) and each must be red.
 """
@@ -39,11 +38,6 @@ def check(domain, standard, old, scales, clap):
         bad.append("(a) the code sheet is not the golden 29 + 4: %s" % sorted(set(sheet.items()) ^ set(GOLDEN.items())))
     if list(ids) != list(sheet):
         bad.append("(a) a token has no standard id, or one too many: %s" % sorted(set(ids) ^ set(sheet)))
-    if old is not None:  # (b)
-        o = old["OMX_PARAM_CONTRACT_UNITS"]["value"]
-        for t, c in o.items():
-            if sheet.get(t) != c:
-                bad.append("(b) %s is %s here and %s in omx-contract's sheet" % (t, sheet.get(t), c))
     units = set(standard["items"]["PARAM_UNITS"]["value"])  # (c)
     for t, i in ids.items():
         if i not in units:
@@ -71,13 +65,13 @@ def check(domain, standard, old, scales, clap):
 def main(argv):
     self_test = argv[:1] == ["--self-test"]
     argv = argv[1:] if self_test else argv
-    if len(argv) not in (2, 3):
+    if len(argv) != 2:
         sys.exit(__doc__)
     domain = json.load(open(argv[0] + "/omx-param-contract/omx-param-contract.json"))
     scales = json.load(open(argv[0] + "/omx-clap-scale/omx-clap-scale.json"))
     clap = json.load(open(argv[0] + "/clap/clap.json"))
     standard = json.load(open(argv[1]))
-    old = json.load(open(argv[2])) if len(argv) == 3 else None
+    old = None
     bad = check(domain, standard, old, scales, clap)
     if not self_test:
         for b in bad:

@@ -1154,7 +1154,6 @@ jobs:
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap/hosting/features.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json contract-files.txt
           # the scan domain, installed by the installer's domain mode, with its catalogs, in the same data package
-          grep -qx contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/omx-clap-scale/omx-clap-scale.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/clap/clap.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/scan/scan.json contract-files.txt
@@ -1165,7 +1164,6 @@ jobs:
             dpkg -I "$deb" | grep -E '^ Depends:.*omx-clap-contract \(= '
           done
           grep -qx /usr/include/omx-clap-host/omx_clap_vocabulary.h dev-files.txt
-          grep -qx dev-files.txt
           grep -qx /usr/include/omx-clap-host/omx_param_scales.h dev-files.txt
           grep -qx /usr/include/omx-clap-host/hosted_stage_limits.h dev-files.txt
           # the hosting codes' TypeScript modules ship in the runtime package: a plugin-qualify-like consumer

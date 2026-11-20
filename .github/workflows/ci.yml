@@ -260,6 +260,8 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # its build dependencies as its own spec at the pinned commit declares them, never a list kept here
+          dnf builddep -y --setopt=install_weak_deps=False /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
@@ -710,6 +712,8 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # its build dependencies as its own spec at the pinned commit declares them, never a list kept here
+          dnf builddep -y --setopt=install_weak_deps=False /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)

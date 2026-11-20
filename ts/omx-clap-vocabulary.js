@@ -901,6 +901,134 @@ export const HOST_EVENTS = {
 };
 
 /**
+ * The documents a plugin scan writes, named here and owned elsewhere: the contract names them so the writers and readers cite one word, and keeps no shape of its own for them.
+ *
+ * Why: omx-clap and plugin-qualify write one scan document (FreeMixer/omx-contract#157).
+ * @see scan/scan.json
+ */
+export const SCAN_DOCUMENTS = {
+  "clapScanDocument": {
+    "word": "CLAP_SCAN_DOCUMENT",
+    "doc": "The JSON document of omx-clap-scan, one entry per file with its plugins, parameters and ports. Owned by omx-clap, which writes it; its shape is omx-clap's reference.",
+    "text": {
+      "en": "The JSON document omx-clap-scan writes, one entry per file with its plugins, its parameters and its ports."
+    }
+  },
+  "fieldDump": {
+    "word": "FIELD_DUMP",
+    "doc": "The field dump of omx-clap-scan --fields: the line `# omx-clap-scan --fields 1`, the format's version, then one `<scope> TAB <field> TAB <value>` record per field a plugin states. Its scopes are SCAN_FIELD_SCOPES.",
+    "text": {
+      "en": "The field dump omx-clap-scan --fields writes: a version line, then one scope, field and value record per field a plugin states."
+    }
+  }
+};
+
+/**
+ * The scopes of a field dump record, as written before the first TAB; an indexed scope is followed by `:<index>`. Named here, owned by their writers: omx-clap's scan (docs/scan.md there) and plugin-hostd's field dump (docs/formats.md there) keep the code that writes them.
+ * @see scan/scan.json
+ */
+export const SCAN_FIELD_SCOPES = {
+  "plugin": {
+    "word": "plugin",
+    "doc": "the plugin as a whole",
+    "text": {
+      "en": "The plugin as a whole."
+    }
+  },
+  "param": {
+    "word": "param",
+    "doc": "a CLAP parameter, indexed in get_info order",
+    "text": {
+      "en": "A CLAP parameter, indexed in get_info order."
+    }
+  },
+  "audioIn": {
+    "word": "audio_in",
+    "doc": "an audio input port, indexed",
+    "text": {
+      "en": "An audio input port, indexed."
+    }
+  },
+  "audioOut": {
+    "word": "audio_out",
+    "doc": "an audio output port, indexed",
+    "text": {
+      "en": "An audio output port, indexed."
+    }
+  },
+  "noteIn": {
+    "word": "note_in",
+    "doc": "a note input port, indexed",
+    "text": {
+      "en": "A note input port, indexed."
+    }
+  },
+  "noteOut": {
+    "word": "note_out",
+    "doc": "a note output port, indexed",
+    "text": {
+      "en": "A note output port, indexed."
+    }
+  },
+  "port": {
+    "word": "port",
+    "doc": "an LV2 port, indexed by lv2:index",
+    "text": {
+      "en": "An LV2 port, indexed by its lv2:index."
+    }
+  },
+  "panel": {
+    "word": "panel",
+    "doc": "the panel description of a plugin that serves org.openmixer.panel-description/1: its family and fingerprint",
+    "text": {
+      "en": "The panel description of a plugin that serves org.openmixer.panel-description/1: its family and its fingerprint."
+    }
+  },
+  "section": {
+    "word": "section",
+    "doc": "a section of the panel description, indexed",
+    "text": {
+      "en": "A section of the panel description, indexed."
+    }
+  },
+  "control": {
+    "word": "control",
+    "doc": "a control of the panel description, indexed",
+    "text": {
+      "en": "A control of the panel description, indexed."
+    }
+  },
+  "role": {
+    "word": "role",
+    "doc": "a role of the panel description, indexed",
+    "text": {
+      "en": "A role of the panel description, indexed."
+    }
+  },
+  "display": {
+    "word": "display",
+    "doc": "a display of the panel description, indexed",
+    "text": {
+      "en": "A display of the panel description, indexed."
+    }
+  },
+  "placementDefault": {
+    "word": "placement_default",
+    "doc": "a per-placement come-up value of the panel description, indexed",
+    "text": {
+      "en": "A per-placement come-up value of the panel description, indexed."
+    }
+  },
+  "meter": {
+    "word": "meter",
+    "doc": "a meter of a plugin that publishes the meters extension, indexed",
+    "text": {
+      "en": "A meter of a plugin that publishes the meters extension, indexed."
+    }
+  }
+};
+
+/**
  * The words of HOST_TRACK_KINDS, in their declared order.
  * @see data/verbs.json
  */
@@ -918,4 +1046,34 @@ export const HOST_EVENTS_WORDS = [
   "remote_pages_changed",
   "xruns",
   "abi_clobber"
+];
+
+/**
+ * The words of SCAN_DOCUMENTS, in their declared order.
+ * @see scan/scan.json
+ */
+export const SCAN_DOCUMENTS_WORDS = [
+  "CLAP_SCAN_DOCUMENT",
+  "FIELD_DUMP"
+];
+
+/**
+ * The words of SCAN_FIELD_SCOPES, in their declared order.
+ * @see scan/scan.json
+ */
+export const SCAN_FIELD_SCOPES_WORDS = [
+  "plugin",
+  "param",
+  "audio_in",
+  "audio_out",
+  "note_in",
+  "note_out",
+  "port",
+  "panel",
+  "section",
+  "control",
+  "role",
+  "display",
+  "placement_default",
+  "meter"
 ];

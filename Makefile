@@ -596,6 +596,11 @@ test-no-backcompat:
 
 # a development package's lib*.so is a symlink to the shared library another package ships: each one depends on that
 # package, deb and rpm, or a machine with the development package alone links nothing (#96)
+# plugin-hostd is taken at a release tag or a branch by name, never a commit (tests/plugin_hostd_ref_test.sh)
+.PHONY: test-plugin-hostd-ref
+test-plugin-hostd-ref:
+	sh tests/plugin_hostd_ref_test.sh
+
 .PHONY: test-dev-so-runtime-dep
 test-dev-so-runtime-dep:
 	python3 tests/dev_so_runtime_dep.py --self-test
@@ -610,7 +615,7 @@ test-build-floors:
 
 test: test-no-backcompat
 test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
-test-fake: test-clap-inventory
+test-fake: test-clap-inventory test-plugin-hostd-ref
 test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool test-panel-words

@@ -23,9 +23,9 @@ oc=$1 dir=$2 version=$3
 tool="node $oc/bin/omx-contract.mjs"
 work=$(dirname "$dir")
 
-# omx-contract's own package, less its reader's table (codes.json) and its golden vectors (scale-vectors.json), as omx-contract installs itself
+# omx-contract's own package, less its reader's table (codes.json) and its golden vectors (scale-vectors.json),  and the code sheet this tree owns (param-contract.json, until omx-contract drops it), as omx-contract installs itself
 ocv=$(sed -n 's/^  "version": "\([0-9.]*\)",$/\1/p' "$oc/package.json")
-sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" -x codes.json -x scale-vectors.json omx-contract "$ocv" 3 "$oc/data" "$dir" data
+sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" -x codes.json -x scale-vectors.json -x param-contract.json omx-contract "$ocv" 3 "$oc/data" "$dir" data
 
 $tool validate --contract-dir "$dir" --needs "omx-clap@>= $version" --catalogs catalogs
 
@@ -34,12 +34,12 @@ $tool validate --contract-dir "$dir" --needs "omx-clap@>= $version" --catalogs c
 $tool links --check --root . --contract-dir "$dir" --package omx-clap
 
 # the renders this tree commits, as <target>:<committed path>; the output's name is the committed file's
-committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
+committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h c:src/omx_param_units.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
 
 bad=0
 for target in c ts; do
   rm -rf "$work/$target"
-  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir"
+  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-param-contract"
   for out in "$work/$target"/*; do
     name=$(basename "$out")
     path=

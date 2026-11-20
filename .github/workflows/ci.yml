@@ -870,7 +870,7 @@ jobs:
             rpm -qlp "$rpm"
             files "$rpm" > files.txt
             printf '%s\n' '/usr/lib*/libomx-clap.so' '/usr/lib*/pkgconfig/omx-clap.pc' /usr/include/omx-clap-host/clap_host.h \
-              /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_vocabulary.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
+              /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_vocabulary.h /usr/include/omx-clap-host/omx_param_units.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
               /usr/include/omx-clap-host/clap_host_extensions.h /usr/include/omx-clap-host/omx_clap_ext.h /usr/include/omx-clap-host/omx_msgring.h /usr/include/omx-clap-host/clap_meters.h /usr/include/omx-clap-host/omx_clap_raw.h /usr/include/omx-clap-host/omx_clap_midi.h /usr/include/omx-clap-host/clap_chain.h /usr/include/omx-clap-host/abi_guard.h \
               /usr/share/omx-clap/omx-clap.map \
               /usr/share/licenses/omx-clap-devel/COPYING /usr/share/doc/omx-clap-devel/README.md | sort > expected.txt
@@ -883,7 +883,7 @@ jobs:
             files "$rpm" > files.txt
             printf '%s\n' /usr/share/omx-contract/contract.d/3/omx-clap/MANIFEST.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting.json /usr/share/omx-contract/contract.d/3/omx-clap/verbs.json \
               /usr/share/omx-contract/contract.d/3/omx-clap/hosting/clap.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/cost.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/features.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/latency.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/memory.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/output.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/override.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/patch.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/preset.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/provenance.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/realised.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/resource-hints.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/rt-safety.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/stability.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/state.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/topology.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/worker.json \
-              /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
+              /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
               /usr/share/licenses/omx-clap-contract/COPYING /usr/share/doc/omx-clap-contract/README.md | sort > expected.txt
             diff -u expected.txt files.txt
           done
@@ -1151,6 +1151,7 @@ jobs:
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap/hosting/features.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/3/omx-clap/verbs.json contract-files.txt
           # the scan domain, installed by the installer's domain mode, with its catalogs, in the same data package
+          grep -qx /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/scan/scan.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/scan/catalogs/ca.json contract-files.txt
           ! grep -q '^/usr/share/omx-contract/' dev-files.txt
@@ -1159,6 +1160,7 @@ jobs:
             dpkg -I "$deb" | grep -E '^ Depends:.*omx-clap-contract \(= '
           done
           grep -qx /usr/include/omx-clap-host/omx_clap_vocabulary.h dev-files.txt
+          grep -qx /usr/include/omx-clap-host/omx_param_units.h dev-files.txt
           grep -qx /usr/include/omx-clap-host/hosted_stage_limits.h dev-files.txt
           # the hosting codes' TypeScript modules ship in the runtime package: a plugin-qualify-like consumer
           # reads them with no -dev installed, and the Debian file lists never name a path in both packages

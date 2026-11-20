@@ -20,6 +20,11 @@ grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contr
 contract_files=$(awk '/^%files -n omx-clap-contract/{f=1;next} /^%files|^%package|^%changelog/{f=0} f' "$spec")
 printf '%s\n' "$contract_files" | grep -qx '%{omx_contract_domain_dir}/scan/' || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/scan/"
 grep -qx 'usr/share/omx-contract/contract.d/scan' debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/scan"
+# the code sheet's domain, omx-param-contract, the same way
+grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contract\.d/omx-param-contract( |$)' Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/omx-param-contract"
+! grep -En '^[[:space:]]*install .*contract\.d/omx-param-contract' Makefile || fail "Makefile: a hand-written install line for contract.d/omx-param-contract"
+printf '%s\n' "$contract_files" | grep -qx '%{omx_contract_domain_dir}/omx-param-contract/' || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/omx-param-contract/"
+grep -qx 'usr/share/omx-contract/contract.d/omx-param-contract' debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/omx-param-contract"
 # the reader requires the loader and the data package
 req() { grep -Eq "$1" "$spec" || fail "$spec: $2"; }
 req '^BuildRequires: libomx-domain-devel >= 3\.20\.0$' "no BuildRequires: libomx-domain-devel >= 3.20.0"

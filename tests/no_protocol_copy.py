@@ -5,7 +5,7 @@
 # The protocol is plugin-hostd-protocol's, and this tree keeps no copy of it: none of its tables (protocol/*.json) or
 # its headers (protocol.h, search_paths.h, the host verb and vocabulary renders) is here under any name, no file of
 # this tree declares what protocol.h declares (its guard, the macros of its tables, the search lists), and the one
-# rendered verb table is src/omx_clap_host_verbs.h, the render of data/verbs.json, which tests/contract-dir-check.sh
+# rendered verb table is src/omx_clap_host_verbs.h, the render of the omx-clap domain, which tests/contract-dir-check.sh
 # holds to its declaration. A copy that comes back drifts from the protocol the host is built against.
 #
 #   python3 tests/no_protocol_copy.py [<tree>]     red on any copy in the tree (default: this one)

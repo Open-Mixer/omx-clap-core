@@ -27,7 +27,7 @@ BuildRequires: omx-dsp-devel >= 0.33.0
 # omxdomain/panel_codes.h, which omx-panel-contract installs (data only; omx-panel does not build against this package)
 BuildRequires: omx-panel-contract >= 0.16.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
-# the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); preset_file.c and scan.c include omx_json_write.h (3.9.0)
+# the codes under contract.d/3 (3.0.0, the hosting codes moved here); the verbs are items of the omx-clap domain; preset_file.c and scan.c include omx_json_write.h (3.9.0)
 BuildRequires: omx-contract-devel >= 3.20.0
 # the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (3.20.0 the first
 # release that ships it, with the installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
@@ -204,6 +204,8 @@ make test-package
 %{omx_contract_domain_dir}/omx-param-contract/
 %{omx_contract_domain_dir}/omx-clap-scale/
 %{omx_contract_domain_dir}/clap/
+%{omx_contract_domain_dir}/host/
+%{omx_contract_domain_dir}/omx-clap/
 %dir %{_datadir}/omx-clap
 %dir %{_datadir}/omx-clap/catalogs
 

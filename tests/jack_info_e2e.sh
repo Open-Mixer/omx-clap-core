@@ -11,7 +11,7 @@
 #
 # OMX_CLAP_HOST:    the binary (default ./omx-clap-host)
 # JACK_E2E_PORT:    the socket port (default 5566); the feedback port is the next one
-# HOST_*, OMX_HOST_*: what data/verbs.json declares, read from src/host_verbs.h by make test-jack-info
+# HOST_*, OMX_HOST_*: what contract.d/omx-clap/omx-clap.json declares, read from src/host_verbs.h by make test-jack-info
 
 set -u
 

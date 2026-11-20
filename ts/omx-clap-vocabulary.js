@@ -636,7 +636,7 @@ export const HOSTING_WORKER_CODES = {
 
 /**
  * The refusals the verbs of this package answer, by the number of resp <n>: mod-host's own numbers (mod-host.h) and the ones a worker answers past them.
- * @see data/verbs.json
+ * @see data/verbs-host.json
  */
 export const HOST_REPLY_CODES = {
   "instanceInvalid": {
@@ -867,7 +867,7 @@ export const HOST_REPLY_CODES = {
 
 /**
  * The kind of strip, the last word of track_info; a line without it is an input channel.
- * @see data/verbs.json
+ * @see data/verbs-host.json
  */
 export const HOST_TRACK_KINDS = {
   "bus": {
@@ -883,7 +883,7 @@ export const HOST_TRACK_KINDS = {
 
 /**
  * The lines a host writes on its feedback port for these verbs, each followed by the instance number, but xruns, which is the worker's own and is followed by its count.
- * @see data/verbs.json
+ * @see data/verbs-host.json
  */
 export const HOST_EVENTS = {
   "remotePagesChanged": {
@@ -902,7 +902,7 @@ export const HOST_EVENTS = {
 
 /**
  * The words of HOST_TRACK_KINDS, in their declared order.
- * @see data/verbs.json
+ * @see data/verbs-host.json
  */
 export const HOST_TRACK_KINDS_WORDS = [
   "bus",
@@ -912,7 +912,7 @@ export const HOST_TRACK_KINDS_WORDS = [
 
 /**
  * The words of HOST_EVENTS, in their declared order.
- * @see data/verbs.json
+ * @see data/verbs-host.json
  */
 export const HOST_EVENTS_WORDS = [
   "remote_pages_changed",

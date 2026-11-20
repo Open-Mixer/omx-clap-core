@@ -10,7 +10,7 @@
 # <contract dir> holds omx-clap's package as `make install-contract` wrote it. omx-contract's own data/ is
 # installed beside it from the checkout (its npm ci done), the directory is validated with omx-clap required at
 # <version>, and the package's own renders (`render --package omx-clap`: the headers and module the `render` word of
-# data/hosting.json frames, the vocabulary of data/hosting/ and data/verbs.json, and the verbs of data/verbs.json) are compared with the files this tree commits, byte for
+# data/hosting.json frames, the vocabulary of data/hosting/ and of the host and omx-clap domains, and the verbs of the omx-clap domain) are compared with the files this tree commits, byte for
 # byte: a header with src/<header>, a TypeScript module with ts/<module>.js and .d.ts. A committed render the output
 # lacks, or an output this tree does not commit, is a failure too.
 # Exit 0 equal; 1 a refusal or a difference; 2 usage.
@@ -43,9 +43,8 @@ committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_v
 bad=0
 for target in c ts; do
   rm -rf "$work/$target"
-  # one --with-domain a render: the code sheets are domains of their own, each rendered over the same package and output
-  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-param-contract"
-  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-clap-scale"
+  # the domains of this owner that rebuild data files, in one read (--with-domain repeats): the code sheets, the host words and the verbs
+  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-param-contract" --with-domain "$dir/omx-clap-scale" --with-domain "$dir/host" --with-domain "$dir/omx-clap"
   for out in "$work/$target"/*; do
     name=$(basename "$out")
     path=
@@ -72,11 +71,11 @@ for f in worker_poll_us:WORKER_POLL_US worker_ring_bytes:WORKER_RING_BYTES; do
     echo "contract-dir-check: src/ sets ${f%%:*} from \"$*\", not from the declared OMX_HOSTED_STAGE_${f#*:}" >&2; exit 1; }
 done
 # each module loads as an ES module and exports its files' items, nothing else: the hosting module data/hosting.json's,
-# the vocabulary module every item of data/hosting/ and the codes and words of data/verbs.json, a words item with its _WORDS
+# the vocabulary module every item of data/hosting/ and the codes and words of the host and omx-clap domains, a words item with its _WORDS
 node --input-type=module -e "import('$(pwd)/ts/omx-clap-hosting.js').then((m) => { const k = Object.keys(m).sort().join(' '); if (k !== 'HOSTED_STAGE_LIMITS HOSTING_IDLE_CODES HOSTING_WINDOW_CODES') { console.error('contract-dir-check: ts/omx-clap-hosting.js exports ' + k); process.exit(1); } })"
 node --input-type=module -e "
 import { readdirSync, readFileSync } from 'node:fs';
-const own = (f) => Object.entries(JSON.parse(readFileSync(f, 'utf8'))).filter(([k, v]) => !k.startsWith('\$') && k !== 'requires' && v.kind !== 'verbs').flatMap(([k, v]) => (v.kind === 'words' ? [k, k + '_WORDS'] : [k]));
-const items = [...readdirSync('data/hosting').flatMap((f) => own('data/hosting/' + f)), ...own('data/verbs.json')].sort().join(' ');
+const own = (f) => { const d = JSON.parse(readFileSync(f, 'utf8')); const items = f.startsWith('data/') ? d : d.components.schemas; return Object.entries(items).filter(([k, v]) => !k.startsWith('\$') && k !== 'requires' && (v.kind ?? v['x-kind']) !== 'verbs').flatMap(([k, v]) => ((v.kind ?? v['x-kind']) === 'words' ? [k, k + '_WORDS'] : [k])); };
+const items = [...readdirSync('data/hosting').flatMap((f) => own('data/hosting/' + f)), ...own('contract.d/host/host.json'), ...own('contract.d/omx-clap/omx-clap.json')].sort().join(' ');
 import('$(pwd)/ts/omx-clap-vocabulary.js').then((m) => { const k = Object.keys(m).sort().join(' '); if (k !== items) { console.error('contract-dir-check: ts/omx-clap-vocabulary.js exports ' + k + ', data/ declares ' + items); process.exit(1); } })"
 echo "contract-dir-check: omx-clap $version read back; $(echo "$committed" | sed 's/[a-z]*://g') the render of data/, byte for byte"

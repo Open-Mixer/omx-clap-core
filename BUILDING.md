@@ -14,7 +14,7 @@ checkout where the library is built if missing and whose path becomes the
 binary's rpath. The layout pin's
 serialisation is plugin-db's header `plugin-db/pin.h`: from `pkg-config
 plugin-db` (the plugin-db-devel package). The verbs the host answers past mod-host's are this
-tree's own, declared in `data/verbs.json` (below). The CLAP
+tree's own, declared in `contract.d/omx-clap/omx-clap.json` (below). The CLAP
 headers come from `pkg-config --cflags clap` (Fedora `clap-devel`) or `CLAP_CFLAGS`.
 JACK's headers and library come from `pkg-config jack` (the
 pipewire-jack-audio-connection-kit-devel package) or, when that is absent,
@@ -383,7 +383,7 @@ omx-contract-devel 3.3.0 ships (or `OMX_CONTRACT_DIR=<checkout>`'s); the
 packages ship them in `omx-clap-contract`.
 
 The verbs omx-clap-host answers past mod-host's are declared in
-`data/verbs.json`, a `verbs` item of omx-contract's schema (3.3.0): the ones it
+`contract.d/omx-clap/omx-clap.json`, a `verbs` item of omx-contract's schema (3.3.0): the ones it
 shares with plugin-hostd (`track_info`, `remote_pages`, `remote_page_get`,
 `param_info`, `pin_expect`, `chain_expect`, `note_input`, `note_on`, `note_off`,
 `all_notes_off`) and its own (`audio_ports`, `hide_external_ui`, `idle_hold`,

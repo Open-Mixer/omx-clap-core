@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """
 The verbs omx-clap-host owes, read from the installed declarations, against the host's socket and its registration
-table (data/verbs.json, docs/verbs.md).
+table (contract.d/omx-clap/omx-clap.json, docs/verbs.md).
 
     host_verbs_check.py --port <n> --contract-path <dir>[:<dir>...] --registration <main.c> --header <verbs header>
                         --fake <fake.clap> --synth <fake_synth.clap> --layout-scheme <scheme>

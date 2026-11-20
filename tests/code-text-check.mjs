@@ -22,7 +22,18 @@ function dataFiles(root) {
   for (const f of readdirSync(join(root, 'data', 'hosting'))) {
     if (f.endsWith('.json')) files.push(join(root, 'data', 'hosting', f));
   }
+  files.push(join(root, 'contract.d', 'host', 'host.json'));
   return files;
+}
+
+/** A domain document's codes items as the data form's (the host domain: reply.host.*): code, text and args by title. */
+function fromDomain(doc) {
+  const out = { requires: { 'omx-contract-schema': '>= 3.12.0' } };
+  for (const [name, it] of Object.entries(doc.components.schemas)) {
+    if ((it['x-kind'] ?? 'codes') !== 'codes' || !it.oneOf) continue;
+    out[name] = { kind: 'codes', codes: Object.fromEntries(it.oneOf.map((w) => [w.title, { code: w.const, text: { en: w['x-text'] }, args: w['x-args'] }])) };
+  }
+  return out;
 }
 
 function placeholders(s) {
@@ -41,7 +52,8 @@ function below(a, b) {
 
 function checkFile(path, messages, seen = new Set()) {
   const problems = [];
-  const data = JSON.parse(readFileSync(path, 'utf8'));
+  let data = JSON.parse(readFileSync(path, 'utf8'));
+  if (data.components) data = fromDomain(data);
   const floor = floorOf(data.requires && data.requires['omx-contract-schema']);
   if (!floor) problems.push(`${path}: requires.omx-contract-schema is not a plain ">= x.y.z" floor`);
   else if (below(floor, FLOOR)) problems.push(`${path}: requires.omx-contract-schema floor ${floor.join('.')} is below ${FLOOR.join('.')}`);

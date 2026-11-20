@@ -415,7 +415,7 @@ messages no dialect of the plugin carries, since the instance was added.
 Nothing is allocated or locked on the audio thread.
 
 A controller that is not a jack client plays an instrument through the
-socket with the note verbs it shares with plugin-hostd (`data/verbs.json`). `note_input <N>` answers
+socket with the note verbs it shares with plugin-hostd (`contract.d/omx-clap/omx-clap.json`). `note_input <N>` answers
 `resp 0 midi_in` for an instance that takes notes and `resp 0 -` for one
 that takes none. `note_on <N> <channel> <key> <velocity>`,
 `note_off <N> <channel> <key> <velocity>` and `all_notes_off <N>` (controller
@@ -1016,7 +1016,7 @@ panel record (`tests/clap_scan_test.c`, `panel_checks`).
 Layout pin
 ----------
 
-`pin_expect <N> omx-layout/1:<sha256>` is declared in `data/verbs.json`; plugin-hostd sends it
+`pin_expect <N> omx-layout/1:<sha256>` is declared in `contract.d/omx-clap/omx-clap.json`; plugin-hostd sends it
 just before the `add` of instance `N` with the layout pin of the plugin. That
 `add` computes the plugin's layout after `init()` and before `activate()`,
 every parameter `params.get_info()` gives in the `omx-layout/1` serialisation of
@@ -1034,7 +1034,7 @@ Strip and controls
 ------------------
 
 `track_info`, `remote_pages`, `remote_page_get` and `param_info` are verbs
-omx-clap-host shares with plugin-hostd, declared in `data/verbs.json` (rendered
+omx-clap-host shares with plugin-hostd, declared in `contract.d/omx-clap/omx-clap.json` (rendered
 as `omx_clap_host_verbs.h`), answered from the plugin:
 
 - `track_info <N> <name> <color> [kind]` stores the strip's name (`""` for none),

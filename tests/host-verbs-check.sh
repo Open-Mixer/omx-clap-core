@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# host-verbs-check.sh — every verb data/verbs.json declares is written in the C sources by its macro: OMX_VERB_<VERB>
+# host-verbs-check.sh — every verb the omx-clap domain declares is written in the C sources by its macro: OMX_VERB_<VERB>
 # for the word and OMX_VERB_<VERB>_FMT for the line protocol_add_command takes, both of src/omx_clap_host_verbs.h,
 # which contract-dir-check.sh holds to the data. Never a literal of their own. And no source defines a reply number: it is
-# OMX_REPLY_HOST_<NAME>_RESP of src/omx_clap_vocabulary.h, the resp data/verbs.json declares for reply.host.<name>.
+# OMX_REPLY_HOST_<NAME>_RESP of src/omx_clap_vocabulary.h, the resp the host domain declares for reply.host.<name>.
 #
 #   host-verbs-check.sh [--self-test] [--root <dir>]
 #
@@ -30,12 +30,12 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-[ -f "$root/data/verbs.json" ] || { echo "host-verbs-check: no $root/data/verbs.json" >&2; exit 2; }
+[ -f "$root/contract.d/omx-clap/omx-clap.json" ] || { echo "host-verbs-check: no $root/contract.d/omx-clap/omx-clap.json" >&2; exit 2; }
 
 # the check proper, over the sources under $1: one line per failure on stderr, the count of verbs on stdout
 check() {
   local dir=$1
-  local files decl=$1/data/verbs.json
+  local files decl=$1/contract.d
   files=$(cd "$dir" && find src lv2 -path lv2/tests -prune -o \( -name '*.c' -o -name '*.h' \) -type f -print | grep -vxE 'src/omx_clap_(host_verbs|vocabulary).h' | sort)
   [ -n "$files" ] || { echo "host-verbs-check: no sources under $dir" >&2; return 2; }
   (cd "$dir" && python3 -I "$here/host_verbs_source.py" "$decl" $files)
@@ -43,13 +43,13 @@ check() {
 
 if [ "$self" -eq 0 ]; then
   n=$(check "$root")
-  echo "host-verbs-check: src/ and lv2/ type none of the $n verbs data/verbs.json declares, and define no reply number of their own"
+  echo "host-verbs-check: src/ and lv2/ type none of the $n verbs the omx-clap domain declares, and define no reply number of their own"
   exit 0
 fi
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-copy() { rm -rf "$work/t"; mkdir -p "$work/t"; cp -r "$root/src" "$root/lv2" "$root/data" "$work/t/"; }
+copy() { rm -rf "$work/t"; mkdir -p "$work/t"; cp -r "$root/src" "$root/lv2" "$root/contract.d" "$work/t/"; }
 missed=0 arms=0
 judge() {  # judge <what> <expect: pass|fail>
   if check "$work/t" >/dev/null 2>"$work/err"; then got=pass; else got=fail; fi

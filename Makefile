@@ -368,6 +368,15 @@ test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 # (PLUGIN_DB_DIR) or the installed <contractdir>/lv2/lv2.json
 PLUGIN_DB_DIR ?=
 LV2_DOMAIN_DOC ?= $(if $(PLUGIN_DB_DIR),$(PLUGIN_DB_DIR)/contract.d/lv2/lv2.json,$(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null),$(DATADIR)/omx-contract/contract.d)/lv2/lv2.json)
+# every installed CLAP identifier is mapped by the domain clap, with its status, and nothing more (tools/clap_inventory.py
+# coverage against inventory/clap.json, tests/clap_inventory_test.py); inventory-check reads the installed CLAP headers again
+# and holds inventory/clap.json to them. Not the host's coverage (tests/clap_coverage.py)
+.PHONY: test-clap-inventory inventory-check
+test-clap-inventory:
+	python3 tests/clap_inventory_test.py
+inventory-check:
+	python3 tools/clap_inventory.py --check
+
 .PHONY: test-fields
 # omx-clap-scan --fields reads the scan domain at start-up; a test harness points it at this tree's contract.d (OMX_CONTRACT_PATH, a ':' list)
 test-fields: export OMX_CONTRACT_PATH = $(abspath contract.d)
@@ -601,6 +610,7 @@ test-build-floors:
 
 test: test-no-backcompat
 test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-clap-inventory
 test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool test-panel-words

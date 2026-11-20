@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.32.5
+Version:        0.33.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -13,17 +13,22 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-BuildRequires: (plugin-hostd-protocol-devel >= 0.5.9 with plugin-hostd-protocol-devel < 0.6)
+# The floors of the requirements below are GENERATED from packaging/deps.txt by Open-Mixer/.github deps-render
+# (render.sh --write); edit that file, not these lines.
+BuildRequires: plugin-hostd-protocol-devel >= 0.6.0
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: (plugin-db-devel >= 0.4.2 with plugin-db-devel < 0.5)
+BuildRequires: plugin-db-devel >= 0.4.2
 # the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
 # distribution's own is older)
-BuildRequires: (clap-devel >= 1.2.10 with clap-devel < 2)
+BuildRequires: clap-devel >= 1.2.10
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
+BuildRequires: omx-dsp-devel >= 0.33.0
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
 # the codes under contract.d/3 (3.0.0, the hosting codes moved here); data/verbs.json is a verbs item (3.3.0); omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
+BuildRequires: omx-contract-devel >= 3.20.0
+# the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (3.20.0 the first
+# release that ships it, with the installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
+BuildRequires: libomx-domain-devel >= 3.20.0
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
@@ -35,7 +40,12 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (plugin-hostd-protocol%{?_isa} >= 0.5.9 with plugin-hostd-protocol%{?_isa} < 0.6)
+Requires: plugin-hostd-protocol%{?_isa}
+Requires: plugin-hostd-protocol >= 0.6.0
+# omx-clap-scan reads the scan domain at start-up through the loader, and refuses (status 78) on an install without it: the loader, and
+# the data package that holds the domain (noarch data, so this package's own requirement of it is no cycle)
+Requires: libomx-domain >= 3.20.0
+Requires: omx-clap-core-contract = %{version}-%{release}
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -82,11 +92,11 @@ Its documentation is on openmixer.org.
 Summary: Build a program that hosts CLAP plugins on omx-clap-core
 License: GPL-3.0-or-later
 Requires: omx-clap-core%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
+Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
-Requires: (omx-dsp-devel >= 0.32.0 with omx-dsp-devel < 0.33)
+Requires: omx-dsp-devel >= 0.33.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: (omx-contract-devel >= 3.18.0 with omx-contract-devel < 4)
+Requires: omx-contract-devel >= 3.20.0
 Requires: omx-clap-core-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -101,9 +111,7 @@ Summary: omx-clap-core's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: (omx-contract-data >= 3.18.0 with omx-contract-data < 4)
-# the files lived in omx-clap-core-devel before this package
-Conflicts: omx-clap-core-devel < %{version}-%{release}
+Requires: omx-contract-data >= 3.20.0
 
 %description -n omx-clap-core-contract
 omx-clap-core's definitions as files in omx-contract's contract directory,
@@ -116,7 +124,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
-Requires: (clap-devel >= 1.2.10 with clap-devel < 2)
+Requires: clap-devel >= 1.2.10
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig
@@ -182,12 +190,12 @@ make test-package
 %{_libdir}/pkgconfig/omx-clap-core.pc
 %{_includedir}/omx-clap-host/
 %{_datadir}/omx-clap-core/omx-clap-core.map
-%{_datadir}/omx-clap-core/libomx-clap-core.so.*.abi
 
 %files -n omx-clap-core-contract
 %license COPYING
 %doc README.md
 %{_datadir}/omx-contract/contract.d/3/omx-clap-core/
+%{omx_contract_domain_dir}/scan/
 %dir %{_datadir}/omx-clap-core
 %dir %{_datadir}/omx-clap-core/catalogs
 
@@ -285,6 +293,62 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.1-1
+- The scan domain's x-since on SCAN_DOCUMENTS and SCAN_FIELD_SCOPES is the
+  domain version that carried them, 1.0.0, not the omx-contract release 3.7.0;
+  a check holds an x-since to a version of its own domain and never above its
+  info.version (#139).
+- The fuzz workflow checks the repository out before dnf builddep reads the
+  spec (#142).
+- The sources use the ERR_HOST_* names of plugin-hostd-protocol, whose first
+  release is 0.6.0, so the floor is plugin-hostd-protocol >= 0.6.0 (was
+  0.5.9). Floors only: no ceilings, no Conflicts, Breaks, Replaces or
+  Obsoletes, no epoch (#144).
+- clap-core no longer depends upward on omx-panel: OMX_CLAP_PANEL_DISPLAY_KINDS
+  and the check that installed omx-panel are dropped; the display kind table is
+  omx-panel's, the struct field stays a number (an ABI code) and omx-clap-scan
+  prints it as a number (#145).
+- ci: the deb, rpm and fuzz cells come from check-matrix and run on the runner
+  it names, deb cells on arm64 (the channel's trixie development debs are arm64
+  only), and Fedora 44 is out, Fedora 45 alone (#147).
+- ci: the commit identity check of public-sources is on (#150).
+
+* Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.0-1
+- Floors only, no ceilings on our own packages, no epochs: omx-dsp >= 0.33.0
+  (was 0.32.0 and below 0.33), omx-contract >= 3.20.0 (was 3.18.0 and below 4),
+  omx-contract-data >= 3.20.0, plugin-hostd-protocol >= 0.5.9 and plugin-db
+  >= 0.4.2 as before, clap-devel >= 1.2.10. New: libomx-domain >= 3.20.0 (build
+  and run time), for the scan domain; omx-clap-host requires
+  omx-clap-core-contract at its own version. The installed omx-clap-core.pc
+  names the omx-contract and omx-dsp floors, no ceiling. The floors are
+  declared once, in packaging/deps.txt (#114).
+- Dropped between our packages: the Conflicts omx-clap-core-devel < version,
+  and the Breaks and Replaces of the deb packages (#108); the channel prunes
+  the old packages.
+- ABI: the OMX_CLAP_CORE_0.15 symbol version node of libomx-clap-core is
+  removed (#108), so this release is a minor, 0.33.0. The backward-compatibility
+  machinery is removed: the older-ABI range, the ABI baseline gate and the
+  staged dependencies (#108).
+- The scan domain (contract.d/scan, moved from omx-contract): omx-clap-scan
+  --fields reads its scopes from the domain through libomx-domain and refuses
+  by name, exit 78, when it is absent, invalid or too old (#126).
+- org.openmixer.properties/1, a plugin's file and text properties: the host
+  offers omx_clap_host_property_count, _info, _get and _set (version node
+  OMX_CLAP_CORE_0.33); the LV2 adapter forges it into the plugin's patch:Set
+  and patch:Get (#15).
+- The panel family utility, code 12 (append only), as omx-contract 3.19.0 has
+  it (#130), and the display kind time_response (#118).
+- The panel description layout and its codes are declared here and read nothing
+  of omx-plugins; a parameter id past every table is 0xffffffff, checked at run
+  time (#119, #121).
+- host: omx-clap-host closes its JACK clients on SIGHUP as on SIGTERM and
+  SIGINT (#125); a plugin that needs a host feature it was not offered is
+  refused by name, never a crash (#116).
+- ci and tests: no job sizes itself from the host's nproc (#90), no bookworm
+  package cells (#99), every test target runs in a CI step (#112), and the xrun
+  report sabotage forces the interleaving that loses a note (#120).
+- debian: libomx-clap-core-dev depends on libomx-clap-core1 (#97).
+
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
 - Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and
   below 0.5, and plugin-hostd-protocol >= 0.5.9 and below 0.6: every dependency

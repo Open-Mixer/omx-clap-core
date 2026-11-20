@@ -35,13 +35,17 @@
 #include <stddef.h>
 
 /** the idle dimension, what the library answers about its hold of /dev/cpu_dma_latency (#296), and the window dimension, why omx-clap-host shows no plugin window (#180) */
-#define CLAP_HOST_CODE_IDLE_HOLD_REFUSED "hosting.idle.hold-refused"  ///< the device could not be opened for writing (no permission, or no such device): the host runs with no hold
+#define CLAP_HOST_CODE_IDLE_HOLD_REFUSED "hosting.idle.hold-refused" ///< the device could not be opened for writing (no permission, or no such device): the host runs with no hold
+/** The source sentence (English) of CLAP_HOST_CODE_IDLE_HOLD_REFUSED. */
 #define CLAP_HOST_CODE_IDLE_HOLD_REFUSED_TEXT_EN "The CPU idle-latency device could not be opened for writing, so the host runs with no hold on it. Grant write access to /dev/cpu_dma_latency, or accept that idle states are not held."
-#define CLAP_HOST_CODE_WINDOW_NO_DISPLAY "hosting.window.no-display"  ///< no display to show it on: none is named, or its server refused the connection; the plugin runs on
+#define CLAP_HOST_CODE_WINDOW_NO_DISPLAY "hosting.window.no-display" ///< no display to show it on: none is named, or its server refused the connection; the plugin runs on
+/** The source sentence (English) of CLAP_HOST_CODE_WINDOW_NO_DISPLAY. */
 #define CLAP_HOST_CODE_WINDOW_NO_DISPLAY_TEXT_EN "There is no display to show the window on: none was named, or its server refused the connection. The plugin keeps running without a window."
-#define CLAP_HOST_CODE_WINDOW_UNSUPPORTED "hosting.window.unsupported"  ///< the plugin has no clap.gui, or its clap.gui offers no window API the host shows, embedded or floating
+#define CLAP_HOST_CODE_WINDOW_UNSUPPORTED "hosting.window.unsupported" ///< the plugin has no clap.gui, or its clap.gui offers no window API the host shows, embedded or floating
+/** The source sentence (English) of CLAP_HOST_CODE_WINDOW_UNSUPPORTED. */
 #define CLAP_HOST_CODE_WINDOW_UNSUPPORTED_TEXT_EN "This plugin has no window, or none in a form this host can show, embedded or floating. Run it without a window."
-#define CLAP_HOST_CODE_WINDOW_REFUSED "hosting.window.refused"  ///< the plugin's clap.gui answered false when asked to create, embed or show its window
+#define CLAP_HOST_CODE_WINDOW_REFUSED "hosting.window.refused" ///< the plugin's clap.gui answered false when asked to create, embed or show its window
+/** The source sentence (English) of CLAP_HOST_CODE_WINDOW_REFUSED. */
 #define CLAP_HOST_CODE_WINDOW_REFUSED_TEXT_EN "The plugin refused to create, embed or show its own window when asked. Run it without a window."
 
 #endif /* CLAP_HOST_LIMITS_H */

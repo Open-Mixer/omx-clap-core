@@ -88,9 +88,9 @@
 ************************************************************************************************************************
 */
 
-/* SIGTERM and SIGINT run term_signal on whichever thread the kernel picks, PipeWire's loop threads among them, and two
- * signals can run it on two threads at once: running is atomic, and the socket is finished once, by the first of the
- * signal and quit to get there (finish) */
+/* SIGTERM, SIGINT and SIGHUP run term_signal on whichever thread the kernel picks, PipeWire's loop threads among them,
+ * and two signals can run it on two threads at once: running is atomic, and the socket is finished once, by the first
+ * of the signal and quit to get there (finish) */
 static atomic_int running;
 static atomic_flag finished = ATOMIC_FLAG_INIT;
 static volatile int quitting;
@@ -559,7 +559,7 @@ static void preset_show_cb(proto_t *proto)
 
     if (resp == SUCCESS)
         protocol_response(reply, proto);
-    else if (resp == ERR_LV2_INVALID_PRESET_URI)
+    else if (resp == ERR_HOST_INVALID_PRESET_URI)
         protocol_response_int(location[0] == '/' ? OMX_REPLY_PLUGIN_HOSTD_PRESET_INVALID_RESP
                                                  : OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_OFFERED_RESP, proto);
     else
@@ -580,7 +580,7 @@ static void preset_save_cb(proto_t *proto)
         n = snprintf(path, sizeof(path), "%s/%s", dir, file);
     resp = effects_preset_save(atoi(proto->list[1]), n > 0 && (size_t)n < sizeof(path) ? path : NULL, proto->list[4], reply,
                                sizeof(reply));
-    if (resp == SUCCESS || resp == ERR_LV2_INVALID_PRESET_URI)
+    if (resp == SUCCESS || resp == ERR_HOST_INVALID_PRESET_URI)
         protocol_response(reply, proto);
     else
         protocol_response_int(resp, proto);
@@ -946,6 +946,8 @@ int main(int argc, char **argv)
     sigemptyset(&sig.sa_mask);
     sigaction(SIGTERM, &sig, NULL);
     sigaction(SIGINT, &sig, NULL);
+    // a hangup ends the host as a terminate does: the default action would kill it with its JACK clients still open
+    sigaction(SIGHUP, &sig, NULL);
 
     protocol_verbose(verbose);
 

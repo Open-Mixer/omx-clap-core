@@ -84,7 +84,8 @@ static inline void in_child(const char *label, void (*arm)(void))
         _exit(g_failures > 255 ? 255 : g_failures);
     }
     waitpid(pid, &status, 0);
-    CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0, "%s: the child arm passed (status %d)", label, status);
+    CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0, "%s: the child arm passed (status %d%s%s)", label, status,
+          WIFSIGNALED(status) ? ", killed by " : "", WIFSIGNALED(status) ? strsignal(WTERMSIG(status)) : "");
 }
 
 /* `name` of the binary already loaded from `path`, without loading it */

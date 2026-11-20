@@ -1622,6 +1622,50 @@ static const char *read_roles(struct lv2_plugin *p)
     return NULL;
 }
 
+/* What a port class needs of the host whether or not the plugin's TTL says so: the features the host must offer for a
+ * port of the class to be realised. A plugin with such a port and one of them not offered is refused
+ * hosting.features.missing from the TTL, before its binary is opened, under strict options or not: it never declared
+ * the feature, so nothing says it can do without it, and a plugin that calls a host feature it was not handed takes the
+ * whole process down (there is no catching a jump to address 0 in-process; a plugin that lies in its TTL in a way no
+ * port betrays is for a worker of its own to contain, not this reader). A port that is also of `except` is realised
+ * as that class instead and needs nothing here.
+ * An ev:EventPort's event types are uri-map's ids under the event map, and the event extension's feature is the
+ * port's host contract: the original ll-plugins (arpeggiator, control2midi, klaviatur) declare neither, and call
+ * uri-map's callback unchecked in their instantiate. One row per port class; a class that loses its host feature
+ * loses its plugins here, by this name. */
+static const struct
+{
+    int node;
+    int except;                     // N_COUNT: none
+    const char *needs[3];           // NULL-terminated
+} g_port_needs[] = {
+    { N_EVENT, N_ATOM, { LV2_URI_MAP_URI, LV2_EVENT_URI, NULL } },
+};
+
+/* every port against g_port_needs: NULL, or LV2_CODE_FEATURES_MISSING when a port needs a feature not offered */
+static const char *read_port_needs(const LilvPlugin *pl)
+{
+    const uint32_t n = L.lilv_plugin_get_num_ports(pl);
+    uint32_t i, r, k;
+
+    for (i = 0; i < n; i++)
+    {
+        const LilvPort *port = L.lilv_plugin_get_port_by_index(pl, i);
+
+        for (r = 0; r < sizeof(g_port_needs) / sizeof(g_port_needs[0]); r++)
+        {
+            if (!L.lilv_port_is_a(pl, port, g.node[g_port_needs[r].node]))
+                continue;
+            if (g_port_needs[r].except != N_COUNT && L.lilv_port_is_a(pl, port, g.node[g_port_needs[r].except]))
+                continue;
+            for (k = 0; g_port_needs[r].needs[k]; k++)
+                if (!lv2_feature_offered_within(lv2_core_feature_options(), lv2_features_configured(), g_port_needs[r].needs[k]))
+                    return LV2_CODE_FEATURES_MISSING;
+        }
+    }
+    return NULL;
+}
+
 /* what a feature says of the plugin, required or optional alike */
 static void feature_note(struct lv2_plugin *p, const char *uri)
 {
@@ -1869,6 +1913,10 @@ struct lv2_plugin *lv2_plugin_open(struct lv2_bundle *bundle, const char *uri, c
     pl = L.lilv_plugins_get_by_uri(L.lilv_world_get_all_plugins(g.world), p->uri_node);
     p->lilv_plugin = (void *)pl;
     refusal = !pl || !L.lilv_node_equals(L.lilv_plugin_get_bundle_uri(pl), bundle->node) ? LV2_CODE_NO_REALISATION : NULL;
+    // before the ports are read: a port class whose host feature is not offered names that, whatever the reader makes
+    // of the port
+    if (!refusal)
+        refusal = read_port_needs(pl);
     if (!refusal)
         refusal = read_ports(p, pl);
     if (!refusal)

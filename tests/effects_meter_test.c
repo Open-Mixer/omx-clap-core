@@ -368,7 +368,7 @@ int main(void)
     {
         CHECK(effects_monitor_output(i, "level") == SUCCESS && effects_monitor_output(i, "gain_reduction") == SUCCESS, "instance %d monitors its level and its reduction", i);
     }
-    CHECK(effects_monitor_output(held, "level_clip") == SUCCESS && effects_monitor_output(foreign, "level_clip") == ERR_LV2_INVALID_PARAM_SYMBOL,
+    CHECK(effects_monitor_output(held, "level_clip") == SUCCESS && effects_monitor_output(foreign, "level_clip") == ERR_HOST_INVALID_PARAM_SYMBOL,
           "the held level's clip word is monitored; the foreign plugin has none");
     tick_with_burst(0.5f, ids, 2);
     from = g_sent_count;
@@ -426,7 +426,7 @@ int main(void)
     tick();
     tick();
     CHECK(last_sent(held, "level_clip") == 1.0f, "the reader keeps it lit while the plugin reads clean again");
-    CHECK(effects_meter_clip_clear(held, "level_clip") == SUCCESS && effects_meter_clip_clear(held, "level") == ERR_LV2_INVALID_PARAM_SYMBOL,
+    CHECK(effects_meter_clip_clear(held, "level_clip") == SUCCESS && effects_meter_clip_clear(held, "level") == ERR_HOST_INVALID_PARAM_SYMBOL,
           "a clip word is cleared; a level is no clip word");
     blocks(held, 0.001f, 20);
     tick();
@@ -435,7 +435,7 @@ int main(void)
     /* monitor_output_off stops the reads of that output and no other */
     reads = effects_meter_reads(held);
     CHECK(effects_monitor_output_off(held, "gain_reduction") == SUCCESS && effects_monitor_output_off(held, "level_clip") == SUCCESS, "monitor_output_off stops two outputs");
-    CHECK(effects_monitor_output_off(held, "nothing") == ERR_LV2_INVALID_PARAM_SYMBOL && effects_monitor_output_off(9, "level") == ERR_INSTANCE_NON_EXISTS,
+    CHECK(effects_monitor_output_off(held, "nothing") == ERR_HOST_INVALID_PARAM_SYMBOL && effects_monitor_output_off(9, "level") == ERR_INSTANCE_NON_EXISTS,
           "it refuses a symbol or an instance that is none, as monitor_output does");
     tick_with_burst(0.5f, ids, 2);
     from = g_sent_count;

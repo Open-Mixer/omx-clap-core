@@ -468,7 +468,7 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
                    "\"visibleParamId\":1,\"visibleMask\":\"6\"}],"),
           "control 2: knee, a knob in detail shown while mode is 1 or 2 (parameter 1, mask 6)");
     CHECK(has(out, ",\"roles\":[{\"role\":\"threshold\",\"index\":0,\"paramId\":0}],"), "its one role: threshold, parameter 0");
-    CHECK(has(out, ",\"displays\":[{\"kind\":\"gain_reduction_bar\",\"section\":0,\"source\":\"meters\",\"meterIds\":[7,null],"
+    CHECK(has(out, ",\"displays\":[{\"kind\":0,\"section\":0,\"source\":\"meters\",\"meterIds\":[7,null],"
                    "\"curveIndex\":0,\"floorParamId\":null,\"floorDb\":-24,\"labelKey\":\"panel.display.gain_reduction\","
                    "\"label\":\"Gain reduction\"}],"),
           "its one display: a gain reduction bar over main from meter 7, a -24 dB floor no parameter sets");
@@ -488,7 +488,7 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
                                            "\"roles\":{\"refused\":\"too-many\",\"count\":4097,\"max\":4096},"),
           "panel-hostile's controls counted UINT32_MAX and its roles 4097 are refused, each with its count and the maximum");
     CHECK(plugin_has(out, "panel-hostile", "\"label\":\"Detail\"}],\"controls\":{\"refused\"")
-          && plugin_has(out, "panel-hostile", "},\"displays\":[{\"kind\":\"gain_reduction_bar\",")
+          && plugin_has(out, "panel-hostile", "},\"displays\":[{\"kind\":0,")
           && plugin_has(out, "panel-hostile", ",\"placementDefaults\":[]}") && !has(out, "out of memory"),
           "and its sections, displays and placement defaults still print, nothing reported out of memory");
     status = run(out, "%s --json %s", scan, fake);
@@ -527,7 +527,7 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
           count(out, "visible_param_id"));
     CHECK(has(out, "\nrole:0\tomx_clap_panel_role.role\tthreshold\nrole:0\tomx_clap_panel_role.index\t0\nrole:0\tomx_clap_panel_role.param_id\t0\n"),
           "the role under role:0");
-    CHECK(has(out, "\ndisplay:0\tomx_clap_panel_display.kind\tOMX_CLAP_DISPLAY_GAIN_REDUCTION_BAR\ndisplay:0\tomx_clap_panel_display.section\t0\n"
+    CHECK(has(out, "\ndisplay:0\tomx_clap_panel_display.kind\t0\ndisplay:0\tomx_clap_panel_display.section\t0\n"
                    "display:0\tomx_clap_panel_display.source\tOMX_CLAP_DISPLAY_FROM_METERS\ndisplay:0\tomx_clap_panel_display.meter_ids[0]\t7\n"
                    "display:0\tomx_clap_panel_display.curve_index\t0\ndisplay:0\tomx_clap_panel_display.floor_db\t-24\n"
                    "display:0\tomx_clap_panel_display.label_key\tpanel.display.gain_reduction\n"

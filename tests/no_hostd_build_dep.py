@@ -87,7 +87,7 @@ def self_test():
          "a pkgconfig BuildRequires"),
         ("packaging/omx-clap-host.spec", "BuildRequires: gcc\n", "BuildRequires: gcc\nBuildRequires: plugin-hostd-devel\n",
          "a package BuildRequires"),
-        ("debian/control", "               pkgconf,\n", "               plugin-hostd-dev (>= 0.5.0~),\n               pkgconf,\n",
+        ("debian/control", "Build-Depends: debhelper-compat (= 13), ", "Build-Depends: debhelper-compat (= 13), plugin-hostd-dev (>= 0.5.0~), ",
          "a Build-Depends"),
         ("Makefile", "PIN_CFLAGS = $(shell $(PKG_CONFIG) --cflags plugin-db)\n",
          "PIN_CFLAGS = $(shell $(PKG_CONFIG) --cflags plugin-hostd)\n", "the Makefile asking pkg-config"),

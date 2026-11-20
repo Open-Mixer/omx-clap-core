@@ -13,7 +13,7 @@
         "description": "The units of org.openmixer.param-contract/1, the code its get() reports for a parameter's plain value, by token: the LV2 unit a face writes for a descriptor unit (units:db is db), 0..24 the LV2 units one to one, 0x100 and up the vendor block of units LV2 has none for (256..259 and 260..263), append-only. A token is served when it has a code here; none is 0.",
         "x-since": "1.0.0",
         "x-kind": "sheet",
-        "x-file": "omx-param-contract.json",
+        "x-file": "param-contract.json",
         "x-value": {
           "none": 0,
           "s": 1,
@@ -146,5 +146,5 @@
       }
     ]
   },
-  "x-file": "omx-param-contract.json"
+  "x-file": "param-contract.json"
 }

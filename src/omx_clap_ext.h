@@ -51,6 +51,7 @@
 #include <clap/string-sizes.h>
 #include "omx_param_scales.h"
 #include "omx_param_units.h"
+#include <omxdomain/panel_codes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -179,33 +180,29 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 #define OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES 4096u
 
 /*
- * The codes, X(code, name, enumerator), declared here: the name is the code's word (omx-plugins'
- * tools/panel-description.mjs writes the same), the enumerator the one this header gives it after its prefix
- * (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_, OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_),
- * which omx-plugins' include/omx_panel_description.h copies and holds to this installed header (its make panel-abi).
+ * The codes. The tables are this extension's own and declared here, X(code, name, enumerator). The words of the
+ * families, widgets, display sources and placements are omx-panel's: its panel domain, rendered as omxdomain/panel_codes.h
+ * (omx-panel-contract), and the four lists below are its X-macros, X(code, WORD): the code the panel domain gives the
+ * word and the word as the header spells it, upper case, which is also the enumerator after the prefixes OMX_CLAP_FAMILY_,
+ * OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_FROM_ and OMX_CLAP_PLACEMENT_. The word as a plugin and the scan write it is the same
+ * word in lower case ("gain_adjustment"). This header spells none of them.
  */
-
 /** The tables, in the order a host walks them. */
 #define OMX_CLAP_PANEL_TABLES(X) \
     X(0, "sections", SECTIONS) X(1, "controls", CONTROLS) X(2, "roles", ROLES) X(3, "displays", DISPLAYS) \
     X(4, "placement_defaults", PLACEMENT_DEFAULTS)
 
-/** The families: which house view can draw the plugin and which roles it may bind. Append only. */
-#define OMX_CLAP_PANEL_FAMILIES(X) \
-    X(0, "none", NONE) X(1, "gate", GATE) X(2, "dynamics", DYNAMICS) X(3, "limiter", LIMITER) X(4, "deesser", DEESSER) \
-    X(5, "eq", EQ) X(6, "filter", FILTER) X(7, "drive", DRIVE) X(8, "modulation", MODULATION) X(9, "delay", DELAY) \
-    X(10, "reverb", REVERB) X(11, "pitch", PITCH) X(12, "utility", UTILITY)
+/** The families: which house view can draw the plugin and which roles it may bind. Append only: omx-panel's PANEL_FAMILIES. */
+#define OMX_CLAP_PANEL_FAMILIES(X) OMX_PANEL_FAMILIES(X)
 
-/** The widgets: auto leaves the widget to the host, from the parameter. */
-#define OMX_CLAP_PANEL_WIDGETS(X) \
-    X(0, "auto", AUTO) X(1, "knob", KNOB) X(2, "fader", FADER) X(3, "switch", SWITCH) X(4, "selector", SELECTOR)
+/** The widgets: auto leaves the widget to the host, from the parameter. omx-panel's PANEL_WIDGETS. */
+#define OMX_CLAP_PANEL_WIDGETS(X) OMX_PANEL_WIDGETS(X)
 
-/** Where a display's data comes from. */
-#define OMX_CLAP_PANEL_DISPLAY_SOURCES(X) \
-    X(0, "family", FAMILY) X(1, "meters", METERS) X(2, "gain_adjustment", GAIN_ADJUSTMENT) X(3, "curve", CURVE)
+/** Where a display's data comes from. omx-panel's PANEL_DISPLAY_SOURCES. */
+#define OMX_CLAP_PANEL_DISPLAY_SOURCES(X) OMX_PANEL_DISPLAY_SOURCES(X)
 
-/** Where an instance sits: the clap.track-info/1 flags read as one value. */
-#define OMX_CLAP_PANEL_PLACEMENTS(X) X(0, "insert", INSERT) X(1, "return", RETURN) X(2, "bus", BUS) X(3, "master", MASTER)
+/** Where an instance sits: the clap.track-info/1 flags read as one value. omx-panel's PANEL_PLACEMENTS. */
+#define OMX_CLAP_PANEL_PLACEMENTS(X) OMX_PANEL_PLACEMENTS(X)
 
 /** A section, in the order the panel draws them. */
 typedef struct omx_clap_panel_description_section

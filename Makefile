@@ -366,6 +366,9 @@ test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 test-fields: export OMX_CONTRACT_PATH = $(abspath contract.d)
 test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_compressor.clap
 	python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(OMX_CONTRACT_DIR)/data/formats $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) $(PLUGIN_HOSTD_TABLES)
+	# sabotage: a clap domain without its first extension term must turn the scan's list red
+	@d=$$(mktemp -d) && python3 -c "import json,sys; d=json.load(open('contract.d/clap/clap.json')); w=[(v,k) for v in d['components']['schemas'].values() if v.get('x-kind')=='terms' for k in v['oneOf'] if k['x-term'].get('kind')=='extension'][0]; w[0]['oneOf'].remove(w[1]); json.dump(d,open(sys.argv[1],'w'))" $$d/clap.json \
+	  && if OMX_CLAP_DOMAIN_DOC=$$d/clap.json python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(OMX_CONTRACT_DIR)/data/formats $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) >/dev/null 2>&1; then echo "FAIL sabotage: the scan list passed over a clap domain without a term"; rm -rf $$d; exit 1; else echo "ok   sabotage: the scan list is red over a clap domain without a term"; rm -rf $$d; fi
 	python3 tests/scan-domain-check.py ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath contract.d) $(abspath tests/fake_compressor.clap)
 	python3 -I tests/domain-x-since-check.py --self-test $(abspath contract.d)
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)

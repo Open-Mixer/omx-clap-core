@@ -25,7 +25,10 @@ work=$(dirname "$dir")
 
 # omx-contract's own package, less its reader's table (codes.json) and its golden vectors (scale-vectors.json),  and the code sheet this tree owns (param-contract.json, until omx-contract drops it), as omx-contract installs itself
 ocv=$(sed -n 's/^  "version": "\([0-9.]*\)",$/\1/p' "$oc/package.json")
-sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" -x codes.json -x scale-vectors.json -x param-contract.json omx-contract "$ocv" 3 "$oc/data" "$dir" data
+# and the CLAP terms (data/formats/clap, the items of this tree's clap domain, until omx-contract drops them)
+clapx=
+for f in $(cd "$oc/data" && find formats/clap -name '*.json' | sort); do clapx="$clapx -x $f"; done
+sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" -x codes.json -x scale-vectors.json -x param-contract.json $clapx omx-contract "$ocv" 3 "$oc/data" "$dir" data
 
 $tool validate --contract-dir "$dir" --needs "omx-clap@>= $version" --catalogs catalogs
 

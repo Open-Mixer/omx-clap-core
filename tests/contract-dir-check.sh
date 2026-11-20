@@ -34,12 +34,14 @@ $tool validate --contract-dir "$dir" --needs "omx-clap@>= $version" --catalogs c
 $tool links --check --root . --contract-dir "$dir" --package omx-clap
 
 # the renders this tree commits, as <target>:<committed path>; the output's name is the committed file's
-committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h c:src/omx_param_units.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
+committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h c:src/omx_param_units.h c:src/omx_param_scales.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
 
 bad=0
 for target in c ts; do
   rm -rf "$work/$target"
+  # one --with-domain a render: the code sheets are domains of their own, each rendered over the same package and output
   $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-param-contract"
+  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-clap-scale"
   for out in "$work/$target"/*; do
     name=$(basename "$out")
     path=

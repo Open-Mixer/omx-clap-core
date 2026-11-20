@@ -20,7 +20,7 @@ CORE_VERSION = $(VERSION)
 CORE_SO = lib$(CORE).so
 CORE_SONAME = $(CORE_SO).$(CORE_MAJOR)
 CORE_FILE = $(CORE_SO).$(CORE_VERSION)
-CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_units.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
+CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_units.h src/omx_param_scales.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
 CORE_MAP = src/omx-clap.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
 CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
@@ -337,6 +337,8 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR)
 	# the parameter contract's code sheet and its mapping to standard units, the same way: <contractdir>/omx-param-contract/omx-param-contract.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR)
+	# the scale codes, the same way: <contractdir>/omx-clap-scale/omx-clap-scale.json
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 
@@ -384,8 +386,8 @@ test-contract:
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
 	# F2: the code sheet's mapping to omx-contract's standard units (PARAM_UNITS), three arms, with its sabotage (needs omx-contract's grown unit list)
-	python3 -I tests/param-units-map-check.py contract.d/omx-param-contract/omx-param-contract.json build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
-	python3 -I tests/param-units-map-check.py --self-test contract.d/omx-param-contract/omx-param-contract.json build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
+	python3 -I tests/param-units-map-check.py contract.d/omx-param-contract/omx-param-contract.json contract.d/omx-clap-scale/omx-clap-scale.json build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
+	python3 -I tests/param-units-map-check.py --self-test contract.d/omx-param-contract/omx-param-contract.json contract.d/omx-clap-scale/omx-clap-scale.json build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 

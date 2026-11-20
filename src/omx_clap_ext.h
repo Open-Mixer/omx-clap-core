@@ -49,6 +49,7 @@
 
 #include <clap/plugin.h>
 #include <clap/string-sizes.h>
+#include "omx_param_scales.h"
 #include "omx_param_units.h"
 
 #ifdef __cplusplus
@@ -116,8 +117,9 @@ static const char OMX_CLAP_EXT_PARAM_CONTRACT[] = "org.openmixer.param-contract/
 #define OMX_CLAP_PARAM_UNITS(X) OMX_PARAM_UNITS(X)
 
 /** The scales, X(code, name): linear (the value is linear in position), log (geometric in position, both bounds
- * positive), stepped (the whole numbers from min to max, CLAP_PARAM_IS_STEPPED, step 1). */
-#define OMX_CLAP_PARAM_SCALES(X) X(0, "linear") X(1, "log") X(2, "stepped")
+ * positive), stepped (the whole numbers from min to max, CLAP_PARAM_IS_STEPPED, step 1). The table is
+ * OMX_CLAP_PARAM_SCALES("omx_param_scales.h", the render of the omx-clap-scale domain): the code is this extension's, the
+ * name a standard scale id of omx-contract's PARAM_SCALES, and this header spells no row of its own. */
 
 /** One parameter's contract, as the plugin's get fills it. */
 typedef struct omx_clap_param_contract_entry

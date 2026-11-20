@@ -126,6 +126,32 @@ def packages(path):
     return found
 
 
+def domain_items(path):
+    """The verbs and codes items of every installed domain of the contract path, as the data form's items:
+    {name: (owner, item)}. A domain's word is a verb (x-format, x-reply, x-implemented-by, x-codes) or a reply code
+    (x-resp), keyed by its title."""
+    out = {}
+    for top in [d for d in path.split(':') if d]:
+        if not os.path.isdir(top):
+            continue
+        for dom in sorted(os.listdir(top)):
+            doc = os.path.join(top, dom, dom + '.json')
+            if dom == '3' or not os.path.isfile(doc):
+                continue
+            with open(doc) as f:
+                d = json.load(f)
+            owner = d['info']['x-owner']
+            for name, it in d['components']['schemas'].items():
+                if it.get('x-kind') == 'verbs':
+                    out[name] = (owner, {'kind': 'verbs', 'verbs': {w['title']: {
+                        'verb': w['const'], 'format': w['x-format'], 'reply': w['x-reply'],
+                        'implementedBy': w['x-implemented-by'], 'codes': w.get('x-codes', [])} for w in it['oneOf']}})
+                elif it.get('x-kind', 'codes') == 'codes' and it.get('oneOf') and 'x-resp' in it['oneOf'][0]:
+                    out[name] = (owner, {'kind': 'codes', 'codes': {w['title']: {'code': w['const'], 'resp': w['x-resp']}
+                                                                    for w in it['oneOf']}})
+    return out
+
+
 def declarations(path):
     """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}."""
     items, verbs = {}, []
@@ -138,6 +164,7 @@ def declarations(path):
             for name, item in doc.items():
                 if isinstance(item, dict) and 'kind' in item:
                     items[name] = (pkg, item)
+    items.update(domain_items(path))
     for name, (pkg, item) in items.items():
         if item['kind'] != 'verbs':
             continue

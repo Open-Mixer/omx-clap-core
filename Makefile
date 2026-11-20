@@ -339,6 +339,8 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR)
 	# the scale codes, the same way: <contractdir>/omx-clap-scale/omx-clap-scale.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR)
+	# CLAP's own particulars (the flag for the stepped scale), the same way: <contractdir>/clap/clap.json
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/clap $(DESTDIR)$(CONTRACTDIR)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 
@@ -386,8 +388,8 @@ test-contract:
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
 	# F2: the code sheet's mapping to omx-contract's standard units (PARAM_UNITS), three arms, with its sabotage (needs omx-contract's grown unit list)
-	python3 -I tests/param-units-map-check.py contract.d/omx-param-contract/omx-param-contract.json contract.d/omx-clap-scale/omx-clap-scale.json build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
-	python3 -I tests/param-units-map-check.py --self-test contract.d/omx-param-contract/omx-param-contract.json contract.d/omx-clap-scale/omx-clap-scale.json build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
+	python3 -I tests/param-units-map-check.py contract.d build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
+	python3 -I tests/param-units-map-check.py --self-test contract.d build/contract/json/omx-contract.json $(wildcard $(OMX_CONTRACT_DIR)/data/param-contract.json)
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 

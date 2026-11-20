@@ -3,11 +3,11 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """F2, the code sheet's mapping to the standard units, held by three arms (the call-level test of the sorting row V23d).
 
-    param-units-map-check.py <omx-param-contract.json> <omx-clap-scale.json> <omx-contract.json> [<omx-contract's data/param-contract.json>]
-    param-units-map-check.py --self-test <omx-param-contract.json> <omx-clap-scale.json> <omx-contract.json> [<param-contract.json>]
+    param-units-map-check.py <contract.d of this tree> <omx-contract.json> [<omx-contract's data/param-contract.json>]
+    param-units-map-check.py --self-test <contract.d of this tree> <omx-contract.json> [<param-contract.json>]
 
-The domain documents are contract.d/omx-param-contract/omx-param-contract.json and contract.d/omx-clap-scale/omx-clap-scale.json;
-<omx-contract.json> is `omx-contract render --target json` of the contract directory (its items hold PARAM_UNITS and
+The domain documents are contract.d/omx-param-contract/omx-param-contract.json, contract.d/omx-clap-scale/omx-clap-scale.json
+and contract.d/clap/clap.json (CLAP's flag for the stepped scale); <omx-contract.json> is `omx-contract render --target json` of the contract directory (its items hold PARAM_UNITS and
 PARAM_SCALES, the standard units and scales). The scale codes are held the same way: (a) the golden three, (c) each key a
 word of PARAM_SCALES.
 
@@ -30,7 +30,7 @@ GOLDEN = {
 }
 
 
-def check(domain, standard, old, scales):
+def check(domain, standard, old, scales, clap):
     bad = []
     items = domain["components"]["schemas"]
     sheet = items["OMX_PARAM_CONTRACT_UNITS"]["x-value"]
@@ -59,34 +59,41 @@ def check(domain, standard, old, scales):
     for w in sc:
         if w not in standard["items"]["PARAM_SCALES"]["value"]:
             bad.append("(c) the scale %s is no word of omx-contract's PARAM_SCALES" % w)
+    fl = clap["components"]["schemas"]["CLAP_PARAM_FLAG_SCALES"]["x-value"]  # the flags, F2
+    if fl != {"CLAP_PARAM_IS_STEPPED": "stepped"}:
+        bad.append("(a) the flag mapping is not the golden CLAP_PARAM_IS_STEPPED -> stepped: %s" % fl)
+    for f, w in fl.items():
+        if w not in standard["items"]["PARAM_SCALES"]["value"]:
+            bad.append("(c) the flag %s maps to %s, no word of omx-contract's PARAM_SCALES" % (f, w))
     return bad
 
 
 def main(argv):
     self_test = argv[:1] == ["--self-test"]
     argv = argv[1:] if self_test else argv
-    if len(argv) not in (3, 4):
+    if len(argv) not in (2, 3):
         sys.exit(__doc__)
-    domain = json.load(open(argv[0]))
-    scales = json.load(open(argv[1]))
-    standard = json.load(open(argv[2]))
-    old = json.load(open(argv[3])) if len(argv) == 4 else None
-    bad = check(domain, standard, old, scales)
+    domain = json.load(open(argv[0] + "/omx-param-contract/omx-param-contract.json"))
+    scales = json.load(open(argv[0] + "/omx-clap-scale/omx-clap-scale.json"))
+    clap = json.load(open(argv[0] + "/clap/clap.json"))
+    standard = json.load(open(argv[1]))
+    old = json.load(open(argv[2])) if len(argv) == 3 else None
+    bad = check(domain, standard, old, scales, clap)
     if not self_test:
         for b in bad:
             print("param-units-map-check: " + b, file=sys.stderr)
         if bad:
             return 1
-        print("param-units-map-check: %d unit codes, each mapped to a distinct standard unit, and %d scale codes, each a standard scale of omx-contract" % (len(domain["components"]["schemas"]["OMX_PARAM_CONTRACT_UNITS"]["x-value"]), len(scales["components"]["schemas"]["OMX_CLAP_SCALE_CODES"]["x-value"])))
+        print("param-units-map-check: %d unit codes, each mapped to a distinct standard unit, and %d scale codes, each a standard scale of omx-contract, and the CLAP flag for the stepped scale" % (len(domain["components"]["schemas"]["OMX_PARAM_CONTRACT_UNITS"]["x-value"]), len(scales["components"]["schemas"]["OMX_CLAP_SCALE_CODES"]["x-value"])))
         return 0
     if bad:
         print("FAIL self-test: the unsabotaged inputs are red: %s" % bad[:3])
         return 1
     failed = 0
 
-    def must_be_red(what, d, s, o, arm, sc=None):
+    def must_be_red(what, d, s, o, arm, sc=None, cl=None):
         nonlocal failed
-        b = check(d, s, o, sc if sc is not None else scales)
+        b = check(d, s, o, sc if sc is not None else scales, cl if cl is not None else clap)
         if any(x.startswith(arm) for x in b):
             print("ok   self-test: %s is red (%s)" % (what, arm))
         else:
@@ -108,6 +115,9 @@ def main(argv):
     sc3 = copy.deepcopy(scales)
     sc3["components"]["schemas"]["OMX_CLAP_SCALE_CODES"]["x-value"]["log"] = 5
     must_be_red("a scale code moved", domain, standard, old, "(a)", sc3)
+    cl2 = copy.deepcopy(clap)
+    cl2["components"]["schemas"]["CLAP_PARAM_FLAG_SCALES"]["x-value"]["CLAP_PARAM_IS_STEPPED"] = "step"
+    must_be_red("a flag mapped to no standard scale", domain, standard, old, "(c)", None, cl2)
     d3 = copy.deepcopy(domain)
     d3["components"]["schemas"]["OMX_PARAM_CONTRACT_UNITS"]["x-value"]["dbu"] = 300
     must_be_red("a code moved", d3, standard, old, "(a)")

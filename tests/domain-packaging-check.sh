@@ -20,8 +20,8 @@ grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contr
 contract_files=$(awk '/^%files -n omx-clap-contract/{f=1;next} /^%files|^%package|^%changelog/{f=0} f' "$spec")
 printf '%s\n' "$contract_files" | grep -qx '%{omx_contract_domain_dir}/scan/' || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/scan/"
 grep -qx 'usr/share/omx-contract/contract.d/scan' debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/scan"
-# the code sheet's domains, omx-param-contract and omx-clap-scale, the same way
-for dom in omx-param-contract omx-clap-scale; do
+# the code sheet's domains, omx-param-contract, omx-clap-scale and clap, the same way
+for dom in omx-param-contract omx-clap-scale clap; do
 grep -Eq "(install-contract-dir\\.sh|\\\$\\(INSTALL_CONTRACT_DIR\\)) +--domain +contract\\.d/$dom( |\$)" Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/$dom"
 ! grep -En "^[[:space:]]*install .*contract\\.d/$dom" Makefile || fail "Makefile: a hand-written install line for contract.d/$dom"
 printf '%s\n' "$contract_files" | grep -qx "%{omx_contract_domain_dir}/$dom/" || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/$dom/"

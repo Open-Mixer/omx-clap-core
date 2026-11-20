@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openmixer.org/contract/clap",
+  "info": {
+    "title": "CLAP's own particulars: how the format's words map to the standard vocabulary",
+    "version": "1.0.0",
+    "x-owner": "omx-clap",
+    "x-stability": "experimental"
+  },
+  "components": {
+    "schemas": {
+      "CLAP_PARAM_FLAG_SCALES": {
+        "description": "The scale a CLAP parameter flag stands for, by the flag's CLAP id (a term of omx-contract's CLAP params terms): the standard scale id of omx-contract's PARAM_SCALES. CLAP has a flag for the stepped scale alone; a parameter with none is linear until its plugin reports another through org.openmixer.param-contract/1.",
+        "x-since": "1.0.0",
+        "x-kind": "sheet",
+        "x-value": {
+          "CLAP_PARAM_IS_STEPPED": "stepped"
+        }
+      }
+    }
+  }
+}

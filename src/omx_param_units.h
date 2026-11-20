@@ -22,7 +22,7 @@
 #define OMX_PARAM_UNITS_H
 /*
  * GENERATED: DO NOT EDIT BY HAND.
- * Rendered from OMX_PARAM_CONTRACT_UNITS of data/param-contract.json: the unit codes of org.openmixer.param-contract/1.
+ * Rendered from OMX_PARAM_CONTRACT_UNITS of contract.d/omx-param-contract: the unit codes of org.openmixer.param-contract/1.
  * A plugin includes this header for the codes its get() reports; omx-panel and plugin-hostd read the same item as data.
  */
 

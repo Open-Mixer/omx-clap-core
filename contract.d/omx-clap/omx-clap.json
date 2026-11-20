@@ -406,7 +406,7 @@
           }
         ],
         "x-kind": "verbs",
-        "x-file": "omx-clap.json"
+        "x-file": "verbs.json"
       },
       "OMX_CLAP_HOST_VERBS": {
         "description": "The verbs omx-clap-host adds to mod-host's protocol for itself: what a controller reads of an instance's ports, window, note counters and the CPU idle hold.",
@@ -507,7 +507,7 @@
           }
         ],
         "x-kind": "verbs",
-        "x-file": "omx-clap.json"
+        "x-file": "verbs.json"
       }
     }
   }

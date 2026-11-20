@@ -36,7 +36,7 @@ done
 check() {
   local dir=$1
   local files decl=$1/data/verbs.json
-  files=$(cd "$dir" && find src lv2 -path lv2/tests -prune -o \( -name '*.c' -o -name '*.h' \) -type f -print | grep -vxE 'src/omx_clap_core_(host_verbs|vocabulary).h' | sort)
+  files=$(cd "$dir" && find src lv2 -path lv2/tests -prune -o \( -name '*.c' -o -name '*.h' \) -type f -print | grep -vxE 'src/omx_clap_(host_verbs|vocabulary).h' | sort)
   [ -n "$files" ] || { echo "host-verbs-check: no sources under $dir" >&2; return 2; }
   (cd "$dir" && python3 -I "$here/host_verbs_source.py" "$decl" $files)
 }

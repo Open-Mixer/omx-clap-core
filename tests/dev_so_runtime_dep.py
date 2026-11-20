@@ -138,7 +138,7 @@ def self_test(root):
         base = rpm_problems(t)
         spec = glob.glob(os.path.join(t, "packaging", "*.spec"))[0]
         stext = open(spec).read()
-        devel = re.search(r"(%package -n omx-clap-devel\n(?:.*\n)*?)Requires: omx-clap%\{\?_isa\} = %\{version\}-%\{release\}\n", stext)
+        devel = re.search(r"(%package -n omx-clap-devel\n(?:.*\n)*?)Requires: omx-clap-libs%\{\?_isa\} = %\{version\}-%\{release\}\n", stext)
         if not devel:
             print("FAIL self-test: the spec's omx-clap-devel Requires line is not where the sabotage expects it")
             return False

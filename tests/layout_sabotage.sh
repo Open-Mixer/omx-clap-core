@@ -34,7 +34,7 @@ arm() {
         failures=$((failures + 1))
         return
     fi
-    # the copy's libomx-clap-core and nothing else: make test exports LD_LIBRARY_PATH as the worktree, whose library
+    # the copy's libomx-clap and nothing else: make test exports LD_LIBRARY_PATH as the worktree, whose library
     # is the one not broken and wins over a test's RUNPATH
     if (cd "$dir" && LD_LIBRARY_PATH=$dir "$@") >"$log" 2>&1; then
         echo "FAIL $name: survived, the test stays green with $file broken (log $log)"

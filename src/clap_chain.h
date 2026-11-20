@@ -19,7 +19,7 @@
  */
 
 /** @file
- * @brief The chain of libomx-clap-core: an ordered list of stages one audio cycle runs in order (docs/chain.md). */
+ * @brief The chain of libomx-clap: an ordered list of stages one audio cycle runs in order (docs/chain.md). */
 
 /*
 ************************************************************************************************************************

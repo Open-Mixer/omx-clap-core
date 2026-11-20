@@ -4,17 +4,17 @@ prefix=@PREFIX@
 libdir=@LIBDIR@
 includedir=@INCLUDEDIR@
 datadir=@DATADIR@
-# the hosting items as TypeScript modules, omx-clap-core-hosting.js and omx-clap-core-vocabulary.js and their .d.ts
-tsdir=${datadir}/omx-clap-core/ts
+# the hosting items as TypeScript modules, omx-clap-hosting.js and omx-clap-vocabulary.js and their .d.ts
+tsdir=${datadir}/omx-clap/ts
 
-Name: omx-clap-core
+Name: omx-clap
 Description: The CLAP hosting core of omx-clap-host: a plugin's process() on the caller's RT thread and the control thread that owns the plugin
 Version: @VERSION@
 Requires: clap
 # hosted_stage.h takes its DSP words from omx-dsp's headers, which name omx-contract's; clap_host.h its hosting codes
-# from omx_clap_core_vocabulary.h, installed beside it, and the resource hints from omx-contract's
+# from omx_clap_vocabulary.h, installed beside it, and the resource hints from omx-contract's
 # omxcontract/omx_resource_hints.h (3.1.0); nothing of either is linked. Both floors are the spec's BuildRequires (generated from packaging/deps.txt), filled in by
 # make install-lib: no ceiling
 Requires.private: omxdsp >= @OMXDSP_FLOOR@, omx-contract >= @OMX_CONTRACT_FLOOR@, libcrypto
-Libs: -L${libdir} -lomx-clap-core
+Libs: -L${libdir} -lomx-clap
 Cflags: -I${includedir}

@@ -13,19 +13,19 @@ VERSION_NUM := $(shell echo $(VERSION) | awk -F. '{ print $$1 * 10000 + $$2 * 10
 PROG = omx-clap-host
 SCAN_PROG = omx-clap-scan
 
-# the hosting core, a shared library of its own: soname libomx-clap-core.so.<major>, the file <major>.<minor>.<patch>
-CORE = omx-clap-core
+# the hosting core, a shared library of its own: soname libomx-clap.so.<major>, the file <major>.<minor>.<patch>
+CORE = omx-clap
 CORE_MAJOR = 1
 CORE_VERSION = $(VERSION)
 CORE_SO = lib$(CORE).so
 CORE_SONAME = $(CORE_SO).$(CORE_MAJOR)
 CORE_FILE = $(CORE_SO).$(CORE_VERSION)
-CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_core_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
-CORE_MAP = src/omx-clap-core.map
+CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
+CORE_MAP = src/omx-clap.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
-CORE_TS = ts/omx-clap-core-hosting.js ts/omx-clap-core-hosting.d.ts ts/omx-clap-core-vocabulary.js ts/omx-clap-core-vocabulary.d.ts
+CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
 
-# The library floors the installed omx-clap-core.pc names in Requires.private, read back from the spec, which is generated
+# The library floors the installed omx-clap.pc names in Requires.private, read back from the spec, which is generated
 # from the one place they are declared, packaging/deps.txt: $(call spec_floor,<devel>) is the floor. Floors only: our own
 # packages carry no ceiling. tests/pc_range_parity.py holds the installed .pc to the spec.
 SPEC = packaging/omx-clap-host.spec
@@ -300,8 +300,8 @@ install-lib: $(CORE_SO)
 	    -e 's,@DATADIR@,$(DATADIR),' -e 's,@VERSION@,$(CORE_VERSION),' \
 	    -e 's,@OMX_CONTRACT_FLOOR@,$(OMX_CONTRACT_FLOOR),' \
 	    -e 's,@OMXDSP_FLOOR@,$(OMXDSP_FLOOR),' \
-	    omx-clap-core.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
-	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
+	    omx-clap.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap.pc
+	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
 	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
 
@@ -322,8 +322,8 @@ install-tests: $(TEST_FIXTURES)
 	install -d $(DESTDIR)$(TESTDIR)
 	install -m 755 $(TEST_FIXTURES) $(DESTDIR)$(TESTDIR)/
 
-# the definitions this tree owns (data/: the hosting limits and refusal codes), installed as the package omx-clap-core
-# into omx-contract's contract directory, <contractdir>/<schema major>/omx-clap-core/, with a MANIFEST.json naming
+# the definitions this tree owns (data/: the hosting limits and refusal codes), installed as the package omx-clap
+# into omx-contract's contract directory, <contractdir>/<schema major>/omx-clap/, with a MANIFEST.json naming
 # this version and the tree they came from. contractdir and the install script are omx-contract-devel's (3.0.0 or
 # later); a checkout of omx-contract (OMX_CONTRACT_DIR) stands in for the script when it is not installed.
 CONTRACT_SCHEMA_MAJOR = 3
@@ -339,7 +339,7 @@ install-contract:
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 
 # data/ installed into a contract directory of its own, read back through omx-contract's reader beside omx-contract's
-# own package, and every file this tree commits as a render of it held to `render --package omx-clap-core`, byte for
+# own package, and every file this tree commits as a render of it held to `render --package omx-clap`, byte for
 # byte (tests/contract-dir-check.sh), and every limit and refusal code of the two hosting headers held, value by value, to
 # what the reader reads (tests/hosting-values-check.mjs, with its sabotage arms); node and an omx-contract checkout with its npm ci done (OMX_CONTRACT_DIR)
 # omx-clap-scan --fields held to omx-contract's TERM files, and the dumps of the fake plugins and the LV2 fixture bundles
@@ -416,7 +416,7 @@ test-ci-consumer-args:
 	    got=""; for a in $$args; do case $$a in '|') break ;; esac; got="$$got $${a##*/}"; done; \
 	    [ "$${got# }" = "$$want" ] || { echo "FAIL ci consumer: runs on '$${got# }', test-core on '$$want'"; exit 1; }; \
 	done
-	@compiles=$$(grep -cE 'tests/core_link_test\.c .*\$$\(pkg-config --cflags --libs omx-clap-core\)' .github/workflows/ci.yml); [ "$$compiles" -eq 2 ] \
+	@compiles=$$(grep -cE 'tests/core_link_test\.c .*\$$\(pkg-config --cflags --libs omx-clap\)' .github/workflows/ci.yml); [ "$$compiles" -eq 2 ] \
 	    || { echo "FAIL ci consumer: $$compiles compiles of tests/core_link_test.c against the installed package, two expected"; exit 1; }
 	@defines=$$(grep -cE 'DOMX_EXPECT_VERSION_NUM=\$$\(make -s print-version-num\)u -o /tmp/consumer tests/core_link_test\.c' .github/workflows/ci.yml); [ "$$defines" -eq 2 ] \
 	    || { echo "FAIL ci consumer: $$defines consumer compiles carry OMX_EXPECT_VERSION_NUM from print-version-num, two expected"; exit 1; }
@@ -441,7 +441,7 @@ clean:
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # every test-* and check-* target, the prerequisites of `test:` among them, runs in a CI step bar those DESK_ONLY lists
-# (tests/ci_runs_test_list.py, test-audit omx-clap-core row 1)
+# (tests/ci_runs_test_list.py, test-audit omx-clap row 1)
 .PHONY: test-ci-runs-test-list
 test-ci-runs-test-list:
 	python3 tests/ci_runs_test_list.py --self-test
@@ -449,7 +449,7 @@ test-ci-runs-test-list:
 
 # `make test`'s prerequisites in the three groups CI runs (ci.yml asks for them by name: print-test-plain,
 # print-test-main-only, print-test-ns), so a target added here runs in CI with no workflow edit; tests/ci_runs_test_list.py
-# holds the workflow to it (test-audit omx-clap-core row 1)
+# holds the workflow to it (test-audit omx-clap row 1)
 # plain: every push and pull request
 TEST_PLAIN = test-ci-runs-test-list \
     test-release-same-pass \
@@ -524,7 +524,7 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
-# omx-clap-core is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
+# omx-clap is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
 # packaging (#117); it owns the panel-description layout. No omx-plugins package is installed either, plugins included:
 # the tests that load a published plugin (test-jack, test-identity, test-scan's omx-delay arm) are desk-only (DESK_ONLY).
 .PHONY: test-no-upward-deps
@@ -544,7 +544,7 @@ test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
 	python3 tests/no_hostd_build_dep.py .
 
-# the installed omx-clap-core.pc and debian/control carry the omx-contract and omx-dsp ranges the spec declares, the one
+# the installed omx-clap.pc and debian/control carry the omx-contract and omx-dsp ranges the spec declares, the one
 # place they are stated (#66); the self-test moves the spec's range and finds the .pc moved with it
 .PHONY: test-pc-range-parity
 test-pc-range-parity: $(CORE_SO)
@@ -585,9 +585,9 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 	./tests/clap_host_test - $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(abspath tests/fake_mover.clap) $(abspath tests/fault-17.clap)
 	OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
 
-# every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_core_vocabulary.h, the render of
+# every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_vocabulary.h, the render of
 # data/hosting/: no hand-typed "hosting." literal, no name that header lacks (tests/hosting-codes-check.sh, with its sabotage arms); and
-# every verb data/verbs.json declares is an OMX_VERB_ macro of src/omx_clap_core_host_verbs.h, every reply number of
+# every verb data/verbs.json declares is an OMX_VERB_ macro of src/omx_clap_host_verbs.h, every reply number of
 # src/host_verbs.h the declared one (tests/host-verbs-check.sh, with its sabotage arms)
 .PHONY: test-codes test-verbs-source
 # every number the host answers has a code (#34): it reads plugin-hostd-protocol's host-errors.h, so it runs where the
@@ -788,7 +788,7 @@ test-lv2-locate: tests/lv2_locate_test tests/param_contract_test
 tests/lv2_locate_test: tests/lv2_locate_test.c src/lv2_locate.c src/lv2_locate.h tests/test_util.h
 	$(CC) -Isrc $(CFLAGS) -Werror -o $@ tests/lv2_locate_test.c src/lv2_locate.c -lm
 
-# org.openmixer.panel-description/1 as src/omx_clap_ext.h declares it: omx-clap-core owns the layout, so
+# org.openmixer.panel-description/1 as src/omx_clap_ext.h declares it: omx-clap owns the layout, so
 # tests/panel_abi_test.c pins the size and every member's offset itself. omx-plugins holds its copy to this tree's
 # installed header (its make panel-abi); nothing here reads omx-plugins
 # (the display kinds are a number here: omx-panel's panel domain owns their words and codes)
@@ -1059,14 +1059,14 @@ test-core: tests/core_link_test tests/fake.clap tests/fake_synth.clap tests/faul
 	@echo "clap_host.h's inline RT code calls nothing that allocates, waits, locks or prints:"; mkdir -p build && sed -n '/INLINE FUNCTIONS/,$$p' src/clap_host.h > build/clap_host_inline.h && grep -q 'omx_clap_host_run(' build/clap_host_inline.h && ! grep -n -E '\<(malloc|calloc|realloc|free|usleep|nanosleep|sleep|dlopen|dlsym|printf|fprintf|snprintf|puts)\s*\(|pthread_|_lock\s*\(' build/clap_host_inline.h && echo "ok   the inline section of clap_host.h (omx_clap_host_run and the tempo word) names no allocator, sleep, lock, loader or printf"
 	./tests/core_link_test $(abspath $(CORE_LINK_FIXTURES))
 
-tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap-core.pc.in
+tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap.pc.in
 	rm -rf build/stage
 	$(MAKE) install-lib PREFIX=$(CURDIR)/build/stage/usr LIBDIR=$(CURDIR)/build/stage/usr/lib
 	$(PKG_CONFIG) --exists clap || printf 'Name: clap\nDescription: the headers named by CLAP_CFLAGS\nVersion: 1\nCflags: $(CLAP_CFLAGS)\n' > build/stage/usr/lib/pkgconfig/clap.pc
-	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(PKG_CONFIG) --print-errors --exists omx-clap-core \
-	    || { echo "core_link_test: the installed packages do not meet the Requires of the staged omx-clap-core.pc (pkg-config's words above): a stale set, not a link error" >&2; exit 1; }
+	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(PKG_CONFIG) --print-errors --exists omx-clap \
+	    || { echo "core_link_test: the installed packages do not meet the Requires of the staged omx-clap.pc (pkg-config's words above): a stale set, not a link error" >&2; exit 1; }
 	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(CC) -O2 -Wall -Wextra -Werror -std=gnu99 -D_GNU_SOURCE -DOMX_EXPECT_VERSION_NUM=$(VERSION_NUM)u -o $@ $< \
-	    $$($(PKG_CONFIG) --cflags --libs omx-clap-core) -Wl,-rpath,$(CURDIR)/build/stage/usr/lib -lpthread -lm
+	    $$($(PKG_CONFIG) --cflags --libs omx-clap) -Wl,-rpath,$(CURDIR)/build/stage/usr/lib -lpthread -lm
 
 # what one stage block costs, as the header is and with the six in_cycle stores relaxed (omx_clap_run's two,
 # omx_clap_run_ports' two and omx_clap_run_direct_status' two): a measurement
@@ -1156,7 +1156,7 @@ test-no-contract-copy:
 	python3 tests/no_contract_copy.py .
 
 # the protocol is plugin-hostd-protocol's: none of its tables or headers is back here under any name, nothing declares
-# what protocol.h declares, and the one rendered verb table is src/omx_clap_core_host_verbs.h (tests/no_protocol_copy.py,
+# what protocol.h declares, and the one rendered verb table is src/omx_clap_host_verbs.h (tests/no_protocol_copy.py,
 # with its self test)
 .PHONY: check-no-protocol-copy
 check-no-protocol-copy:
@@ -1648,7 +1648,7 @@ test-package: test-fake test-lv2-plain
 lv2/tests/lv2_clap_test: lv2/tests/lv2_clap_test.c $(LV2_LIB) $(CORE_SO) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_direct_fixture.h $(LV2_FIXTURE_DIR)/lv2_fakes.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h $(LV2_FIXTURE_DIR)/lv2_hints_fixture.h
 	$(CC) $(LV2_TEST_CFLAGS) $(CLAP_CFLAGS) -o $@ $< $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK_TEST) $(LV2_WRAP) -Wl,--wrap=pthread_create -ldl -lpthread -lm
 
-# lv2/clap: the CLAP face of the adapter, and the arms whose body is libomx-clap-core's run through it
+# lv2/clap: the CLAP face of the adapter, and the arms whose body is libomx-clap's run through it
 test-lv2-clap: lv2/tests/lv2_clap_test $(LV2_BUNDLES) $(LV2_HINTS_BUNDLES)
 	./lv2/tests/lv2_clap_test build/lv2
 
@@ -1663,7 +1663,7 @@ lv2/tests/lv2_cost: lv2/tests/lv2_cost.c $(LV2_LIB) lv2/tests/lv2_test_util.h sr
 
 # the adapter as a program outside this tree sees it: installed into a prefix of its own, found through its pkg-config
 # file and linked by that alone
-lv2/tests/lv2_link_test: lv2/tests/lv2_link_test.c $(LV2_LIB) omx-clap-lv2.pc.in omx-clap-core.pc.in src/omx_clap_raw.h
+lv2/tests/lv2_link_test: lv2/tests/lv2_link_test.c $(LV2_LIB) omx-clap-lv2.pc.in omx-clap.pc.in src/omx_clap_raw.h
 	rm -rf build/lv2-stage
 	$(MAKE) install-lib install-lv2 PREFIX=$(CURDIR)/build/lv2-stage/usr LIBDIR=$(CURDIR)/build/lv2-stage/usr/lib
 	$(PKG_CONFIG) --exists clap || printf 'Name: clap\nDescription: the headers named by CLAP_CFLAGS\nVersion: 1\nCflags: $(CLAP_CFLAGS)\n' > build/lv2-stage/usr/lib/pkgconfig/clap.pc

@@ -1035,7 +1035,7 @@ Strip and controls
 
 `track_info`, `remote_pages`, `remote_page_get` and `param_info` are verbs
 omx-clap-host shares with plugin-hostd, declared in `data/verbs.json` (rendered
-as `omx_clap_core_host_verbs.h`), answered from the plugin:
+as `omx_clap_host_verbs.h`), answered from the plugin:
 
 - `track_info <N> <name> <color> [kind]` stores the strip's name (`""` for none),
   colour (`#RRGGBB`, or `-` for none) and kind, then calls the plugin's
@@ -1080,7 +1080,7 @@ as `omx_clap_core_host_verbs.h`), answered from the plugin:
   `resp 0 none linear -60 0 -20 0 gain_db`); one whose symbol is longer than
   a contract holds answers `resp -511`.
 
-  The same reading is libomx-clap-core's: `omx_clap_host_param_contract` says
+  The same reading is libomx-clap's: `omx_clap_host_param_contract` says
   whether the contract holds (or which rule it broke) and
   `omx_clap_host_param_meaning` what one parameter means from the contract,
   `omx_clap_host_param_described` the same with the `clap.params` fallback above

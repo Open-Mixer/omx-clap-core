@@ -3,14 +3,14 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
 # host-verbs-check.sh — every verb data/verbs.json declares is written in the C sources by its macro: OMX_VERB_<VERB>
-# for the word and OMX_VERB_<VERB>_FMT for the line protocol_add_command takes, both of src/omx_clap_core_host_verbs.h,
+# for the word and OMX_VERB_<VERB>_FMT for the line protocol_add_command takes, both of src/omx_clap_host_verbs.h,
 # which contract-dir-check.sh holds to the data. Never a literal of their own. And no source defines a reply number: it is
-# OMX_REPLY_HOST_<NAME>_RESP of src/omx_clap_core_vocabulary.h, the resp data/verbs.json declares for reply.host.<name>.
+# OMX_REPLY_HOST_<NAME>_RESP of src/omx_clap_vocabulary.h, the resp data/verbs.json declares for reply.host.<name>.
 #
 #   host-verbs-check.sh [--self-test] [--root <dir>]
 #
-# The sources are src/ and lv2/ (their .c and .h, lv2/tests/ left out, and the renders src/omx_clap_core_host_verbs.h and
-# src/omx_clap_core_vocabulary.h).
+# The sources are src/ and lv2/ (their .c and .h, lv2/tests/ left out, and the renders src/omx_clap_host_verbs.h and
+# src/omx_clap_vocabulary.h).
 # Outside comments, a string literal that starts with a declared verb's word followed by a space or its end, or that
 # holds a declared verb's word followed by a conversion (a format), is a failure; so is a HOST_REPLY_ or
 # OMX_REPLY_*_RESP define outside the renders. --self-test runs the check on a copy of the

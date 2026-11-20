@@ -75,7 +75,7 @@ plugin-hostd replays its ledger of monitors on a new connection.
 
 ## In process
 
-A program that links libomx-clap-core and runs a plugin in its own process reads the same extension through the
+A program that links libomx-clap and runs a plugin in its own process reads the same extension through the
 library, never through the plugin itself:
 
 - `omx_clap_host_meter_count(in)` and `omx_clap_host_meter_info(in, index, &meter)` answer the meters the plugin

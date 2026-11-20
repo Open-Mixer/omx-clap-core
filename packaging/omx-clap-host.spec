@@ -39,13 +39,13 @@ BuildRequires: pipewire-jack-audio-connection-kit-devel
 # a plugin's own window (show_external_ui, -S) over X11; the package then requires the libxcb it links
 BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
-Requires: omx-clap-core%{?_isa} = %{version}-%{release}
+Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
 Requires: plugin-hostd-protocol%{?_isa}
 Requires: plugin-hostd-protocol >= 0.6.0
 # omx-clap-scan reads the scan domain at start-up through the loader, and refuses (status 78) on an install without it: the loader, and
 # the data package that holds the domain (noarch data, so this package's own requirement of it is no cycle)
 Requires: libomx-domain >= 3.20.0
-Requires: omx-clap-core-contract = %{version}-%{release}
+Requires: omx-clap-contract = %{version}-%{release}
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
 
@@ -76,45 +76,45 @@ socket_conformance.py, beside them, checks how any server of the mod-host
 socket protocol splits what it receives into commands.
 Its documentation is on openmixer.org.
 
-%package -n omx-clap-core
+%package -n omx-clap-libs
 Summary: The engine that runs CLAP plugins for omx-clap-host, as a library
 License: GPL-3.0-or-later
-Requires: omx-clap-core-contract = %{version}-%{release}
+Requires: omx-clap-contract = %{version}-%{release}
 
-%description -n omx-clap-core
+%description -n omx-clap-libs
 The library that loads and runs CLAP plugins: it checks a plugin before using
 it, activates and warms it up, keeps its parameters and saved state, and runs
 its audio on the thread of the program that hosts it. It knows nothing about
 JACK or sockets, so a program of your own can host CLAP plugins on it as well.
 Its documentation is on openmixer.org.
 
-%package -n omx-clap-core-devel
-Summary: Build a program that hosts CLAP plugins on omx-clap-core
+%package -n omx-clap-devel
+Summary: Build a program that hosts CLAP plugins on omx-clap
 License: GPL-3.0-or-later
-Requires: omx-clap-core%{?_isa} = %{version}-%{release}
+Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
 Requires: omx-dsp-devel >= 0.33.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
 Requires: omx-contract-devel >= 3.20.0
-Requires: omx-clap-core-contract = %{version}-%{release}
+Requires: omx-clap-contract = %{version}-%{release}
 Requires: pkgconfig
 
-%description -n omx-clap-core-devel
-What you need to write a program that hosts CLAP plugins on omx-clap-core: the
+%description -n omx-clap-devel
+What you need to write a program that hosts CLAP plugins on omx-clap: the
 headers, the pkg-config file, and the list of functions the library promises
 to keep, with the baseline each release is checked against.
 Its documentation is on openmixer.org.
 
-%package -n omx-clap-core-contract
-Summary: omx-clap-core's definitions in omx-contract's contract directory
+%package -n omx-clap-contract
+Summary: omx-clap's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
 Requires: omx-contract-data >= 3.20.0
 
-%description -n omx-clap-core-contract
-omx-clap-core's definitions as files in omx-contract's contract directory,
+%description -n omx-clap-contract
+omx-clap's definitions as files in omx-contract's contract directory,
 for any program that reads them at run time: the hosting limits and refusal
 codes, and the verbs omx-clap-host and plugin-hostd answer, with their
 formats, replies, refusal codes and what each host owes each verb.
@@ -123,7 +123,7 @@ Its documentation is on openmixer.org.
 %package -n omx-clap-lv2-devel
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
-Requires: omx-clap-core-devel%{?_isa} = %{version}-%{release}
+Requires: omx-clap-devel%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
@@ -131,7 +131,7 @@ Requires: pkgconfig
 
 %description -n omx-clap-lv2-devel
 libomx-clap-lv2 is the LV2 adapter omx-clap-host links in, for a program of
-your own that hosts plugins on omx-clap-core: it loads an LV2 plugin through
+your own that hosts plugins on omx-clap: it loads an LV2 plugin through
 lilv as a real LV2 instance and maps the host interface, presenting the
 plugin's ports and controls as CLAP ports and parameters, with its latency,
 its own background worker and its default settings. It is a static library
@@ -176,28 +176,28 @@ make test-package
 %doc README.md
 %{_libexecdir}/omx-clap-host/tests/
 
-%files -n omx-clap-core
+%files -n omx-clap-libs
 %license COPYING
 %doc README.md
-%{_libdir}/libomx-clap-core.so.1
-%{_libdir}/libomx-clap-core.so.%{version}
-%{_datadir}/omx-clap-core/ts/
+%{_libdir}/libomx-clap.so.1
+%{_libdir}/libomx-clap.so.%{version}
+%{_datadir}/omx-clap/ts/
 
-%files -n omx-clap-core-devel
+%files -n omx-clap-devel
 %license COPYING
 %doc README.md
-%{_libdir}/libomx-clap-core.so
-%{_libdir}/pkgconfig/omx-clap-core.pc
+%{_libdir}/libomx-clap.so
+%{_libdir}/pkgconfig/omx-clap.pc
 %{_includedir}/omx-clap-host/
-%{_datadir}/omx-clap-core/omx-clap-core.map
+%{_datadir}/omx-clap/omx-clap.map
 
-%files -n omx-clap-core-contract
+%files -n omx-clap-contract
 %license COPYING
 %doc README.md
-%{_datadir}/omx-contract/contract.d/3/omx-clap-core/
+%{_datadir}/omx-contract/contract.d/3/omx-clap/
 %{omx_contract_domain_dir}/scan/
-%dir %{_datadir}/omx-clap-core
-%dir %{_datadir}/omx-clap-core/catalogs
+%dir %{_datadir}/omx-clap
+%dir %{_datadir}/omx-clap/catalogs
 
 %files -n omx-clap-lv2-devel
 %license COPYING
@@ -210,8 +210,8 @@ make test-package
 %package langpack-ca
 Summary: The ca catalog of omx-clap-host's codes
 BuildArch: noarch
-Requires: omx-clap-core-contract = %{version}-%{release}
-Supplements: (omx-clap-core-contract and langpacks-ca)
+Requires: omx-clap-contract = %{version}-%{release}
+Supplements: (omx-clap-contract and langpacks-ca)
 
 %description langpack-ca
 The sentences of omx-clap-host's codes in the language ca, read by every
@@ -219,13 +219,13 @@ surface that shows them on a host in that locale; without it a surface shows
 the English source sentence.
 
 %files langpack-ca
-%{_datadir}/omx-clap-core/catalogs/ca.json
+%{_datadir}/omx-clap/catalogs/ca.json
 
 %package langpack-es
 Summary: The es catalog of omx-clap-host's codes
 BuildArch: noarch
-Requires: omx-clap-core-contract = %{version}-%{release}
-Supplements: (omx-clap-core-contract and langpacks-es)
+Requires: omx-clap-contract = %{version}-%{release}
+Supplements: (omx-clap-contract and langpacks-es)
 
 %description langpack-es
 The sentences of omx-clap-host's codes in the language es, read by every
@@ -233,13 +233,13 @@ surface that shows them on a host in that locale; without it a surface shows
 the English source sentence.
 
 %files langpack-es
-%{_datadir}/omx-clap-core/catalogs/es.json
+%{_datadir}/omx-clap/catalogs/es.json
 
 %package langpack-fr
 Summary: The fr catalog of omx-clap-host's codes
 BuildArch: noarch
-Requires: omx-clap-core-contract = %{version}-%{release}
-Supplements: (omx-clap-core-contract and langpacks-fr)
+Requires: omx-clap-contract = %{version}-%{release}
+Supplements: (omx-clap-contract and langpacks-fr)
 
 %description langpack-fr
 The sentences of omx-clap-host's codes in the language fr, read by every
@@ -247,13 +247,13 @@ surface that shows them on a host in that locale; without it a surface shows
 the English source sentence.
 
 %files langpack-fr
-%{_datadir}/omx-clap-core/catalogs/fr.json
+%{_datadir}/omx-clap/catalogs/fr.json
 
 %package langpack-de
 Summary: The de catalog of omx-clap-host's codes
 BuildArch: noarch
-Requires: omx-clap-core-contract = %{version}-%{release}
-Supplements: (omx-clap-core-contract and langpacks-de)
+Requires: omx-clap-contract = %{version}-%{release}
+Supplements: (omx-clap-contract and langpacks-de)
 
 %description langpack-de
 The sentences of omx-clap-host's codes in the language de, read by every
@@ -261,13 +261,13 @@ surface that shows them on a host in that locale; without it a surface shows
 the English source sentence.
 
 %files langpack-de
-%{_datadir}/omx-clap-core/catalogs/de.json
+%{_datadir}/omx-clap/catalogs/de.json
 
 %package langpack-it
 Summary: The it catalog of omx-clap-host's codes
 BuildArch: noarch
-Requires: omx-clap-core-contract = %{version}-%{release}
-Supplements: (omx-clap-core-contract and langpacks-it)
+Requires: omx-clap-contract = %{version}-%{release}
+Supplements: (omx-clap-contract and langpacks-it)
 
 %description langpack-it
 The sentences of omx-clap-host's codes in the language it, read by every
@@ -275,13 +275,13 @@ surface that shows them on a host in that locale; without it a surface shows
 the English source sentence.
 
 %files langpack-it
-%{_datadir}/omx-clap-core/catalogs/it.json
+%{_datadir}/omx-clap/catalogs/it.json
 
 %package langpack-pt
 Summary: The pt catalog of omx-clap-host's codes
 BuildArch: noarch
-Requires: omx-clap-core-contract = %{version}-%{release}
-Supplements: (omx-clap-core-contract and langpacks-pt)
+Requires: omx-clap-contract = %{version}-%{release}
+Supplements: (omx-clap-contract and langpacks-pt)
 
 %description langpack-pt
 The sentences of omx-clap-host's codes in the language pt, read by every
@@ -289,7 +289,7 @@ surface that shows them on a host in that locale; without it a surface shows
 the English source sentence.
 
 %files langpack-pt
-%{_datadir}/omx-clap-core/catalogs/pt.json
+%{_datadir}/omx-clap/catalogs/pt.json
 # END langpacks
 
 %changelog
@@ -319,13 +319,13 @@ the English source sentence.
   omx-contract-data >= 3.20.0, plugin-hostd-protocol >= 0.5.9 and plugin-db
   >= 0.4.2 as before, clap-devel >= 1.2.10. New: libomx-domain >= 3.20.0 (build
   and run time), for the scan domain; omx-clap-host requires
-  omx-clap-core-contract at its own version. The installed omx-clap-core.pc
+  omx-clap-contract at its own version. The installed omx-clap.pc
   names the omx-contract and omx-dsp floors, no ceiling. The floors are
   declared once, in packaging/deps.txt (#114).
-- Dropped between our packages: the Conflicts omx-clap-core-devel < version,
+- Dropped between our packages: the Conflicts omx-clap-devel < version,
   and the Breaks and Replaces of the deb packages (#108); the channel prunes
   the old packages.
-- ABI: the OMX_CLAP_CORE_0.15 symbol version node of libomx-clap-core is
+- ABI: the OMX_CLAP_CORE_0.15 symbol version node of libomx-clap is
   removed (#108), so this release is a minor, 0.33.0. The backward-compatibility
   machinery is removed: the older-ABI range, the ABI baseline gate and the
   staged dependencies (#108).
@@ -347,14 +347,14 @@ the English source sentence.
 - ci and tests: no job sizes itself from the host's nproc (#90), no bookworm
   package cells (#99), every test target runs in a CI step (#112), and the xrun
   report sabotage forces the interleaving that loses a note (#120).
-- debian: libomx-clap-core-dev depends on libomx-clap-core1 (#97).
+- debian: libomx-clap-dev depends on libomx-clap1 (#97).
 
 * Fri Nov 13 2026 Pau Aliagas <linuxnow@gmail.com> - 0.32.5-1
 - Built against omx-contract >= 3.18.0 and below 4, plugin-db >= 0.4.2 and
   below 0.5, and plugin-hostd-protocol >= 0.5.9 and below 0.6: every dependency
   at its newest version, served or released before it in the same pass, with
   its ceiling (D30). The installed
-  omx-clap-core.pc names the same omx-contract floor.
+  omx-clap.pc names the same omx-contract floor.
 - The organisation's name: FreeMixer becomes Open-Mixer and OpenMixer (#69).
 - ci: an ordinary run builds against the channel, not the staging channel; the
   seed corpus check runs on every pull request, with the rtSafetyOwnThreads
@@ -388,8 +388,8 @@ the English source sentence.
   plugin-hostd-protocol >= 0.5.6, which declares it.
 - A build takes plugin-db >= 0.4.0 and below 0.5: the release the channel
   serves, which both builds are built and tested against.
-- The Debian libomx-clap-core-dev depends on clap-headers >= 1.2.10 and below
-  2, so pkg-config omx-clap-core resolves on a clean trixie or bookworm system
+- The Debian libomx-clap-dev depends on clap-headers >= 1.2.10 and below
+  2, so pkg-config omx-clap resolves on a clean trixie or bookworm system
   (#52); the devel package here already required clap-devel.
 - No change to the packages: the tree ignores the LV2 build of the hosted cost
   bench (#51), and the host-verbs check in CI fetches the commit of the staged
@@ -406,8 +406,8 @@ the English source sentence.
   (plugin-hostd#38).
 - Language packs: omx-clap-host-langpack-<lang> (rpm) and
   omx-clap-host-l10n-<lang> (deb), one per language omx-contract lists (ca, es,
-  fr, de, it, pt), each owning /usr/share/omx-clap-core/catalogs/<lang>.json;
-  omx-clap-core-contract keeps the directory, and the Catalan deb takes over its
+  fr, de, it, pt), each owning /usr/share/omx-clap/catalogs/<lang>.json;
+  omx-clap-contract keeps the directory, and the Catalan deb takes over its
   catalog (#30). Catalan is a person's, the other languages are made by
   omx-contract translate.
 - A package build runs the plain test tier (test-package); the sanitizer tiers
@@ -420,7 +420,7 @@ the English source sentence.
   compensates for; the crossfades read the same delayed input, on a lane and in
   a chain alike, and a sleeping plugin's skipped blocks count as silence.
 - The instance ABI is 21: struct omx_clap_bypass_delay added at the tail of
-  struct omx_clap_instance; no field moves, libomx-clap-core.so.1 stays.
+  struct omx_clap_instance; no field moves, libomx-clap.so.1 stays.
 - A preset load answers once the plugin has applied the preset (it has run once
   since), or PRESET_NOT_APPLIED (-544) when the host's wait for that,
   presetAppliedWaitUs, runs out (#24).
@@ -475,7 +475,7 @@ the English source sentence.
   monitor_output_off ends a monitor, and a monitor ends with its connection
 - curve_bind and curve_points answered through plugin-hostd-protocol's hook,
   at the rate the instance runs at
-- every code omx-clap-core owns carries its sentence in English and Catalan
+- every code omx-clap owns carries its sentence in English and Catalan
 - built against omx-dsp >= 0.32.0 and < 0.33, plugin-hostd-protocol >= 0.5.0
   and < 0.6, plugin-db >= 0.3.0 and < 0.4, omx-contract >= 3.11.0
 
@@ -514,7 +514,7 @@ the English source sentence.
 - omx-clap-scan --json has a schema (schema/omx-clap-scan.schema.json, installed with
   the host) and a test that the JSON holds the data the text lists; docs/scan.md
   describes the output
-- debian: omx-clap-core-contract depends on omx-contract-data with a floor and a ceiling,
+- debian: omx-clap-contract depends on omx-contract-data with a floor and a ceiling,
   as the rpm does
 - Floors and ceilings: plugin-hostd-protocol >= 0.4.0 and < 0.5, plugin-db >= 0.2.0 and < 0.3
 * Wed Nov 04 2026 Pau Aliagas <linuxnow@gmail.com> - 0.29.0-1
@@ -691,7 +691,7 @@ the English source sentence.
   qualification; omx-clap-host takes --thread-pool=qualified|off|on. ABI 19,
   a new version node OMX_CLAP_CORE_0.24 with omx_clap_host_thread_pool_use,
   omx_clap_host_thread_pool and omx_clap_host_thread_pool_late; the soname
-  stays libomx-clap-core.so.1 (#395).
+  stays libomx-clap.so.1 (#395).
 - fuzz_preset no_overread compares its readings only when none ran out of
   memory (#396).
 - A manifest reader that runs out of memory answers its own code (#340);
@@ -710,7 +710,7 @@ the English source sentence.
   org.openmixer.param-contract/1 extension is version, fingerprint and get, and
   the host's R5 rule is gone. The two removed members were the last of the
   extension's table, so a plugin that still fills them is read as before.
-  libomx-clap-core's soname stays .so.1.
+  libomx-clap's soname stays .so.1.
 - omx-clap-scan --json writes a "labels" list on each enum parameter (the
   plugin's own text for every whole value of the range) and a "remote_controls"
   list on each plugin (page id, section, name and the eight parameter slots of
@@ -722,7 +722,7 @@ the English source sentence.
 * Tue Oct 27 2026 Pau Aliagas <linuxnow@gmail.com> - 0.23.0-1
 - The parameter contract no longer carries migration steps: the
   org.openmixer.param-contract/1 extension is version, fingerprint and get,
-  and the host's R5 rule is gone. The soname stays libomx-clap-core.so.1.
+  and the host's R5 rule is gone. The soname stays libomx-clap.so.1.
 
 * Mon Oct 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.22.1-1
 - remote_pages declares -902 beside -3: a line missing its instance is
@@ -736,12 +736,12 @@ the English source sentence.
   (audio_ports, hide_external_ui, idle_hold, note_drops, note_out_drops)
   are declared once in data/verbs.json, with their formats, replies,
   refusal codes and what each host owes them, and the host names them by
-  their render, omx_clap_core_host_verbs.h. The build no longer reads
+  their render, omx_clap_host_verbs.h. The build no longer reads
   plugin-hostd's protocol.h.
-- New package omx-clap-core-contract (noarch): omx-clap-core's files in
+- New package omx-clap-contract (noarch): omx-clap's files in
   omx-contract's contract directory, the hosting limits and codes and now
-  the verbs, move there from omx-clap-core-devel. omx-clap-core and
-  omx-clap-core-devel require it at their version.
+  the verbs, move there from omx-clap-devel. omx-clap and
+  omx-clap-devel require it at their version.
 - Built with omx-contract 3.3.0.
 
 * Mon Oct 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.21.0-1
@@ -762,10 +762,10 @@ the English source sentence.
   OMX_CLAP_HOST_CHAIN, the Stage 0 prototype, is gone. make test-chain-host,
   make test-chain-host-tsan, make test-hostd-chain (the crash drill behind
   plugin-hostd 0.7.0) and make test-chain-host-sabotage prove it (#104).
-- libomx-clap-core: omx_clap_chain_order puts a chain's members in a new
+- libomx-clap: omx_clap_chain_order puts a chain's members in a new
   order as one published walk, so a move never runs a cycle without the
   moved member (OMX_CLAP_CORE_0.21, one function added) (#104).
-- libomx-clap-core: omx_clap_host_name_slot names a carrier's thread on the
+- libomx-clap: omx_clap_host_name_slot names a carrier's thread on the
   audio role with no lock: the thread the carrier stores in its slot holds the
   role from that store, and no role the control thread gives back covers it
   (ABI 18, the instance's audio_slot appended; OMX_CLAP_CORE_0.21) (#104).
@@ -844,7 +844,7 @@ the English source sentence.
   --json writes them. ABI 17; the calls are in the version node
   OMX_CLAP_CORE_0.17. omx-contract 3.1.0 or newer (#323).
 * Thu Oct 22 2026 Pau Aliagas <linuxnow@gmail.com> - 0.16.0-1
-- clap_chain.h, a new header of libomx-clap-core: the chain, an ordered list of
+- clap_chain.h, a new header of libomx-clap: the chain, an ordered list of
   stages one audio cycle runs in order, each an instance the library hosts or a
   stage of the caller's own, each with a bypass flag (a bypassed member is not
   run, copied or counted), its latency and its channel layout; the chain reports
@@ -862,13 +862,13 @@ the English source sentence.
   allocation. caller_size too short to carry even `version` is refused whole, not a byte moved.
   omx_clap_host_config_default, unchanged, still stamps its own current size and cannot make this
   promise; prefer the sized call. The call is in the version node OMX_CLAP_CORE_0.15 (#301).
-- The hosting codes' TypeScript modules (omx-clap-core-hosting.js,
-  omx-clap-core-vocabulary.js and their .d.ts) move from omx-clap-core-devel
-  to omx-clap-core, at the same path, so a program that only reads them at
+- The hosting codes' TypeScript modules (omx-clap-hosting.js,
+  omx-clap-vocabulary.js and their .d.ts) move from omx-clap-devel
+  to omx-clap, at the same path, so a program that only reads them at
   run time, such as plugin-qualify, needs no development package.
-  pkg-config --variable=tsdir omx-clap-core still names that path.
+  pkg-config --variable=tsdir omx-clap still names that path.
 * Tue Oct 20 2026 Pau Aliagas <linuxnow@gmail.com> - 0.14.0-1
-- libomx-clap-core holds /dev/cpu_dma_latency while a hosted plugin is active,
+- libomx-clap holds /dev/cpu_dma_latency while a hosted plugin is active,
   at 10 us by default (C1 only), 0 for no idle state, or off: one descriptor
   per process, opened at the first activate and closed at the last, so a
   crash restores the machine's default. A device that cannot be opened is
@@ -878,8 +878,8 @@ the English source sentence.
   group the device. The calls are in the version node OMX_CLAP_CORE_0.14.
   The library ABI is 16.
 - The hosting codes are this tree's: omx-contract's 16 data/hosting files
-  moved here byte for byte, installed under contract.d/3/omx-clap-core/hosting/
-  and rendered as omx_clap_core_vocabulary.h and the omx-clap-core-vocabulary
+  moved here byte for byte, installed under contract.d/3/omx-clap/hosting/
+  and rendered as omx_clap_vocabulary.h and the omx-clap-vocabulary
   TypeScript module, the OMX_HOSTING_ names unchanged. The six retired codes
   are removed (72 codes are left) and featuresMissingAtLoad is featuresMissing.
   omx-clap-scan --fields clap:<path>#<id> | lv2:<uri> writes one plugin's
@@ -1074,10 +1074,10 @@ the English source sentence.
 - A plugin the library cannot run yet (MIDI or other event ports, CV ports,
   other channel layouts, a feature it does not provide) is refused when it is
   created, with a reason the host can log.
-- The CLAP host, its scanner, libomx-clap-core and the LV2 library now share
+- The CLAP host, its scanner, libomx-clap and the LV2 library now share
   one version, 0.4.0, so the packages you install together always match. The
   core library itself is unchanged from 0.3.1: same interface, same soname,
-  libomx-clap-core.so.0.
+  libomx-clap.so.0.
 
 * Thu Oct 08 2026 Pau Aliagas <linuxnow@gmail.com> - 0.3.1-1
 - A plugin may have at most 2048 parameters. One that reports more is served

@@ -73,7 +73,7 @@ function checkFile(path, messages, seen = new Set()) {
 function catalogOf(path) {
   const c = JSON.parse(readFileSync(path, 'utf8'));
   const problems = [];
-  if (c.kind !== 'catalog' || c.lang !== 'ca' || c.owner !== 'omx-clap-core') problems.push(`${path}: not the Catalan catalog of omx-clap-core`);
+  if (c.kind !== 'catalog' || c.lang !== 'ca' || c.owner !== 'omx-clap') problems.push(`${path}: not the Catalan catalog of omx-clap`);
   return { messages: c.messages ?? {}, problems };
 }
 

@@ -10,7 +10,7 @@
 #   clap     the plugin's CLAP twin through omx-clap-host (add clap:<path>#<id>)
 #   lv2      the LV2 plugin through omx-clap-host and the LV2 adapter it links
 #   inproc   the LV2 plugin through the adapter in process, as the engine runs
-#            it: libomx-clap-core's stage in a PipeWire filter (build/bench/inproc)
+#            it: libomx-clap's stage in a PipeWire filter (build/bench/inproc)
 #
 # Then every arm bypassed and compared with the input it passes: the lv2 arm by
 # its lv2:enabled port, as mod-host's clients bypass, the others by their

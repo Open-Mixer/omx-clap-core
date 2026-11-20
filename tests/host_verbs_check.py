@@ -37,7 +37,7 @@ sys.path.insert(0, os.environ.get('PLUGIN_HOSTD_TESTS_LIB') or os.path.join(os.p
 import plugin_hostd_client  # noqa: E402  plugin-hostd-tests' lib/plugin_hostd_client.py
 
 HOST = 'omx-clap-host'
-OWNER = 'omx-clap-core'
+OWNER = 'omx-clap'
 # a verb this host answers whose declaration belongs to another package's lane, and the package (FreeMixer/plugin-hostd#131);
 # once any installed package declares it, the socket checks it as declared
 # (preset_save is registered in mod-host's four-word form, <N> <dir> <file name> <label>, plugin-hostd#38)

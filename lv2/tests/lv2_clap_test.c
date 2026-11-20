@@ -66,7 +66,7 @@
  *             and a relative root refuses the configure (a child).
  *   rt        no allocation inside process().
  *
- * Through libomx-clap-core's CLAP body, the arms that belong to the CLAP body:
+ * Through libomx-clap's CLAP body, the arms that belong to the CLAP body:
  * the warm-up (64 blocks, the live counters untouched, a non-finite plugin refused), the first block fading in, the mono
  * mirror, the bypass crossfade and the steady bypass the input delayed by the latency bit for bit, the non-finite
  * strikes and the fault, the clamp, the oversize block, and the warm-up run at the activated block size, bit-identical with a plain LV2 loop after it,
@@ -3848,7 +3848,7 @@ static void t_atom_ui(double rate)
     }
 }
 
-/* ---- the CLAP body of libomx-clap-core around the adapter ---- */
+/* ---- the CLAP body of libomx-clap around the adapter ---- */
 
 static struct omx_clap_instance *core_open_at(const clap_plugin_entry_t *entry, const char *uri, double rate, uint32_t max_block,
                                               char why[OMX_CLAP_WHY_MAX])
@@ -4052,7 +4052,7 @@ static void t_cv(double rate)
     rig_down(&g);
 }
 
-/* the CV fixture through libomx-clap-core: the CV input an auxiliary input the caller binds, the CV output an auxiliary
+/* the CV fixture through libomx-clap: the CV input an auxiliary input the caller binds, the CV output an auxiliary
  * output; the bound CV reaches the audio exactly */
 static void t_cv_core(double rate)
 {

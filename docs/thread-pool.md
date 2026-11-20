@@ -5,7 +5,7 @@
 `clap.thread-pool` lets a plugin split one `process()` into tasks: inside `process()` it calls the host's
 `request_exec(num_tasks)`, and the host calls the plugin's `exec(plugin, task_index)` once for every index from 0 to
 `num_tasks - 1` before `request_exec` returns. A plugin that splits its voices into tasks then uses as many cores as
-the host gives it. This page states how libomx-clap-core runs those tasks, when it spreads them across cores, and what
+the host gives it. This page states how libomx-clap runs those tasks, when it spreads them across cores, and what
 was measured.
 
 **What it gains, and for which plugins.** The pool spreads voices only for a plugin that splits them into tasks. Surge

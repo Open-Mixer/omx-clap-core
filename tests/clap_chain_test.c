@@ -19,7 +19,7 @@
  */
 
 /*
- * The chain of libomx-clap-core (clap_chain.h, docs/chain.md, #311), by value: the fake plugins of this tree
+ * The chain of libomx-clap (clap_chain.h, docs/chain.md, #311), by value: the fake plugins of this tree
  * (tests/fake.clap's passthrough and sidechain, tests/fake_compressor.clap's compressor) and stages of the test's own
  * (a gain, a one-pole low-pass and a delay that reports its length as its latency), each set of members built twice,
  * fresh, so one runs as a chain and the other in series, each member into a buffer of its own as one client each would.

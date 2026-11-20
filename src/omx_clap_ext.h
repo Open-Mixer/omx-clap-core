@@ -29,7 +29,7 @@
 * through CLAP: a plugin's meters are clap.meters/1 (docs/meters.md) and the gain adjustment of a dynamics plugin is
 * clap.gain-adjustment-metering/0.
 *
-* Header only: nothing here is exported by libomx-clap-core, which declares it for the plugins and hosts that use it.
+* Header only: nothing here is exported by libomx-clap, which declares it for the plugins and hosts that use it.
 *
 ************************************************************************************************************************
 */
@@ -100,7 +100,7 @@ typedef struct omx_clap_plugin_declaration
  * A host trusts a contract whole or not at all: every id clap.params lists has exactly one entry and no two entries share
  * a symbol (R1); symbols, units, scales, bounds and steps are well formed (R2); the contract is the same after
  * params.rescan (R3); the fingerprint the host computes is the one stated (R4); the migration steps are well formed
- * (R5). libomx-clap-core's omx_clap_host_param_contract says which rule a plugin broke.
+ * (R5). libomx-clap's omx_clap_host_param_contract says which rule a plugin broke.
  */
 
 /** The param-contract extension id. */
@@ -152,7 +152,7 @@ typedef struct omx_clap_plugin_param_contract_ext
 /*
  * The panel a plugin publishes: its family, its sections in order, each control's parameter, section, widget, label and
  * visibility rule, the roles its parameters play in the family, the displays drawn over a section and the per-placement
- * defaults. Units, travels, scales and enumeration labels are the parameters' own and are not restated. omx-clap-core
+ * defaults. Units, travels, scales and enumeration labels are the parameters' own and are not restated. omx-clap
  * owns this layout: tests/panel_abi_test.c pins the size and every member's offset of the structures below, and
  * omx-plugins holds its include/omx_panel_description.h, which its faces serve it from, to this installed header (its
  * make panel-abi), so a face may include both. Nothing here reads omx-plugins. The fingerprint is the lowercase hex

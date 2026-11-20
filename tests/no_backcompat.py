@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas
 #
-# omx-clap-core carries no backward-compatibility machinery: the library accepts its current ABI only, there is no
+# omx-clap carries no backward-compatibility machinery: the library accepts its current ABI only, there is no
 # recorded-baseline ABI gate, no package Breaks/Replaces/Conflicts lists, no ignored release input, and the meters
 # declaration is ours alone. Each check below fails while the old mechanism is in the tree.
 #
@@ -71,7 +71,7 @@ def check(root):
         bad.append("row 2: .github/workflows/abi.yml is still there")
     bad += grep(root, ["Makefile"], r"abi-(stage|baseline|check|sabotage|format|layout)|^ABI_|abi/", "row 2 Makefile ABI gate")
     bad += grep(root, wf, r"abi\.yml|abi-check|test-abi-|\.so\.1\.abi|^  abi:|needs:.*\babi\b", "row 2 workflow ABI gate")
-    bad += grep(root, ["packaging/omx-clap-host.spec", "debian/libomx-clap-core-dev.install"], r"\.abi\b", "row 2 installed baseline")
+    bad += grep(root, ["packaging/omx-clap-host.spec", "debian/libomx-clap-dev.install"], r"\.abi\b", "row 2 installed baseline")
     # 7: the meters declaration is ours alone
     bad += grep(root, ["src/clap_meters.h"], r"__has_include|OMX_CLAP_METERS_FROM_SDK", "row 7 either/or SDK branch")
     # 8: no Breaks/Replaces/Conflicts
@@ -89,12 +89,12 @@ def self_test():
     cases = [
         ("src/clap_host.h", "#define OMX_CLAP_CORE_ABI_OLDEST 18u\n"),
         ("src/clap_host.c", "void omx_clap_host_config_default_sized(void);\n"),
-        ("abi/libomx-clap-core.so.1.abi", "x\n"),
+        ("abi/libomx-clap.so.1.abi", "x\n"),
         ("tests/abi-check.sh", "x\n"),
         (".github/workflows/abi.yml", "x\n"),
         ("Makefile", "abi-check: abi-stage\n"),
         (".github/workflows/ci.yml", "    needs: [abi]\n"),
-        ("packaging/omx-clap-host.spec", "%{_datadir}/omx-clap-core/libomx-clap-core.so.*.abi\n"),
+        ("packaging/omx-clap-host.spec", "%{_datadir}/omx-clap/libomx-clap.so.*.abi\n"),
         ("src/clap_meters.h", "#if __has_include(<clap/ext/draft/meters.h>)\n"),
         ("debian/control", "Breaks: foo (<< 1~)\n"),
         ("packaging/omx-clap-host.spec", "Conflicts: foo < 1\n"),

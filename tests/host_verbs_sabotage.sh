@@ -34,16 +34,16 @@ judge() {
     fi
 }
 
-# declared <name> <sed expression on omx-clap-core's verbs.json> <the FAIL line's text>
+# declared <name> <sed expression on omx-clap's verbs.json> <the FAIL line's text>
 declared() {
     local name=$1 expr=$2 fail=$3 dir=$root/build/sabotage-host-verbs-$1 src status
-    src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/3/omx-clap-core/verbs.json" ] && { echo "$d"; break; }; done)
-    [ -n "$src" ] || { echo "FAIL $name: no omx-clap-core/verbs.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1)); return; }
+    src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/3/omx-clap/verbs.json" ] && { echo "$d"; break; }; done)
+    [ -n "$src" ] || { echo "FAIL $name: no omx-clap/verbs.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1)); return; }
     rm -rf "$dir" "$dir.log"
     mkdir -p "$dir"
     cp -r "$src/3" "$dir/"
-    sed -i -e "$expr" "$dir/3/omx-clap-core/verbs.json"
-    if cmp -s "$src/3/omx-clap-core/verbs.json" "$dir/3/omx-clap-core/verbs.json"; then
+    sed -i -e "$expr" "$dir/3/omx-clap/verbs.json"
+    if cmp -s "$src/3/omx-clap/verbs.json" "$dir/3/omx-clap/verbs.json"; then
         echo "FAIL $name: the sed left verbs.json as it was"
         failures=$((failures + 1))
         return

@@ -39,7 +39,7 @@ run_arm() {
     mkdir -p "$dir/build"
     cp -a "$root/src" "$root/lv2" "$root/tests" "$root/data" "$root/Makefile" "$root/VERSION" "$dir/"
     cp -a "$root/build/lv2" "$root/build/lv2-hints" "$dir/build/" 2>/dev/null
-    cp -a "$root"/libomx-clap-core.so* "$root"/libomx-clap-lv2.a "$dir/"
+    cp -a "$root"/libomx-clap.so* "$root"/libomx-clap-lv2.a "$dir/"
     if [ "$fail" = - ]; then
         if (cd "$dir" && make -j"$jobs" $targets && LV2_CLAP_TEST_ONLY=direct make -j"$jobs" test-lv2-clap) >"$log" 2>&1 \
                 && grep -q -E '^ok   direct ' "$log"; then

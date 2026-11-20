@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# The library floors omx-clap-core builds against are declared once, in packaging/deps.txt, and generated from it into
+# The library floors omx-clap builds against are declared once, in packaging/deps.txt, and generated from it into
 # the rpm spec's BuildRequires and debian/control (Open-Mixer/.github deps-render). Floors only: our own packages carry no
-# ceiling. The installed omx-clap-core.pc names the same floors in Requires.private, so a consumer that builds through
+# ceiling. The installed omx-clap.pc names the same floors in Requires.private, so a consumer that builds through
 # pkg-config alone takes no omx-contract or omx-dsp the package itself refuses. The .pc checked is the one
 # `make install-lib` writes, not its template; it must carry the spec's floor and no upper bound.
 #
@@ -47,12 +47,12 @@ def pc_range(pc_text, name):
 
 
 def installed_pc(root, dest):
-    """The omx-clap-core.pc `make install-lib` writes from <root> into <dest>."""
+    """The omx-clap.pc `make install-lib` writes from <root> into <dest>."""
     r = subprocess.run(["make", "-s", "-C", root, "install-lib", "DESTDIR=" + dest, "PREFIX=/usr", "LIBDIR=/usr/lib64"],
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if r.returncode != 0:
         raise RuntimeError("make install-lib failed:\n" + r.stdout[-2000:])
-    with open(os.path.join(dest, "usr", "lib64", "pkgconfig", "omx-clap-core.pc"), encoding="utf-8") as f:
+    with open(os.path.join(dest, "usr", "lib64", "pkgconfig", "omx-clap.pc"), encoding="utf-8") as f:
         return f.read()
 
 
@@ -66,7 +66,7 @@ def check(root, pc_text):
         floor, where = spec[0]
         got = pc_range(pc_text, name)
         if got != (floor, None):
-            found.append("omx-clap-core.pc: %s >= %s, < %s; the spec (%s) declares >= %s and no ceiling" % (name, got[0], got[1], where, floor))
+            found.append("omx-clap.pc: %s >= %s, < %s; the spec (%s) declares >= %s and no ceiling" % (name, got[0], got[1], where, floor))
     return found
 
 
@@ -83,7 +83,7 @@ def self_test():
         for line in found:
             print("     " + line)
         return 1
-    print("ok   the tree's installed omx-clap-core.pc carries the spec's floors and no ceiling")
+    print("ok   the tree's installed omx-clap.pc carries the spec's floors and no ceiling")
     (floor, _), = spec_floors(here, "omx-contract-devel")
     moved = floor + ".9"
     failed = 0
@@ -106,9 +106,9 @@ def self_test():
         else:
             print("FAIL the spec's omx-contract floor moved to >= %s; the installed .pc has %s" % (moved, pc_range(pc, "omx-contract")))
             failed = 1
-        with open(os.path.join(tree, "omx-clap-core.pc.in"), encoding="utf-8") as f:
+        with open(os.path.join(tree, "omx-clap.pc.in"), encoding="utf-8") as f:
             tpl = f.read()
-        with open(os.path.join(tree, "omx-clap-core.pc.in"), "w", encoding="utf-8") as f:
+        with open(os.path.join(tree, "omx-clap.pc.in"), "w", encoding="utf-8") as f:
             f.write(tpl.replace("Requires.private: ", "Requires.private: omx-contract < 4, "))
         with tempfile.TemporaryDirectory() as dest:
             pc = installed_pc(tree, dest)
@@ -130,7 +130,7 @@ def main():
         print("FAIL " + line)
     if found:
         sys.exit(1)
-    print("ok   the installed omx-clap-core.pc carries the spec's omx-contract and omx-dsp floors and no ceiling")
+    print("ok   the installed omx-clap.pc carries the spec's omx-contract and omx-dsp floors and no ceiling")
 
 
 if __name__ == "__main__":

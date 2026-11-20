@@ -351,7 +351,7 @@ install-contract:
 # own package, and every file this tree commits as a render of it held to `render --package omx-clap`, byte for
 # byte (tests/contract-dir-check.sh), and every limit and refusal code of the two hosting headers held, value by value, to
 # what the reader reads (tests/hosting-values-check.mjs, with its sabotage arms); node and an omx-contract checkout with its npm ci done (OMX_CONTRACT_DIR)
-# omx-clap-scan --fields held to omx-contract's TERM files, and the dumps of the fake plugins and the LV2 fixture bundles
+# omx-clap-scan --fields held to the TERMs of the clap domain and of plugin-db's lv2 domain, and the dumps of the fake plugins and the LV2 fixture bundles
 # (their binaries absent: nothing is opened) read as records; PLUGIN_HOSTD_TABLES (plugin-hostd's data/formats) holds
 # every field a dump writes to a row of its table; and omx-clap-scan --json's resource hints held to omx-contract's
 # RESOURCE_HINTS, words, order and units, over fake_ext's declaration (tests/resource-hints-check.py, with its sabotage arms)

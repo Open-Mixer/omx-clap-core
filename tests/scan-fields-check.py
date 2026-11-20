@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
 # scan-fields-check.py — omx-clap-scan --fields held to the vocabulary it spells (plugin-hostd docs/formats.md, "The
-# field dump"): the names `--fields --list` writes are omx-contract's TERMs, and the dumps of this tree's fixtures are
+# field dump"): the names `--fields --list` writes are the TERMs of this tree's clap domain and of plugin-db's lv2 domain, and the dumps of this tree's fixtures are
 # records a table can read.
 #
 #   scan-fields-check.py <omx-clap-scan> <lv2 domain document> <fake.clap> <fake_synth.clap> <lv2 fixtures dir> [<tables dir>]

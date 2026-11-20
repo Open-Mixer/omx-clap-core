@@ -382,7 +382,7 @@ static const prefix_t g_prefixes[] = {
     { "foaf", "http://xmlns.com/foaf/0.1/", NULL },
 };
 
-/* the fields asked of an LV2 plugin and of each port: every property TERM (omx-contract data/formats/lv2) but lv2:port and
+/* the fields asked of an LV2 plugin and of each port: every property TERM (plugin-db's lv2 domain) but lv2:port and
  * lv2:index, the scopes themselves, and the RDF and DOAP predicates the table reads; 1: a resource it names is written by
  * its label (a port group) */
 static const struct { const char *curie; int by_label; } g_lv2_fields[] = {

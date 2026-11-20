@@ -105,7 +105,7 @@
           "mile": "mile",
           "db": "db",
           "pc": "percent",
-          "coef": "x",
+          "coef": "coef",
           "hz": "hz",
           "khz": "khz",
           "mhz": "mhz",

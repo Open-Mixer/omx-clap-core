@@ -13,7 +13,7 @@ plugin-hostd
 # plugin-hostd-full, the same name as source and binary in deb and rpm: its published 0.20.7 caps omx-clap-host below 0.33.
 plugin-hostd-full
 #
-# plugin-qualify, the source of plugin-qualify and plugin-qualify-contract: 0.20.6 needs plugin-hostd >= 0.20.7, so it
+# plugin-qualify, the source of plugin-qualify (its qualification contract moved to plugin-hostd-contract, V5): 0.20.6 needs plugin-hostd >= 0.20.7, so it
 # moves with plugin-hostd in this pass.
 plugin-qualify
 #

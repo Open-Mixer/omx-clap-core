@@ -6,9 +6,9 @@
 # field dump"): the names `--fields --list` writes are omx-contract's TERMs, and the dumps of this tree's fixtures are
 # records a table can read.
 #
-#   scan-fields-check.py <omx-clap-scan> <formats dir> <fake.clap> <fake_synth.clap> <lv2 fixtures dir> [<tables dir>]
+#   scan-fields-check.py <omx-clap-scan> <lv2 domain document> <fake.clap> <fake_synth.clap> <lv2 fixtures dir> [<tables dir>]
 #
-# <formats dir> holds omx-contract's TERM files (data/formats, or <contractdir>/3/omx-contract/formats) for LV2; the CLAP terms are
+# <lv2 domain document> is plugin-db's contract.d/lv2/lv2.json (or <contractdir>/lv2/lv2.json installed): the LV2 TERMs; the CLAP terms are
 # contract.d/clap/clap.json's. The list holds
 # every CLAP extension, plugin feature and port type TERM by its id and value, and nothing else; every LV2 property
 # TERM as <prefix>:<name> (lv2:port and lv2:index aside: the scopes are those), with rdf:type, rdfs:comment,
@@ -28,7 +28,7 @@ tables = sys.argv[6] if len(sys.argv) == 7 else None
 bad = []
 
 # the CLAP terms are this tree's own, the items of the clap domain (contract.d/clap/clap.json, each word one term as
-# its x-term); the LV2 terms are still read from <formats dir>
+# its x-term)
 CLAP_DOMAIN = os.environ.get('OMX_CLAP_DOMAIN_DOC') or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'contract.d', 'clap', 'clap.json')
 
 
@@ -38,10 +38,10 @@ def terms(fmt):
             if item.get('x-kind') == 'terms':
                 yield from (w['x-term'] for w in item['oneOf'])
         return
-    for f in sorted(glob.glob(os.path.join(formats, fmt, '**', '*.json'), recursive=True)):
-        for v in json.load(open(f)).values():
-            if isinstance(v, dict) and v.get('kind') == 'terms':
-                yield from v['terms'].values()
+    # the LV2 terms are plugin-db's, the terms items of its lv2 domain: <formats dir> is that document
+    for item in json.load(open(formats))['components']['schemas'].values():
+        if item.get('x-kind') == 'terms':
+            yield from (w['x-term'] for w in item['oneOf'])
 
 listed = [l.split('\t') for l in subprocess.run([scan, '--fields', '--list'], check=True, capture_output=True, text=True).stdout.splitlines()]
 if listed[0] != ['# omx-clap-scan --fields 1']:

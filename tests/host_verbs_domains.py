@@ -14,6 +14,8 @@ this tree's.
   (b) the declarations of omx-clap-host hold chain of plugin-hostd-protocol, and each domain was read by the rebuild;
   (c) with the domain and its owner left out (the nopkg arm of tests/host_verbs_sabotage.sh), no verb of
       plugin-hostd-protocol is read, and the check's own step for the package is false.
+  (d) a stale 3/plugin-hostd-protocol/verbs.json that the package's MANIFEST lists, with a verbs item the domain
+      lacks, is never read: the check refuses it by name (the words of plugin-hostd-protocol are its domain's only).
 Exit 0 held; 1 a failure.
 """
 import argparse
@@ -79,6 +81,26 @@ def main():
               '(c) the check\'s step finds %s\'s domain missing' % PACKAGE)
         check(h.protocol_installed(path) if hasattr(h, 'protocol_installed') else False,
               '(c) the check\'s step finds %s\'s domain staged' % PACKAGE)
+        stale = os.path.join(work, 'stale')
+        shutil.copytree(path, stale)
+        owner_dir = os.path.join(stale, '3', PACKAGE)
+        with open(os.path.join(owner_dir, 'verbs.json'), 'w') as f:
+            json.dump({'PLUGIN_HOSTD_STALE_VERBS': {'kind': 'verbs', 'verbs': {'staleVerb': {
+                'verb': 'stale_verb', 'format': 'stale_verb %i', 'reply': 'resp 0', 'codes': [],
+                'implementedBy': {h.HOST: 'required'}}}}}, f)
+        with open(os.path.join(owner_dir, 'MANIFEST.json')) as f:
+            m = json.load(f)
+        m['files'] = {'verbs.json': '0' * 64}
+        with open(os.path.join(owner_dir, 'MANIFEST.json'), 'w') as f:
+            json.dump(m, f)
+        refused, read = None, []
+        try:
+            read = [v['verb'] for v in h.declarations(stale)]
+        except Exception as e:  # the refusal, whatever its class: its words name the file
+            refused = str(e)
+        check(refused is not None and os.path.join('3', PACKAGE, 'verbs.json') in refused,
+              '(d) a stale verbs.json of %s is refused by name: %s' % (PACKAGE, refused))
+        check('stale_verb' not in read, '(d) no verb of the stale verbs.json is read: %s' % sorted(read))
     finally:
         shutil.rmtree(work)
 

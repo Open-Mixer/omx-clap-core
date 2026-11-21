@@ -29,7 +29,7 @@
 *   init            the binary opened, the instance made, the parameter table built; no LV2 instance yet
 *   activate        lv2/core's activate: instantiate on the first one or a rate change, the default state, LV2
 *                   activate, the worker; the latency the port last read is the one latency.get answers from here on
-*   reset           the worker joined, LV2 deactivate, the rings emptied, LV2 activate, the worker again; libomx-clap-core
+*   reset           the worker joined, LV2 deactivate, the rings emptied, LV2 activate, the worker again; libomx-clap
 *                   calls it from the bypass-off verb on the control thread, never from process()
 *   process         the host's input copied into the instance's own buffers, worker responses drained, the parameter
 *                   events written into the control ports, run, end_run, the flush-to-zero bits, the output copied out
@@ -1066,7 +1066,7 @@ static void plugin_deactivate(const clap_plugin_t *plugin)
     // the restart a held latency asked for is CLAP's alone: the LV2 instance stays active and is not reset, so the plugin's
     // history runs on through it as under a host that takes a new latency without a restart (mod-host), and two instances
     // fed the same blocks stay bit-identical wherever their restarts land. A deactivate with no block run since the last
-    // LV2 activate or reset is the full one: libomx-clap-core's restart after its warm-up (reset, then deactivate and
+    // LV2 activate or reset is the full one: libomx-clap's restart after its warm-up (reset, then deactivate and
     // activate for the state every plugin defines as fresh) answers a latency asked for inside the warm-up as well
     if (s->restart_requested && s->ran)
         s->lv2_kept = 1;

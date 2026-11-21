@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 # The library exports what its version script lists and what the header declares OMX_CLAP_EXPORT, and nothing else, and it
 # names no library of the jack or the protocol kind.
-#   exports.sh <libomx-clap-core.so.X.Y.Z> <omx-clap-core.map> <clap_host.h> [<header>...]
+#   exports.sh <libomx-clap.so.X.Y.Z> <omx-clap.map> <clap_host.h> [<header>...]
 set -eu
 export LC_ALL=C
 
@@ -44,7 +44,7 @@ for n in $needed; do
 done
 soname=$(readelf -d "$lib" | sed -n 's/.*Library soname: \[\(.*\)\]/\1/p')
 case $soname in
-    libomx-clap-core.so.[0-9]*) echo "ok   soname $soname" ;;
+    libomx-clap.so.[0-9]*) echo "ok   soname $soname" ;;
     *) echo "FAIL soname is '$soname'"; status=1 ;;
 esac
 exit $status

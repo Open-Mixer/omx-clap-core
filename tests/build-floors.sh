@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 # The installed build dependencies meet the spec's BuildRequires ranges, BEFORE a suite runs: each `BuildRequires: <devel> >= <floor>` of packaging/omx-clap-host.spec against the version its pkg-config file reports. A package
 # below its floor is refused BY NAME, and a ceiling on our own package is refused (floors only), with the floor and the installed version, instead of what it
-# does later: the consumer link test (tests/core_link_test) gets nothing from `pkg-config --libs omx-clap-core`, whose
+# does later: the consumer link test (tests/core_link_test) gets nothing from `pkg-config --libs omx-clap`, whose
 # Requires.private carry the same ranges, and reads as undefined references to every symbol (the staged verify of
 # 0.32.5, 2026-11-15: staging served omx-contract-devel 3.17.1 above the channel's 3.18.1, below the spec's 3.18.0).
 #

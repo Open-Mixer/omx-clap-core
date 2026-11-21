@@ -1025,7 +1025,7 @@ def report_text(rows, skipped, meta):
     uris = sorted({r['uri'] for r in rows})
     L = [f"# LV2 parity: mod-host against omx-clap-host's LV2 adapter, {meta.get('date', '')}", '']
     if meta:
-        L += [f"Measured on {meta.get('host', '?')} by `tests/lv2_parity.py` (omx-clap-core). mod-host: {meta.get('mod_host', '?')}. "
+        L += [f"Measured on {meta.get('host', '?')} by `tests/lv2_parity.py` (omx-clap). mod-host: {meta.get('mod_host', '?')}. "
               f"omx-clap-host: {meta.get('omx_clap_host', '?')}. {' '.join(meta.get('pipewire', ['']))}. "
               f"Quantum {meta.get('quantum')}, {meta.get('seconds')} s of input per plugin and rate.", '',
               'Method: one private PipeWire per rate in its own user, net, pid and mount namespace, whose only driver is the '

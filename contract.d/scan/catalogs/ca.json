@@ -2,7 +2,7 @@
   "$schema": "../../../schema/omx-contract.schema.json#/$defs/catalog",
   "kind": "catalog",
   "lang": "ca",
-  "owner": "omx-clap-core",
+  "owner": "omx-clap",
   "messages": {
     "SCAN_DOCUMENTS.CLAP_SCAN_DOCUMENT": {"text": "El document JSON que `omx-clap-scan` escriu, una entrada per fitxer amb els seus connectors, els seus paràmetres i els seus ports.", "by": "machine", "model": "draft-prose", "source": "65f9a3403c591a56b3109924687c80722eeb8623049052f254f34319b600727e"},
     "SCAN_DOCUMENTS.FIELD_DUMP": {"text": "El dump de camps que `omx-clap-scan --fields` escriu: una línia de versió, després un registre d'àmbit, camp i valor per a cada camp que declara un connector.", "by": "machine", "model": "draft-prose", "source": "9090693346d8fe443ac0968ed0beebbfc999e17be0c50721302e863b3feca394"},

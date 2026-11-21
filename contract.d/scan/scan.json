@@ -4,7 +4,7 @@
   "info": {
     "title": "The documents a plugin scan writes and the scopes of its field dump",
     "version": "1.0.0",
-    "x-owner": "omx-clap-core",
+    "x-owner": "omx-clap",
     "x-stability": "experimental"
   },
   "components": {
@@ -12,12 +12,12 @@
       "SCAN_DOCUMENTS": {
         "description": "The documents a plugin scan writes, named here and owned elsewhere: the contract names them so the writers and readers cite one word, and keeps no shape of its own for them.",
         "x-since": "1.0.0",
-        "x-why": "omx-clap-core and plugin-qualify write one scan document (FreeMixer/omx-contract#157).",
+        "x-why": "omx-clap and plugin-qualify write one scan document (FreeMixer/omx-contract#157).",
         "oneOf": [
           {
             "const": "CLAP_SCAN_DOCUMENT",
             "title": "clapScanDocument",
-            "description": "The JSON document of omx-clap-scan, one entry per file with its plugins, parameters and ports. Owned by omx-clap-core, which writes it; its shape is omx-clap-core's reference.",
+            "description": "The JSON document of omx-clap-scan, one entry per file with its plugins, parameters and ports. Owned by omx-clap, which writes it; its shape is omx-clap's reference.",
             "x-code": 0,
             "x-text": "The JSON document omx-clap-scan writes, one entry per file with its plugins, its parameters and its ports."
           },
@@ -31,7 +31,7 @@
         ]
       },
       "SCAN_FIELD_SCOPES": {
-        "description": "The scopes of a field dump record, as written before the first TAB; an indexed scope is followed by `:<index>`. Named here, owned by their writers: omx-clap-core's scan (docs/scan.md there) and plugin-hostd's field dump (docs/formats.md there) keep the code that writes them.",
+        "description": "The scopes of a field dump record, as written before the first TAB; an indexed scope is followed by `:<index>`. Named here, owned by their writers: omx-clap's scan (docs/scan.md there) and plugin-hostd's field dump (docs/formats.md there) keep the code that writes them.",
         "x-since": "1.0.0",
         "x-c-codes": true,
         "oneOf": [

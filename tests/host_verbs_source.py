@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """
-The check proper of tests/host-verbs-check.sh, over C sources: no string literal types a verb data/verbs.json declares,
+The check proper of tests/host-verbs-check.sh, over C sources: no string literal types a verb the omx-clap domain declares,
 and no source defines a reply number: a HOST_REPLY_* or OMX_REPLY_*_RESP define outside the render is red, the number is
-OMX_REPLY_HOST_<NAME>_RESP of omx_clap_core_vocabulary.h.
+OMX_REPLY_HOST_<NAME>_RESP of omx_clap_vocabulary.h.
 
-    host_verbs_source.py <verbs.json> <source>...
+    host_verbs_source.py <contract.d> <source>...
 
 One line per failure on stderr; the count of declared verbs on stdout. Exit 0 held; 1 a failure; 2 no declaration.
 """
@@ -20,13 +20,14 @@ TOKEN = re.compile(r'("(?:\\.|[^"\\\n])*")|(\'(?:\\.|[^\'\\\n])*\')|(/\*.*?\*/)|
 
 
 def main():
-    decl, files = sys.argv[1], sys.argv[2:]
+    contract_d, files = sys.argv[1], sys.argv[2:]
+    decl = contract_d + '/omx-clap/omx-clap.json'
     with open(decl) as f:
-        data = json.load(f)
+        data = json.load(f)['components']['schemas']
     verbs = set()
     for item in data.values():
-        if isinstance(item, dict) and item.get('kind') == 'verbs':
-            verbs |= {v['verb'] for v in item['verbs'].values()}
+        if item.get('x-kind') == 'verbs':
+            verbs |= {w['const'] for w in item['oneOf']}
     if not verbs:
         print('host-verbs-check: %s declares no verb' % decl, file=sys.stderr)
         return 2
@@ -45,11 +46,11 @@ def main():
                 hit = starts.search(lit[1:-1]) or inner.search(lit[1:-1])
                 if hit:
                     print('host-verbs-check: %s:%d: %s types the verb %s by hand: write OMX_VERB_%s or its _FMT of '
-                          'omx_clap_core_host_verbs.h' % (path, line, lit, hit.group(1), hit.group(1).upper()), file=sys.stderr)
+                          'omx_clap_host_verbs.h' % (path, line, lit, hit.group(1), hit.group(1).upper()), file=sys.stderr)
                     bad = 1
             elif name is not None:
                 print('host-verbs-check: %s:%d: %s is a reply number defined by hand: write OMX_REPLY_HOST_<NAME>_RESP of '
-                      'omx_clap_core_vocabulary.h, the resp %s declares' % (path, line, name, decl), file=sys.stderr)
+                      'omx_clap_vocabulary.h, the resp %s declares' % (path, line, name, decl), file=sys.stderr)
                 bad = 1
             line += m.group(0).count('\n')
     if bad:

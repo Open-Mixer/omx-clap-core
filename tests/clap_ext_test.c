@@ -20,7 +20,7 @@
 
 
 /*
- * What a full host offers besides the basics, through libomx-clap-core against tests/fake_ext.clap: timers and file
+ * What a full host offers besides the basics, through libomx-clap against tests/fake_ext.clap: timers and file
  * descriptors served by the tick, the thread pool inside process() and refused outside it, render, the tail and the
  * tail changed, the sleep of a plugin that says it needs no processing and its waking, state-context, and
  * audio-ports-activation of the auxiliary output; and the caller's clap.gui offered (omx_clap_host_offer_gui): the plugin
@@ -36,6 +36,7 @@
 
 #include "../src/clap_host.h"
 #include <omxcontract/omx_contract_limits.h>
+#include <omxdsp/omxdsp_definitions.h>
 #include "test_util.h"
 
 #define EXT_ID  "org.omx-clap-host.test.ext"

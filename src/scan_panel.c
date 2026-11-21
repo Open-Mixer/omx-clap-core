@@ -12,6 +12,7 @@
  * OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES is refused whole and the other tables are still read. */
 
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 
 #include "scan_panel.h"
@@ -155,13 +156,20 @@ void scan_panel_free(struct scan_panel *panel)
     memset(panel, 0, sizeof(*panel));
 }
 
-/* each code's word and enumerator, from omx_clap_ext.h's lists */
-#define WORD(code, name, id) [code] = name,
+/* each code's word and enumerator, from omx_clap_ext.h's lists, which are omx-panel's X-macros: X(code, WORD). The word as
+ * a plugin writes it is the header's upper-case word in lower case, made once per code on first use (the scan is one thread) */
+#define TOKEN(code, id) [code] = #id,
 #define WORDS(list, fn)                                                                                             \
-    static const char *const g_##fn##_words[] = { list(WORD) };                                                     \
+    static const char *const g_##fn##_tokens[] = { list(TOKEN) };                                                   \
+    static char g_##fn##_words[sizeof(g_##fn##_tokens) / sizeof(g_##fn##_tokens[0])][32];                           \
     const char *scan_panel_##fn##_word(uint32_t code)                                                               \
     {                                                                                                               \
-        return code < sizeof(g_##fn##_words) / sizeof(g_##fn##_words[0]) ? g_##fn##_words[code] : NULL;            \
+        if (code >= sizeof(g_##fn##_tokens) / sizeof(g_##fn##_tokens[0]) || !g_##fn##_tokens[code])                  \
+            return NULL;                                                                                            \
+        if (!g_##fn##_words[code][0])                                                                               \
+            for (size_t i = 0; i < sizeof(g_##fn##_words[0]) - 1 && g_##fn##_tokens[code][i]; i++)                  \
+                g_##fn##_words[code][i] = (char)tolower((unsigned char)g_##fn##_tokens[code][i]);                   \
+        return g_##fn##_words[code];                                                                                \
     }
 
 WORDS(OMX_CLAP_PANEL_FAMILIES, family)
@@ -169,10 +177,10 @@ WORDS(OMX_CLAP_PANEL_WIDGETS, widget)
 WORDS(OMX_CLAP_PANEL_DISPLAY_SOURCES, display_source)
 WORDS(OMX_CLAP_PANEL_PLACEMENTS, placement)
 
-#define FAMILY_ENUM(code, name, id) [code] = "OMX_CLAP_FAMILY_" #id,
-#define WIDGET_ENUM(code, name, id) [code] = "OMX_CLAP_WIDGET_" #id,
-#define DISPLAY_SOURCE_ENUM(code, name, id) [code] = "OMX_CLAP_DISPLAY_FROM_" #id,
-#define PLACEMENT_ENUM(code, name, id) [code] = "OMX_CLAP_PLACEMENT_" #id,
+#define FAMILY_ENUM(code, id) [code] = "OMX_CLAP_FAMILY_" #id,
+#define WIDGET_ENUM(code, id) [code] = "OMX_CLAP_WIDGET_" #id,
+#define DISPLAY_SOURCE_ENUM(code, id) [code] = "OMX_CLAP_DISPLAY_FROM_" #id,
+#define PLACEMENT_ENUM(code, id) [code] = "OMX_CLAP_PLACEMENT_" #id,
 #define ENUMS(list, x, fn)                                                                                          \
     static const char *const g_##fn##_enums[] = { list(x) };                                                        \
     const char *scan_panel_##fn##_enum(uint32_t code)                                                               \

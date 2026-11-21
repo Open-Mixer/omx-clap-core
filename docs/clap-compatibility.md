@@ -7,7 +7,7 @@ What of CLAP 1.2 the host supports, extension by extension, and the test behind 
 LV2 counterpart is [lv2-compatibility.md](lv2-compatibility.md); the reference for the API is
 `doc/reference.md`, whose table of CLAP extensions says the same per header and this page per id.
 
-The hosting core, `libomx-clap-core`, holds every rule below: the host object it hands a plugin,
+The hosting core, `libomx-clap`, holds every rule below: the host object it hands a plugin,
 the extensions it asks of the plugin, and what it does with each. omx-clap-host is a program on
 that core, and so is the console's in-process stage. Where the three differ, [Surfaces](#surfaces)
 says so; everywhere else a row holds for all of them.
@@ -186,7 +186,7 @@ to its caller, or where a program adds something of its own. A row is here when 
   (`BUILDING.md`, `make test-hostd-pin`), so the omx-clap-host column holds for it; its protocol's
   own verbs (`track_info`, `remote_pages`, `remote_page_get`, `param_info`, `pin_expect`) are
   answered by this host (`doc/reference.md`, Strip and controls). Anything else is not stated here.
-- **in process (the console's stage)**: a program that links `libomx-clap-core` and runs its own
+- **in process (the console's stage)**: a program that links `libomx-clap` and runs its own
   audio thread through `clap_stage.h`, as the console does. This column says what the library does
   with its defaults (`omx_clap_host_config_default`); the console's own configuration is not stated
   in this repository. Such a caller allocates `struct omx_clap_host_config` itself and is built

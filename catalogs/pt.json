@@ -2,7 +2,7 @@
   "$schema": "../schema/omx-contract.schema.json#/$defs/catalog",
   "kind": "catalog",
   "lang": "pt",
-  "owner": "omx-clap-core",
+  "owner": "omx-clap",
   "messages": {
     "hosting.clap.extensions-not-covered": { "text": "Nem toda extensão que este plugin declara é coberta pelo que foi verificado. Verifique o plugin em relação às extensões que este host cobre, ou aceite a lacuna.", "by": "machine", "model": "draft-prose", "source": "1fd5fd584d2562a18082303ace687aa8f278fabe79538da4e20cd3c1f69d41c4" },
     "hosting.clap.format-not-hosted": { "text": "Este host não hospeda o formato CLAP. Use um host que o faça.", "by": "machine", "model": "draft-prose", "source": "edce1fed93265f99147b03a231ad672fd694628347d406756f2c8c4bb1d73e24" },

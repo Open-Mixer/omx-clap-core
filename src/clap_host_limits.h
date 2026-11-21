@@ -26,7 +26,7 @@
  * of the dimensions it owns. The stage's numbers are hosted_stage_limits.h's, spelled once. The rendered file is kept in
  * this repository so the library builds on its own; the codes are changed where they are declared and the file is
  * re-rendered, never edited here. Every other refusal code is declared in data/hosting/ and rendered as
- * omx_clap_core_vocabulary.h (clap_host.h's CLAP_HOST_CODE_*).
+ * omx_clap_vocabulary.h (clap_host.h's CLAP_HOST_CODE_*).
  */
 
 /** @file

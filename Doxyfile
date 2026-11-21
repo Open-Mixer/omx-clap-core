@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
-# libomx-clap-core C API reference: the installed headers' docstrings only.
+# libomx-clap C API reference: the installed headers' docstrings only.
 # Build-time only: `make docs`; a missing docstring on a public symbol fails the build.
-PROJECT_NAME           = libomx-clap-core
+PROJECT_NAME           = libomx-clap
 PROJECT_BRIEF          = "Hosts CLAP plugins in-process: the C API"
 OUTPUT_DIRECTORY       = build/docs
 INPUT                  = src/clap_host.h \

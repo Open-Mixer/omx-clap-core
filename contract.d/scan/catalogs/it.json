@@ -2,7 +2,7 @@
   "$schema": "../../../schema/omx-contract.schema.json#/$defs/catalog",
   "kind": "catalog",
   "lang": "it",
-  "owner": "omx-clap-core",
+  "owner": "omx-clap",
   "messages": {
     "SCAN_DOCUMENTS.CLAP_SCAN_DOCUMENT": {"text": "Il documento JSON che omx-clap-scan scrive, una voce per file con i suoi plugin, i suoi parametri e le sue porte.", "by": "machine", "model": "draft-prose", "source": "65f9a3403c591a56b3109924687c80722eeb8623049052f254f34319b600727e"},
     "SCAN_DOCUMENTS.FIELD_DUMP": {"text": "Il dump dei campi che omx-clap-scan --fields scrive: una linea di versione, quindi un record di scope, campo e valore per ogni campo dichiarato dal plugin.", "by": "machine", "model": "draft-prose", "source": "9090693346d8fe443ac0968ed0beebbfc999e17be0c50721302e863b3feca394"},

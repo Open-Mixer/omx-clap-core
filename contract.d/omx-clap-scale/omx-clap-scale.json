@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openmixer.org/contract/omx-clap-scale",
+  "info": {
+    "title": "The scale codes of org.openmixer.param-contract/1: the code a plugin's get() reports for how a parameter is drawn, and the standard scale each stands for",
+    "version": "1.0.0",
+    "x-owner": "omx-clap",
+    "x-stability": "experimental"
+  },
+  "components": {
+    "schemas": {
+      "OMX_CLAP_SCALE_CODES": {
+        "description": "The scale codes of org.openmixer.param-contract/1, by standard scale id: the code its get() reports for how a parameter's plain value lies along its position. The key is a word of omx-contract's PARAM_SCALES (the F2 mapping), the code is this extension's own, append-only.",
+        "x-since": "1.0.0",
+        "x-kind": "sheet",
+        "x-file": "param-scales.json",
+        "x-value": {
+          "linear": 0,
+          "log": 1,
+          "stepped": 2
+        },
+        "x-docs": {
+          "linear": "the value is linear in position",
+          "log": "geometric in position, both bounds positive",
+          "stepped": "the whole numbers from min to max, CLAP_PARAM_IS_STEPPED, step 1"
+        }
+      }
+    }
+  },
+  "x-render": {
+    "c": [
+      {
+        "header": "omx_param_scales.h",
+        "guard": "OMX_PARAM_SCALES_CODES_H",
+        "project": "omx-clap",
+        "banner": [
+          "Rendered from OMX_CLAP_SCALE_CODES of the omx-clap-scale domain: the scale codes of org.openmixer.param-contract/1.",
+          "A plugin includes this header for the codes its get() reports; the key of each code is a standard scale id of omx-contract's PARAM_SCALES."
+        ],
+        "brief": "The scale codes of the parameter contract extension, one OMX_CLAP_SCALE_ define per standard scale id.",
+        "numbers": {
+          "comment": "how a parameter's plain value is laid out along its position: the code is this extension's, the word a PARAM_SCALES id",
+          "prefix": "OMX_CLAP_SCALE_",
+          "table": "OMX_CLAP_PARAM_SCALES"
+        }
+      }
+    ]
+  },
+  "x-file": "param-scales.json"
+}

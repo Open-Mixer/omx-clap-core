@@ -20,7 +20,7 @@
 
 
 /*
- * The thread pool (#395), through libomx-clap-core against tests/fake_pool.clap, whose process() asks for its tasks
+ * The thread pool (#395), through libomx-clap against tests/fake_pool.clap, whose process() asks for its tasks
  * and records the thread that ran each:
  *  - an instance never granted the pool runs every task on the audio thread, every one done before request_exec
  *    returns;

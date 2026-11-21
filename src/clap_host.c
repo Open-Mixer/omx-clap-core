@@ -21,7 +21,7 @@
 /*
 ************************************************************************************************************************
 *
-* The control-thread host of libomx-clap-core (see clap_host.h for the contract).
+* The control-thread host of libomx-clap (see clap_host.h for the contract).
 *
 * Threads, as CLAP assigns them: everything here is [main-thread] and runs on the control thread that opened the
 * instance, except the host callbacks a plugin may call from its audio thread ([thread-safe]: request_*, log,
@@ -129,7 +129,7 @@ static pthread_mutex_t g_binaries_lock = PTHREAD_MUTEX_INITIALIZER;
 /* the defaults until a host configures the process */
 static struct omx_clap_host_config g_config =
 {
-    OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap-core", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, OMX_HOSTED_STAGE_IDLE_HOLD_US
+    OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, OMX_HOSTED_STAGE_IDLE_HOLD_US
 };
 static int g_configured;
 static _Atomic int g_sealed;    // a binary was opened: the configuration can no longer change
@@ -2250,7 +2250,7 @@ void omx_clap_host_config_default(struct omx_clap_host_config *config)
 {
     static const struct omx_clap_host_config defaults =
     {
-        OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap-core", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, 0
+        OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, 0
     };
 
     *config = defaults;

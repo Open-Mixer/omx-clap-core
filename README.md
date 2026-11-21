@@ -9,7 +9,7 @@ graph as a client of its own. It is for controllers, mixers and stage rigs on Li
 already talk to mod-host and want CLAP plugins beside their LV2 ones.
 
 An LV2 plugin runs natively, through lilv in the host's own process, mapped by the LV2 adapter
-(`libomx-clap-lv2`). The CLAP hosting core is a library of its own, `libomx-clap-core`, for
+(`libomx-clap-lv2`). The CLAP hosting core is a library of its own, `libomx-clap`, for
 programs that host CLAP plugins themselves. The host, the core and the adapter share one version.
 
 Install
@@ -25,8 +25,8 @@ Debian trixie and Raspberry Pi OS (arm64):
     cd /tmp && curl -fsSLO https://www.openmixer.org/deb/openmixer-release.deb && sudo apt install ./openmixer-release.deb
     sudo apt update && sudo apt install omx-clap-host
 
-To build on the core: `omx-clap-core-devel` (`libomx-clap-core-dev`) and
-`pkg-config --cflags --libs omx-clap-core`.
+To build on the core: `omx-clap-devel` (`libomx-clap-dev`) and
+`pkg-config --cflags --libs omx-clap`.
 
 Start
 -----

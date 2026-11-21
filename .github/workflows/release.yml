@@ -126,6 +126,6 @@ jobs:
           make docs
           version=$(tr -d '[:space:]' < VERSION)
           echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
-          tar -czf "omx-clap-core-api-docs-${version}.tar.gz" -C build/docs html
-          [ -f "omx-clap-core-api-docs-${version}.tar.gz" ]
-          gh release upload "$GITHUB_REF_NAME" omx-clap-core-api-docs-*.tar.gz --clobber
+          tar -czf "omx-clap-api-docs-${version}.tar.gz" -C build/docs html
+          [ -f "omx-clap-api-docs-${version}.tar.gz" ]
+          gh release upload "$GITHUB_REF_NAME" omx-clap-api-docs-*.tar.gz --clobber

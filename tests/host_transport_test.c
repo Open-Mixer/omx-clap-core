@@ -20,7 +20,7 @@
 
 /*
  * host_transport_test.c: omx-clap-host's transport (src/host_transport.h) against closed forms, at every rate the
- * contract declares (OMX_ORACLE_FULL_RATES_INIT).
+ * omx-dsp declares (ORACLE_FULL_RATES: OMX_ORACLE_FULL_RATES_INIT of omxdsp/omxdsp_definitions.h).
  *
  *  1. NONE until a tempo: no command, or a set_bpb alone, hands the plugin no transport (flags 0).
  *  2. PLAYING at 120 bpm from frame 1000: the block that starts half a second later reads beat 1.0 and 0.5 s exactly,

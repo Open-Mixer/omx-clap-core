@@ -1358,7 +1358,7 @@ HOST_VERBS_CONTRACT = $(abspath build/verbs-contract)
 # the checkout of PROTOCOL_DIR, or the release checkout CI names
 PROTOCOL_CONTRACT_DIR ?= $(PROTOCOL_DIR)
 PROTOCOL_VERSION = $(shell sed -n 's/^Version: *//p' $(PROTOCOL_CONTRACT_DIR)/packaging/plugin-hostd-protocol.spec)
-.PHONY: test-host-verbs test-host-verbs-sabotage host-verbs-contract
+.PHONY: test-host-verbs test-host-verbs-sabotage test-host-verbs-domains host-verbs-contract
 host-verbs-contract:
 	rm -rf $(HOST_VERBS_CONTRACT)
 	@# the catalogs go into the build tree too, as test-contract's do: the test runs as any user, never root
@@ -1368,6 +1368,11 @@ host-verbs-contract:
 	sh $(INSTALL_CONTRACT_DIR) plugin-hostd-protocol $(PROTOCOL_VERSION) $(CONTRACT_SCHEMA_MAJOR) $(PROTOCOL_CONTRACT_DIR)/data $(HOST_VERBS_CONTRACT) data
 test-host-verbs: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_e2e.sh
+
+# where that guard reads plugin-hostd-protocol's verbs: its domain plugin-hostd, every domain through omx-contract's
+# rebuild (tests/host_verbs_domains.py); no socket, no PipeWire
+test-host-verbs-domains: host-verbs-contract
+	python3 -I tests/host_verbs_domains.py --contract-path $(HOST_VERBS_CONTRACT)
 
 # the sabotage of that guard (tests/host_verbs_sabotage.sh): a format and what the host owes a verb changed in a copy of
 # the declarations, a handler deleted and a verb with no declaration registered in a copy of the sources; each red

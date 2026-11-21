@@ -199,8 +199,16 @@ def protocol_installed(path):
         return PROTOCOL_DOMAIN in json.load(f).get('domains', [])
 
 
+class Refused(Exception):
+    """A declaration the check will not read, named by its file."""
+
+
 def declarations(path):
-    """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}."""
+    """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}.
+
+    plugin-hostd-protocol's words are its domain plugin-hostd's only: an item in a data file of its package (a stale
+    3/plugin-hostd-protocol/verbs.json, the home before 0.8.0) is refused by name, never read beside the domain.
+    """
     items, verbs = {}, []
     for pkg, d in packages(path).items():
         with open(os.path.join(d, 'MANIFEST.json')) as f:
@@ -209,8 +217,13 @@ def declarations(path):
             with open(os.path.join(d, rel)) as f:
                 doc = json.load(f)
             for name, item in doc.items():
-                if isinstance(item, dict) and 'kind' in item:
-                    items[name] = (pkg, item)
+                if not (isinstance(item, dict) and 'kind' in item):
+                    continue
+                if pkg == PROTOCOL:
+                    raise Refused('%s declares %s: the words of %s are its domain %s, and a data file of the package '
+                                  'is a stale copy of them (3/%s/%s)' % (os.path.join(d, rel), name, PROTOCOL,
+                                                                         PROTOCOL_DOMAIN, PROTOCOL, rel))
+                items[name] = (pkg, item)
     items.update(domain_items(path))
     for name, (pkg, item) in items.items():
         if item['kind'] != 'verbs':
@@ -315,7 +328,11 @@ def main():
     ap.add_argument('--spaced-fake', help='a copy of the fake plugin under a directory whose name holds spaces')
     o = ap.parse_args()
 
-    verbs = declarations(o.contract_path)
+    try:
+        verbs = declarations(o.contract_path)
+    except Refused as e:
+        print('FAIL %s' % e)
+        return 1
     mine = {v['verb'] for v in verbs if v['package'] == OWNER}
     if not mine:
         print('host_verbs_check: no verb of %s for %s under %s' % (OWNER, HOST, o.contract_path), file=sys.stderr)

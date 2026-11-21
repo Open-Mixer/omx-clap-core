@@ -36,6 +36,7 @@
  */
 #include <stdio.h>
 
+#include <omxdsp/omxdsp_definitions.h>
 #include "../src/host_transport.h"
 #include "test_util.h"
 

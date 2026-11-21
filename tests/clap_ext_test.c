@@ -36,6 +36,7 @@
 
 #include "../src/clap_host.h"
 #include <omxcontract/omx_contract_limits.h>
+#include <omxdsp/omxdsp_definitions.h>
 #include "test_util.h"
 
 #define EXT_ID  "org.omx-clap-host.test.ext"

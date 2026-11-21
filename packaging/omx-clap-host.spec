@@ -22,7 +22,7 @@ BuildRequires: plugin-db-devel >= 0.4.2
 # distribution's own is older)
 BuildRequires: clap-devel >= 1.2.10
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: omx-dsp-devel >= 0.33.0
+BuildRequires: omx-dsp-devel >= 0.34.0
 # omx_clap_ext.h's panel words (families, widgets, display sources, placements) are omx-panel's: its domain's codes header,
 # omxdomain/panel_codes.h, which omx-panel-contract installs (data only; omx-panel does not build against this package)
 BuildRequires: omx-panel-contract >= 0.16.0
@@ -97,7 +97,7 @@ License: GPL-3.0-or-later
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
-Requires: omx-dsp-devel >= 0.33.0
+Requires: omx-dsp-devel >= 0.34.0
 # omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
 Requires: omx-contract-devel >= 3.20.0
 # omxdomain/panel_codes.h, which omx_clap_ext.h includes

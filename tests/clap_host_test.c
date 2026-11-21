@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <omxdsp/omxdsp_definitions.h>
 #include "../src/clap_host.h"
 #include "../src/layout_pin.h"
 #include "test_util.h"

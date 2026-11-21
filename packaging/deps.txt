@@ -12,7 +12,7 @@ plugin-hostd-protocol-devel    libplugin-hostd-protocol-dev 0.6.0
 plugin-hostd-protocol          libplugin-hostd-protocol0    0.6.0
 plugin-db-devel                plugin-db-dev                0.4.2
 clap-devel                     clap-headers                 1.2.10
-omx-dsp-devel                  libomxdsp-dev                0.33.0
+omx-dsp-devel                  libomxdsp-dev                0.34.0
 omx-contract-devel             libomx-contract-dev          3.20.0
 omx-contract-data              omx-contract-data            3.20.0
 libomx-domain-devel            libomx-domain-dev            3.20.0

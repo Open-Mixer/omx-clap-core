@@ -873,7 +873,7 @@ jobs:
             rpm -qlp "$rpm"
             files "$rpm" > files.txt
             printf '%s\n' '/usr/lib*/libomx-clap.so' '/usr/lib*/pkgconfig/omx-clap.pc' /usr/include/omx-clap-host/clap_host.h \
-              /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_vocabulary.h /usr/include/omx-clap-host/omx_param_units.h /usr/include/omx-clap-host/omx_param_scales.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
+              /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_vocabulary.h /usr/include/omx-clap-host/omx_param_units.h /usr/include/omx-clap-host/omx_param_unit_ids.h /usr/include/omx-clap-host/omx_param_scales.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
               /usr/include/omx-clap-host/clap_host_extensions.h /usr/include/omx-clap-host/omx_clap_ext.h /usr/include/omx-clap-host/omx_msgring.h /usr/include/omx-clap-host/clap_meters.h /usr/include/omx-clap-host/omx_clap_raw.h /usr/include/omx-clap-host/omx_clap_midi.h /usr/include/omx-clap-host/clap_chain.h /usr/include/omx-clap-host/abi_guard.h \
               /usr/share/omx-clap/omx-clap.map \
               /usr/share/licenses/omx-clap-devel/COPYING /usr/share/doc/omx-clap-devel/README.md | sort > expected.txt
@@ -1166,6 +1166,7 @@ jobs:
           done
           grep -qx /usr/include/omx-clap-host/omx_clap_vocabulary.h dev-files.txt
           grep -qx /usr/include/omx-clap-host/omx_param_units.h dev-files.txt
+          grep -qx /usr/include/omx-clap-host/omx_param_unit_ids.h dev-files.txt
           grep -qx /usr/include/omx-clap-host/omx_param_scales.h dev-files.txt
           grep -qx /usr/include/omx-clap-host/hosted_stage_limits.h dev-files.txt
           # the hosting codes' TypeScript modules ship in the runtime package: a plugin-qualify-like consumer

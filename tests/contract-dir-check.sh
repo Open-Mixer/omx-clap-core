@@ -38,7 +38,7 @@ $tool validate --contract-dir "$dir" --needs "omx-clap@>= $version" --catalogs c
 $tool links --check --root . --contract-dir "$dir" --package omx-clap
 
 # the renders this tree commits, as <target>:<committed path>; the output's name is the committed file's
-committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h c:src/omx_param_units.h c:src/omx_param_scales.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
+committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h c:src/omx_param_units.h c:src/omx_param_unit_ids.h c:src/omx_param_scales.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
 
 bad=0
 for target in c ts; do

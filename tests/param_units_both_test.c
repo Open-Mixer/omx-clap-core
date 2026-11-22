@@ -10,20 +10,39 @@
  */
 #include <omxcontract/omx_param_units.h>
 #include "omx_param_units.h"
+#include "omx_param_unit_ids.h"
 
 #ifndef OMX_CLAP_PARAM_UNITS_H
 #error "src/omx_param_units.h has no guard of its own (OMX_CLAP_PARAM_UNITS_H): a unit including omx-contract's header first skips it"
 #endif
 
 #include <stdio.h>
+#include <string.h>
 
 #define COUNT_ROW(code, name) + 1
 static const int rows = 0 OMX_PARAM_UNITS(COUNT_ROW);
+
+/* the code -> standard id lookup a reader builds from omx_param_unit_ids.h, joined to the code by its define */
+#define ID_ROW(code, token, id) { code, token, id },
+static const struct { unsigned code; const char *token, *id; } ids[] = { OMX_PARAM_UNIT_IDS(ID_ROW) };
+
+static const char *id_of(unsigned code)
+{
+    for (size_t i = 0; i < sizeof ids / sizeof ids[0]; i++)
+        if (ids[i].code == code)
+            return ids[i].id;
+    return NULL;
+}
 
 int main(void)
 {
     if (OMX_CLAP_UNIT_DBU != 257u || OMX_CLAP_UNIT_LU != 263u) {
         fprintf(stderr, "param_units_both_test: dbu or lu is not at its code\n");
+        return 1;
+    }
+    if ((int)(sizeof ids / sizeof ids[0]) != rows || strcmp(id_of(260u), "dB-oct") != 0 || strcmp(id_of(13u), "dB") != 0 ||
+        strcmp(id_of(14u), "percent") != 0 || strcmp(id_of(23u), "deg") != 0 || id_of(264u) != NULL) {
+        fprintf(stderr, "param_units_both_test: the ids table does not answer 260 dB-oct, 13 dB, 14 percent, 23 deg\n");
         return 1;
     }
     printf("param_units_both_test: both headers in one unit, %d rows, no row differs\n", rows);

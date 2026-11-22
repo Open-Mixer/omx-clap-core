@@ -13,8 +13,9 @@ sheet, and OMX_PARAM_CONTRACT_UNIT_IDS, each token's standard unit id); <omx-con
 scale-maps-check.py.
 
   (a) golden: the sheet holds the 29 tokens of omx-contract's sheet at 3.20.2 with their codes, and the four codes of
-      260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to a standard id;
-  (c) every mapped id is a key of omx-contract's PARAM_UNITS, and no two codes map to one id. --self-test plants each
+      260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to its golden standard id;
+  (c) every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dB-oct;
+      never the lowercase key the word is filed under, which is this level's spelling), and no two codes map to one id. --self-test plants each
       failure (an id removed from a copy of PARAM_UNITS, two codes onto one id, a code moved, a token with no id) and
       each must be red.
 """
@@ -28,6 +29,14 @@ GOLDEN = {
     "semitone12TET": 22, "degree": 23, "midiNote": 24, "dbfs": 256, "dbu": 257, "ratio": 258, "lufs": 259,
     "dbPerOct": 260, "dbPerS": 261, "dbtp": 262, "lu": 263,
 }
+# each token's standard id: the const of its PARAM_UNITS word (the coordinator's ruling on #158, Q-a)
+GOLDEN_IDS = {
+    "none": "none", "s": "s", "ms": "ms", "min": "min", "bar": "bar", "beat": "beat", "frame": "frames", "m": "m", "cm": "cm",
+    "mm": "mm", "km": "km", "inch": "inch", "mile": "mile", "db": "dB", "pc": "percent", "coef": "coef", "hz": "Hz",
+    "khz": "kHz", "mhz": "MHz", "bpm": "bpm", "oct": "oct", "cent": "cents", "semitone12TET": "st", "degree": "deg",
+    "midiNote": "midiNote", "dbfs": "dBFS", "dbu": "dBu", "ratio": "ratio", "lufs": "LUFS", "dbPerOct": "dB-oct",
+    "dbPerS": "dB-s", "dbtp": "dBTP", "lu": "LU",
+}
 
 
 def check(domain, standard):
@@ -39,7 +48,9 @@ def check(domain, standard):
         bad.append("(a) the code sheet is not the golden 29 + 4: %s" % sorted(set(sheet.items()) ^ set(GOLDEN.items())))
     if list(ids) != list(sheet):
         bad.append("(a) a token has no standard id, or one too many: %s" % sorted(set(ids) ^ set(sheet)))
-    units = set(standard["items"]["PARAM_UNITS"]["value"])  # (c)
+    if ids != GOLDEN_IDS:
+        bad.append("(a) a token does not map to its golden standard id: %s" % sorted(set(ids.items()) ^ set(GOLDEN_IDS.items())))
+    units = {w["word"] for w in standard["items"]["PARAM_UNITS"]["value"].values()}  # (c) the ids are the words' consts
     for t, i in ids.items():
         if i not in units:
             bad.append("(c) %s maps to %s, which omx-contract's PARAM_UNITS does not hold" % (t, i))
@@ -81,10 +92,10 @@ def main(argv):
             failed = 1
 
     s2 = copy.deepcopy(standard)
-    del s2["items"]["PARAM_UNITS"]["value"]["dbu"]
+    del s2["items"]["PARAM_UNITS"]["value"]["dbu"]  # the word dBu, filed under the key dbu
     must_be_red("a PARAM_UNITS without dbu", domain, s2, "(c)")
     d2 = copy.deepcopy(domain)
-    d2["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"]["dbtp"] = "dbfs"
+    d2["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"]["dbtp"] = "dBFS"
     must_be_red("two codes onto one id", d2, standard, "(c)")
     d3 = copy.deepcopy(domain)
     d3["components"]["schemas"]["OMX_PARAM_CONTRACT_UNITS"]["x-value"]["dbu"] = 300
@@ -92,6 +103,9 @@ def main(argv):
     d4 = copy.deepcopy(domain)
     del d4["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"]["lu"]
     must_be_red("a token with no standard id", d4, standard, "(a)")
+    d5 = copy.deepcopy(domain)
+    d5["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"]["db"] = "db"
+    must_be_red("a token mapped to a lowercase key, not the standard id", d5, standard, "(c)")
     return failed
 
 

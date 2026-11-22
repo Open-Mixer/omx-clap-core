@@ -38,13 +38,13 @@ $tool validate --contract-dir "$dir" --needs "omx-clap@>= $version" --catalogs c
 $tool links --check --root . --contract-dir "$dir" --package omx-clap
 
 # the renders this tree commits, as <target>:<committed path>; the output's name is the committed file's
-committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h c:src/omx_param_scales.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
+committed='c:src/clap_host_limits.h c:src/hosted_stage_limits.h c:src/omx_clap_vocabulary.h c:src/omx_clap_host_verbs.h c:src/omx_param_units.h c:src/omx_param_scales.h ts:ts/omx-clap-hosting.js ts:ts/omx-clap-hosting.d.ts ts:ts/omx-clap-vocabulary.js ts:ts/omx-clap-vocabulary.d.ts'
 
 bad=0
 for target in c ts; do
   rm -rf "$work/$target"
-  # the domains of this owner that rebuild data files, in one read (--with-domain repeats): the scale codes, the host words and the verbs
-  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-clap-scale" --with-domain "$dir/host" --with-domain "$dir/omx-clap"
+  # the domains of this owner that rebuild data files, in one read (--with-domain repeats): the code sheets, the host words and the verbs
+  $tool render --target "$target" --package omx-clap --out "$work/$target" --contract-dir "$dir" --with-domain "$dir/omx-param-contract" --with-domain "$dir/omx-clap-scale" --with-domain "$dir/host" --with-domain "$dir/omx-clap"
   for out in "$work/$target"/*; do
     name=$(basename "$out")
     path=

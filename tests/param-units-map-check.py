@@ -14,8 +14,8 @@ scale-maps-check.py.
 
   (a) golden: the sheet holds the 29 tokens of omx-contract's sheet at 3.20.2 with their codes, and the four codes of
       260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to its golden standard id;
-  (c) the mapped ids are exactly omx-contract's PARAM_UNITS_CLAP_ENCODED (the set of the ids the extension encodes,
-      param domain), and every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dB-oct;
+  (c) the mapped ids are exactly omx-contract's PARAM_UNITS_CLAP_ENCODED (the ids the extension encodes, param domain;
+      read by name, its members' ids whatever its kind renders: a set's values or a words item's consts), and every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dB-oct;
       never the lowercase key the word is filed under, which is this level's spelling), and no two codes map to one id;
   (r) the renders are omx-clap's (project omx-clap, guards OMX_CLAP_*), the ids item has its own x-file and renders
       src/omx_param_unit_ids.h (OMX_PARAM_UNIT_IDS(X), X(OMX_CLAP_UNIT_<TOKEN>, "<token>", "<id>")), and the committed
@@ -86,6 +86,33 @@ def check_render(domain, ids_header):
     return bad
 
 
+GROUP = "PARAM_UNITS_CLAP_ENCODED"
+
+
+def group_ids(standard):
+    """The ids of omx-contract's PARAM_UNITS_CLAP_ENCODED, read by its name and not by its kind: a set renders its ids
+    as a list (value), a words item its words keyed by title, each id the word's const (value.<title>.word). None when
+    the render holds no such item or a value of neither form."""
+    v = standard["items"].get(GROUP, {}).get("value")
+    if isinstance(v, list) and all(isinstance(i, str) for i in v):
+        return list(v)
+    if isinstance(v, dict) and all(isinstance(w, dict) and isinstance(w.get("word"), str) for w in v.values()):
+        return [w["word"] for w in v.values()]
+    return None
+
+
+def with_group(standard, ids, kind):
+    """A copy of `standard` whose PARAM_UNITS_CLAP_ENCODED holds `ids`, rendered as a set (`kind` "set") or as a words
+    item whose words copy PARAM_UNITS (`kind` "words"): the two forms the item may take, for the self test."""
+    s = copy.deepcopy(standard)
+    if kind == "set":
+        s["items"][GROUP] = {"kind": "set", "value": list(ids)}
+    else:
+        by_word = {w["word"]: (t, w) for t, w in standard["items"]["PARAM_UNITS"]["value"].items()}
+        s["items"][GROUP] = {"kind": "words", "value": {by_word[i][0] if i in by_word else i: dict(by_word.get(i, (i, {}))[1], word=i) for i in ids}}
+    return s
+
+
 def check(domain, standard):
     bad = []
     items = domain["components"]["schemas"]
@@ -101,9 +128,9 @@ def check(domain, standard):
     for t, i in ids.items():
         if i not in units:
             bad.append("(c) %s maps to %s, which omx-contract's PARAM_UNITS does not hold" % (t, i))
-    group = standard["items"].get("PARAM_UNITS_CLAP_ENCODED", {}).get("value")  # (c) the served set, omx-contract's
-    if not isinstance(group, list):
-        bad.append("(c) omx-contract's render holds no PARAM_UNITS_CLAP_ENCODED set (the ids the extension encodes)")
+    group = group_ids(standard)  # (c) the served set, omx-contract's, read by name whatever its kind renders
+    if group is None:
+        bad.append("(c) omx-contract's render holds no PARAM_UNITS_CLAP_ENCODED (the ids the extension encodes)")
     else:
         for i in sorted(set(ids.values()) - set(group)):
             bad.append("(c) %s is mapped, and PARAM_UNITS_CLAP_ENCODED does not hold it" % i)
@@ -148,12 +175,18 @@ def main(argv):
             print("FAIL self-test: %s was not caught by arm %s" % (what, arm))
             failed = 1
 
-    g1 = copy.deepcopy(standard)
-    g1["items"]["PARAM_UNITS_CLAP_ENCODED"]["value"].remove("dBu")
-    must_be_red("a mapped id missing from PARAM_UNITS_CLAP_ENCODED", domain, g1, "(c)")
-    g2 = copy.deepcopy(standard)
-    g2["items"]["PARAM_UNITS_CLAP_ENCODED"]["value"].append("us")
-    must_be_red("an id in PARAM_UNITS_CLAP_ENCODED that no token maps to", domain, g2, "(c)")
+    mapped = list(domain["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"].values())
+    for kind in ("set", "words"):
+        exact = with_group(standard, mapped, kind)
+        if check(domain, exact):
+            print("FAIL self-test: PARAM_UNITS_CLAP_ENCODED as a %s item holding exactly the mapped ids is red: %s" % (kind, check(domain, exact)[:2]))
+            failed = 1
+        else:
+            print("ok   self-test: PARAM_UNITS_CLAP_ENCODED as a %s item holding exactly the mapped ids is green" % kind)
+        must_be_red("a mapped id (dBu) missing from PARAM_UNITS_CLAP_ENCODED as a %s item" % kind, domain,
+                    with_group(standard, [i for i in mapped if i != "dBu"], kind), "(c)")
+        must_be_red("an id (us) in PARAM_UNITS_CLAP_ENCODED as a %s item that no token maps to" % kind, domain,
+                    with_group(standard, mapped + ["us"], kind), "(c)")
     s2 = copy.deepcopy(standard)
     del s2["items"]["PARAM_UNITS"]["value"]["dbu"]  # the word dBu, filed under the key dbu
     must_be_red("a PARAM_UNITS without dbu", domain, s2, "(c)")

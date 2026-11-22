@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# The parameter units and the JSON string writer are omx-contract's, and this tree keeps no copy of either: the units
-# are <omxcontract/omx_param_units.h>'s OMX_PARAM_UNITS(X) (omx_clap_ext.h names that table and spells no row), and a
+# The parameter unit codes are this tree's own, rendered into src/omx_param_units.h from the omx-param-contract domain, and
+# the JSON string writer is omx-contract's: no other file keeps a copy of either. The units are that header's
+# OMX_PARAM_UNITS(X) (omx_clap_ext.h names that table and spells no row), and a
 # JSON string is written by <omxcontract/omx_json_write.h> (omx_json_escape_byte, omx_json_write_string,
 # omx_json_string), never by an escape loop of a file's own. A copy that comes back drifts from the sheet the other
 # consumers read, or spells an escape the one writer does not.
@@ -36,6 +37,8 @@ MARKS = [
 # purpose, as its oracle, and the tests plant copies on purpose
 SCANNED = ("src", "lv2", "tools")
 SUFFIXES = (".c", ".h")
+# the one file that holds the units table on purpose: the render of the domain that owns it
+RENDERED = ("src/omx_param_units.h",)
 
 
 def tracked(tree):
@@ -51,7 +54,7 @@ def tracked(tree):
 def copies(tree):
     found = []
     for rel in sorted(tracked(tree)):
-        if not rel.startswith(SCANNED) or not rel.endswith(SUFFIXES):
+        if not rel.startswith(SCANNED) or not rel.endswith(SUFFIXES) or rel in RENDERED:
             continue
         try:
             with open(os.path.join(tree, rel), encoding="utf-8", errors="replace") as f:

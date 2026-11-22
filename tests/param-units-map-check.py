@@ -14,7 +14,8 @@ scale-maps-check.py.
 
   (a) golden: the sheet holds the 29 tokens of omx-contract's sheet at 3.20.2 with their codes, and the four codes of
       260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to its golden standard id;
-  (c) every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dB-oct;
+  (c) the mapped ids are exactly omx-contract's PARAM_UNITS_CLAP_ENCODED (the set of the ids the extension encodes,
+      param domain), and every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dB-oct;
       never the lowercase key the word is filed under, which is this level's spelling), and no two codes map to one id;
   (r) the renders are omx-clap's (project omx-clap, guards OMX_CLAP_*), the ids item has its own x-file and renders
       src/omx_param_unit_ids.h (OMX_PARAM_UNIT_IDS(X), X(OMX_CLAP_UNIT_<TOKEN>, "<token>", "<id>")), and the committed
@@ -100,6 +101,14 @@ def check(domain, standard):
     for t, i in ids.items():
         if i not in units:
             bad.append("(c) %s maps to %s, which omx-contract's PARAM_UNITS does not hold" % (t, i))
+    group = standard["items"].get("PARAM_UNITS_CLAP_ENCODED", {}).get("value")  # (c) the served set, omx-contract's
+    if not isinstance(group, list):
+        bad.append("(c) omx-contract's render holds no PARAM_UNITS_CLAP_ENCODED set (the ids the extension encodes)")
+    else:
+        for i in sorted(set(ids.values()) - set(group)):
+            bad.append("(c) %s is mapped, and PARAM_UNITS_CLAP_ENCODED does not hold it" % i)
+        for i in sorted(set(group) - set(ids.values())):
+            bad.append("(c) PARAM_UNITS_CLAP_ENCODED holds %s, which no token maps to" % i)
     seen = {}
     for t, i in ids.items():
         if i in seen:
@@ -139,6 +148,12 @@ def main(argv):
             print("FAIL self-test: %s was not caught by arm %s" % (what, arm))
             failed = 1
 
+    g1 = copy.deepcopy(standard)
+    g1["items"]["PARAM_UNITS_CLAP_ENCODED"]["value"].remove("dBu")
+    must_be_red("a mapped id missing from PARAM_UNITS_CLAP_ENCODED", domain, g1, "(c)")
+    g2 = copy.deepcopy(standard)
+    g2["items"]["PARAM_UNITS_CLAP_ENCODED"]["value"].append("us")
+    must_be_red("an id in PARAM_UNITS_CLAP_ENCODED that no token maps to", domain, g2, "(c)")
     s2 = copy.deepcopy(standard)
     del s2["items"]["PARAM_UNITS"]["value"]["dbu"]  # the word dBu, filed under the key dbu
     must_be_red("a PARAM_UNITS without dbu", domain, s2, "(c)")

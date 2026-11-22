@@ -59,15 +59,24 @@ def id_rows(text):
 
 
 def check_render(domain, ids_header):
-    """(r) the renders are omx-clap's: every render entry of the domain names project omx-clap and a guard of its own
-    (OMX_CLAP_*, never omx-contract's OMX_PARAM_UNITS_H); the ids item has an x-file of its own and its render entry,
-    header omx_param_unit_ids.h with the strings section; and the committed header holds one row
-    X(OMX_CLAP_UNIT_<TOKEN>, "<token>", "<id>") per token, in the sheet's order (C2's strings section)."""
+    """(r) the renders are omx-clap's and all of them are the domain's ROOT x-render (no item carries one: a pass changes
+    no format): every entry names project omx-clap and a guard of its own (OMX_CLAP_*, never omx-contract's
+    OMX_PARAM_UNITS_H); the ids item has an x-file of its own and is the one sheet of strings of the domain (the root
+    entry of omx_param_unit_ids.h reads the whole package, scope package, so a second sheet of strings would join its
+    macro); one root entry renders omx_param_unit_ids.h with scope package and the strings section {prefix
+    OMX_CLAP_UNIT_, table OMX_PARAM_UNIT_IDS}; and the committed header holds one row X(OMX_CLAP_UNIT_<TOKEN>,
+    "<token>", "<id>") per token, in the sheet's order."""
     bad = []
     items = domain["components"]["schemas"]
     entries = list(domain.get("x-render", {}).get("c", []))
     ids_item = items["OMX_PARAM_CONTRACT_UNIT_IDS"]
-    entries += list(ids_item.get("x-render", {}).get("c", []))
+    for name, item in items.items():
+        if "x-render" in item:
+            bad.append("(r) the item %s carries an x-render; a render is the domain root's x-render" % name)
+    strings_sheets = [n for n, i in items.items() if i.get("x-kind") == "sheet" and isinstance(i.get("x-value"), dict)
+                      and i["x-value"] and all(isinstance(v, str) for v in i["x-value"].values())]
+    if strings_sheets != ["OMX_PARAM_CONTRACT_UNIT_IDS"]:
+        bad.append("(r) the sheets of strings are %s, not OMX_PARAM_CONTRACT_UNIT_IDS alone: a second one joins OMX_PARAM_UNIT_IDS(X)" % strings_sheets)
     for e in entries:
         if e.get("project") != "omx-clap":
             bad.append("(r) the render of %s names project %s, not omx-clap" % (e.get("header"), e.get("project")))
@@ -75,9 +84,9 @@ def check_render(domain, ids_header):
             bad.append("(r) the render of %s has the guard %s, not one of its own (OMX_CLAP_*)" % (e.get("header"), e.get("guard")))
     if ids_item.get("x-file") in (None, domain.get("x-file"), items["OMX_PARAM_CONTRACT_UNITS"].get("x-file")):
         bad.append("(r) OMX_PARAM_CONTRACT_UNIT_IDS has no x-file of its own (%s)" % ids_item.get("x-file"))
-    strings = [e for e in ids_item.get("x-render", {}).get("c", []) if e.get("header") == "omx_param_unit_ids.h" and "strings" in e]
-    if len(strings) != 1 or strings[0]["strings"].get("prefix") != "OMX_CLAP_UNIT_" or strings[0]["strings"].get("table") != "OMX_PARAM_UNIT_IDS":
-        bad.append("(r) the ids item renders no omx_param_unit_ids.h with strings {prefix OMX_CLAP_UNIT_, table OMX_PARAM_UNIT_IDS}")
+    strings = [e for e in entries if e.get("header") == "omx_param_unit_ids.h" and "strings" in e]
+    if len(strings) != 1 or strings[0].get("scope") != "package" or strings[0]["strings"].get("prefix") != "OMX_CLAP_UNIT_" or strings[0]["strings"].get("table") != "OMX_PARAM_UNIT_IDS":
+        bad.append("(r) the root x-render has no omx_param_unit_ids.h entry with scope package and strings {prefix OMX_CLAP_UNIT_, table OMX_PARAM_UNIT_IDS}")
     want = [("OMX_CLAP_UNIT_" + const_case(t), t, i) for t, i in ids_item["x-value"].items()]
     if ids_header is None:
         bad.append("(r) %s is not committed" % IDS_HEADER)
@@ -230,6 +239,14 @@ def main(argv):
     r3 = copy.deepcopy(domain)
     r3["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-file"] = domain.get("x-file")
     must_be_red_render("the ids item in the units sheet's x-file", r3, ids_header)
+    r4 = copy.deepcopy(domain)
+    moved = [e for e in r4["x-render"]["c"] if e.get("header") == "omx_param_unit_ids.h"]
+    r4["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-render"] = {"c": moved}
+    r4["x-render"]["c"] = [e for e in r4["x-render"]["c"] if e.get("header") != "omx_param_unit_ids.h"]
+    must_be_red_render("the ids header rendered by an item-level x-render", r4, ids_header)
+    r5 = copy.deepcopy(domain)
+    r5["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_WORDS"] = {"x-kind": "sheet", "x-file": "param-unit-words.json", "x-value": {"db": "decibel"}}
+    must_be_red_render("a second sheet of strings in the domain", r5, ids_header)
     return failed
 
 

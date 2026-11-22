@@ -868,16 +868,18 @@ tests/param_contract_test: tests/param_contract_test.c src/param_contract.h src/
 
 # this tree's unit codes and omx-contract's old copy in one unit under -Werror (tests/param_units_both_test.c): each header
 # has its own guard, an identical row is a legal redefinition and a row that differs fails the build; the sabotage arm
-# compiles the test over a copy of src/omx_param_units.h whose lu row moved, and that build must fail
+# compiles the test over a copy of src/omx_param_units.h whose lu row moved (found first, -Ibuild/units-both before
+# -Isrc), and that build must fail on OMX_CLAP_UNIT_LU redefined, no other error
 .PHONY: test-param-units-both
 test-param-units-both: tests/param_units_both_test
 	./tests/param_units_both_test
 	@rm -rf build/units-both && mkdir -p build/units-both
 	sed 's/^#define OMX_CLAP_UNIT_LU 263u/#define OMX_CLAP_UNIT_LU 264u/' src/omx_param_units.h > build/units-both/omx_param_units.h
 	! grep -q 'OMX_CLAP_UNIT_LU 263u' build/units-both/omx_param_units.h
-	@if $(CC) -Ibuild/units-both $(CFLAGS) -Werror -o build/units-both/t tests/param_units_both_test.c 2>build/units-both/err; then \
+	@if $(CC) -Ibuild/units-both -Isrc $(CFLAGS) -Werror -o build/units-both/t tests/param_units_both_test.c 2>build/units-both/err; then \
 	  echo "SABOTAGE units-both-diverged: STAYED GREEN (a moved row did not fail the build)"; exit 1; \
-	else echo "SABOTAGE units-both-diverged: red ($$(grep -m1 -o 'OMX_CLAP_UNIT_LU.*redefined\|redefined' build/units-both/err))"; fi
+	elif grep -Eq 'OMX_CLAP_UNIT_LU.{0,4} redefined' build/units-both/err; then echo "SABOTAGE units-both-diverged: red (OMX_CLAP_UNIT_LU redefined)"; \
+	else echo "SABOTAGE units-both-diverged: red for another reason, not the moved row:"; cat build/units-both/err; exit 1; fi
 
 tests/param_units_both_test: tests/param_units_both_test.c src/omx_param_units.h src/omx_param_unit_ids.h
 	$(CC) -Isrc $(CFLAGS) -Werror -o $@ $<

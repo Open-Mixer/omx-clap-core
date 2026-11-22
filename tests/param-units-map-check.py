@@ -154,6 +154,14 @@ def main(argv):
     d5 = copy.deepcopy(domain)
     d5["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"]["db"] = "db"
     must_be_red("a token mapped to a lowercase key, not the standard id", d5, standard, "(c)")
+    d6 = copy.deepcopy(domain)
+    v6 = d6["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"]
+    v6["cent"], v6["semitone12TET"] = v6["semitone12TET"], v6["cent"]
+    if check(d6, standard) and all(x.startswith("(a)") for x in check(d6, standard)):
+        print("ok   self-test: cent and semitone12TET with their ids swapped (both valid consts) is red ((a) only)")
+    else:
+        print("FAIL self-test: the cent/semitone12TET swap was not caught by (a) alone: %s" % check(d6, standard))
+        failed = 1
 
     def must_be_red_render(what, d, h):
         nonlocal failed

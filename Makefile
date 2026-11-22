@@ -399,7 +399,7 @@ OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-c
 test-contract:
 	rm -rf build/contract
 	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)
-	sh tests/domain-scan-check.sh $(OMX_CONTRACT_DIR)
+	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/domain-scan-check.sh $(OMX_CONTRACT_DIR)
 	sh tests/domain-packaging-check.sh
 	$(CC) $(shell $(PKG_CONFIG) --cflags libomx-domain) tests/domain_installed_test.c -o build/contract/domain_installed_test $(shell $(PKG_CONFIG) --libs libomx-domain)
 	build/contract/domain_installed_test $(abspath build/contract/dir)

@@ -9,4 +9,4 @@ Lines for the next release; the release moves them into debian/changelog and the
   and OMX_PARAM_CONTRACT_UNIT_IDS, each token's standard unit id (the PARAM_UNITS const: dB, Hz, deg, dB-oct). They
   render <omx-clap-host/omx_param_units.h> (guard OMX_CLAP_PARAM_UNITS_H, the defines and rows of omx-contract's header)
   and <omx-clap-host/omx_param_unit_ids.h> (OMX_PARAM_UNIT_IDS(X), X(code, token, id)); omx_clap_ext.h includes the
-  first instead of <omxcontract/omx_param_units.h>. Floors: omx-contract 3.21.0 (PARAM_UNITS with the grown unit list).
+  first instead of <omxcontract/omx_param_units.h>. It reads omx-contract's PARAM_UNITS_CLAP_ENCODED (3.22.0, which also drops its own copy of the sheet and header).

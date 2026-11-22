@@ -131,7 +131,7 @@
     "c": [
       {
         "header": "omx_param_units.h",
-        "guard": "OMX_PARAM_UNITS_H",
+        "guard": "OMX_CLAP_PARAM_UNITS_H",
         "project": "omx-contract",
         "banner": [
           "Rendered from OMX_PARAM_CONTRACT_UNITS of contract.d/omx-param-contract: the unit codes of org.openmixer.param-contract/1.",

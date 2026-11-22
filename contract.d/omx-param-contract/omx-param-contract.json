@@ -89,6 +89,7 @@
         "description": "The standard unit each code of OMX_PARAM_CONTRACT_UNITS stands for, by token: the const of a word of omx-contract's PARAM_UNITS as released (dB, Hz, deg, dB-oct), never the lowercase key it is filed under. A descriptor and a reply carry the standard id, never the code; the code is this level's own and is read only by the encoder and decoder of the extension (the F2 mapping).",
         "x-since": "1.0.0",
         "x-kind": "sheet",
+        "x-file": "param-unit-ids.json",
         "x-value": {
           "none": "none",
           "s": "s",
@@ -123,6 +124,25 @@
           "dbPerS": "dB-s",
           "dbtp": "dBTP",
           "lu": "LU"
+        },
+        "x-render": {
+          "c": [
+            {
+              "header": "omx_param_unit_ids.h",
+              "guard": "OMX_CLAP_PARAM_UNIT_IDS_H",
+              "project": "omx-clap",
+              "banner": [
+                "Rendered from OMX_PARAM_CONTRACT_UNIT_IDS of contract.d/omx-param-contract: the standard unit id of each unit code of org.openmixer.param-contract/1.",
+                "A reader includes this header beside omx_param_units.h: the first column is the code define rendered there, the third the PARAM_UNITS const the code stands for."
+              ],
+              "brief": "The standard unit id of each code of the parameter contract extension, one X(code, token, id) row per token.",
+              "strings": {
+                "comment": "each unit code's token and the standard unit id it stands for, the const of a word of omx-contract's PARAM_UNITS",
+                "prefix": "OMX_CLAP_UNIT_",
+                "table": "OMX_PARAM_UNIT_IDS"
+              }
+            }
+          ]
         }
       }
     }
@@ -132,7 +152,7 @@
       {
         "header": "omx_param_units.h",
         "guard": "OMX_CLAP_PARAM_UNITS_H",
-        "project": "omx-contract",
+        "project": "omx-clap",
         "banner": [
           "Rendered from OMX_PARAM_CONTRACT_UNITS of contract.d/omx-param-contract: the unit codes of org.openmixer.param-contract/1.",
           "A plugin includes this header for the codes its get() reports; omx-panel and plugin-hostd read the same item as data."

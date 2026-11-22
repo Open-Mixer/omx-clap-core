@@ -124,25 +124,6 @@
           "dbPerS": "dB-s",
           "dbtp": "dBTP",
           "lu": "LU"
-        },
-        "x-render": {
-          "c": [
-            {
-              "header": "omx_param_unit_ids.h",
-              "guard": "OMX_CLAP_PARAM_UNIT_IDS_H",
-              "project": "omx-clap",
-              "banner": [
-                "Rendered from OMX_PARAM_CONTRACT_UNIT_IDS of contract.d/omx-param-contract: the standard unit id of each unit code of org.openmixer.param-contract/1.",
-                "A reader includes this header beside omx_param_units.h: the first column is the code define rendered there, the third the PARAM_UNITS const the code stands for."
-              ],
-              "brief": "The standard unit id of each code of the parameter contract extension, one X(code, token, id) row per token.",
-              "strings": {
-                "comment": "each unit code's token and the standard unit id it stands for, the const of a word of omx-contract's PARAM_UNITS",
-                "prefix": "OMX_CLAP_UNIT_",
-                "table": "OMX_PARAM_UNIT_IDS"
-              }
-            }
-          ]
         }
       }
     }
@@ -162,6 +143,22 @@
           "comment": "the unit of a parameter's plain value: 0..24 the LV2 units one to one, 0x100 and up the vendor block",
           "prefix": "OMX_CLAP_UNIT_",
           "table": "OMX_PARAM_UNITS"
+        }
+      },
+      {
+        "header": "omx_param_unit_ids.h",
+        "guard": "OMX_CLAP_PARAM_UNIT_IDS_H",
+        "project": "omx-clap",
+        "banner": [
+          "Rendered from OMX_PARAM_CONTRACT_UNIT_IDS of contract.d/omx-param-contract: the standard unit id of each unit code of org.openmixer.param-contract/1.",
+          "A reader includes this header beside omx_param_units.h: the first column is the code define rendered there, the third the PARAM_UNITS const the code stands for."
+        ],
+        "brief": "The standard unit id of each code of the parameter contract extension, one X(code, token, id) row per token.",
+        "scope": "package",
+        "strings": {
+          "comment": "each unit code's token and the standard unit id it stands for, the const of a word of omx-contract's PARAM_UNITS",
+          "prefix": "OMX_CLAP_UNIT_",
+          "table": "OMX_PARAM_UNIT_IDS"
         }
       }
     ]

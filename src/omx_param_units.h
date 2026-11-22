@@ -18,8 +18,8 @@
  * Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
  */
 
-#ifndef OMX_PARAM_UNITS_H
-#define OMX_PARAM_UNITS_H
+#ifndef OMX_CLAP_PARAM_UNITS_H
+#define OMX_CLAP_PARAM_UNITS_H
 /*
  * GENERATED: DO NOT EDIT BY HAND.
  * Rendered from OMX_PARAM_CONTRACT_UNITS of contract.d/omx-param-contract: the unit codes of org.openmixer.param-contract/1.
@@ -73,4 +73,4 @@
     X(24u, "midiNote") X(256u, "dbfs") X(257u, "dbu") X(258u, "ratio") X(259u, "lufs") X(260u, "dbPerOct") \
     X(261u, "dbPerS") X(262u, "dbtp") X(263u, "lu")
 
-#endif /* OMX_PARAM_UNITS_H */
+#endif /* OMX_CLAP_PARAM_UNITS_H */

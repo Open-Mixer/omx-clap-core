@@ -1,3 +1,12 @@
+omx-clap-host (0.34.0) unstable; urgency=medium
+
+  * Sorting pass: the panel words (V1), the host reply codes and track kinds (V15),
+    the CLAP scale codes mapped to PARAM_SCALES (V21), the unit code sheet and
+    omx_param_units.h (V23d), the rates (V25) and the CLAP terms (V27a, V27b) now
+    owned here.
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Sun, 22 Nov 2026 12:30:00 +0100
+
 omx-clap-host (0.33.1) unstable; urgency=medium
 
   * The scan domain's x-since on SCAN_DOCUMENTS and SCAN_FIELD_SCOPES is the

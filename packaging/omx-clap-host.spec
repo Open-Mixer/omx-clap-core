@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.33.1
+Version:        0.34.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -302,6 +302,11 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Sun Nov 22 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.0-1
+- Sorting pass: the panel words (V1), the host reply codes and track kinds (V15), the CLAP
+  scale codes mapped to PARAM_SCALES (V21), the unit code sheet and omx_param_units.h (V23d),
+  the rates (V25) and the CLAP terms (V27a, V27b) now owned here.
+
 * Thu Nov 19 2026 Pau Aliagas <linuxnow@gmail.com> - 0.33.1-1
 - The scan domain's x-since on SCAN_DOCUMENTS and SCAN_FIELD_SCOPES is the
   domain version that carried them, 1.0.0, not the omx-contract release 3.7.0;

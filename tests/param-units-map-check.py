@@ -27,7 +27,9 @@ import copy
 import json
 import os
 import re
+import shutil
 import sys
+import tempfile
 
 GOLDEN = {
     "none": 0, "s": 1, "ms": 2, "min": 3, "bar": 4, "beat": 5, "frame": 6, "m": 7, "cm": 8, "mm": 9, "km": 10, "inch": 11,
@@ -51,6 +53,44 @@ def const_case(s):
 
 
 IDS_HEADER = "src/omx_param_unit_ids.h"
+UNITS_HEADER = "src/omx_param_units.h"
+
+
+def is_string_sheet(value):
+    return isinstance(value, dict) and bool(value) and all(isinstance(v, str) for v in value.values())
+
+
+def package_string_sheets(contract_d, data_dir):
+    """Every sheet of strings the omx-clap package holds, by item name, sorted: the items of every domain under
+    contract.d (x-kind sheet, x-value) and of every data file under data/ (kind sheet, value). The root entry of
+    omx_param_unit_ids.h reads the package (scope package), so each one that reaches the render would join
+    OMX_PARAM_UNIT_IDS(X)."""
+    names = []
+    for base, _, files in os.walk(contract_d):
+        for f in files:
+            if not f.endswith(".json"):
+                continue
+            try:
+                doc = json.load(open(os.path.join(base, f)))
+            except (OSError, ValueError):
+                continue
+            for n, i in ((doc.get("components") or {}).get("schemas") or {}).items() if isinstance(doc, dict) else []:
+                # a domain sheet reaches the render only with an x-file (docs/render.md of omx-contract): one without is
+                # read at run time only (clap's CLAP_PARAM_FLAG_SCALES), and joins no header
+                if isinstance(i, dict) and i.get("x-kind") == "sheet" and "x-file" in i and is_string_sheet(i.get("x-value")):
+                    names.append(n)
+    for base, _, files in os.walk(data_dir):
+        for f in files:
+            if not f.endswith(".json"):
+                continue
+            try:
+                doc = json.load(open(os.path.join(base, f)))
+            except (OSError, ValueError):
+                continue
+            for n, i in doc.items() if isinstance(doc, dict) else []:
+                if isinstance(i, dict) and i.get("kind") == "sheet" and is_string_sheet(i.get("value")):
+                    names.append(n)
+    return sorted(names)
 
 
 def id_rows(text):
@@ -58,7 +98,7 @@ def id_rows(text):
     return re.findall(r'X\((OMX_CLAP_UNIT_\w+), "([^"]*)", "([^"]*)"\)', text)
 
 
-def check_render(domain, ids_header):
+def check_render(domain, ids_header, package_strings, units_header):
     """(r) the renders are omx-clap's and all of them are the domain's ROOT x-render (no item carries one: a pass changes
     no format): every entry names project omx-clap and a guard of its own (OMX_CLAP_*, never omx-contract's
     OMX_PARAM_UNITS_H); the ids item has an x-file of its own and is the one sheet of strings of the domain (the root
@@ -73,10 +113,12 @@ def check_render(domain, ids_header):
     for name, item in items.items():
         if "x-render" in item:
             bad.append("(r) the item %s carries an x-render; a render is the domain root's x-render" % name)
-    strings_sheets = [n for n, i in items.items() if i.get("x-kind") == "sheet" and isinstance(i.get("x-value"), dict)
-                      and i["x-value"] and all(isinstance(v, str) for v in i["x-value"].values())]
-    if strings_sheets != ["OMX_PARAM_CONTRACT_UNIT_IDS"]:
-        bad.append("(r) the sheets of strings are %s, not OMX_PARAM_CONTRACT_UNIT_IDS alone: a second one joins OMX_PARAM_UNIT_IDS(X)" % strings_sheets)
+    if package_strings != ["OMX_PARAM_CONTRACT_UNIT_IDS"]:
+        bad.append("(r) the sheets of strings of the omx-clap package are %s, not OMX_PARAM_CONTRACT_UNIT_IDS alone: a second one joins OMX_PARAM_UNIT_IDS(X)" % package_strings)
+    if units_header is None:
+        bad.append("(r) %s is not committed" % UNITS_HEADER)
+    elif "OMX_PARAM_UNIT_IDS" in units_header or re.search(r'X\(OMX_CLAP_UNIT_\w+, "', units_header):
+        bad.append("(r) %s holds rows of the ids table; it renders the numbers of OMX_PARAM_CONTRACT_UNITS only" % UNITS_HEADER)
     for e in entries:
         if e.get("project") != "omx-clap":
             bad.append("(r) the render of %s names project %s, not omx-clap" % (e.get("header"), e.get("project")))
@@ -157,9 +199,13 @@ def main(argv):
         sys.exit(__doc__)
     domain = json.load(open(argv[0] + "/omx-param-contract/omx-param-contract.json"))
     standard = json.load(open(argv[1]))
-    at = os.path.join(argv[0], "..", IDS_HEADER)
+    root = os.path.join(argv[0], "..")
+    at = os.path.join(root, IDS_HEADER)
     ids_header = open(at).read() if os.path.exists(at) else None
-    bad = check(domain, standard) + check_render(domain, ids_header)
+    at = os.path.join(root, UNITS_HEADER)
+    units_header = open(at).read() if os.path.exists(at) else None
+    package_strings = package_string_sheets(argv[0], os.path.join(root, "data"))
+    bad = check(domain, standard) + check_render(domain, ids_header, package_strings, units_header)
     if not self_test:
         for b in bad:
             print("param-units-map-check: " + b, file=sys.stderr)
@@ -221,9 +267,9 @@ def main(argv):
         print("FAIL self-test: the cent/semitone12TET swap was not caught by (a) alone: %s" % check(d6, standard))
         failed = 1
 
-    def must_be_red_render(what, d, h):
+    def must_be_red_render(what, d, h, strings=None, units=None):
         nonlocal failed
-        if check_render(d, h):
+        if check_render(d, h, package_strings if strings is None else strings, units_header if units is None else units):
             print("ok   self-test: %s is red ((r))" % what)
         else:
             print("FAIL self-test: %s was not caught by arm (r)" % what)
@@ -244,9 +290,18 @@ def main(argv):
     r4["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-render"] = {"c": moved}
     r4["x-render"]["c"] = [e for e in r4["x-render"]["c"] if e.get("header") != "omx_param_unit_ids.h"]
     must_be_red_render("the ids header rendered by an item-level x-render", r4, ids_header)
-    r5 = copy.deepcopy(domain)
-    r5["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_WORDS"] = {"x-kind": "sheet", "x-file": "param-unit-words.json", "x-value": {"db": "decibel"}}
-    must_be_red_render("a second sheet of strings in the domain", r5, ids_header)
+    work = tempfile.mkdtemp(prefix="param-units-map.")
+    try:
+        planted = os.path.join(work, "contract.d")
+        shutil.copytree(argv[0], planted)
+        with open(os.path.join(planted, "omx-clap", "planted-words.json"), "w") as f:
+            json.dump({"components": {"schemas": {"OMX_CLAP_PLANTED_WORDS": {"x-kind": "sheet", "x-file": "planted-words.json", "x-value": {"db": "decibel"}}}}}, f)
+        must_be_red_render("a second sheet of strings planted in the omx-clap package", domain, ids_header,
+                           package_string_sheets(planted, os.path.join(root, "data")))
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    must_be_red_render("the units header carrying the ids table", domain, ids_header, None,
+                       (units_header or "") + "\n#define OMX_PARAM_UNIT_IDS(X) X(OMX_CLAP_UNIT_DB, \"db\", \"dB\")\n")
     return failed
 
 

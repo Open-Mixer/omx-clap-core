@@ -78,6 +78,8 @@ def self_test():
          "a \\u escape loop of its own"),
         ("tools/json_copy.c", "static void esc(FILE *f, int c) { fprintf(f, \"\\\\%c\", c); }\n",
          "a quote or backslash escaped by hand"),
+        ("src/old_units_include.h", "#include <omxcontract/omx_param_units.h>\n",
+         "an include of omx-contract's old unit header"),
     ]
     failed = 0
     work = tempfile.mkdtemp(prefix="no-contract-copy.")

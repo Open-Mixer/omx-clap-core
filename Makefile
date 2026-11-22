@@ -486,7 +486,7 @@ docs: $(CORE_HEADERS) Doxyfile
 	doxygen Doxyfile
 
 clean:
-	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test tests/jack_identity_align_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/scan_panel_words_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test tests/lv2_restart_race_tsan
+	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test tests/jack_identity_align_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/param_units_both_test tests/panel_abi_test tests/scan_panel_words_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test tests/lv2_restart_race_tsan
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
@@ -872,11 +872,27 @@ tests/scan_panel_words_test: tests/scan_panel_words_test.c src/scan_panel.c src/
 	$(CC) -Isrc $(PANEL_CODES_INCLUDE) $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ tests/scan_panel_words_test.c src/scan_panel.c src/abi_guard.S
 
 # the parameter contract's SHA-256, canonical fingerprint and shortest decimals against answers computed elsewhere
-test-param-contract: tests/param_contract_test
+test-param-contract: tests/param_contract_test test-param-units-both
 	./tests/param_contract_test
 
 tests/param_contract_test: tests/param_contract_test.c src/param_contract.h src/omx_clap_ext.h src/abi_guard.S
 	$(CC) $(CLAP_CFLAGS) $(CRYPTO_CFLAGS) $(CFLAGS) -Werror -o $@ $< src/abi_guard.S $(CRYPTO_LIBS) -lm
+
+# this tree's unit codes and omx-contract's old copy in one unit under -Werror (tests/param_units_both_test.c): each header
+# has its own guard, an identical row is a legal redefinition and a row that differs fails the build; the sabotage arm
+# compiles the test over a copy of src/omx_param_units.h whose lu row moved, and that build must fail
+.PHONY: test-param-units-both
+test-param-units-both: tests/param_units_both_test
+	./tests/param_units_both_test
+	@rm -rf build/units-both && mkdir -p build/units-both
+	sed 's/^#define OMX_CLAP_UNIT_LU 263u/#define OMX_CLAP_UNIT_LU 264u/' src/omx_param_units.h > build/units-both/omx_param_units.h
+	! grep -q 'OMX_CLAP_UNIT_LU 263u' build/units-both/omx_param_units.h
+	@if $(CC) -Ibuild/units-both $(CFLAGS) -Werror -o build/units-both/t tests/param_units_both_test.c 2>build/units-both/err; then \
+	  echo "SABOTAGE units-both-diverged: STAYED GREEN (a moved row did not fail the build)"; exit 1; \
+	else echo "SABOTAGE units-both-diverged: red ($$(grep -m1 -o 'OMX_CLAP_UNIT_LU.*redefined\|redefined' build/units-both/err))"; fi
+
+tests/param_units_both_test: tests/param_units_both_test.c src/omx_param_units.h
+	$(CC) -Isrc $(CFLAGS) -Werror -o $@ $<
 
 # the preset file of docs/presets.md on its own: JSON both ways, values exact, unknown members kept, base64, load keys
 .PHONY: test-preset-file

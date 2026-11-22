@@ -415,6 +415,9 @@ test-contract:
 	# F2: the scale codes and the CLAP flag mapped to omx-contract's standard scales (PARAM_SCALES), with its sabotage
 	python3 -I tests/scale-maps-check.py contract.d build/contract/json/omx-contract.json
 	python3 -I tests/scale-maps-check.py --self-test contract.d build/contract/json/omx-contract.json
+	# F2: the code sheet's mapping to omx-contract's standard units (PARAM_UNITS), with its sabotage (needs omx-contract's grown unit list)
+	python3 -I tests/param-units-map-check.py contract.d build/contract/json/omx-contract.json
+	python3 -I tests/param-units-map-check.py --self-test contract.d build/contract/json/omx-contract.json
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 

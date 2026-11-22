@@ -15,12 +15,17 @@ scale-maps-check.py.
   (a) golden: the sheet holds the 29 tokens of omx-contract's sheet at 3.20.2 with their codes, and the four codes of
       260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to its golden standard id;
   (c) every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dB-oct;
-      never the lowercase key the word is filed under, which is this level's spelling), and no two codes map to one id. --self-test plants each
+      never the lowercase key the word is filed under, which is this level's spelling), and no two codes map to one id;
+  (r) the renders are omx-clap's (project omx-clap, guards OMX_CLAP_*), the ids item has its own x-file and renders
+      src/omx_param_unit_ids.h (OMX_PARAM_UNIT_IDS(X), X(OMX_CLAP_UNIT_<TOKEN>, "<token>", "<id>")), and the committed
+      header holds the item's rows in its order. --self-test plants each
       failure (an id removed from a copy of PARAM_UNITS, two codes onto one id, a code moved, a token with no id) and
       each must be red.
 """
 import copy
 import json
+import os
+import re
 import sys
 
 GOLDEN = {
@@ -37,6 +42,47 @@ GOLDEN_IDS = {
     "midiNote": "midiNote", "dbfs": "dBFS", "dbu": "dBu", "ratio": "ratio", "lufs": "LUFS", "dbPerOct": "dB-oct",
     "dbPerS": "dB-s", "dbtp": "dBTP", "lu": "LU",
 }
+
+
+def const_case(s):
+    """omx-contract's constCase (render/vocabulary.mjs): dbPerOct -> DB_PER_OCT, the name of a code's define."""
+    return re.sub(r"[^A-Za-z0-9]+", "_", re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)).upper()
+
+
+IDS_HEADER = "src/omx_param_unit_ids.h"
+
+
+def id_rows(text):
+    """The rows of OMX_PARAM_UNIT_IDS(X) in a header text: [(define, token, id)] in their order."""
+    return re.findall(r'X\((OMX_CLAP_UNIT_\w+), "([^"]*)", "([^"]*)"\)', text)
+
+
+def check_render(domain, ids_header):
+    """(r) the renders are omx-clap's: every render entry of the domain names project omx-clap and a guard of its own
+    (OMX_CLAP_*, never omx-contract's OMX_PARAM_UNITS_H); the ids item has an x-file of its own and its render entry,
+    header omx_param_unit_ids.h with the strings section; and the committed header holds one row
+    X(OMX_CLAP_UNIT_<TOKEN>, "<token>", "<id>") per token, in the sheet's order (C2's strings section)."""
+    bad = []
+    items = domain["components"]["schemas"]
+    entries = list(domain.get("x-render", {}).get("c", []))
+    ids_item = items["OMX_PARAM_CONTRACT_UNIT_IDS"]
+    entries += list(ids_item.get("x-render", {}).get("c", []))
+    for e in entries:
+        if e.get("project") != "omx-clap":
+            bad.append("(r) the render of %s names project %s, not omx-clap" % (e.get("header"), e.get("project")))
+        if not str(e.get("guard", "")).startswith("OMX_CLAP_"):
+            bad.append("(r) the render of %s has the guard %s, not one of its own (OMX_CLAP_*)" % (e.get("header"), e.get("guard")))
+    if ids_item.get("x-file") in (None, domain.get("x-file"), items["OMX_PARAM_CONTRACT_UNITS"].get("x-file")):
+        bad.append("(r) OMX_PARAM_CONTRACT_UNIT_IDS has no x-file of its own (%s)" % ids_item.get("x-file"))
+    strings = [e for e in ids_item.get("x-render", {}).get("c", []) if e.get("header") == "omx_param_unit_ids.h" and "strings" in e]
+    if len(strings) != 1 or strings[0]["strings"].get("prefix") != "OMX_CLAP_UNIT_" or strings[0]["strings"].get("table") != "OMX_PARAM_UNIT_IDS":
+        bad.append("(r) the ids item renders no omx_param_unit_ids.h with strings {prefix OMX_CLAP_UNIT_, table OMX_PARAM_UNIT_IDS}")
+    want = [("OMX_CLAP_UNIT_" + const_case(t), t, i) for t, i in ids_item["x-value"].items()]
+    if ids_header is None:
+        bad.append("(r) %s is not committed" % IDS_HEADER)
+    elif id_rows(ids_header) != want:
+        bad.append("(r) %s does not hold the rows of the ids item in its order: %s" % (IDS_HEADER, sorted(set(id_rows(ids_header)) ^ set(want))[:4]))
+    return bad
 
 
 def check(domain, standard):
@@ -69,7 +115,9 @@ def main(argv):
         sys.exit(__doc__)
     domain = json.load(open(argv[0] + "/omx-param-contract/omx-param-contract.json"))
     standard = json.load(open(argv[1]))
-    bad = check(domain, standard)
+    at = os.path.join(argv[0], "..", IDS_HEADER)
+    ids_header = open(at).read() if os.path.exists(at) else None
+    bad = check(domain, standard) + check_render(domain, ids_header)
     if not self_test:
         for b in bad:
             print("param-units-map-check: " + b, file=sys.stderr)
@@ -106,6 +154,25 @@ def main(argv):
     d5 = copy.deepcopy(domain)
     d5["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-value"]["db"] = "db"
     must_be_red("a token mapped to a lowercase key, not the standard id", d5, standard, "(c)")
+
+    def must_be_red_render(what, d, h):
+        nonlocal failed
+        if check_render(d, h):
+            print("ok   self-test: %s is red ((r))" % what)
+        else:
+            print("FAIL self-test: %s was not caught by arm (r)" % what)
+            failed = 1
+
+    r1 = copy.deepcopy(domain)
+    r1["x-render"]["c"][0]["project"] = "omx-contract"
+    must_be_red_render("the units header rendered as omx-contract's", r1, ids_header)
+    r2 = copy.deepcopy(domain)
+    r2["x-render"]["c"][0]["guard"] = "OMX_PARAM_UNITS_H"
+    must_be_red_render("the units header under omx-contract's guard", r2, ids_header)
+    must_be_red_render("an ids header whose dB-oct row says dbPerOct", domain, (ids_header or "").replace('"dbPerOct", "dB-oct"', '"dbPerOct", "dbPerOct"'))
+    r3 = copy.deepcopy(domain)
+    r3["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-file"] = domain.get("x-file")
+    must_be_red_render("the ids item in the units sheet's x-file", r3, ids_header)
     return failed
 
 

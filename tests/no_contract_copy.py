@@ -33,7 +33,7 @@ MARKS = [
     # a quote or a backslash escaped by hand, through a format
     (re.compile(r'"\\\\%c"'), "a quote or backslash escaped by hand"),
     # omx-contract's old copy of the unit codes: this tree reads its own render, "omx_param_units.h"
-    (re.compile(r'^#\s*include\s*<omxcontract/omx_param_units\.h>', re.M), "an include of omx-contract's old unit header"),
+    (re.compile(r'^#\s*include\s*[<"]omxcontract/omx_param_units\.h[>"]', re.M), "an include of omx-contract's old unit header"),
 ]
 # where the marks are looked for: the sources and the headers; the fuzz harnesses render the writer's format on
 # purpose, as its oracle, and the tests plant copies on purpose

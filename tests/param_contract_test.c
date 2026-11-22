@@ -104,8 +104,8 @@ int main(void)
     CHECK(scale_code("log") == OMX_PARAM_SCALES_LOG, "log stands at omx-contract's PARAM_SCALES position %d (%ld)", OMX_PARAM_SCALES_LOG, scale_code("log"));
     CHECK(scale_code("stepped") == OMX_PARAM_SCALES_STEPPED, "stepped stands at omx-contract's PARAM_SCALES position %d (%ld)", OMX_PARAM_SCALES_STEPPED, scale_code("stepped"));
 
-    /* the unit codes of omx-contract's <omxcontract/omx_param_units.h>: the vendor block's 257 and the four codes of 260 to
-     * 263 (dbPerOct, dbPerS, dbtp, lu) answer by their token; red until omx-contract carries the four */
+    /* the unit codes are this tree's (omx_param_units.h, the render of the omx-param-contract domain): the vendor block's
+     * four codes of 260 to 263 and the first of it answer by their token */
     CHECK(pc_unit_name(OMX_CLAP_UNIT_DBU) != NULL && strcmp(pc_unit_name(OMX_CLAP_UNIT_DBU), "dbu") == 0 && OMX_CLAP_UNIT_DBU == 257u,
           "257 is dbu");
     CHECK(OMX_CLAP_UNIT_DB_PER_OCT == 260u && strcmp(pc_unit_name(260), "dbPerOct") == 0, "260 is dbPerOct");

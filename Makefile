@@ -20,7 +20,7 @@ CORE_VERSION = $(VERSION)
 CORE_SO = lib$(CORE).so
 CORE_SONAME = $(CORE_SO).$(CORE_MAJOR)
 CORE_FILE = $(CORE_SO).$(CORE_VERSION)
-CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_scales.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
+CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_units.h src/omx_param_scales.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
 CORE_MAP = src/omx-clap.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
 CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
@@ -335,6 +335,8 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR)
+	# the parameter contract's code sheet and its mapping to standard units, the same way: <contractdir>/omx-param-contract/omx-param-contract.json
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR)
 	# the scale codes, the same way: <contractdir>/omx-clap-scale/omx-clap-scale.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR)
 	# CLAP's own particulars (the flag for the stepped scale), the same way: <contractdir>/clap/clap.json
@@ -1205,8 +1207,8 @@ test-no-sha256-copy:
 	bash tests/no_sha256_copy.sh --self-test
 	bash tests/no_sha256_copy.sh .
 
-# the parameter units and the JSON string writer are omx-contract's (<omxcontract/omx_param_units.h>,
-# <omxcontract/omx_json_write.h>): no source under src/, lv2/ or tools/ spells a units row or an escape loop of its own
+# the parameter unit codes are this tree's (src/omx_param_units.h, the render of the omx-param-contract domain) and the JSON
+# string writer is omx-contract's (<omxcontract/omx_json_write.h>): no other source under src/, lv2/ or tools/ spells a units row or an escape loop of its own
 # (tests/no_contract_copy.py, with its self test)
 .PHONY: test-no-contract-copy
 test-no-contract-copy:

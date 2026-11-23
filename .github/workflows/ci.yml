@@ -2,24 +2,24 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 name: ci
 
-# The tests that need no audio server run on every push and pull request; on workflow_dispatch the RPMs are
-# also built as artifacts, on both architectures, and installed in a clean container. Nothing is signed or published
-# here: release.yml is a release, run from a version tag, and its dry run is the last job.
+# By workflow_dispatch only (delivery pipeline §12, Open-Mixer/omx-clap-core#86: no heavy Action on a push or a pull
+# request): the tests that need no audio server, the sabotages, the ABI comparison, the RPMs and DEBs built as
+# artifacts on both architectures and installed in a clean container, and the release dry run. Nothing is signed or
+# published here: release.yml is a release, run from a version tag. Before a merge, dispatch this workflow on the pull
+# request's head ref (gh workflow run ci.yml --ref <branch>) so its checks attach to the head commit; the seconds-long
+# checks (the trigger gate, the VERSION check, public-sources) run on every pull request in lint.yml, the one workflow
+# allowed there.
 
 on:
-  pull_request:
-  push:
-    branches: [main, dedupe/all]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  # A new push to a pull request cancels the run it supersedes. Every other run (main, a tag) has a group of its own
-  # and is never cancelled; the run id keeps two pushes to main from replacing each other while one is queued.
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # every run is a dispatch with a group of its own, never cancelled by the next one
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 env:
   # plugin-hostd from the release we ship (.github/plugin-hostd.sh): its pin header and vocabulary (pkg-config
@@ -29,9 +29,8 @@ env:
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
   OMX_CONTRACT_REF: v3.20.0
 
-# Two tiers (owner ruling 2026-11-09: heavy workflows on tags, pull requests quick). A pull request runs the plain test
-# tier and one package arm (fc45 x86_64, trixie arm64). The sanitizer tiers (address, thread), every sabotage of a guard,
-# the full package matrix and the release dry run run on push to main, on tags and on dispatch, before a release.
+# Every run is a dispatch, so every job runs whole: the sanitizer tiers (address, thread), every sabotage of a guard,
+# the full package matrix and the release dry run.
 jobs:
   # no Fedora release written into a job: the cells come from check-matrix (rule 11-10, ruling D25)
   fedora-cells:
@@ -43,50 +42,6 @@ jobs:
           sparse-checkout: .github/workflows
       - uses: Open-Mixer/.github/.github/actions/fedora-cells@openmixer-v1
 
-  # The packages (and the jobs that need this one) run only on workflow_dispatch: a pull request or a push runs the tests
-  # alone (owner 2026-11-09). release.yml builds on a v* tag; fast-release dispatches this workflow on a release head.
-  changes:
-    name: what the pull request changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      packages: ${{ steps.diff.outputs.packages }}
-    steps:
-      # Packaging runs only on workflow_dispatch (the release dry run fast-release dispatches on a release head);
-      # a pull request or a push runs the tests alone. release.yml builds and publishes on a v* tag.
-      - id: diff
-        env:
-          EVENT: ${{ github.event_name }}
-        run: |
-          if [ "$EVENT" = workflow_dispatch ]; then echo "packages=true"; else echo "packages=false"; fi >> "$GITHUB_OUTPUT"
-
-  version:
-    name: VERSION agrees with the spec and debian/changelog
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-
-      # the file VERSION is the one version the Makefile, the library and the programs carry
-      - name: VERSION is the spec's Version and the newest debian/changelog entry
-        run: make version-check
-
-  # the checks every OpenMixer repository runs on what it publishes: commit messages, private references, no local copy
-  # of either (the commit-msg hook the shared stub byte for byte), from Open-Mixer/.github and nowhere else
-  public-sources:
-    uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
-    with:
-      commit-identity: true
-      fedora-workflows: true
-  # the dependency floors: the spec and debian/control state the floors packaging/deps.txt declares, and no ceiling. The
-  # engine is Open-Mixer/.github's deps-render, at the same openmixer-v1 ref every shared action of this repository uses
-  deps-render:
-    name: the floors are packaging/deps.txt's
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Open-Mixer/.github/.github/actions/deps-render@openmixer-v1
   # the Fedora cells the contract, build and two sabotage jobs run, and the rpm job's: check-matrix's answer
   # (Fedora 45 alone; the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:
@@ -106,23 +61,23 @@ jobs:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
           rpm-releases: '["45"]'
           rpm-arches: '["x86_64"]'
-      # the rpm job's cells: aarch64 beside x86_64 except on a pull request
+      # the rpm job's cells: aarch64 beside x86_64
       - id: p
         uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
         with:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
           rpm-releases: '["45"]'
-          rpm-arches: ${{ github.event_name == 'pull_request' && '["x86_64"]' || '["x86_64", "aarch64"]' }}
+          rpm-arches: '["x86_64", "aarch64"]'
       # the deb and deb-smoke jobs' cells: trixie on each architecture's own runner (the channel's development debs are
-      # trixie arm64 only; an amd64 container resolves an arm64 -dev package that dpkg refuses), arm64 alone on a pull request;
-      # an amd64 cell keeps the self-hosted runner it ran on (OMX_RUNNER, the hosted one for a fork)
+      # trixie arm64 only; an amd64 container resolves an arm64 -dev package that dpkg refuses); an amd64 cell keeps the
+      # self-hosted runner it ran on (OMX_RUNNER)
       - id: d
         uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
         with:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
           deb-releases: '["trixie"]'
-          deb-arches: ${{ github.event_name == 'pull_request' && '["arm64"]' || '["amd64", "arm64"]' }}
-          x86-runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+          deb-arches: '["amd64", "arm64"]'
+          x86-runner: ${{ vars.OMX_RUNNER || 'ubuntu-latest' }}
 
   contract:
     needs: checks
@@ -307,7 +262,6 @@ jobs:
         run: make $(make -s print-test-plain)
 
       - name: The sabotage arms that rebuild copies of the sources
-        if: github.event_name != 'pull_request'
         run: make $(make -s print-test-main-only)
 
       # the command socket's framing against tests/socket_conformance.py: the target makes a namespace of its own
@@ -325,43 +279,35 @@ jobs:
 
       # the chain's cycles on a thread of their own while the control thread changes it, under ThreadSanitizer (#311)
       - name: Test the chain under ThreadSanitizer
-        if: github.event_name != 'pull_request'
         run: make test-chain-tsan
 
       # an abandoned omx_clap_host_open_timed under ThreadSanitizer: the caller's strings freed, the list of binaries
       # changed on its thread meanwhile, the instance the late open makes closed
       - name: Test an abandoned timed open under ThreadSanitizer
-        if: github.event_name != 'pull_request'
         run: make test-open-timed
 
       # each guard of the chain broken in a copy of the sources, tests/clap_chain_test red on it (#311)
       - name: The sabotage of the chain's guards
-        if: github.event_name != 'pull_request'
         run: make test-chain-sabotage
 
       # the sabotage of the no-copy LV2 adapter runs in a job of its own beside this one: lv2-direct-sabotage below
 
       # each guard of the resource hints broken in a copy of the sources, the test that holds it red (#323)
       - name: The sabotage of the resource hints' guards
-        if: github.event_name != 'pull_request'
         run: make test-resource-hints-sabotage
 
       - name: Test what a plugin reports about its parameters under AddressSanitizer
-        if: github.event_name != 'pull_request'
         run: make test-untrusted-asan
 
       - name: Test omx-clap-scan's directory walk and dump under AddressSanitizer, leaks included
-        if: github.event_name != 'pull_request'
         run: make test-scan-asan
 
       # the published transport with an audio thread as its one writer and three readers, under ThreadSanitizer (#121)
       - name: Test the published transport under ThreadSanitizer
-        if: github.event_name != 'pull_request'
         run: make test-transport-tsan
 
       # the thread pool's helpers, hand-out word and completion count against the audio and control threads (#395)
       - name: Test the thread pool under ThreadSanitizer
-        if: github.event_name != 'pull_request'
         run: make test-thread-pool-tsan
 
       # a chain costs no more on silence than on the tone: the host reads a block for silence only for a plugin that can
@@ -370,13 +316,9 @@ jobs:
         run: make test-silence-cost
 
       # The LV2 adapter: lv2/core against the fixture bundles through lilv, the CLAP face and libomx-clap-core's body
-      # around it, and a program linked through the installed pkg-config file alone
-      # a pull request runs the adapter's plain tier at 48 kHz alone (LV2_CLAP_RATES); every rate and the address and
-      # thread sanitizer tiers run on push, tags and dispatch
+      # around it, and a program linked through the installed pkg-config file alone, at every rate
       - name: Test the LV2 adapter
-        env:
-          LV2_CLAP_RATES: ${{ github.event_name == 'pull_request' && '48000' || '' }}
-        run: make ${{ github.event_name == 'pull_request' && 'test-lv2-plain' || 'test-lv2' }}
+        run: make test-lv2
 
       - name: What the LV2 adapter costs per process() call
         run: make lv2-cost
@@ -500,7 +442,6 @@ jobs:
 
       # and its sabotage: each guard of the xruns line broken in a copy of the tree, the test red on the check that names it
       - name: The sabotage of the xruns line's guards
-        if: github.event_name != 'pull_request'
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-jack-xruns-sabotage
@@ -571,7 +512,6 @@ jobs:
       # patch_set and patch_get, sabotaged: the verbs unregistered and the numeric property's parameter path dropped, each
       # arm red on the check that names it
       - name: Test the patch verbs, sabotaged
-        if: github.event_name != 'pull_request'
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-jack-lv2-patch-sabotage
@@ -636,7 +576,6 @@ jobs:
       # The chain's members walked on JACK's thread while the control thread joins, frees and lets go of members, the
       # host under ThreadSanitizer: no data race in src/effects.c (#104)
       - name: Test the host's chain under ThreadSanitizer
-        if: github.event_name != 'pull_request'
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             make test-chain-host-tsan
@@ -666,7 +605,7 @@ jobs:
   chain-host-sabotage:
     needs: checks
     name: the sabotage of the host's chain guards (${{ matrix.cell.image }})
-    if: (github.event_name != 'pull_request') && needs.checks.outputs.rpm-count != '0'
+    if: needs.checks.outputs.rpm-count != '0'
     runs-on: ubuntu-latest
     # the arms run side by side, as many as the runner has processors (CHAIN_SABOTAGE_PARALLEL), each in copies of
     # one build: a few minutes, with room for an arm stopped once at CHAIN_SABOTAGE_ARM_SECONDS and tried again
@@ -745,7 +684,7 @@ jobs:
   lv2-direct-sabotage:
     needs: checks
     name: the sabotage of the no-copy LV2 adapter (${{ matrix.cell.image }})
-    if: (github.event_name != 'pull_request') && needs.checks.outputs.rpm-count != '0'
+    if: needs.checks.outputs.rpm-count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -781,8 +720,8 @@ jobs:
 
   rpm:
     name: RPMs (fc${{ matrix.cell.fedora }}, ${{ matrix.cell.arch }}), installed in a clean root
-    needs: [checks, changes]
-    if: needs.changes.outputs.packages == 'true' && needs.checks.outputs.packages-count != '0'
+    needs: checks
+    if: needs.checks.outputs.packages-count != '0'
     runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 30
     strategy:
@@ -1065,8 +1004,8 @@ jobs:
 
   deb:
     name: DEBs (${{ matrix.cell.suite }}, ${{ matrix.cell.arch }}), built and linted
-    needs: [changes, checks]
-    if: needs.changes.outputs.packages == 'true' && needs.checks.outputs.debs-count != '0'
+    needs: checks
+    if: needs.checks.outputs.debs-count != '0'
     runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 30
     strategy:
@@ -1286,8 +1225,6 @@ jobs:
   # for; its publish and release steps do not run here.
   release-dry-run:
     name: release workflow, dry run
-    needs: changes
-    if: needs.changes.outputs.packages == 'true' && github.event_name != 'pull_request'
     permissions:
       contents: write
       issues: write
@@ -1296,11 +1233,3 @@ jobs:
     with:
       publish: false
       arm: false  # aarch64/arm64 build at release only
-
-
-  pr-fixes-issue:
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: read
-    uses: Open-Mixer/.github/.github/workflows/pr-fixes-issue.yml@openmixer-v1

@@ -885,8 +885,28 @@ static int aux_blocks(effect_t *effect, uint32_t frames)
     return 0;
 }
 
+/* The lv2:symbol of the LV2 port behind channel `k` of a port of the instance's plugin (`aux` LAYOUT_PORT_MAIN: the
+ * side's main port), for a plugin the LV2 adapter made and names by symbol (omx_clap_lv2_port_symbol: every port of the
+ * plugin or none); NULL for any other plugin and for a port the description does not hold. Control thread. */
+static const char *port_symbol(const effect_t *effect, bool is_input, uint32_t aux, uint32_t k)
+{
+    const struct omx_clap_instance *clap = effect->clap;
+    const struct omx_clap_port *port = aux == LAYOUT_PORT_MAIN ? (is_input ? &clap->main_in : &clap->main_out)
+                                     : aux < (is_input ? clap->aux_inputs : clap->aux_outputs) ? (is_input ? &clap->aux_in[aux] : &clap->aux_out[aux])
+                                     : NULL;
+
+    return port && k < port->channels ? omx_clap_lv2_port_symbol(clap->plugin, is_input, port->id, k) : NULL;
+}
+
+/* the JACK name of channel `k` of a port of the instance: an LV2 plugin's port symbol, the name mod-host gives the port
+ * (port_symbol), and layout_port_name's for a plugin that has none */
+static void port_jack_name(const effect_t *effect, char buf[LAYOUT_PORT_NAME_SIZE], bool is_input, uint32_t aux, uint32_t k)
+{
+    layout_port_jack_name(buf, port_symbol(effect, is_input, aux, k), is_input, aux, k);
+}
+
 /* one side's auxiliary ports as aux_register kept them registered on the instance's client, a JACK port per channel
- * named by layout_port_name: SUCCESS or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
+ * named by port_jack_name: SUCCESS or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
 static int aux_ports_register(effect_t *effect, bool is_input)
 {
     const uint32_t n = is_input ? effect->aux_in_n : effect->aux_out_n;
@@ -898,7 +918,7 @@ static int aux_ports_register(effect_t *effect, bool is_input)
     for (p = 0; p < n; p++)
         for (k = 0; k < widths[p]; k++)
         {
-            layout_port_name(name, is_input, p, k);
+            port_jack_name(effect, name, is_input, p, k);
             jack[c] = jack_port_register(effect->jack_client, name, JACK_DEFAULT_AUDIO_TYPE,
                                          is_input ? JackPortIsInput : JackPortIsOutput, 0);
             if (!jack[c++])
@@ -907,8 +927,8 @@ static int aux_ports_register(effect_t *effect, bool is_input)
     return SUCCESS;
 }
 
-/* A chain's member has no client of its own, so its auxiliary ports go on the head's: <client>_aux_in_<p>_<k>, so that
- * two members' never meet. Control thread, before the member enters the walk. A port JACK will not make stays NULL, said
+/* A chain's member has no client of its own, so its auxiliary ports go on the head's: <client>_aux_in_<p>_<k>, or
+ * <client>_<symbol> for an LV2 plugin's (port_jack_name), so that two members' never meet. Control thread, before the member enters the walk. A port JACK will not make stays NULL, said
  * on stderr: its channel reads silence and writes nothing, and the member runs. */
 static void aux_ports_on_head(effect_t *effect, jack_client_t *head)
 {
@@ -927,7 +947,7 @@ static void aux_ports_on_head(effect_t *effect, jack_client_t *head)
             {
                 char short_name[LAYOUT_PORT_NAME_SIZE], name[sizeof(effect->client_name) + sizeof(short_name) + 1];
 
-                layout_port_name(short_name, is_input, p, k);
+                port_jack_name(effect, short_name, is_input, p, k);
                 snprintf(name, sizeof(name), "%s_%s", effect->client_name, short_name);
                 jack[c] = jack_port_register(head, name, JACK_DEFAULT_AUDIO_TYPE, is_input ? JackPortIsInput : JackPortIsOutput, 0);
                 if (!jack[c])
@@ -2038,24 +2058,24 @@ static int layout_record(effect_t *effect, const char *pin, const char *id)
     return 0;
 }
 
-/* `in_ports` main input and `out_ports` main output ports registered on `client` into `inputs` and `outputs`: SUCCESS
- * or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
-static int main_ports_register_on(jack_client_t *client, uint32_t in_ports, uint32_t out_ports, jack_port_t **inputs,
-                                  jack_port_t **outputs)
+/* the instance's main ports, in_ports inputs and out_ports outputs named by port_jack_name, registered on `client`
+ * into `inputs` and `outputs`: SUCCESS or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
+static int main_ports_register_on(const effect_t *effect, jack_client_t *client, jack_port_t **inputs, jack_port_t **outputs)
 {
+    const uint32_t in_ports = effect->in_ports, out_ports = effect->out_ports;
     char port_name[LAYOUT_PORT_NAME_SIZE];
     uint32_t c;
 
     for (c = 0; c < in_ports; c++)
     {
-        layout_port_name(port_name, true, LAYOUT_PORT_MAIN, c);
+        port_jack_name(effect, port_name, true, LAYOUT_PORT_MAIN, c);
         inputs[c] = jack_port_register(client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
         if (!inputs[c])
             return ERR_JACK_PORT_REGISTER;
     }
     for (c = 0; c < out_ports; c++)
     {
-        layout_port_name(port_name, false, LAYOUT_PORT_MAIN, c);
+        port_jack_name(effect, port_name, false, LAYOUT_PORT_MAIN, c);
         outputs[c] = jack_port_register(client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
         if (!outputs[c])
             return ERR_JACK_PORT_REGISTER;
@@ -2066,8 +2086,7 @@ static int main_ports_register_on(jack_client_t *client, uint32_t in_ports, uint
 /* the instance's main ports registered on its client, as many each side as were registered at add */
 static int main_ports_register(effect_t *effect)
 {
-    return main_ports_register_on(effect->jack_client, effect->in_ports, effect->out_ports, effect->input_ports,
-                                  effect->output_ports);
+    return main_ports_register_on(effect, effect->jack_client, effect->input_ports, effect->output_ports);
 }
 
 /* the callbacks of the instance's own client, before it is activated: its role reads its own slot, which names no
@@ -2096,7 +2115,7 @@ static int client_ready(const effect_t *effect, own_client_t *own)
     own->client = open_jack_client(effect->instance, effect->client_name, NULL, 0);
     if (!own->client)
         return ERR_JACK_CLIENT_CREATION;
-    error = main_ports_register_on(own->client, effect->in_ports, effect->out_ports, own->inputs, own->outputs);
+    error = main_ports_register_on(effect, own->client, own->inputs, own->outputs);
     if (error == SUCCESS && effect->clap->note_inputs
         && !(own->midi_in = jack_port_register(own->client, MIDI_PORT_NAME, JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0)))
         error = ERR_JACK_PORT_REGISTER;
@@ -4637,9 +4656,34 @@ int effects_state_load(const char *dir)
 
 #define PORT_NAME_NOW_SIZE  512
 
-/* the name a port has in the graph now: a chain member's auxiliary port is named as it is alone (effect_<n>:aux_in_1_1),
- * which is what a controller knows and a replay repeats, and it is on the head's client (aux_ports_on_head); any other
- * name as it is */
+/* whether `name` is the JACK name of one of the instance's auxiliary ports, either side (port_jack_name) */
+static int aux_port_named(const effect_t *effect, const char *name)
+{
+    int side;
+
+    for (side = 0; side < 2; side++)
+    {
+        const bool is_input = side == 0;
+        const uint32_t n = is_input ? effect->aux_in_n : effect->aux_out_n;
+        const uint32_t *widths = is_input ? effect->aux_in_widths : effect->aux_out_widths;
+        uint32_t p, k;
+
+        for (p = 0; p < n; p++)
+            for (k = 0; k < widths[p]; k++)
+            {
+                char port[LAYOUT_PORT_NAME_SIZE];
+
+                port_jack_name(effect, port, is_input, p, k);
+                if (!strcmp(port, name))
+                    return 1;
+            }
+    }
+    return 0;
+}
+
+/* the name a port has in the graph now: a chain member's auxiliary port is named as it is alone (effect_<n>:aux_in_1_1,
+ * or effect_<n>:<symbol> for an LV2 plugin's), which is what a controller knows and a replay repeats, and it is on the
+ * head's client (aux_ports_on_head); any other name as it is */
 static const char *port_now(const char *name, char *buf, size_t size)
 {
     int i;
@@ -4649,7 +4693,8 @@ static const char *port_now(const char *name, char *buf, size_t size)
         const effect_t *effect = &g_effects[i];
         const size_t len = strlen(effect->client_name);
 
-        if (len && client_borrowed(effect) && !strncmp(name, effect->client_name, len) && !strncmp(name + len, ":aux_", 5))
+        if (len && client_borrowed(effect) && !strncmp(name, effect->client_name, len) && name[len] == ':'
+            && aux_port_named(effect, name + len + 1))
         {
             snprintf(buf, size, "%s:%s_%s", effect->chain->head->client_name, effect->client_name, name + len + 1);
             return buf;
@@ -5239,11 +5284,18 @@ static void audio_port_record(FILE *out, const effect_t *effect, bool is_input, 
     const struct omx_clap_port *port = aux == LAYOUT_PORT_MAIN ? (is_input ? &clap->main_in : &clap->main_out)
                                      : aux < (is_input ? clap->aux_inputs : clap->aux_outputs) ? (is_input ? &clap->aux_in[aux] : &clap->aux_out[aux])
                                      : NULL;
+    const char *symbols[OMX_HOSTED_STAGE_PORT_CHANNELS];
     struct layout_port_text t;
+    uint32_t k;
 
     if (port && port->channels != channels)
         port = NULL;
     memset(&t, 0, sizeof(t));
+    // the names the ports were registered under (port_jack_name): an LV2 plugin's symbols, all of a port's or none
+    for (k = 0; k < channels && k < OMX_HOSTED_STAGE_PORT_CHANNELS && (symbols[k] = port_symbol(effect, is_input, aux, k)); k++)
+        ;
+    if (channels && k == channels)
+        t.symbols = symbols;
     t.is_input = is_input;
     t.aux = aux;
     t.channels = channels;

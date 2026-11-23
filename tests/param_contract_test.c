@@ -118,7 +118,7 @@ int main(void)
      * four codes of 260 to 263 and the first of it answer by their token */
     /* the code -> standard id lookup a reader builds from omx_param_unit_ids.h, joined to the code by its define */
     {
-        struct { unsigned code; const char *id; } want[] = { { 260u, "dB-oct" }, { 13u, "dB" }, { 14u, "percent" }, { 23u, "deg" }, { 264u, NULL } };
+        struct { unsigned code; const char *id; } want[] = { { 260u, "dBPerOct" }, { 13u, "dB" }, { 14u, "percent" }, { 23u, "deg" }, { 264u, NULL } };
         for (size_t i = 0; i < sizeof want / sizeof want[0]; i++) {
             const char *got = unit_id_of(want[i].code);
             CHECK(want[i].id ? (got && strcmp(got, want[i].id) == 0) : got == NULL, "code %u stands for %s (%s)", want[i].code,

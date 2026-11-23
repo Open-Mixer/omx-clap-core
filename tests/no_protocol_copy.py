@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# The protocol is plugin-hostd-protocol's, and this tree keeps no copy of it: none of its tables (protocol/*.json) or
-# its headers (protocol.h, search_paths.h, the host verb and vocabulary renders) is here under any name, no file of
-# this tree declares what protocol.h declares (its guard, the macros of its tables, the search lists), and the one
-# rendered verb table is src/omx_clap_host_verbs.h, the render of the omx-clap domain, which tests/contract-dir-check.sh
-# holds to its declaration. A copy that comes back drifts from the protocol the host is built against.
+# The protocol is plugin-hostd-protocol's, and this tree keeps no copy of it: none of its tables (protocol/*.json), its
+# domain plugin-hostd-protocol or its headers (protocol.h, search_paths.h, the host verb and vocabulary renders) is here under
+# any name, no file of this tree declares what protocol.h declares (its guard, the macros of its tables, the search
+# lists), and the one rendered verb table is src/omx_clap_host_verbs.h, the render of the omx-clap domain, which
+# tests/contract-dir-check.sh holds to its declaration. A copy that comes back drifts from the protocol the host is
+# built against.
 #
 #   python3 tests/no_protocol_copy.py [<tree>]     red on any copy in the tree (default: this one)
 #   python3 tests/no_protocol_copy.py --self-test  each kind of copy, planted in a scratch copy of the tree, must be red
@@ -37,12 +38,15 @@ MARKS = [
     (re.compile(r"^#\s*define\s+PHD_DEFAULT_(LV2|CLAP)_PATH\b", re.M), "a search list of search_paths.h", None),
     (re.compile(r"^#\s*define\s+OMX_VERB_[A-Z0-9_]+_FMT\b", re.M), "a rendered verb table",
      "src/omx_clap_host_verbs.h"),
-    (re.compile(r'"kind":\s*"verbs"'), "a verbs item of the contract", "data/verbs.json"),
+    (re.compile(r'"kind":\s*"verbs"'), "a verbs item of the contract", None),
+    (re.compile(r'"x-owner":\s*"plugin-hostd-protocol"'), "a copy of the domain plugin-hostd-protocol",
+     None),
     (re.compile(r'^\s*"protocol":\s*"(plugin-hostd|mod-host|plugin-hostd-protocol)",?\s*$', re.M),
      "a protocol JSON", None),
 ]
-# where the copies are looked for: the sources, the headers, the tables, the tools, the tests and the fuzz harnesses
-SCANNED = ("src", "include", "lv2", "tools", "tests", "data", "protocol", "fuzz")
+# where the copies are looked for: the sources, the headers, the tables, the tools, the tests, the fuzz harnesses and
+# the domains
+SCANNED = ("src", "include", "lv2", "tools", "tests", "data", "protocol", "fuzz", "contract.d")
 SUFFIXES = (".c", ".h", ".json", ".py", ".in", ".sh", ".mjs")
 SKIP = {os.path.join("tests", "no_protocol_copy.py")}
 
@@ -91,6 +95,7 @@ def self_test():
         ("tools/paths.h", '#define PHD_DEFAULT_LV2_PATH "/usr/lib/lv2"\n'),
         ("tests/search_paths.h", "/* empty: the name alone is the copy */\n"),
         ("src/mod-host.json", '{\n  "protocol": "mod-host"\n}\n'),
+        ("contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json", '{\n  "info": {\n    "x-owner": "plugin-hostd-protocol"\n  }\n}\n'),
     ]
     failed = 0
     work = tempfile.mkdtemp(prefix="no-protocol-copy.")

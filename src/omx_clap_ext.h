@@ -152,10 +152,11 @@ typedef struct omx_clap_plugin_param_contract_ext
 /*
  * The panel a plugin publishes: its family, its sections in order, each control's parameter, section, widget, label and
  * visibility rule, the roles its parameters play in the family, the displays drawn over a section and the per-placement
- * defaults. Units, travels, scales and enumeration labels are the parameters' own and are not restated. omx-plugins'
- * faces serve it from their include/omx_panel_description.h, which is the ABI: the structures below have its layout
- * under other names, so a face may include both, and tests/panel_abi_test.c holds them to it, size and offset. The
- * fingerprint is the lowercase hex SHA-256 of the canonical serialisation omx-plugins' tools/panel-description.mjs writes.
+ * defaults. Units, travels, scales and enumeration labels are the parameters' own and are not restated. omx-clap-core
+ * owns this layout: tests/panel_abi_test.c pins the size and every member's offset of the structures below, and
+ * omx-plugins holds its include/omx_panel_description.h, which its faces serve it from, to this installed header (its
+ * make panel-abi), so a face may include both. Nothing here reads omx-plugins. The fingerprint is the lowercase hex
+ * SHA-256 of the canonical serialisation omx-plugins' tools/panel-description.mjs writes.
  *
  * The host walks five tables, each by count and get, in their published order.
  */
@@ -176,9 +177,10 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 #define OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES 4096u
 
 /*
- * The codes, X(code, name, enumerator): the name is omx-plugins' word for the code (tools/panel-description.mjs), the
- * enumerator the one omx_panel_description.h gives it after its prefix (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_,
- * OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_).
+ * The codes, X(code, name, enumerator), declared here: the name is the code's word (omx-plugins'
+ * tools/panel-description.mjs writes the same), the enumerator the one this header gives it after its prefix
+ * (OMX_CLAP_PANEL_, OMX_CLAP_FAMILY_, OMX_CLAP_WIDGET_, OMX_CLAP_DISPLAY_FROM_, OMX_CLAP_PLACEMENT_),
+ * which omx-plugins' include/omx_panel_description.h copies and holds to this installed header (its make panel-abi).
  */
 
 /** The tables, in the order a host walks them. */
@@ -190,16 +192,11 @@ static const char OMX_CLAP_EXT_PANEL_DESCRIPTION[] = "org.openmixer.panel-descri
 #define OMX_CLAP_PANEL_FAMILIES(X) \
     X(0, "none", NONE) X(1, "gate", GATE) X(2, "dynamics", DYNAMICS) X(3, "limiter", LIMITER) X(4, "deesser", DEESSER) \
     X(5, "eq", EQ) X(6, "filter", FILTER) X(7, "drive", DRIVE) X(8, "modulation", MODULATION) X(9, "delay", DELAY) \
-    X(10, "reverb", REVERB) X(11, "pitch", PITCH)
+    X(10, "reverb", REVERB) X(11, "pitch", PITCH) X(12, "utility", UTILITY)
 
 /** The widgets: auto leaves the widget to the host, from the parameter. */
 #define OMX_CLAP_PANEL_WIDGETS(X) \
     X(0, "auto", AUTO) X(1, "knob", KNOB) X(2, "fader", FADER) X(3, "switch", SWITCH) X(4, "selector", SELECTOR)
-
-/** The displays. Append only. */
-#define OMX_CLAP_PANEL_DISPLAY_KINDS(X) \
-    X(0, "gain_reduction_bar", GAIN_REDUCTION_BAR) X(1, "transfer_curve", TRANSFER_CURVE) X(2, "eq_response", EQ_RESPONSE) \
-    X(3, "meter", METER)
 
 /** Where a display's data comes from. */
 #define OMX_CLAP_PANEL_DISPLAY_SOURCES(X) \
@@ -239,7 +236,7 @@ typedef struct omx_clap_panel_description_role
 /** A display drawn over a section. */
 typedef struct omx_clap_panel_description_display
 {
-    uint32_t kind;  ///< an OMX_CLAP_PANEL_DISPLAY_KINDS code
+    uint32_t kind;  ///< a display kind code; omx-panel owns the words and their codes (its `panel` domain), this tree carries the number
     uint32_t section;  ///< an index into the sections
     uint32_t source;  ///< an OMX_CLAP_PANEL_DISPLAY_SOURCES code
     uint32_t meter_ids[2];  ///< the clap.meters/1 ids it reads, CLAP_INVALID_ID for none

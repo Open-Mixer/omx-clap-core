@@ -117,11 +117,8 @@ or `OMX_CLAP_CHAIN_ERR_NO_MEMBER`, and publishes nothing. The function is in the
 Every structure a consumer allocates (`struct omx_clap_chain_config`, `struct omx_clap_chain_member`,
 `struct omx_clap_chain_report`, `struct omx_clap_chain_member_info`) carries `abi` (`OMX_CLAP_CHAIN_ABI` of the header
 the caller compiled against) and `size` (its `sizeof` as the caller compiled it) as its first two fields. The library
-reads and writes such a structure only when its `abi` is one the library knows and its `size` is exactly the size that
-ABI gives the structure; anything else is refused `OMX_CLAP_CHAIN_ERR_ABI`, nothing read and nothing written (never a silent read of a grown structure, never a write past the caller's own). The chain itself is opaque, allocated
-and freed by the library. The structures are in `abi/libomx-clap-core.so.1.layout` and the functions in
-`abi/libomx-clap-core.so.1.abi`, which the `abi` CI job holds the build to; the functions are in the version node
-`OMX_CLAP_CORE_0.16`.
+reads and writes such a structure only when its `abi` is the library's own and its `size` is exactly the size this header gives the structure; anything else is refused `OMX_CLAP_CHAIN_ERR_ABI`, nothing read and nothing written (never a silent read of a grown structure, never a write past the caller's own). The chain itself is opaque, allocated
+and freed by the library. The functions are in the version node `OMX_CLAP_CORE_0.16`.
 
 ## Proof
 

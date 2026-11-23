@@ -77,9 +77,7 @@ second: a change inside the second after a line waits for the next tick that
 is a second on, and the line then carries the count at that time. The line has
 no instance number, the count is the whole host's. A host that has had no xrun
 writes none. A controller attributes a window's xruns to every plugin the
-host holds (plugin-hostd's grouping planner reads it this way); a host that
-never writes the line, such as an older omx-clap-host or mod-host, is read as
-one with no xruns.
+host holds (plugin-hostd's grouping planner reads it this way).
 
 The count is what JACK's callback reports. PipeWire's libjack calls it for an
 xrun the graph's driver reports (an audio device that ran dry), and not for a
@@ -912,8 +910,8 @@ instance that is initialised, read and destroyed without being activated:
   `null` when the hint is unknown, never 0; `refused` with the code when
   the declaration is refused, every figure then `null`. The text form is
   one line of the declared hints. Absent when the plugin states none;
-- the panel the plugin publishes (`org.openmixer.panel-description/1`,
-  omx-plugins' `include/omx_panel_description.h`), in the extension's own
+- the panel the plugin publishes (`org.openmixer.panel-description/1`, as
+  `src/omx_clap_ext.h` declares it), in the extension's own
   shape: `family`, `fingerprint`, then its five tables in their published
   order, `sections` (`key`, `labelKey`, `label`), `controls` (`paramId`,
   `section`, `widget`, `labelKey`, `label`, `visibleParamId`, `visibleMask`),

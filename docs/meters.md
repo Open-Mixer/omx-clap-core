@@ -94,12 +94,11 @@ none, or whose declarations cannot be read whole (a meter with no info, no name,
 opened: a meter is something the console draws, never a reason to refuse the plugin. The library reads no meter on its
 own and passes nothing to the audio thread; the caller decides what to read and when.
 
-## While the draft is not in the SDK
+## The declaration
 
-No released CLAP SDK ships `clap/ext/draft/meters.h` yet. Until one does, `src/clap_meters.h` declares the draft's
-id and structures exactly as the draft does, and includes the SDK's header instead as soon as the SDK has it, so
-the host builds against either. If the extension's id or layout changes before it is merged, the host follows the
-SDK's header, and `src/clap_meters.h` is removed once the oldest SDK the host builds against ships it.
+No released CLAP SDK ships `clap/ext/draft/meters.h` yet, so `src/clap_meters.h` declares the draft's id and
+structures exactly as the draft does. If the extension's id or layout changes before it is merged, this header
+follows it.
 
 ## Tests
 

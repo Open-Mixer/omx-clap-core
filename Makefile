@@ -1910,7 +1910,7 @@ fuzz-static: $(FUZZ_HARNESSES:%=$(FUZZ_STATIC_BUILD)/fuzz_%)
 # the seed corpus is written from the tree's own fixtures (fuzz/gen-corpus.c), never from a network, and committed
 $(FUZZ_BUILD)/gen-corpus: fuzz/gen-corpus.c fuzz/fuzz.h src/preset_file.c src/preset_file.h src/lv2_locate.h
 	@mkdir -p $(@D)
-	$(FUZZ_CC) -O1 -g -std=gnu99 -Wall -Wextra -Werror -Isrc -o $@ fuzz/gen-corpus.c src/preset_file.c -lm
+	$(FUZZ_CC) -O1 -g -std=gnu99 -Wall -Wextra -Werror -Isrc -isystem $(OMX_CONTRACT_DIR)/include -o $@ fuzz/gen-corpus.c src/preset_file.c -lm
 
 fuzz-corpus: $(FUZZ_BUILD)/gen-corpus
 	rm -rf fuzz/corpus

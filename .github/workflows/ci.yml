@@ -528,7 +528,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            # plugin-hostd-protocol's domain plugin-hostd (chain of omx-clap-host), from the build the headers come from: a staged
+            # the domain plugin-hostd-protocol (chain of omx-clap-host), from the build the headers come from: a staged
             # build names its commit in its release (.git[<time>.]<sha>), which may be a pull request's head and on no
             # branch: its full sha, from the API (a fetch takes no short one), fetched alone; a release is its tag
             version=$(rpm -q --qf '%{VERSION}' plugin-hostd-protocol-devel)
@@ -976,9 +976,9 @@ jobs:
             rpms/omx-clap-host-[0-9]*.${{ matrix.cell.arch }}.rpm \
             plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm 'plugin-hostd-protocol-contract >= 0.8.0' omx-contract
           rpm -qf /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json | grep -q '^omx-clap-contract-'
-          # plugin-hostd-protocol's domain plugin-hostd names this host too (chain: required), and the check reads it
+          # the domain plugin-hostd-protocol names this host too (chain: required), and the check reads it
           # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)
-          rpm -qf /usr/share/omx-contract/contract.d/plugin-hostd/plugin-hostd.json | grep -q '^plugin-hostd-protocol-contract-'
+          rpm -qf /usr/share/omx-contract/contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json | grep -q '^plugin-hostd-protocol-contract-'
           dnf install -y --setopt=install_weak_deps=False plugin-db-devel
           scheme=$(printf '#include <plugin-db/pin.h>\nPHD_PIN_LAYOUT_SCHEME\n' | gcc $(pkg-config --cflags plugin-db) -E -P - | tail -n 1 | tr -d '"')
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then

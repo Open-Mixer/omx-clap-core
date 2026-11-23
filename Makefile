@@ -1357,7 +1357,7 @@ test-hostd-chain: $(PROG) tests/jack_identity tests/fake_compressor.clap tests/f
 # of its own (tests/host_verbs_e2e.sh): data/ installed into build/verbs-contract as the package installs it, unless
 # OMX_CONTRACT_PATH names the contract directories to read (the packaging job's installed one)
 HOST_VERBS_CONTRACT = $(abspath build/verbs-contract)
-# the plugin-hostd-protocol tree whose domain plugin-hostd (contract.d/plugin-hostd/plugin-hostd.json, the protocol's
+# the plugin-hostd-protocol tree whose domain plugin-hostd-protocol (contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json, the protocol's
 # words, chain of omx-clap-host among them) is installed beside this package: the checkout of PROTOCOL_DIR, or the
 # release checkout CI names
 # the omx-contract command whose reader rebuilds a domain's items (tests/host_verbs_check.py): the installed one, else
@@ -1365,21 +1365,20 @@ HOST_VERBS_CONTRACT = $(abspath build/verbs-contract)
 OMX_CONTRACT_CLIDIR ?= $(or $(shell $(PKG_CONFIG) --variable=clidir omx-contract 2>/dev/null),$(abspath $(OMX_CONTRACT_DIR)))
 export OMX_CONTRACT_CLIDIR
 PROTOCOL_CONTRACT_DIR ?= $(PROTOCOL_DIR)
-PROTOCOL_VERSION = $(shell sed -n 's/^Version: *//p' $(PROTOCOL_CONTRACT_DIR)/packaging/plugin-hostd-protocol.spec)
 .PHONY: test-host-verbs test-host-verbs-sabotage test-host-verbs-domains host-verbs-contract
 host-verbs-contract:
 	rm -rf $(HOST_VERBS_CONTRACT)
 	@# the catalogs go into the build tree too, as test-contract's do: the test runs as any user, never root
 	$(MAKE) --no-print-directory install-contract DESTDIR= CONTRACTDIR=$(HOST_VERBS_CONTRACT) DATADIR=$(abspath $(HOST_VERBS_CONTRACT))-share
-	@# every other package that names omx-clap-host in its words (plugin-hostd-protocol's domain plugin-hostd: chain,
-	@# preset_list, ...) is read too, installed as its package installs it: the owner of the domain, then the domain
-	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd/plugin-hostd.json && test -n "$(PROTOCOL_VERSION)" || { echo "host-verbs-contract: no plugin-hostd-protocol checkout at $(PROTOCOL_CONTRACT_DIR) (PROTOCOL_CONTRACT_DIR), whose domain plugin-hostd declares chain of omx-clap-host" >&2; exit 1; }
-	sh $(INSTALL_CONTRACT_DIR) --owner plugin-hostd-protocol $(PROTOCOL_VERSION) $(CONTRACT_SCHEMA_MAJOR) $(HOST_VERBS_CONTRACT) plugin-hostd
-	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd $(HOST_VERBS_CONTRACT)
+	@# every other package that names omx-clap-host in its words (the domain plugin-hostd-protocol: chain,
+	@# preset_list, ...) is read too, installed as its package installs it: the domain alone, named after its package,
+	@# with no owner manifest beside it (omx-contract's reader reads a domain as the package of its name)
+	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json || { echo "host-verbs-contract: no plugin-hostd-protocol checkout at $(PROTOCOL_CONTRACT_DIR) (PROTOCOL_CONTRACT_DIR), whose domain plugin-hostd-protocol declares chain of omx-clap-host" >&2; exit 1; }
+	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd-protocol $(HOST_VERBS_CONTRACT)
 test-host-verbs: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_e2e.sh
 
-# where that guard reads plugin-hostd-protocol's verbs: its domain plugin-hostd, every domain through omx-contract's
+# where that guard reads plugin-hostd-protocol's verbs: the domain plugin-hostd-protocol, every domain through omx-contract's
 # rebuild (tests/host_verbs_domains.py); no socket, no PipeWire
 test-host-verbs-domains: host-verbs-contract
 	python3 -I tests/host_verbs_domains.py --contract-path $(HOST_VERBS_CONTRACT)

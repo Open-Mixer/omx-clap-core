@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
 # The protocol is plugin-hostd-protocol's, and this tree keeps no copy of it: none of its tables (protocol/*.json), its
-# domain plugin-hostd or its headers (protocol.h, search_paths.h, the host verb and vocabulary renders) is here under
+# domain plugin-hostd-protocol or its headers (protocol.h, search_paths.h, the host verb and vocabulary renders) is here under
 # any name, no file of this tree declares what protocol.h declares (its guard, the macros of its tables, the search
 # lists), and the one rendered verb table is src/omx_clap_host_verbs.h, the render of the omx-clap domain, which
 # tests/contract-dir-check.sh holds to its declaration. A copy that comes back drifts from the protocol the host is
@@ -39,7 +39,7 @@ MARKS = [
     (re.compile(r"^#\s*define\s+OMX_VERB_[A-Z0-9_]+_FMT\b", re.M), "a rendered verb table",
      "src/omx_clap_host_verbs.h"),
     (re.compile(r'"kind":\s*"verbs"'), "a verbs item of the contract", None),
-    (re.compile(r'"x-owner":\s*"plugin-hostd-protocol"'), "a copy of plugin-hostd-protocol's domain plugin-hostd",
+    (re.compile(r'"x-owner":\s*"plugin-hostd-protocol"'), "a copy of the domain plugin-hostd-protocol",
      None),
     (re.compile(r'^\s*"protocol":\s*"(plugin-hostd|mod-host|plugin-hostd-protocol)",?\s*$', re.M),
      "a protocol JSON", None),
@@ -95,7 +95,7 @@ def self_test():
         ("tools/paths.h", '#define PHD_DEFAULT_LV2_PATH "/usr/lib/lv2"\n'),
         ("tests/search_paths.h", "/* empty: the name alone is the copy */\n"),
         ("src/mod-host.json", '{\n  "protocol": "mod-host"\n}\n'),
-        ("contract.d/plugin-hostd/plugin-hostd.json", '{\n  "info": {\n    "x-owner": "plugin-hostd-protocol"\n  }\n}\n'),
+        ("contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json", '{\n  "info": {\n    "x-owner": "plugin-hostd-protocol"\n  }\n}\n'),
     ]
     failed = 0
     work = tempfile.mkdtemp(prefix="no-protocol-copy.")

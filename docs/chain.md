@@ -214,7 +214,7 @@ stderr line. A line of one member is a chain of one: the head in its own client,
 
 ### The declaration, and the refusal behind plugin-hostd
 
-plugin-hostd-protocol's domain plugin-hostd declares `chain` of omx-clap-host as `required`, and this host implements it:
+the domain plugin-hostd-protocol declares `chain` of omx-clap-host as `required`, and this host implements it:
 a line of two or more members answers `resp 0`. `make test-host-verbs` installs that domain (`PROTOCOL_DIR`) beside
 this one and drives that line, so a host that refuses it, or a build without that package, goes red. A `resp -902`
 the daemon logs (`refused chain <n> ...`) is one of the refusals above, whose reason this host writes to its own

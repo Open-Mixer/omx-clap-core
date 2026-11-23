@@ -10,7 +10,7 @@ table (contract.d/omx-clap/omx-clap.json, docs/verbs.md).
 
 The declarations are every verbs item of every package installed under <dir>/3/ (the first directory of the list that
 holds a package wins, as OMX_CONTRACT_PATH reads), each file the package's MANIFEST.json lists, and every verbs item of
-every domain installed under <dir>/<domain>/<domain>.json (plugin-hostd-protocol's domain plugin-hostd among them),
+every domain installed under <dir>/<domain>/<domain>.json (the domain plugin-hostd-protocol among them),
 rebuilt by omx-contract's own reader (OMX_CONTRACT_CLIDIR, else omx-contract.pc's clidir); a code reference resolved to
 the codes item that declares it. A verb whose implementedBy names omx-clap-host is driven on the socket
 with a line built for its declared format from this file's EXAMPLES:
@@ -187,16 +187,18 @@ def domain_items(path):
 
 
 PROTOCOL = 'plugin-hostd-protocol'
-PROTOCOL_DOMAIN = 'plugin-hostd'
+PROTOCOL_DOMAIN = 'plugin-hostd-protocol'
 
 
 def protocol_installed(path):
-    """plugin-hostd-protocol's words are installed: its domain plugin-hostd, and the package as the owner of it"""
-    owner = packages(path).get(PROTOCOL)
-    if owner is None or PROTOCOL_DOMAIN not in domains(path):
+    """plugin-hostd-protocol's words are installed: the domain plugin-hostd-protocol, named after the package that owns it
+    (its info.x-owner); the package installs no owner manifest beside it, since omx-contract's reader reads a domain as
+    the package of its name"""
+    doc = domains(path).get(PROTOCOL_DOMAIN)
+    if doc is None:
         return False
-    with open(os.path.join(owner, 'MANIFEST.json')) as f:
-        return PROTOCOL_DOMAIN in json.load(f).get('domains', [])
+    with open(doc) as f:
+        return json.load(f)['info'].get('x-owner') == PROTOCOL
 
 
 class Refused(Exception):
@@ -206,7 +208,7 @@ class Refused(Exception):
 def declarations(path):
     """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}.
 
-    plugin-hostd-protocol's words are its domain plugin-hostd's only: an item in a data file of its package (a stale
+    plugin-hostd-protocol's words are the domain plugin-hostd-protocol's only: an item in a data file of its package (a stale
     3/plugin-hostd-protocol/verbs.json, the home before 0.8.0) is refused by name, never read beside the domain.
     """
     items, verbs = {}, []

@@ -41,8 +41,7 @@ declared() {
     [ -n "$src" ] || { echo "FAIL $name: no omx-clap/omx-clap.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1)); return; }
     rm -rf "$dir" "$dir.log"
     mkdir -p "$dir"
-    # the whole contract directory, plugin-hostd-protocol's domain plugin-hostd with it: the arm breaks one word only
-    cp -r "$src/." "$dir/"
+    cp -r "$src/3" "$src/omx-clap" "$src/host" "$dir/"
     sed -i -e "$expr" "$dir/omx-clap/omx-clap.json"
     if cmp -s "$src/omx-clap/omx-clap.json" "$dir/omx-clap/omx-clap.json"; then
         echo "FAIL $name: the sed left omx-clap.json as it was"
@@ -78,15 +77,15 @@ declared owed '/"title": "noteDrops"/,/"x-since"/ s/"omx-clap-host": "required"/
 hosted handler '/protocol_add_command(OMX_VERB_NOTE_DROPS_FMT, note_drops_cb);/d' 'missing \[.note_drops.\]'
 hosted undeclared 's/protocol_add_command(OMX_VERB_NOTE_DROPS_FMT, note_drops_cb);/&\n    protocol_add_command("note_peaks %i", note_drops_cb);/' 'registered "note_peaks %i": a verb with no declaration'
 
-# plugin-hostd-protocol's words left out of the contract path: its domain plugin-hostd, which declares chain of this
-# host, and the package that owns it are not read; every other package and domain is
+# plugin-hostd's package left out of the contract path: its verbs file, which declares chain of this host, is not read
 nopkg=$root/build/sabotage-host-verbs-nopkg
 rm -rf "$nopkg" "$nopkg.log"
-src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/plugin-hostd/plugin-hostd.json" ] && { echo "$d"; break; }; done)
+mkdir -p "$nopkg"
+src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/3/plugin-hostd-protocol/verbs.json" ] && { echo "$d"; break; }; done)
 if [ -z "$src" ]; then
-    echo "FAIL nopkg: no plugin-hostd/plugin-hostd.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1))
+    echo "FAIL nopkg: no plugin-hostd-protocol/verbs.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1))
 else
-    cp -r "$src" "$nopkg" && rm -rf "$nopkg/plugin-hostd" "$nopkg/3/plugin-hostd-protocol"
+    cp -r "$src/3" "$nopkg/" && rm -rf "$nopkg/3/plugin-hostd-protocol"
     OMX_CONTRACT_PATH=$nopkg "$root/tests/host_verbs_e2e.sh" >"$nopkg.log" 2>&1
     judge nopkg "$nopkg.log" "plugin-hostd-protocol's package is installed" $?
 fi

@@ -60,10 +60,20 @@ pipewire >"$runtime/pw.log" 2>&1 &
 for _ in $(seq 50); do [ -S "$runtime/pipewire-0" ] && break; sleep 0.1; done
 [ -S "$runtime/pipewire-0" ] || { echo "pipewire did not come up" >&2; cat "$runtime/pw.log" >&2; exit 2; }
 
-"$host" -n -p "$port" >"$runtime/host.log" 2>&1 &
+# the host is a client of the PipeWire above, through PipeWire's libjack: pw-jack puts its directory first, ahead of an
+# LD_LIBRARY_PATH that names jack2's (a stage box's stage-jack.sh run does, for the dummy jackd of the other tests; with
+# jack2's libjack the host retried a server it cannot reach for the whole run and the cases starved: stage wave f45t's
+# own-box proof, 2026-11-23)
+pwjack=; command -v pw-jack >/dev/null && pwjack=pw-jack
+$pwjack "$host" -n -p "$port" >"$runtime/host.log" 2>&1 &
 pid=$!
 protocol_wait_ready "$runtime/host.log" || { echo "omx-clap-host did not come up" >&2; cat "$runtime/host.log" >&2; exit 2; }
-echo "omx-clap-host on port $port, protocol library: $(grep -o '/[^ ]*libplugin-hostd-protocol[^ ]*' /proc/$pid/maps | sort -u)"
+jacklib=$(grep -o '/[^ ]*/libjack\.so[^ ]*' /proc/$pid/maps | sort -u)
+echo "omx-clap-host on port $port, protocol library: $(grep -o '/[^ ]*libplugin-hostd-protocol[^ ]*' /proc/$pid/maps | sort -u), JACK library: ${jacklib:-none}"
+case $jacklib in
+    */pipewire-*/*) ;;
+    *) echo "omx-clap-host loaded ${jacklib:-no libjack}, not PipeWire's: it is no client of this test's PipeWire" >&2; exit 2 ;;
+esac
 
 # shellcheck disable=SC2086
 python3 -I "$here/socket_conformance.py" --port "$port" --pid "$pid" ${SOCKET_CONFORMANCE_ARGS:-}

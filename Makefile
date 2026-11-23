@@ -478,7 +478,7 @@ TEST_PLAIN = test-ci-runs-test-list \
     test-properties-sabotage \
     test-state-busy \
     test-package
-# the sabotage arms that rebuild copies of the sources: CI runs them on a push to main and a tag, not on a pull request
+# the sabotage arms that rebuild copies of the sources: ci.yml runs them on every dispatch
 TEST_MAIN_ONLY = test-layouts-sabotage \
     test-cycle-gate-sabotage \
     test-effects-meter-sabotage \

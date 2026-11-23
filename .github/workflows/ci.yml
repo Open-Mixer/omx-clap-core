@@ -286,10 +286,10 @@ jobs:
           git -C /tmp/omx-contract checkout -q FETCH_HEAD
           make test-fields OMX_CONTRACT_DIR=/tmp/omx-contract
 
-      # the relaxed-ordering copy of clap_stage.h compiles beside the headers it includes (#165)
       - name: The devel package's fixtures build out of tree
         run: make test-fixtures-install
 
+      # the relaxed-ordering copy of clap_stage.h compiles beside the headers it includes (#165)
       - name: The stage bench builds and runs
         run: make bench-stage
 

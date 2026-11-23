@@ -16,8 +16,11 @@ set -eu
 work=$1
 root=$work/root
 out=$work/out
+# a red run must not leave the installed tree read-only, or the next run cannot remove it
+[ -d "$work" ] && chmod -R u+w "$work"
 rm -rf "$work"
 mkdir -p "$work"
+trap 'chmod -R u+w "$work"' EXIT
 make -s --no-print-directory install-fixtures install-pc PREFIX="$root/usr" LIBDIR="$root/usr/lib"
 dir=$(PKG_CONFIG_PATH="$root/usr/lib/pkgconfig" pkg-config --variable=fixturesdir omx-clap-core 2>/dev/null) \
   || { echo "fixtures-install-check: omx-clap-core.pc declares no fixturesdir" >&2; exit 1; }
@@ -30,5 +33,4 @@ for f in "$out"/tests/fault-*.clap; do [ -f "$f" ] && n=$((n + 1)); done
 [ "$n" -ge 18 ] || { echo "fixtures-install-check: $n fault fixtures built, expected 18" >&2; exit 1; }
 [ -f "$out/build/lv2/omx-worker-gain.lv2/omx-worker-gain.so" ] || { echo "fixtures-install-check: no worker-gain binary" >&2; exit 1; }
 [ -f "$out/build/lv2/omx-worker-gain.lv2/manifest.ttl" ] || { echo "fixtures-install-check: no worker-gain manifest" >&2; exit 1; }
-chmod -R u+w "$dir"
 echo "fixtures-install-check: $n fault fixtures and the worker-gain bundle built from $dir"

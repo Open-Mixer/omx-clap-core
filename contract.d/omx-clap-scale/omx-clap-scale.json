@@ -3,7 +3,7 @@
   "$id": "https://openmixer.org/contract/omx-clap-scale",
   "info": {
     "title": "The scale codes of org.openmixer.param-contract/1: the code a plugin's get() reports for how a parameter is drawn, and the standard scale each stands for",
-    "version": "1.0.0",
+    "version": "0.35.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental"
   },
@@ -11,7 +11,7 @@
     "schemas": {
       "OMX_CLAP_SCALE_CODES": {
         "description": "The scale codes of org.openmixer.param-contract/1, by standard scale id: the code its get() reports for how a parameter's plain value lies along its position. The key is a word of omx-contract's PARAM_SCALES (the F2 mapping), the code is this extension's own, append-only.",
-        "x-since": "1.0.0",
+        "x-since": "0.34.0",
         "x-kind": "sheet",
         "x-file": "param-scales.json",
         "x-value": {

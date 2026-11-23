@@ -3,11 +3,11 @@
   "$id": "https://openmixer.org/contract/omx-clap",
   "info": {
     "title": "The omx-clap words of omx-clap-host",
-    "version": "1.0.0",
+    "version": "0.35.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental",
     "x-requires": {
-      "host": ">= 1.0.0"
+      "host": ">= 0.35.0"
     }
   },
   "components": {
@@ -315,7 +315,7 @@
               "omx-clap-host": "required",
               "mod-host": "unsupported"
             },
-            "x-since": "0.33.0"
+            "x-since": "0.32.5"
           },
           {
             "const": "property_info",
@@ -340,7 +340,7 @@
               "omx-clap-host": "required",
               "mod-host": "unsupported"
             },
-            "x-since": "0.33.0"
+            "x-since": "0.32.5"
           },
           {
             "const": "property_get",
@@ -368,7 +368,7 @@
               "omx-clap-host": "required",
               "mod-host": "unsupported"
             },
-            "x-since": "0.33.0"
+            "x-since": "0.32.5"
           },
           {
             "const": "property_set",
@@ -402,7 +402,7 @@
               "omx-clap-host": "required",
               "mod-host": "unsupported"
             },
-            "x-since": "0.33.0"
+            "x-since": "0.32.5"
           }
         ],
         "x-kind": "verbs",

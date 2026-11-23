@@ -241,7 +241,8 @@ jobs:
         run: |
           set -euo pipefail
           dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
-          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
+          # omx-contract, the command: its reader rebuilds a domain's items for tests/host_verbs_check.py (node)
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host omx-contract
           pkg-config --exists plugin-hostd-protocol
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
@@ -527,7 +528,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            # plugin-hostd-protocol's verbs file (chain of omx-clap-host), from the build the headers come from: a staged
+            # plugin-hostd-protocol's domain plugin-hostd (chain of omx-clap-host), from the build the headers come from: a staged
             # build names its commit in its release (.git[<time>.]<sha>), which may be a pull request's head and on no
             # branch: its full sha, from the API (a fetch takes no short one), fetched alone; a release is its tag
             version=$(rpm -q --qf '%{VERSION}' plugin-hostd-protocol-devel)
@@ -545,6 +546,7 @@ jobs:
               git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD
             fi
             echo "plugin-hostd-protocol's declarations: $version at $(git -C /tmp/plugin-hostd-protocol rev-parse --short HEAD)"
+            make test-host-verbs-domains PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
             make test-host-verbs PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
             make test-host-verbs-sabotage PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
           else
@@ -972,10 +974,11 @@ jobs:
           }
           dnf_retry --setopt=install_weak_deps=False pipewire iproute util-linux python3 \
             rpms/omx-clap-host-[0-9]*.${{ matrix.cell.arch }}.rpm \
-            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm plugin-hostd-protocol-contract
+            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm 'plugin-hostd-protocol-contract >= 0.8.0' omx-contract
           rpm -qf /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json | grep -q '^omx-clap-contract-'
-          # plugin-hostd-protocol's verbs file names this host too (chain: required), and the check reads it
-          rpm -qf /usr/share/omx-contract/contract.d/3/plugin-hostd-protocol/verbs.json | grep -q '^plugin-hostd-protocol-contract-'
+          # plugin-hostd-protocol's domain plugin-hostd names this host too (chain: required), and the check reads it
+          # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)
+          rpm -qf /usr/share/omx-contract/contract.d/plugin-hostd/plugin-hostd.json | grep -q '^plugin-hostd-protocol-contract-'
           dnf install -y --setopt=install_weak_deps=False plugin-db-devel
           scheme=$(printf '#include <plugin-db/pin.h>\nPHD_PIN_LAYOUT_SCHEME\n' | gcc $(pkg-config --cflags plugin-db) -E -P - | tail -n 1 | tr -d '"')
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then

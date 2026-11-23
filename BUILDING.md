@@ -59,6 +59,10 @@ runs `tests/jack_e2e.sh`: the host over jack inside a PipeWire of its own
 exit), every command over the socket and the graph read back after each
 one. The PipeWire of the session that runs it is never touched.
 
+`test-jack`, `test-identity` and the omx-delay arm of `test-scan` load omx-delay,
+a plugin of omx-plugins, which this repository's CI does not install: they run
+on a desk only and are the Makefile's `DESK_ONLY` list.
+
     make test-jack-synth
 
 runs `tests/jack_synth_e2e.sh` in the same kind of namespace: the host with
@@ -308,14 +312,7 @@ omx-contract's contract directory, which a program reads at run time.
 The version rule: a field is only ever appended to a structure and a function only
 added, and that is a new minor (`0.1.0` to `0.2.0`, the soname unchanged); a field or a
 function removed, moved or changed is a new soname major (`libomx-clap-core.so.1`, a new
-package name). `make abi-check` compares a build with `abi/libomx-clap-core.so.1.abi`,
-the baseline of the last release, with libabigail's `abidiff`, and CI runs it on every
-push and before every release. `abidw` leaves `_Atomic` members out of its dump, so
-`make abi-check` also runs `tests/abi-layout.sh`: it reads every public structure,
-member by member (offset, size and type, atomics included), with `pahole` (the
-dwarves package) from an object built from the installed headers, and holds them to
-`abi/libomx-clap-core.so.1.layout` under the same rule. A release commit records both
-baselines with `make abi-baseline` and commits `abi/`.
+package name).
 
 The message ring
 ----------------
@@ -354,13 +351,13 @@ one rename step, and broken by R1, R2, R4 or R5, each named; and the mover with
 `FAKE_MOVER_CONTRACT`, whose `params.rescan` keeps the contract (`keep`) or
 changes a symbol (`follow`, refused under R3).
 
-`make test-panel-abi` holds `org.openmixer.panel-description/1` as
-`omx_clap_ext.h` states it to omx-plugins' `omx_panel_description.h`, the ABI,
-as omx-plugins-devel installs it (`pkg-config omxplugins`): the id, every code,
-the size and member offsets of each structure, and a row of each table filled
-by omx-plugins' `omx_panel_get` read back member by member. omx-plugins builds
-on this tree, so the header is read from its package, never copied; the target
-fails, naming the package, where it is not installed. CI installs it.
+`make test-panel-abi` pins `org.openmixer.panel-description/1` as
+`omx_clap_ext.h` declares it: the id, and the size and member offsets of each
+structure, stated once in `tests/panel_abi_test.c`. omx-clap-core owns that
+layout; omx-plugins holds its `omx_panel_description.h` to this tree's
+installed header (its `make panel-abi`). Nothing here needs an omx-plugins
+package: `make test-no-upward-deps` fails on an include, a pkg-config ask or a
+devel package of it in the build, tests, CI or packaging.
 
 The readers of bytes from disk (the preset file, its state body and the
 `manifest.ttl` `lv2_locate` scans) have libFuzzer harnesses in `fuzz/`, built
@@ -485,6 +482,5 @@ The file `VERSION` holds the one version of the whole tree: the programs, `libom
 (its file is `libomx-clap-core.so.<major>.<minor>.<patch>`) and `libomx-clap-lv2`, with the
 `.pc` files and the manual pages. The Makefile reads it and hands it to the compiler, so no
 source file spells it. A release is: put the
-version in `VERSION`, the spec's `Version` and a new top entry of `debian/changelog`, run `make
-abi-baseline`, and tag `v<version>`. `make version-check` and the version job in CI refuse a tree
+version in `VERSION`, the spec's `Version` and a new top entry of `debian/changelog`, and tag `v<version>`. `make version-check` and the version job in CI refuse a tree
 whose files disagree. There is no changelog file: git history is the changelog.

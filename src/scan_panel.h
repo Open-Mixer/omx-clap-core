@@ -61,8 +61,6 @@ const char *scan_panel_family_word(uint32_t code);
 const char *scan_panel_family_enum(uint32_t code);
 const char *scan_panel_widget_word(uint32_t code);
 const char *scan_panel_widget_enum(uint32_t code);
-const char *scan_panel_display_kind_word(uint32_t code);
-const char *scan_panel_display_kind_enum(uint32_t code);
 const char *scan_panel_display_source_word(uint32_t code);
 const char *scan_panel_display_source_enum(uint32_t code);
 const char *scan_panel_placement_word(uint32_t code);

@@ -25,7 +25,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* The forced interleaving. src/xrun_report.h never calls this: only the sabotage build's header does, which splits the
+ * increment into a load, this call and a store (Makefile, test-xrun-report-sabotage). While g_interleave is set, the two
+ * noting threads meet here after both have loaded, so both store the same value and one note is lost on any core count
+ * and any load. The real increment never comes here and loses nothing. */
+void xrun_report_test_interleave(void);
+
 #include "xrun_report.h"
+
+static int g_interleave;
+static pthread_barrier_t g_rendezvous;
+
+void xrun_report_test_interleave(void)
+{
+    if (g_interleave)
+        pthread_barrier_wait(&g_rendezvous);
+}
 
 static int g_failed;
 
@@ -49,6 +64,12 @@ static void *noter(void *arg)
 {
     for (int i = 0; i < NOTES_EACH; i++)
         xrun_report_note(arg);
+    return NULL;
+}
+
+static void *note_once(void *arg)
+{
+    xrun_report_note(arg);
     return NULL;
 }
 
@@ -77,6 +98,19 @@ int main(void)
     xrun_report_note(&r);
     CHECK(xrun_report_due(&r, 2010, &count) && count == 5, "the lines in between are folded: one line, count 5");
     CHECK(!xrun_report_due(&r, 9000, &count), "nothing is written for a count already written");
+
+    xrun_report_init(&r);
+    pthread_t pair[2];
+    pthread_barrier_init(&g_rendezvous, NULL, 2);
+    g_interleave = 1;
+    for (int i = 0; i < 2; i++)
+        pthread_create(&pair[i], NULL, note_once, &r);
+    for (int i = 0; i < 2; i++)
+        pthread_join(pair[i], NULL);
+    g_interleave = 0;
+    pthread_barrier_destroy(&g_rendezvous);
+    CHECK(xrun_report_due(&r, 1, &count) && count == 2,
+          "two notes whose load and store interleave give the count 2, none lost");
 
     xrun_report_init(&r);
     pthread_t t[THREAD_NOTES];

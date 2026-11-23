@@ -19,13 +19,13 @@
  */
 
 /** @file
- * @brief clap.meters/1, the CLAP meters extension, for an SDK that does not ship it yet. */
+ * @brief clap.meters/1, the CLAP meters extension, which no released CLAP SDK ships yet. */
 
 /*
 ************************************************************************************************************************
 *
-* The CLAP SDK's clap/ext/draft/meters.h when the SDK has it; otherwise its id and structures, declared exactly as the
-* draft declares them (free-audio/clap#521), so a host and a plugin built against either agree on the layout.
+* The id and structures of the draft meters extension, declared exactly as the draft declares them
+* (free-audio/clap#521), so a host and a plugin built against the draft agree on the layout.
 * docs/meters.md is why the host reads this extension and no other for meters.
 *
 ************************************************************************************************************************
@@ -33,15 +33,6 @@
 
 #ifndef OMX_CLAP_METERS_H
 #define OMX_CLAP_METERS_H
-
-#if defined(__has_include)
-#if __has_include(<clap/ext/draft/meters.h>)
-#include <clap/ext/draft/meters.h>
-#define OMX_CLAP_METERS_FROM_SDK 1
-#endif
-#endif
-
-#ifndef OMX_CLAP_METERS_FROM_SDK
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -105,7 +96,5 @@ typedef struct clap_host_meters
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* OMX_CLAP_METERS_FROM_SDK */
 
 #endif /* OMX_CLAP_METERS_H */

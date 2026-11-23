@@ -47,11 +47,99 @@
 #include "hosted_stage_limits.h"
 #include "lv2_core.h"
 #include "lv2_locate.h"
+#include "scan_codes.h"
 #include "scan_fields.h"
 #include "scan_panel.h"
 
 #include <plugin-hostd/protocol.h>
+#include <omxcontract/omx_domain.h>
 
+
+/* The scopes of the dump are the words of the scan domain's SCAN_FIELD_SCOPES (contract.d/scan/scan.json), read once at start-up through
+ * libomx-domain, never literals here (omx-contract docs/consumer-move.md, step 4). Only the codes, which index the words, are compiled in
+ * (scan_codes.h, the one item C indexes by). This is a command line: it reads OMX_CONTRACT_PATH, a ':' list of directories standing where
+ * the contract directory stands (the first that holds the domain wins), and passes each to omx_domain_open_at; without it, the installed
+ * directory. The library code of omx-clap-core never reads it. A missing, invalid or too-old domain is refused by name, exit 78. */
+#define SCAN_DOMAIN "scan"
+#define SCAN_DOMAIN_FLOOR "1.0.0"
+#define SCAN_SCOPES_ITEM "SCAN_FIELD_SCOPES"
+#define SCOPE(NAME) (g_scope[OMX_SCAN_FIELD_SCOPES_##NAME])
+#define SCAN_EX_CONFIG 78
+
+static omx_domain *g_scan_domain;
+static const char *g_scope[OMX_SCAN_FIELD_SCOPES_COUNT];
+
+static int scan_domain_refuse(int rc, const char *message)
+{
+    fprintf(stderr, "omx-clap-scan: the %s domain: %s: %s\n", SCAN_DOMAIN, omx_domain_code(rc), message);
+    return SCAN_EX_CONFIG;
+}
+
+/* Open the scan domain from OMX_CONTRACT_PATH or the installed directory: 0, or SCAN_EX_CONFIG with the refusal printed. */
+static int scan_domain_open(void)
+{
+    const char *list = getenv("OMX_CONTRACT_PATH");
+    omx_domain_error err;
+    int rc;
+
+    memset(&err, 0, sizeof(err));
+    if (!list || !*list)
+        rc = omx_domain_open(SCAN_DOMAIN, SCAN_DOMAIN_FLOOR, &g_scan_domain, &err);
+    else
+    {
+        char *copy = strdup(list), *save = NULL, *dir;
+
+        if (!copy)
+            return scan_domain_refuse(OMX_CONTRACT_CODE_DIR_ABSENT, "out of memory reading OMX_CONTRACT_PATH");
+        rc = OMX_CONTRACT_CODE_DIR_ABSENT;
+        for (dir = strtok_r(copy, ":", &save); dir; dir = strtok_r(NULL, ":", &save))
+        {
+            rc = omx_domain_open_at(dir, SCAN_DOMAIN, SCAN_DOMAIN_FLOOR, &g_scan_domain, &err);
+            if (rc != OMX_CONTRACT_CODE_DIR_ABSENT)
+                break; /* the first directory that holds the domain wins, opened or refused */
+        }
+        free(copy);
+        if (rc == OMX_CONTRACT_CODE_DIR_ABSENT)
+        {
+            snprintf(err.message, sizeof(err.message), "no directory of OMX_CONTRACT_PATH holds it: %s", list);
+            err.code = omx_domain_code(rc);
+        }
+    }
+    if (rc != 0)
+        return scan_domain_refuse(rc, err.message);
+    return 0;
+}
+
+/* Fill g_scope from the words of SCAN_FIELD_SCOPES, by their codes: every scope this scanner writes must be a word of the domain. */
+static int scan_scopes_load(void)
+{
+    char what[256];
+    int i, n = omx_domain_word_count(g_scan_domain, SCAN_SCOPES_ITEM);
+
+    if (n < 0)
+        return scan_domain_refuse(OMX_CONTRACT_CODE_ITEM_UNKNOWN, SCAN_SCOPES_ITEM " is no item of the domain");
+    for (i = 0; i < n; i++)
+    {
+        omx_domain_word_info w;
+
+        if (omx_domain_word_at(g_scan_domain, SCAN_SCOPES_ITEM, i, &w) == 0 && w.code >= 0 && w.code < (int)OMX_SCAN_FIELD_SCOPES_COUNT)
+            g_scope[w.code] = w.word;
+    }
+    for (i = 0; i < (int)OMX_SCAN_FIELD_SCOPES_COUNT; i++)
+        if (!g_scope[i])
+        {
+            snprintf(what, sizeof(what), SCAN_SCOPES_ITEM " declares no word with code %d, a scope this scanner writes", i);
+            return scan_domain_refuse(OMX_CONTRACT_CODE_WORD_UNKNOWN, what);
+        }
+    return 0;
+}
+
+static int scan_scopes_open(void)
+{
+    int rc = scan_domain_open();
+
+    return rc ? rc : scan_scopes_load();
+}
 
 /*
 ************************************************************************************************************************
@@ -503,10 +591,10 @@ static const omx_clap_plugin_param_contract_ext_t *clap_contract(const struct om
     if (!ext)
         return NULL;
     if (ext->version)
-        record_number("plugin", "omx_clap_plugin_param_contract_ext.version",
+        record_number(SCOPE(PLUGIN), "omx_clap_plugin_param_contract_ext.version",
                       OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "contract.version", ext->version, p));
     if (ext->fingerprint)
-        record_text("plugin", "omx_clap_plugin_param_contract_ext.fingerprint",
+        record_text(SCOPE(PLUGIN), "omx_clap_plugin_param_contract_ext.fingerprint",
                     OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "contract.fingerprint", ext->fingerprint, p));
     return ext->get ? ext : NULL;
 }
@@ -552,7 +640,7 @@ static void clap_meters(const struct omx_clap_instance *in)
         if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "meters.get_info", ext->get_info, p, i, &m))
             continue;
         m.name[sizeof(m.name) - 1] = '\0';
-        snprintf(scope, sizeof(scope), "meter:%u", i);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(METER), i);
         record_number(scope, "clap_meter_info.id", m.id);
         record_text(scope, "clap_meter_info.name", m.name);
         record_named_code(scope, "clap_meter_info.kind", m.kind < 3 ? kinds[m.kind] : NULL, m.kind);
@@ -580,7 +668,7 @@ static void clap_params(const struct omx_clap_instance *in)
             continue;
         info.name[sizeof(info.name) - 1] = '\0';
         info.module[sizeof(info.module) - 1] = '\0';
-        snprintf(scope, sizeof(scope), "param:%u", i);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(PARAM), i);
         record_number(scope, "clap_param_info.id", info.id);
         record_text(scope, "clap_param_info.name", info.name);
         record_text(scope, "clap_param_info.module", info.module);
@@ -627,7 +715,7 @@ static void clap_audio_ports(const struct omx_clap_instance *in, bool is_input)
         if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ports.get", ports->get, in->plugin, i, is_input, &info))
             continue;
         info.name[sizeof(info.name) - 1] = '\0';
-        snprintf(scope, sizeof(scope), "%s:%u", is_input ? "audio_in" : "audio_out", i);
+        snprintf(scope, sizeof(scope), "%s:%u", is_input ? SCOPE(AUDIO_IN) : SCOPE(AUDIO_OUT), i);
         record_number(scope, "clap_audio_port_info.id", info.id);
         record_text(scope, "clap_audio_port_info.name", info.name);
         record_number(scope, "clap_audio_port_info.channel_count", info.channel_count);
@@ -654,7 +742,7 @@ static void clap_note_ports(const struct omx_clap_instance *in, bool is_input)
         if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ports.get", ports->get, in->plugin, i, is_input, &info))
             continue;
         info.name[sizeof(info.name) - 1] = '\0';
-        snprintf(scope, sizeof(scope), "%s:%u", is_input ? "note_in" : "note_out", i);
+        snprintf(scope, sizeof(scope), "%s:%u", is_input ? SCOPE(NOTE_IN) : SCOPE(NOTE_OUT), i);
         record_number(scope, "clap_note_port_info.id", info.id);
         record_text(scope, "clap_note_port_info.name", info.name);
         record_bits(scope, "clap_note_port_info.supported_dialects", info.supported_dialects, g_note_dialects);
@@ -695,22 +783,22 @@ static void clap_panel(const struct omx_clap_instance *in)
     if (scan_panel_read(in->plugin, &p) != 1)
         return;
     if (p.has_family)
-        record_code("panel", "omx_clap_plugin_panel_description.family", scan_panel_family_enum(p.family), p.family);
+        record_code(SCOPE(PANEL), "omx_clap_plugin_panel_description.family", scan_panel_family_enum(p.family), p.family);
     if (p.has_fingerprint)
-        record_text("panel", "omx_clap_plugin_panel_description.fingerprint", p.fingerprint);
+        record_text(SCOPE(PANEL), "omx_clap_plugin_panel_description.fingerprint", p.fingerprint);
     // a table refused for its count: the table, the count the plugin answered and the maximum, and no entry of it
     for (i = 0; i < SCAN_PANEL_TABLE_COUNT; i++)
         if (p.table[i].refused)
         {
             snprintf(refusal, sizeof(refusal), "%s %u refused, past %u", g_panel_tables[i], p.table[i].refused,
                      OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES);
-            record("panel", "omx_clap_plugin_panel_description.count", refusal);
+            record(SCOPE(PANEL), "omx_clap_plugin_panel_description.count", refusal);
         }
     for (i = 0; i < p.table[SCAN_PANEL_SECTIONS].n; i++)
     {
         const omx_clap_panel_description_section_t *s = SCAN_PANEL_ROW(&p, SCAN_PANEL_SECTIONS, omx_clap_panel_description_section_t, i);
 
-        snprintf(scope, sizeof(scope), "section:%u", p.table[SCAN_PANEL_SECTIONS].index[i]);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(SECTION), p.table[SCAN_PANEL_SECTIONS].index[i]);
         record_text(scope, "omx_clap_panel_section.key", s->key);
         record_text(scope, "omx_clap_panel_section.label_key", s->label_key);
         record_text(scope, "omx_clap_panel_section.label", s->label);
@@ -719,7 +807,7 @@ static void clap_panel(const struct omx_clap_instance *in)
     {
         const omx_clap_panel_description_control_t *c = SCAN_PANEL_ROW(&p, SCAN_PANEL_CONTROLS, omx_clap_panel_description_control_t, i);
 
-        snprintf(scope, sizeof(scope), "control:%u", p.table[SCAN_PANEL_CONTROLS].index[i]);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(CONTROL), p.table[SCAN_PANEL_CONTROLS].index[i]);
         record_id(scope, "omx_clap_panel_control.param_id", c->param_id);
         record_number(scope, "omx_clap_panel_control.section", c->section);
         record_code(scope, "omx_clap_panel_control.widget", scan_panel_widget_enum(c->widget), c->widget);
@@ -737,7 +825,7 @@ static void clap_panel(const struct omx_clap_instance *in)
     {
         const omx_clap_panel_description_role_t *r = SCAN_PANEL_ROW(&p, SCAN_PANEL_ROLES, omx_clap_panel_description_role_t, i);
 
-        snprintf(scope, sizeof(scope), "role:%u", p.table[SCAN_PANEL_ROLES].index[i]);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(ROLE), p.table[SCAN_PANEL_ROLES].index[i]);
         record_text(scope, "omx_clap_panel_role.role", r->role);
         record_number(scope, "omx_clap_panel_role.index", r->index);
         record_id(scope, "omx_clap_panel_role.param_id", r->param_id);
@@ -746,8 +834,8 @@ static void clap_panel(const struct omx_clap_instance *in)
     {
         const omx_clap_panel_description_display_t *d = SCAN_PANEL_ROW(&p, SCAN_PANEL_DISPLAYS, omx_clap_panel_description_display_t, i);
 
-        snprintf(scope, sizeof(scope), "display:%u", p.table[SCAN_PANEL_DISPLAYS].index[i]);
-        record_code(scope, "omx_clap_panel_display.kind", scan_panel_display_kind_enum(d->kind), d->kind);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(DISPLAY), p.table[SCAN_PANEL_DISPLAYS].index[i]);
+        record_number(scope, "omx_clap_panel_display.kind", d->kind);
         record_number(scope, "omx_clap_panel_display.section", d->section);
         record_code(scope, "omx_clap_panel_display.source", scan_panel_display_source_enum(d->source), d->source);
         record_id(scope, "omx_clap_panel_display.meter_ids[0]", d->meter_ids[0]);
@@ -762,7 +850,7 @@ static void clap_panel(const struct omx_clap_instance *in)
     {
         const omx_clap_panel_description_default_t *d = SCAN_PANEL_ROW(&p, SCAN_PANEL_PLACEMENT_DEFAULTS, omx_clap_panel_description_default_t, i);
 
-        snprintf(scope, sizeof(scope), "placement_default:%u", p.table[SCAN_PANEL_PLACEMENT_DEFAULTS].index[i]);
+        snprintf(scope, sizeof(scope), "%s:%u", SCOPE(PLACEMENT_DEFAULT), p.table[SCAN_PANEL_PLACEMENT_DEFAULTS].index[i]);
         record_code(scope, "omx_clap_panel_placement_default.placement", scan_panel_placement_enum(d->placement), d->placement);
         record_id(scope, "omx_clap_panel_placement_default.param_id", d->param_id);
         record_number(scope, "omx_clap_panel_placement_default.value", d->value);
@@ -781,13 +869,13 @@ static void clap_active(const struct omx_clap_instance *in)
                                                                                          OMX_ABI_A(plugin), 1, FIELDS_MAX_FRAMES, 0, FIELDS_RATE)))
         return;
     if (in->latency && in->latency->get)
-        record_number("plugin", "clap_plugin_latency.get", OMX_ABI_CALL(NULL, "latency.get", in->latency->get, plugin));
+        record_number(SCOPE(PLUGIN), "clap_plugin_latency.get", OMX_ABI_CALL(NULL, "latency.get", in->latency->get, plugin));
     memset(&info, 0, sizeof(info));
     if (voice && voice->get && OMX_ABI_CALL(NULL, "voice.get", voice->get, plugin, &info))
     {
-        record_number("plugin", "clap_voice_info.voice_count", info.voice_count);
-        record_number("plugin", "clap_voice_info.voice_capacity", info.voice_capacity);
-        record_bits("plugin", "clap_voice_info.flags", info.flags, g_voice_flags);
+        record_number(SCOPE(PLUGIN), "clap_voice_info.voice_count", info.voice_count);
+        record_number(SCOPE(PLUGIN), "clap_voice_info.voice_capacity", info.voice_capacity);
+        record_bits(SCOPE(PLUGIN), "clap_voice_info.flags", info.flags, g_voice_flags);
     }
     omx_abi_g(NULL, "deactivate", (const void *)plugin->deactivate, OMX_ABI_A(plugin), 0, 0, 0, 0, 0);
 }
@@ -822,23 +910,23 @@ static int fields_clap(const char *path, const char *id)
         return 1;
     }
 
-    record("plugin", "clap_entry", file ? file + 1 : path);
-    record_text("plugin", "clap_plugin_descriptor.id", desc->id);
-    record_text("plugin", "clap_plugin_descriptor.name", desc->name);
-    record_text("plugin", "clap_plugin_descriptor.vendor", desc->vendor);
-    record_text("plugin", "clap_plugin_descriptor.version", desc->version);
-    record_text("plugin", "clap_plugin_descriptor.description", desc->description);
-    record_text("plugin", "clap_plugin_descriptor.url", desc->url);
-    record_text("plugin", "clap_plugin_descriptor.manual_url", desc->manual_url);
-    record_text("plugin", "clap_plugin_descriptor.support_url", desc->support_url);
+    record(SCOPE(PLUGIN), "clap_entry", file ? file + 1 : path);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.id", desc->id);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.name", desc->name);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.vendor", desc->vendor);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.version", desc->version);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.description", desc->description);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.url", desc->url);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.manual_url", desc->manual_url);
+    record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.support_url", desc->support_url);
     for (f = desc->features; f && *f; f++)
-        record_text("plugin", "clap_plugin_descriptor.features", NAMED(g_features, *f));
+        record_text(SCOPE(PLUGIN), "clap_plugin_descriptor.features", NAMED(g_features, *f));
     for (i = 0; i < sizeof(g_extensions) / sizeof(g_extensions[0]); i++)
         if (OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, g_extensions[i].value))
-            record("plugin", "clap_plugin.get_extension", g_extensions[i].name);
+            record(SCOPE(PLUGIN), "clap_plugin.get_extension", g_extensions[i].name);
     for (f = g_omx_extensions; *f; f++)
         if (OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, *f))
-            record("plugin", "clap_plugin.get_extension", *f);
+            record(SCOPE(PLUGIN), "clap_plugin.get_extension", *f);
     clap_params(in);
     clap_meters(in);
     clap_audio_ports(in, true);
@@ -912,9 +1000,9 @@ static void lv2_field(void *ctx, int32_t port, uint32_t ask, enum lv2_field_kind
 
     (void)ctx;
     if (port < 0)
-        snprintf(scope, sizeof(scope), "plugin");
+        snprintf(scope, sizeof(scope), "%s", SCOPE(PLUGIN));
     else
-        snprintf(scope, sizeof(scope), "port:%d", port);
+        snprintf(scope, sizeof(scope), "%s:%d", SCOPE(PORT), port);
     if (kind == LV2_FIELD_URI)
     {
         lv2_uri_text(value, text, sizeof(text));
@@ -1156,6 +1244,9 @@ int scan_fields(const char *target)
         fprintf(stderr, "omx-clap-scan: --fields clap:<path>#<id>: %s names no plugin id\n", target);
         return 2;
     }
+    /* the scopes come from the domain, opened here before the dump's child is forked: a refused domain writes nothing */
+    if ((status = scan_scopes_open()) != 0)
+        return status;
     fflush(stdout);
     fflush(stderr);
     if (pipe(pipe_fd) < 0)

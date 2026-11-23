@@ -74,6 +74,46 @@ static LV2_Handle instantiate(const LV2_Descriptor *d, double rate, const char *
     return e;
 }
 
+/* #undeclared: the original ll-plugins' instantiate (lv2-c++-tools' URIMap mixin), which declares no feature in its TTL:
+ * the uri-map callback starts NULL, is taken from the array when uri-map is there, and is called with no check, before
+ * the mixin's own check (the event feature required) can refuse. Without uri-map that call jumps to address 0. */
+static LV2_Handle undeclared_instantiate(const LV2_Descriptor *d, double rate, const char *path, const LV2_Feature *const *features)
+{
+    uint32_t (*uri_to_id)(LV2_URI_Map_Callback_Data, const char *, const char *) = NULL;
+    LV2_URI_Map_Callback_Data cb = NULL;
+    const void *event = NULL;
+    struct echo *e;
+    int i;
+
+    (void)d;
+    (void)rate;
+    (void)path;
+    for (i = 0; features && features[i]; i++)
+    {
+        if (!strcmp(features[i]->URI, LV2_URI_MAP_URI))
+        {
+            const LV2_URI_Map_Feature *map = features[i]->data;
+
+            cb = map->callback_data;
+            uri_to_id = map->uri_to_id;
+        }
+        else if (!strcmp(features[i]->URI, LV2_EVENT_URI))
+            event = features[i]->data;
+    }
+    e = calloc(1, sizeof(*e));
+    if (!e)
+        return NULL;
+    e->midi = (uint16_t)uri_to_id(cb, LV2_EVENT_URI, LV2_MIDI__MidiEvent);
+    lv2_event_fixture.midi_type = e->midi;
+    lv2_event_fixture.instantiated++;
+    if (!event)
+    {
+        free(e);
+        return NULL;
+    }
+    return e;
+}
+
 static void echo_connect(LV2_Handle h, uint32_t port, void *data)
 {
     struct echo *e = h;
@@ -312,6 +352,11 @@ static const LV2_Descriptor ECHO =
     LV2_EVENT_FIXTURE_URI "#echo", instantiate, echo_connect, NULL, echo_run, NULL, cleanup, NULL
 };
 
+static const LV2_Descriptor UNDECLARED =
+{
+    LV2_EVENT_FIXTURE_URI "#undeclared", undeclared_instantiate, echo_connect, NULL, echo_run, NULL, cleanup, NULL
+};
+
 static const LV2_Descriptor TWO =
 {
     LV2_EVENT_FIXTURE_URI "#two", instantiate, two_connect, NULL, two_run, NULL, cleanup, NULL
@@ -329,7 +374,7 @@ static const LV2_Descriptor MIXED_EV_FIRST =
 
 EXPORT const LV2_Descriptor *lv2_descriptor(uint32_t index)
 {
-    static const LV2_Descriptor *const all[] = { &ECHO, &TWO, &MIXED_ATOM_FIRST, &MIXED_EV_FIRST };
+    static const LV2_Descriptor *const all[] = { &ECHO, &TWO, &MIXED_ATOM_FIRST, &MIXED_EV_FIRST, &UNDECLARED };
 
     return index < sizeof(all) / sizeof(all[0]) ? all[index] : NULL;
 }

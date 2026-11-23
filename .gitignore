@@ -86,3 +86,4 @@ tests/hosted_cost_bench_lv2
 tests/hosted_clamp_test
 __pycache__/
 tests/fake_tool.clap
+!contract.d/

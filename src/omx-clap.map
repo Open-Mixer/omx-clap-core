@@ -216,3 +216,10 @@ OMX_CLAP_CORE_0.33
     omx_clap_host_property_get;
     omx_clap_host_property_set;
 } OMX_CLAP_CORE_0.26;
+
+/* added in 0.36.0: the standard unit id of a parameter contract unit code, the word param_info answers (plugin-hostd#215 D1) */
+OMX_CLAP_CORE_0.36
+{
+  global:
+    omx_clap_param_unit_id;
+} OMX_CLAP_CORE_0.33;

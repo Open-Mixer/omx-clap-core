@@ -398,17 +398,13 @@ another host renders the same macros from the installed contract directory
 `make test-codes` runs `tests/host-verbs-check.sh`, which fails on a verb's word
 or format typed in `src/` or `lv2/` and on a `HOST_REPLY_*` number that is not
 the declared one, with its `--self-test`. `make test-host-verbs` installs the
-package into `build/verbs-contract`, with plugin-hostd-protocol's domain
-`plugin-hostd` of the checkout at `PROTOCOL_DIR` beside it (or reads
-`OMX_CONTRACT_PATH`), every domain read through omx-contract's reader, and
-drives the host: each verb declared `required` answers a well-formed line with the
+package into `build/verbs-contract` (or reads `OMX_CONTRACT_PATH`) and drives
+the host: each verb declared `required` answers a well-formed line with the
 declared reply and each malformed one with the declared code, an `unsupported`
 one answers `-902`, and the verbs the host registers are the declared ones.
 `make test-host-verbs-sabotage` changes a format and what the host owes a verb
 in a copy of the declarations, deletes a handler and registers an undeclared
 verb in a copy of the sources, and requires each to go red.
-`make test-host-verbs-domains` holds where that check reads the protocol's
-verbs (`tests/host_verbs_domains.py`, no socket).
 The two rendered headers install with the other core headers under
 `include/omx-clap-host/`, and the TypeScript module under
 `share/omx-clap/ts/`, which `pkg-config --variable=tsdir omx-clap`

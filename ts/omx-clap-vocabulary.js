@@ -622,36 +622,6 @@ export const HOSTING_TOPOLOGY_CODES = {
 };
 
 /**
- * The hosts a verb's implementedBy names (docs/contract-dir.md): the programs a controller sends mod-host's protocol to. A verb states what each one owes it; a host the verb leaves out owes it nothing.
- *
- * Why: A host's verbs were typed twice, in plugin-hostd's protocol.h and in omx-clap-core's command table; a verbs item declares them once, and the hosts it names are a closed list, so a misspelt host is refused rather than read as a host that owes nothing.
- * @see data/hosting/verb-hosts.json
- */
-export const HOSTING_VERB_HOSTS = {
-  "pluginHostd": {
-    "word": "plugin-hostd",
-    "doc": "The daemon that places plugins in workers and answers the verbs it adds itself.",
-    "text": {
-      "en": "The daemon that places plugins in workers and answers the verbs it adds itself."
-    }
-  },
-  "omxClapHost": {
-    "word": "omx-clap-host",
-    "doc": "omx-clap-core's worker: a CLAP plugin's host, and an LV2 plugin's through its adapter.",
-    "text": {
-      "en": "omx-clap-core's worker: a CLAP plugin's host, and an LV2 plugin's through its adapter."
-    }
-  },
-  "modHost": {
-    "word": "mod-host",
-    "doc": "mod-host, the LV2 host whose protocol the others speak.",
-    "text": {
-      "en": "mod-host, the LV2 host whose protocol the others speak."
-    }
-  }
-};
-
-/**
  * The hosting codes of the worker dimension: hosting.worker.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
  * @see data/hosting/worker.json
  */
@@ -929,16 +899,6 @@ export const HOST_EVENTS = {
     "doc": "the plugin returned from a call with a callee-saved register changed (0.26.2): the instance number, the registers as a hexadecimal mask with their names, the plugin function and the block, written once per instance. The worker put the registers back, so its own frame is whole; the other members' state in the same process is not covered, so the plugin is run only in a worker of its own"
   }
 };
-
-/**
- * The words of HOSTING_VERB_HOSTS, in their declared order.
- * @see data/hosting/verb-hosts.json
- */
-export const HOSTING_VERB_HOSTS_WORDS = [
-  "plugin-hostd",
-  "omx-clap-host",
-  "mod-host"
-];
 
 /**
  * The words of HOST_TRACK_KINDS, in their declared order.

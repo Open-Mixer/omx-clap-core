@@ -51,7 +51,7 @@ Verbs
   `PLUGIN` location (a `plugin:<key>` key, or an LV2 preset's URI), `file://<path>` for a file, `loadKey` then the key
   inside a container or null for a file of one preset. A key the last `preset_list` does not hold is looked for in a
   listing read again; one the plugin does not list answers -523 (`PRESET_NOT_OFFERED`), and a file that is no preset
-  file -524 (`PRESET_INVALID`): the codes the domain plugin-hostd declares for `preset_show`, not `preset_load`'s
+  file -524 (`PRESET_INVALID`): the codes plugin-hostd's verbs file declares for `preset_show`, not `preset_load`'s
   `resp -104 <code>`.
 
 After a load the host reports every parameter whose value the load moved as mod-host's `param_set <N> <symbol> <value>`

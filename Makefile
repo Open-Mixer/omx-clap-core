@@ -1370,6 +1370,9 @@ HOST_VERBS_CONTRACT = $(abspath build/verbs-contract)
 OMX_CONTRACT_CLIDIR ?= $(or $(shell $(PKG_CONFIG) --variable=clidir omx-contract 2>/dev/null),$(abspath $(OMX_CONTRACT_DIR)))
 export OMX_CONTRACT_CLIDIR
 PROTOCOL_CONTRACT_DIR ?= $(PROTOCOL_DIR)
+# the domain itself: the checkout's contract.d/plugin-hostd-protocol, or, with no checkout named (plugin-hostd-protocol-devel
+# installed, so PROTOCOL_DIR is unset), the one plugin-hostd-protocol-contract installed in omx-contract's contract directory
+PROTOCOL_DOMAIN ?= $(if $(PROTOCOL_CONTRACT_DIR),$(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd-protocol,$(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null)/plugin-hostd-protocol)
 .PHONY: test-host-verbs test-host-verbs-sabotage test-host-verbs-domains host-verbs-contract
 host-verbs-contract:
 	rm -rf $(HOST_VERBS_CONTRACT)
@@ -1378,8 +1381,8 @@ host-verbs-contract:
 	@# every other package that names omx-clap-host in its words (the domain plugin-hostd-protocol: chain,
 	@# preset_list, ...) is read too, installed as its package installs it: the domain alone, named after its package,
 	@# with no owner manifest beside it (omx-contract's reader reads a domain as the package of its name)
-	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json || { echo "host-verbs-contract: no plugin-hostd-protocol checkout at $(PROTOCOL_CONTRACT_DIR) (PROTOCOL_CONTRACT_DIR), whose domain plugin-hostd-protocol declares chain of omx-clap-host" >&2; exit 1; }
-	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd-protocol $(HOST_VERBS_CONTRACT)
+	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json || { echo "host-verbs-contract: no domain plugin-hostd-protocol at $(PROTOCOL_DOMAIN) (a checkout named by PROTOCOL_CONTRACT_DIR, or plugin-hostd-protocol-contract installed), whose words declare chain of omx-clap-host" >&2; exit 1; }
+	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_DOMAIN) $(HOST_VERBS_CONTRACT)
 test-host-verbs: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_e2e.sh
 

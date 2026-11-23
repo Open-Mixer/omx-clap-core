@@ -30,7 +30,7 @@ env:
   OMX_CONTRACT_REF: v3.20.0
 
 # Two tiers (owner ruling 2026-11-09: heavy workflows on tags, pull requests quick). A pull request runs the plain test
-# tier and one package arm (fc44 x86_64, trixie amd64). The sanitizer tiers (address, thread), every sabotage of a guard,
+# tier and one package arm (fc45 x86_64, trixie arm64). The sanitizer tiers (address, thread), every sabotage of a guard,
 # the full package matrix and the release dry run run on push to main, on tags and on dispatch, before a release.
 jobs:
   # no Fedora release written into a job: the cells come from check-matrix (rule 11-10, ruling D25)
@@ -75,6 +75,8 @@ jobs:
   # of either (the commit-msg hook the shared stub byte for byte), from Open-Mixer/.github and nowhere else
   public-sources:
     uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
+    with:
+      commit-identity: true
   # the dependency floors: the spec and debian/control state the floors packaging/deps.txt declares, and no ceiling. The
   # engine is Open-Mixer/.github's deps-render, at the same openmixer-v1 ref every shared action of this repository uses
   deps-render:
@@ -85,7 +87,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Open-Mixer/.github/.github/actions/deps-render@openmixer-v1
   # the Fedora cells the contract, build and two sabotage jobs run, and the rpm job's: check-matrix's answer
-  # (rule 11-10: fc45 beside fc44; the quick set while a release wave is open, the whole matrix declared here otherwise)
+  # (Fedora 45 alone: the fc44 builds are dropped; the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -94,20 +96,32 @@ jobs:
       rpm-count: ${{ steps.m.outputs.rpm-count }}
       packages: ${{ steps.p.outputs.rpm }}
       packages-count: ${{ steps.p.outputs.rpm-count }}
+      debs: ${{ steps.d.outputs.deb }}
+      debs-count: ${{ steps.d.outputs.deb-count }}
     steps:
       - id: m
         uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
         with:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
-          rpm-releases: '["44", "45"]'
+          rpm-releases: '["45"]'
           rpm-arches: '["x86_64"]'
       # the rpm job's cells: aarch64 beside x86_64 except on a pull request
       - id: p
         uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
         with:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
-          rpm-releases: '["44", "45"]'
+          rpm-releases: '["45"]'
           rpm-arches: ${{ github.event_name == 'pull_request' && '["x86_64"]' || '["x86_64", "aarch64"]' }}
+      # the deb and deb-smoke jobs' cells: trixie on each architecture's own runner (the channel's development debs are
+      # trixie arm64 only; an amd64 container resolves an arm64 -dev package that dpkg refuses), arm64 alone on a pull request;
+      # an amd64 cell keeps the self-hosted runner it ran on (OMX_RUNNER, the hosted one for a fork)
+      - id: d
+        uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
+        with:
+          wave: ${{ vars.OMX_RELEASE_MATRIX }}
+          deb-releases: '["trixie"]'
+          deb-arches: ${{ github.event_name == 'pull_request' && '["arm64"]' || '["amd64", "arm64"]' }}
+          x86-runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
 
   contract:
     needs: checks
@@ -142,13 +156,6 @@ jobs:
 
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
-
-      # the display kinds this tree owns are omx-panel's DISPLAY_KINDS, the vocabulary source, word for word and in order
-      - name: Install omx-panel
-        run: dnf install -y --setopt=install_weak_deps=False 'omx-panel >= 0.13.8'
-
-      - name: The display kinds are omx-panel's
-        run: make test-display-kinds
 
       # one pack per listed language from the spec and debian/control, and the catalogs through omx-contract's release
       # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30)
@@ -778,7 +785,7 @@ jobs:
     name: RPMs (fc${{ matrix.cell.fedora }}, ${{ matrix.cell.arch }}), installed in a clean root
     needs: [checks, changes]
     if: needs.changes.outputs.packages == 'true' && needs.checks.outputs.packages-count != '0'
-    runs-on: ${{ matrix.cell.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -1059,21 +1066,20 @@ jobs:
           retention-days: 7
 
   deb:
-    name: DEBs (${{ matrix.suite }}, ${{ matrix.arch }}), built and linted
-    needs: changes
-    if: needs.changes.outputs.packages == 'true'
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+    name: DEBs (${{ matrix.cell.suite }}, ${{ matrix.cell.arch }}), built and linted
+    needs: [changes, checks]
+    if: needs.changes.outputs.packages == 'true' && needs.checks.outputs.debs-count != '0'
+    runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        suite: [trixie]
-        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
+        cell: ${{ fromJSON(needs.checks.outputs.debs) }}
     defaults:
       run:
         shell: bash
     container:
-      image: debian:${{ matrix.suite }}
+      image: ${{ matrix.cell.image }}
     steps:
       - name: Install the build tools
         run: |
@@ -1199,7 +1205,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: omx-clap-host-ci-debs-${{ matrix.suite }}-${{ matrix.arch }}
+          name: omx-clap-host-ci-debs-${{ matrix.cell.suite }}-${{ matrix.cell.arch }}
           path: |
             debs/*.deb
             proto-debs/libplugin-hostd-protocol0_*.deb
@@ -1210,25 +1216,24 @@ jobs:
           retention-days: 1
 
   deb-smoke:
-    name: DEBs (${{ matrix.suite }}, ${{ matrix.arch }}), installed in a clean container
-    needs: deb
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+    name: DEBs (${{ matrix.cell.suite }}, ${{ matrix.cell.arch }}), installed in a clean container
+    needs: [deb, checks]
+    runs-on: ${{ matrix.cell.runner }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        suite: [trixie]
-        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["amd64"]' || '["amd64", "arm64"]') }}
+        cell: ${{ fromJSON(needs.checks.outputs.debs) }}
     # nothing but the distribution: a dependency the package forgot to declare is missing here
     defaults:
       run:
         shell: bash
     container:
-      image: debian:${{ matrix.suite }}
+      image: ${{ matrix.cell.image }}
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: omx-clap-host-ci-debs-${{ matrix.suite }}-${{ matrix.arch }}
+          name: omx-clap-host-ci-debs-${{ matrix.cell.suite }}-${{ matrix.cell.arch }}
 
       - name: Install the package with its dependencies from the distribution
         run: |
@@ -1294,3 +1299,10 @@ jobs:
       publish: false
       arm: false  # aarch64/arm64 build at release only
 
+
+  pr-fixes-issue:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: Open-Mixer/.github/.github/workflows/pr-fixes-issue.yml@openmixer-v1

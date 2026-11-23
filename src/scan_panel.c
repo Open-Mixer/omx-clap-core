@@ -166,13 +166,11 @@ void scan_panel_free(struct scan_panel *panel)
 
 WORDS(OMX_CLAP_PANEL_FAMILIES, family)
 WORDS(OMX_CLAP_PANEL_WIDGETS, widget)
-WORDS(OMX_CLAP_PANEL_DISPLAY_KINDS, display_kind)
 WORDS(OMX_CLAP_PANEL_DISPLAY_SOURCES, display_source)
 WORDS(OMX_CLAP_PANEL_PLACEMENTS, placement)
 
 #define FAMILY_ENUM(code, name, id) [code] = "OMX_CLAP_FAMILY_" #id,
 #define WIDGET_ENUM(code, name, id) [code] = "OMX_CLAP_WIDGET_" #id,
-#define DISPLAY_KIND_ENUM(code, name, id) [code] = "OMX_CLAP_DISPLAY_" #id,
 #define DISPLAY_SOURCE_ENUM(code, name, id) [code] = "OMX_CLAP_DISPLAY_FROM_" #id,
 #define PLACEMENT_ENUM(code, name, id) [code] = "OMX_CLAP_PLACEMENT_" #id,
 #define ENUMS(list, x, fn)                                                                                          \
@@ -184,6 +182,5 @@ WORDS(OMX_CLAP_PANEL_PLACEMENTS, placement)
 
 ENUMS(OMX_CLAP_PANEL_FAMILIES, FAMILY_ENUM, family)
 ENUMS(OMX_CLAP_PANEL_WIDGETS, WIDGET_ENUM, widget)
-ENUMS(OMX_CLAP_PANEL_DISPLAY_KINDS, DISPLAY_KIND_ENUM, display_kind)
 ENUMS(OMX_CLAP_PANEL_DISPLAY_SOURCES, DISPLAY_SOURCE_ENUM, display_source)
 ENUMS(OMX_CLAP_PANEL_PLACEMENTS, PLACEMENT_ENUM, placement)

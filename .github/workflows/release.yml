@@ -7,7 +7,7 @@ name: release
 # Anything else, a manual run from a branch or the dry run of ci.yml, builds and assembles unsigned trees and
 # publishes nothing. Everything is in Open-Mixer/.github; the secrets are the organisation's.
 
-# A manual run with staged on (never a tag) builds fc44 x86_64 and trixie amd64 only, against the staging channel, and
+# A manual run with staged on (never a tag) builds the quick set only (fc45 x86_64, trixie arm64), against the staging channel, and
 # publishes them, signed, to the staging channel (staging/rpm and staging/deb of the channel repository), where the
 # next layer of the release chain finds them by adding the staging channel beside the real one. Nothing reaches the
 # real channel, and the real release still publishes once from the v<version> tag (Open-Mixer/.github build-rpm.yml
@@ -27,7 +27,7 @@ on:
         type: boolean
         default: true
       staged:
-        description: 'Build fc44 x86_64 and trixie amd64 only and publish them to the staging channel for the next layer; publishes nothing to the real channel'
+        description: 'Build the quick set only (fc45 x86_64, trixie arm64) and publish them to the staging channel for the next layer; publishes nothing to the real channel'
         type: boolean
         default: false
       staging:

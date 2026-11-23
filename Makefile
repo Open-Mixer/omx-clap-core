@@ -807,22 +807,13 @@ tests/lv2_locate_test: tests/lv2_locate_test.c src/lv2_locate.c src/lv2_locate.h
 # org.openmixer.panel-description/1 as src/omx_clap_ext.h declares it: omx-clap-core owns the layout, so
 # tests/panel_abi_test.c pins the size and every member's offset itself. omx-plugins holds its copy to this tree's
 # installed header (its make panel-abi); nothing here reads omx-plugins
-# (the display kinds' codes are not held to it: omx-panel's DISPLAY_KINDS is their source, test-display-kinds)
+# (the display kinds are a number here: omx-panel's panel domain owns their words and codes)
 .PHONY: test-panel-abi
 test-panel-abi: tests/panel_abi_test
 	./tests/panel_abi_test
 
 tests/panel_abi_test: tests/panel_abi_test.c src/omx_clap_ext.h
 	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
-
-# OMX_CLAP_PANEL_DISPLAY_KINDS, words and codes, held to omx-panel's DISPLAY_KINDS, the vocabulary source (node; omx-panel's
-# tree from OMX_PANEL_DIR, default the installed /usr/share/omx-panel; red, never a skip, when it is not there). CI runs it
-# in the contract job; the package builds do not (no omx-panel in their BuildRequires)
-OMX_PANEL_DIR ?= /usr/share/omx-panel
-.PHONY: test-display-kinds
-test-display-kinds:
-	OMX_PANEL_DIR=$(OMX_PANEL_DIR) node tests/display-kinds-check.mjs src/omx_clap_ext.h
-	OMX_PANEL_DIR=$(OMX_PANEL_DIR) node tests/display-kinds-check.mjs --self-test src/omx_clap_ext.h
 
 # the parameter contract's SHA-256, canonical fingerprint and shortest decimals against answers computed elsewhere
 test-param-contract: tests/param_contract_test

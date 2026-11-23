@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """
 The verbs omx-clap-host owes, read from the installed declarations, against the host's socket and its registration
-table (data/verbs.json, docs/verbs.md).
+table (contract.d/omx-clap/omx-clap.json, docs/verbs.md).
 
     host_verbs_check.py --port <n> --contract-path <dir>[:<dir>...] --registration <main.c> --header <verbs header>
                         --fake <fake.clap> --synth <fake_synth.clap> --layout-scheme <scheme>
@@ -33,11 +33,12 @@ import socket
 import sys
 import tempfile
 
+sys.dont_write_bytecode = True  # plugin-hostd's tree is read, never written: no __pycache__ in its tests/lib
 sys.path.insert(0, os.environ.get('PLUGIN_HOSTD_TESTS_LIB') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'plugin-hostd', 'tests', 'lib'))
 import plugin_hostd_client  # noqa: E402  plugin-hostd-tests' lib/plugin_hostd_client.py
 
 HOST = 'omx-clap-host'
-OWNER = 'omx-clap-core'
+OWNER = 'omx-clap'
 # a verb this host answers whose declaration belongs to another package's lane, and the package (FreeMixer/plugin-hostd#131);
 # once any installed package declares it, the socket checks it as declared
 # (preset_save is registered in mod-host's four-word form, <N> <dir> <file name> <label>, plugin-hostd#38)
@@ -91,7 +92,9 @@ EXAMPLES = {
     'param_set_many': (['{fx}', '0', '0.5'], []),
     # the curve verbs (plugin-hostd-protocol 0.5.0), answered by the library over the backend and the host's rate: a
     # transfer curve bound to the passthrough's parameter 0, then drawn
-    'curve_bind': (['{fx}', '0', 'transfer_curve', 'dynamics', 'threshold=0:db', 'ratio=0:ratio'], []),
+    # (a term's unit is a standard id, plugin-hostd-protocol's curve_bind: :dB is taken, the lower-case :db is refused)
+    'curve_bind': (['{fx}', '0', 'transfer_curve', 'dynamics', 'threshold=0:dB', 'ratio=0:ratio'],
+                   [(['{fx}', '0', 'transfer_curve', 'dynamics', 'threshold=0:db', 'ratio=0:ratio'], 'curveUnitRefused')]),
     'curve_points': (['{fx}', '0', '9'], []),
     # monitor_output_off (plugin-hostd-protocol 0.5.0): an output this connection never monitored is refused by its code
     'monitor_output_off': (['{fx}', 'out'], [(['x', 'out'], 'invalidOperation')]),
@@ -126,6 +129,32 @@ def packages(path):
     return found
 
 
+def domain_items(path):
+    """The verbs and codes items of every installed domain of the contract path, as the data form's items:
+    {name: (owner, item)}. A domain's word is a verb (x-format, x-reply, x-implemented-by, x-codes) or a reply code
+    (x-resp), keyed by its title."""
+    out = {}
+    for top in [d for d in path.split(':') if d]:
+        if not os.path.isdir(top):
+            continue
+        for dom in sorted(os.listdir(top)):
+            doc = os.path.join(top, dom, dom + '.json')
+            if dom == '3' or not os.path.isfile(doc):
+                continue
+            with open(doc) as f:
+                d = json.load(f)
+            owner = d['info']['x-owner']
+            for name, it in d['components']['schemas'].items():
+                if it.get('x-kind') == 'verbs':
+                    out[name] = (owner, {'kind': 'verbs', 'verbs': {w['title']: {
+                        'verb': w['const'], 'format': w['x-format'], 'reply': w['x-reply'],
+                        'implementedBy': w['x-implemented-by'], 'codes': w.get('x-codes', [])} for w in it['oneOf']}})
+                elif it.get('x-kind', 'codes') == 'codes' and it.get('oneOf') and 'x-resp' in it['oneOf'][0]:
+                    out[name] = (owner, {'kind': 'codes', 'codes': {w['title']: {'code': w['const'], 'resp': w['x-resp']}
+                                                                    for w in it['oneOf']}})
+    return out
+
+
 def declarations(path):
     """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}."""
     items, verbs = {}, []
@@ -138,6 +167,7 @@ def declarations(path):
             for name, item in doc.items():
                 if isinstance(item, dict) and 'kind' in item:
                     items[name] = (pkg, item)
+    items.update(domain_items(path))
     for name, (pkg, item) in items.items():
         if item['kind'] != 'verbs':
             continue
@@ -314,7 +344,8 @@ def main():
             step(shape(got, v['reply']) or refused, '%s (optional) -> %s: "%s" or the refusal' % (line, got, v['reply']))
         else:
             step(refused, '%s (unsupported) -> %s: refused with invalidOperation %s' % (line, got, codes.get('invalidOperation')))
-        if level != 'required':
+        # the refusals of a required verb, and of an optional one this host answers (its example took the declared shape)
+        if level != 'required' and not (level == 'optional' and shape(got, v['reply'])):
             continue
         for words_, code in bad:
             line = ' '.join([name] + [a.format(**subst) for a in words_])

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# no-upward-deps-check.sh — omx-clap-core is the lower layer: nothing in its build, tests, CI or packaging needs an
+# no-upward-deps-check.sh — omx-clap is the lower layer: nothing in its build, tests, CI or packaging needs an
 # omx-plugins header or devel package (#117). The panel-description layout is declared here (src/omx_clap_ext.h,
 # tests/panel_abi_test.c) and omx-plugins holds its copy to this tree's installed header, never the other way round.
 #
@@ -83,6 +83,6 @@ while [ $# -gt 0 ]; do
     shift
 done
 if [ "$mode" = self ]; then self_test; exit $?; fi
-if scan "$root"; then echo "no upward dependency: omx-clap-core reads nothing of omx-plugins"; exit 0; fi
-echo "no-upward-deps: the lines above need omx-plugins headers or packages; omx-clap-core owns the layout (#117)" >&2
+if scan "$root"; then echo "no upward dependency: omx-clap reads nothing of omx-plugins"; exit 0; fi
+echo "no-upward-deps: the lines above need omx-plugins headers or packages; omx-clap owns the layout (#117)" >&2
 exit 1

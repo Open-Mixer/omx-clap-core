@@ -3,7 +3,7 @@
  */
 /*
  * inproc.c: the in-process path of the hosting bench. Each plugin runs inside a native PipeWire filter's process
- * callback, on the PipeWire data thread, through libomx-clap-core's stage (omx_clap_host_open / _open_entry, activate,
+ * callback, on the PipeWire data thread, through libomx-clap's stage (omx_clap_host_open / _open_entry, activate,
  * publish, omx_clap_host_run) with the core's default configuration (OMX_BENCH_GUARDS=off: omx-clap-host's): the calls and the configuration the engine's
  * in-process tier makes (pipewire-native mix_clap_host.h, mix_host_backend.c), with no socket, no JACK layer and no
  * other process. An LV2 plugin is opened through libomx-clap-lv2's entry, as the engine opens one.

@@ -2,7 +2,7 @@
   "$schema": "../schema/omx-contract.schema.json#/$defs/catalog",
   "kind": "catalog",
   "lang": "ca",
-  "owner": "omx-clap-core",
+  "owner": "omx-clap",
   "messages": {
     "hosting.clap.extensions-not-covered": {
       "text": "No totes les extensions que declara aquest plugin estan cobertes pel que s’ha comprovat. Comproveu el plugin amb les extensions que cobreix aquest amfitrió, o accepteu el buit.",

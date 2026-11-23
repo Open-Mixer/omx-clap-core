@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <!-- Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com> -->
-# The chain object of libomx-clap-core
+# The chain object of libomx-clap
 
 `clap_chain.h` installs beside `clap_host.h` under `include/omx-clap-host/`: an ordered list of stages that one audio
 cycle runs in order, each stage's output the next one's input, in the caller's own thread. It is the mechanics measured in

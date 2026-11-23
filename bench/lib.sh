@@ -10,7 +10,7 @@ clap_host=${OMX_CLAP_HOST:-$root/omx-clap-host}
 hostd=${PLUGIN_HOSTD:-$(command -v plugin-hostd)}
 jalv=${JALV:-$(command -v jalv)}
 # the CPU idle hold of the run (#296, #105): default (the library's own, 10 us), off, 0 or a latency in microseconds. A
-# host that links libomx-clap-core holds the device itself (omx-clap-host --idle-hold, inproc through its
+# host that links libomx-clap holds the device itself (omx-clap-host --idle-hold, inproc through its
 # configuration, plugin-hostd's workers through the wrapper below); mod-host and jalv have no library, so the bench
 # keeps the same request on the device for them (hold_external), which is what an operator's playbook would do
 idle_hold=${BENCH_IDLE_HOLD:-default}

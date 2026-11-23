@@ -310,10 +310,10 @@ FAKE_MOVER=info FAKE_MOVER_AT=200 FAKE_MOVER_CONTRACT=follow LV2_PATH=$runtime/w
 rpid=$!
 for _ in $(seq 100); do grep -q 'ready!' "$runtime/host-rename.log" && break; sleep 0.1; done
 grep -q 'ready!' "$runtime/host-rename.log" || { echo "omx-clap-host did not come up" >&2; cat "$runtime/host-rename.log" >&2; exit 2; }
-python3 -I - $((port + 1)) "$fixtures/fake_mover.clap" "$runtime" "$root/data/verbs.json" <<'PY'
+python3 -I - $((port + 1)) "$fixtures/fake_mover.clap" "$runtime" "$root/contract.d/host/host.json" <<'PY'
 import json, os, socket, sys, time
 port, mover, runtime = int(sys.argv[1]), sys.argv[2], sys.argv[3]
-no_contract = 'resp %d' % json.load(open(sys.argv[4]))['HOST_REPLY_CODES']['codes']['noParamContract']['resp']
+no_contract = 'resp %d' % [w for w in json.load(open(sys.argv[4]))['components']['schemas']['HOST_REPLY_CODES']['oneOf'] if w['title'] == 'noParamContract'][0]['x-resp']
 s = socket.create_connection(('127.0.0.1', port), timeout=20)
 def ask(line):
     s.sendall(line.encode() + b'\0')

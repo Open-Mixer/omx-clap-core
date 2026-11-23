@@ -4,7 +4,7 @@
 #
 # A development package's lib<name>.so is a symlink to the shared library lib<name>.so.<N>, which another package
 # ships. Without a dependency on that package, a machine with the development package alone has a dangling symlink,
-# and every consumer's -l<name> link fails (#96: libomx-clap-core-dev on Debian trixie). So:
+# and every consumer's -l<name> link fails (#96: libomx-clap-dev on Debian trixie). So:
 #   deb  each package whose debian/<pkg>.install ships lib<name>.so depends on the package that ships lib<name>.so.*,
 #        at (= ${binary:Version});
 #   rpm  each subpackage whose %files holds lib<name>.so requires the subpackage holding lib<name>.so.*, at
@@ -123,9 +123,9 @@ def self_test(root):
             shutil.copytree(os.path.join(root, sub), os.path.join(t, sub))
         control = os.path.join(t, "debian", "control")
         text = open(control).read()
-        bare = re.sub(r"\s*libomx-clap-core1 \(= \$\{binary:Version\}\),", "", text)
-        held = re.sub(r"(Package: libomx-clap-core-dev\n(?:.*\n)*?Depends:)", r"\1 libomx-clap-core1 (= ${binary:Version}),", bare, count=1)
-        want = "libomx-clap-core-dev ships libomx-clap-core.so but does not depend on libomx-clap-core1"
+        bare = re.sub(r"\s*libomx-clap1 \(= \$\{binary:Version\}\),", "", text)
+        held = re.sub(r"(Package: libomx-clap-dev\n(?:.*\n)*?Depends:)", r"\1 libomx-clap1 (= ${binary:Version}),", bare, count=1)
+        want = "libomx-clap-dev ships libomx-clap.so but does not depend on libomx-clap1"
         open(control, "w").write(held)
         if any(want in p for p in deb_problems(t)):
             print("FAIL self-test: with the deb dependency stated it is still named")
@@ -138,13 +138,13 @@ def self_test(root):
         base = rpm_problems(t)
         spec = glob.glob(os.path.join(t, "packaging", "*.spec"))[0]
         stext = open(spec).read()
-        devel = re.search(r"(%package -n omx-clap-core-devel\n(?:.*\n)*?)Requires: omx-clap-core%\{\?_isa\} = %\{version\}-%\{release\}\n", stext)
+        devel = re.search(r"(%package -n omx-clap-devel\n(?:.*\n)*?)Requires: omx-clap-libs%\{\?_isa\} = %\{version\}-%\{release\}\n", stext)
         if not devel:
-            print("FAIL self-test: the spec's omx-clap-core-devel Requires line is not where the sabotage expects it")
+            print("FAIL self-test: the spec's omx-clap-devel Requires line is not where the sabotage expects it")
             return False
         open(spec, "w").write(stext[: devel.start()] + devel.group(1) + stext[devel.end():])
         found = [p for p in rpm_problems(t) if p not in base]
-        if not any("omx-clap-core-devel holds libomx-clap-core.so but does not require omx-clap-core" in p for p in found):
+        if not any("omx-clap-devel holds libomx-clap.so but does not require omx-clap" in p for p in found):
             print("FAIL self-test: the rpm requirement removed is not found:", found)
             ok = False
     print("ok   self-test: each dependency removed is found" if ok else "self-test FAILED")

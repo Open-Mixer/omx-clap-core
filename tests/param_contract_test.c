@@ -104,6 +104,16 @@ int main(void)
     CHECK(scale_code("log") == OMX_PARAM_SCALES_LOG, "log stands at omx-contract's PARAM_SCALES position %d (%ld)", OMX_PARAM_SCALES_LOG, scale_code("log"));
     CHECK(scale_code("stepped") == OMX_PARAM_SCALES_STEPPED, "stepped stands at omx-contract's PARAM_SCALES position %d (%ld)", OMX_PARAM_SCALES_STEPPED, scale_code("stepped"));
 
+    /* the unit codes of omx-contract's <omxcontract/omx_param_units.h>: the vendor block's 257 and the four codes of 260 to
+     * 263 (dbPerOct, dbPerS, dbtp, lu) answer by their token; red until omx-contract carries the four */
+    CHECK(pc_unit_name(OMX_CLAP_UNIT_DBU) != NULL && strcmp(pc_unit_name(OMX_CLAP_UNIT_DBU), "dbu") == 0 && OMX_CLAP_UNIT_DBU == 257u,
+          "257 is dbu");
+    CHECK(OMX_CLAP_UNIT_DB_PER_OCT == 260u && strcmp(pc_unit_name(260), "dbPerOct") == 0, "260 is dbPerOct");
+    CHECK(OMX_CLAP_UNIT_DB_PER_S == 261u && strcmp(pc_unit_name(261), "dbPerS") == 0, "261 is dbPerS");
+    CHECK(OMX_CLAP_UNIT_DBTP == 262u && strcmp(pc_unit_name(262), "dbtp") == 0, "262 is dbtp");
+    CHECK(OMX_CLAP_UNIT_LU == 263u && strcmp(pc_unit_name(263), "lu") == 0, "263 is lu");
+    CHECK(pc_unit_name(264) == NULL && pc_unit_name(25) == NULL, "264 and 25 are no unit");
+
     /* node: for (const x of [...]) String(x) */
     static const struct { double value; const char *text; } numbers[] = {
         { 0.1, "0.1" }, { 0.10000000149011612, "0.10000000149011612" }, { 1e21, "1e+21" }, { 1e-7, "1e-7" },

@@ -13,19 +13,19 @@ VERSION_NUM := $(shell echo $(VERSION) | awk -F. '{ print $$1 * 10000 + $$2 * 10
 PROG = omx-clap-host
 SCAN_PROG = omx-clap-scan
 
-# the hosting core, a shared library of its own: soname libomx-clap-core.so.<major>, the file <major>.<minor>.<patch>
-CORE = omx-clap-core
+# the hosting core, a shared library of its own: soname libomx-clap.so.<major>, the file <major>.<minor>.<patch>
+CORE = omx-clap
 CORE_MAJOR = 1
 CORE_VERSION = $(VERSION)
 CORE_SO = lib$(CORE).so
 CORE_SONAME = $(CORE_SO).$(CORE_MAJOR)
 CORE_FILE = $(CORE_SO).$(CORE_VERSION)
-CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_core_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
-CORE_MAP = src/omx-clap-core.map
+CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_scales.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
+CORE_MAP = src/omx-clap.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
-CORE_TS = ts/omx-clap-core-hosting.js ts/omx-clap-core-hosting.d.ts ts/omx-clap-core-vocabulary.js ts/omx-clap-core-vocabulary.d.ts
+CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
 
-# The library floors the installed omx-clap-core.pc names in Requires.private, read back from the spec, which is generated
+# The library floors the installed omx-clap.pc names in Requires.private, read back from the spec, which is generated
 # from the one place they are declared, packaging/deps.txt: $(call spec_floor,<devel>) is the floor. Floors only: our own
 # packages carry no ceiling. tests/pc_range_parity.py holds the installed .pc to the spec.
 SPEC = packaging/omx-clap-host.spec
@@ -300,8 +300,8 @@ install-lib: $(CORE_SO)
 	    -e 's,@DATADIR@,$(DATADIR),' -e 's,@VERSION@,$(CORE_VERSION),' \
 	    -e 's,@OMX_CONTRACT_FLOOR@,$(OMX_CONTRACT_FLOOR),' \
 	    -e 's,@OMXDSP_FLOOR@,$(OMXDSP_FLOOR),' \
-	    omx-clap-core.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
-	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap-core.pc
+	    omx-clap.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap.pc
+	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
 	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
 
@@ -322,8 +322,8 @@ install-tests: $(TEST_FIXTURES)
 	install -d $(DESTDIR)$(TESTDIR)
 	install -m 755 $(TEST_FIXTURES) $(DESTDIR)$(TESTDIR)/
 
-# the definitions this tree owns (data/: the hosting limits and refusal codes), installed as the package omx-clap-core
-# into omx-contract's contract directory, <contractdir>/<schema major>/omx-clap-core/, with a MANIFEST.json naming
+# the definitions this tree owns (data/: the hosting limits and refusal codes), installed as the package omx-clap
+# into omx-contract's contract directory, <contractdir>/<schema major>/omx-clap/, with a MANIFEST.json naming
 # this version and the tree they came from. contractdir and the install script are omx-contract-devel's (3.0.0 or
 # later); a checkout of omx-contract (OMX_CONTRACT_DIR) stands in for the script when it is not installed.
 CONTRACT_SCHEMA_MAJOR = 3
@@ -335,14 +335,21 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR)
+	# the scale codes, the same way: <contractdir>/omx-clap-scale/omx-clap-scale.json
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR)
+	# CLAP's own particulars (the flag for the stepped scale), the same way: <contractdir>/clap/clap.json
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/clap $(DESTDIR)$(CONTRACTDIR)
+	# the host's reply codes and events (host) and its verbs (omx-clap), the same way: <contractdir>/host/host.json, <contractdir>/omx-clap/omx-clap.json
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/host $(DESTDIR)$(CONTRACTDIR)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap $(DESTDIR)$(CONTRACTDIR)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 
 # data/ installed into a contract directory of its own, read back through omx-contract's reader beside omx-contract's
-# own package, and every file this tree commits as a render of it held to `render --package omx-clap-core`, byte for
+# own package, and every file this tree commits as a render of it held to `render --package omx-clap`, byte for
 # byte (tests/contract-dir-check.sh), and every limit and refusal code of the two hosting headers held, value by value, to
 # what the reader reads (tests/hosting-values-check.mjs, with its sabotage arms); node and an omx-contract checkout with its npm ci done (OMX_CONTRACT_DIR)
-# omx-clap-scan --fields held to omx-contract's TERM files, and the dumps of the fake plugins and the LV2 fixture bundles
+# omx-clap-scan --fields held to the TERMs of the clap domain and of plugin-db's lv2 domain, and the dumps of the fake plugins and the LV2 fixture bundles
 # (their binaries absent: nothing is opened) read as records; PLUGIN_HOSTD_TABLES (plugin-hostd's data/formats) holds
 # every field a dump writes to a row of its table; and omx-clap-scan --json's resource hints held to omx-contract's
 # RESOURCE_HINTS, words, order and units, over fake_ext's declaration (tests/resource-hints-check.py, with its sabotage arms)
@@ -355,11 +362,30 @@ SCAN_JSON_FIXTURES = tests/fake.clap tests/fake_compressor.clap tests/fake_synth
 test-scan-json: $(SCAN_PROG) $(SCAN_JSON_FIXTURES)
 	FAKE_CONTRACT=good python3 -I tests/scan-json-check.py --self-test ./$(SCAN_PROG) schema/$(SCAN_PROG).schema.json $(SCAN_JSON_FIXTURES)
 
+# plugin-db's lv2 domain, whose terms items are the LV2 TERMs the scan's field list is held to: a checkout's contract.d/lv2/lv2.json
+# (PLUGIN_DB_DIR) or the installed <contractdir>/lv2/lv2.json
+PLUGIN_DB_DIR ?=
+LV2_DOMAIN_DOC ?= $(if $(PLUGIN_DB_DIR),$(PLUGIN_DB_DIR)/contract.d/lv2/lv2.json,$(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null),$(DATADIR)/omx-contract/contract.d)/lv2/lv2.json)
+# every installed CLAP identifier is mapped by the domain clap, with its status, and nothing more (tools/clap_inventory.py
+# coverage against inventory/clap.json, tests/clap_inventory_test.py); inventory-check reads the installed CLAP headers again
+# and holds inventory/clap.json to them. Not the host's coverage (tests/clap_coverage.py)
+.PHONY: test-clap-inventory inventory-check
+test-clap-inventory:
+	python3 tests/clap_inventory_test.py
+inventory-check:
+	python3 tools/clap_inventory.py --check
+
 .PHONY: test-fields
 # omx-clap-scan --fields reads the scan domain at start-up; a test harness points it at this tree's contract.d (OMX_CONTRACT_PATH, a ':' list)
 test-fields: export OMX_CONTRACT_PATH = $(abspath contract.d)
 test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.clap tests/fake_compressor.clap
-	python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(OMX_CONTRACT_DIR)/data/formats $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) $(PLUGIN_HOSTD_TABLES)
+	python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(LV2_DOMAIN_DOC) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) $(PLUGIN_HOSTD_TABLES)
+	# sabotage: a clap domain without its first extension term must turn the scan's list red
+	@d=$$(mktemp -d) && python3 -c "import json,sys; d=json.load(open('contract.d/clap/clap.json')); w=[(v,k) for v in d['components']['schemas'].values() if v.get('x-kind')=='terms' for k in v['oneOf'] if k['x-term'].get('kind')=='extension'][0]; w[0]['oneOf'].remove(w[1]); json.dump(d,open(sys.argv[1],'w'))" $$d/clap.json \
+	  && if OMX_CLAP_DOMAIN_DOC=$$d/clap.json python3 tests/scan-fields-check.py ./$(SCAN_PROG) $(LV2_DOMAIN_DOC) $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) >/dev/null 2>&1; then echo "FAIL sabotage: the scan list passed over a clap domain without a term"; rm -rf $$d; exit 1; else echo "ok   sabotage: the scan list is red over a clap domain without a term"; rm -rf $$d; fi
+	# sabotage: an lv2 domain without one property term must turn the scan's list red
+	@d=$$(mktemp -d) && python3 -c "import json,sys; d=json.load(open(sys.argv[2])); w=[(v,k) for v in d['components']['schemas'].values() if v.get('x-kind')=='terms' for k in v['oneOf'] if k['x-term'].get('kind')=='property' and k['x-term'].get('uri','').startswith('http://lv2plug.in/ns/lv2core#')][0]; w[0]['oneOf'].remove(w[1]); json.dump(d,open(sys.argv[1],'w'))" $$d/lv2.json $(LV2_DOMAIN_DOC) \
+	  && if python3 tests/scan-fields-check.py ./$(SCAN_PROG) $$d/lv2.json $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) >/dev/null 2>&1; then echo "FAIL sabotage: the scan list passed over an lv2 domain without a property term"; rm -rf $$d; exit 1; else echo "ok   sabotage: the scan list is red over an lv2 domain without a property term"; rm -rf $$d; fi
 	python3 tests/scan-domain-check.py ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath contract.d) $(abspath tests/fake_compressor.clap)
 	python3 -I tests/domain-x-since-check.py --self-test $(abspath contract.d)
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
@@ -378,9 +404,17 @@ test-contract:
 	$(CC) $(shell $(PKG_CONFIG) --cflags libomx-domain) tests/domain_installed_test.c -o build/contract/domain_installed_test $(shell $(PKG_CONFIG) --libs libomx-domain)
 	build/contract/domain_installed_test $(abspath build/contract/dir)
 	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
+	# sabotage: the verbs' format changed in the installed omx-clap domain must turn the byte-for-byte read-back red, and so must a reply code of the host domain
+	@for arm in 's/"x-format": "remote_page_get %i %i"/"x-format": "remote_page_get %i"/|omx-clap/omx-clap.json' 's/"x-resp": -510/"x-resp": -519/|host/host.json'; do \
+	  expr=$${arm%%|*}; file=$${arm#*|}; rm -rf build/contract/sabotage && cp -r build/contract/dir build/contract/sabotage && sed -i -e "$$expr" build/contract/sabotage/$$file \
+	    && ! cmp -s build/contract/dir/$$file build/contract/sabotage/$$file || { echo "FAIL sabotage: the sed changed nothing in $$file"; exit 1; }; \
+	  if OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/sabotage $(VERSION) >/dev/null 2>&1; then echo "FAIL sabotage: the read-back stayed green over $$file"; exit 1; else echo "ok   sabotage: the read-back is red over a changed $$file"; fi; done
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
+	# F2: the scale codes and the CLAP flag mapped to omx-contract's standard scales (PARAM_SCALES), with its sabotage
+	python3 -I tests/scale-maps-check.py contract.d build/contract/json/omx-contract.json
+	python3 -I tests/scale-maps-check.py --self-test contract.d build/contract/json/omx-contract.json
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 
@@ -416,7 +450,7 @@ test-ci-consumer-args:
 	    got=""; for a in $$args; do case $$a in '|') break ;; esac; got="$$got $${a##*/}"; done; \
 	    [ "$${got# }" = "$$want" ] || { echo "FAIL ci consumer: runs on '$${got# }', test-core on '$$want'"; exit 1; }; \
 	done
-	@compiles=$$(grep -cE 'tests/core_link_test\.c .*\$$\(pkg-config --cflags --libs omx-clap-core\)' .github/workflows/ci.yml); [ "$$compiles" -eq 2 ] \
+	@compiles=$$(grep -cE 'tests/core_link_test\.c .*\$$\(pkg-config --cflags --libs omx-clap\)' .github/workflows/ci.yml); [ "$$compiles" -eq 2 ] \
 	    || { echo "FAIL ci consumer: $$compiles compiles of tests/core_link_test.c against the installed package, two expected"; exit 1; }
 	@defines=$$(grep -cE 'DOMX_EXPECT_VERSION_NUM=\$$\(make -s print-version-num\)u -o /tmp/consumer tests/core_link_test\.c' .github/workflows/ci.yml); [ "$$defines" -eq 2 ] \
 	    || { echo "FAIL ci consumer: $$defines consumer compiles carry OMX_EXPECT_VERSION_NUM from print-version-num, two expected"; exit 1; }
@@ -436,12 +470,12 @@ docs: $(CORE_HEADERS) Doxyfile
 	doxygen Doxyfile
 
 clean:
-	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test tests/jack_identity_align_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test tests/lv2_restart_race_tsan
+	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test tests/jack_identity_align_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/scan_panel_words_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test tests/lv2_restart_race_tsan
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
 # every test-* and check-* target, the prerequisites of `test:` among them, runs in a CI step bar those DESK_ONLY lists
-# (tests/ci_runs_test_list.py, test-audit omx-clap-core row 1)
+# (tests/ci_runs_test_list.py, test-audit omx-clap row 1)
 .PHONY: test-ci-runs-test-list
 test-ci-runs-test-list:
 	python3 tests/ci_runs_test_list.py --self-test
@@ -449,7 +483,7 @@ test-ci-runs-test-list:
 
 # `make test`'s prerequisites in the three groups CI runs (ci.yml asks for them by name: print-test-plain,
 # print-test-main-only, print-test-ns), so a target added here runs in CI with no workflow edit; tests/ci_runs_test_list.py
-# holds the workflow to it (test-audit omx-clap-core row 1)
+# holds the workflow to it (test-audit omx-clap row 1)
 # plain: every push and pull request
 TEST_PLAIN = test-ci-runs-test-list \
     test-release-same-pass \
@@ -524,7 +558,7 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 
 # the same without omx-delay.clap: only the fake plugin's checks
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
-# omx-clap-core is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
+# omx-clap is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
 # packaging (#117); it owns the panel-description layout. No omx-plugins package is installed either, plugins included:
 # the tests that load a published plugin (test-jack, test-identity, test-scan's omx-delay arm) are desk-only (DESK_ONLY).
 .PHONY: test-no-upward-deps
@@ -544,7 +578,7 @@ test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
 	python3 tests/no_hostd_build_dep.py .
 
-# the installed omx-clap-core.pc and debian/control carry the omx-contract and omx-dsp ranges the spec declares, the one
+# the installed omx-clap.pc and debian/control carry the omx-contract and omx-dsp ranges the spec declares, the one
 # place they are stated (#66); the self-test moves the spec's range and finds the .pc moved with it
 .PHONY: test-pc-range-parity
 test-pc-range-parity: $(CORE_SO)
@@ -560,6 +594,11 @@ test-no-backcompat:
 
 # a development package's lib*.so is a symlink to the shared library another package ships: each one depends on that
 # package, deb and rpm, or a machine with the development package alone links nothing (#96)
+# plugin-hostd is taken at a release tag or a branch by name, never a commit (tests/plugin_hostd_ref_test.sh)
+.PHONY: test-plugin-hostd-ref
+test-plugin-hostd-ref:
+	sh tests/plugin_hostd_ref_test.sh
+
 .PHONY: test-dev-so-runtime-dep
 test-dev-so-runtime-dep:
 	python3 tests/dev_so_runtime_dep.py --self-test
@@ -574,9 +613,10 @@ test-build-floors:
 
 test: test-no-backcompat
 test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-clap-inventory test-plugin-hostd-ref
 test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
-test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool
+test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool test-panel-words
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)
 	./tests/clap_unoffered_test $(abspath tests/fake.clap)
@@ -585,9 +625,9 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 	./tests/clap_host_test - $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(abspath tests/fake_mover.clap) $(abspath tests/fault-17.clap)
 	OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
 
-# every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_core_vocabulary.h, the render of
+# every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_vocabulary.h, the render of
 # data/hosting/: no hand-typed "hosting." literal, no name that header lacks (tests/hosting-codes-check.sh, with its sabotage arms); and
-# every verb data/verbs.json declares is an OMX_VERB_ macro of src/omx_clap_core_host_verbs.h, every reply number of
+# every verb the omx-clap domain declares is an OMX_VERB_ macro of src/omx_clap_host_verbs.h, every reply number of
 # src/host_verbs.h the declared one (tests/host-verbs-check.sh, with its sabotage arms)
 .PHONY: test-codes test-verbs-source
 # every number the host answers has a code (#34): it reads plugin-hostd-protocol's host-errors.h, so it runs where the
@@ -788,7 +828,7 @@ test-lv2-locate: tests/lv2_locate_test tests/param_contract_test
 tests/lv2_locate_test: tests/lv2_locate_test.c src/lv2_locate.c src/lv2_locate.h tests/test_util.h
 	$(CC) -Isrc $(CFLAGS) -Werror -o $@ tests/lv2_locate_test.c src/lv2_locate.c -lm
 
-# org.openmixer.panel-description/1 as src/omx_clap_ext.h declares it: omx-clap-core owns the layout, so
+# org.openmixer.panel-description/1 as src/omx_clap_ext.h declares it: omx-clap owns the layout, so
 # tests/panel_abi_test.c pins the size and every member's offset itself. omx-plugins holds its copy to this tree's
 # installed header (its make panel-abi); nothing here reads omx-plugins
 # (the display kinds are a number here: omx-panel's panel domain owns their words and codes)
@@ -798,6 +838,21 @@ test-panel-abi: tests/panel_abi_test
 
 tests/panel_abi_test: tests/panel_abi_test.c src/omx_clap_ext.h
 	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ $<
+
+# the panel words are omx-panel's (omxdomain/panel_codes.h, omx-panel-contract): the scan's word and enumerator lookups,
+# called, give the golden of tests/scan_panel_words_test.c. The sabotage arm builds the same test against a header of a
+# temporary panel domain that lacks the word `knob`: it builds and the golden must be red (a code the header does not
+# carry is named by nothing)
+PANEL_CODES_INCLUDE ?=
+.PHONY: test-panel-words
+test-panel-words: tests/scan_panel_words_test
+	./tests/scan_panel_words_test
+	@d=$$(mktemp -d) && mkdir -p $$d/omxdomain && grep -v 'KNOB' $$(echo '#include <omxdomain/panel_codes.h>' | $(CC) -E -x c $(PANEL_CODES_INCLUDE) - | sed -n 's/^# [0-9]* "\(.*panel_codes.h\)".*/\1/p' | head -1) > $$d/omxdomain/panel_codes.h \
+	  && $(CC) -I$$d -Isrc $(CLAP_CFLAGS) $(CFLAGS) -o $$d/t tests/scan_panel_words_test.c src/scan_panel.c src/abi_guard.S 2>/dev/null \
+	  && if $$d/t >/dev/null 2>&1; then echo "FAIL sabotage: the golden passed over a panel header without knob"; rm -rf $$d; exit 1; else echo "ok   sabotage: the golden is red over a panel header without knob"; rm -rf $$d; fi
+
+tests/scan_panel_words_test: tests/scan_panel_words_test.c src/scan_panel.c src/scan_panel.h src/omx_clap_ext.h src/abi_guard.S
+	$(CC) -Isrc $(PANEL_CODES_INCLUDE) $(CLAP_CFLAGS) $(CFLAGS) -Werror -o $@ tests/scan_panel_words_test.c src/scan_panel.c src/abi_guard.S
 
 # the parameter contract's SHA-256, canonical fingerprint and shortest decimals against answers computed elsewhere
 test-param-contract: tests/param_contract_test
@@ -1059,14 +1114,14 @@ test-core: tests/core_link_test tests/fake.clap tests/fake_synth.clap tests/faul
 	@echo "clap_host.h's inline RT code calls nothing that allocates, waits, locks or prints:"; mkdir -p build && sed -n '/INLINE FUNCTIONS/,$$p' src/clap_host.h > build/clap_host_inline.h && grep -q 'omx_clap_host_run(' build/clap_host_inline.h && ! grep -n -E '\<(malloc|calloc|realloc|free|usleep|nanosleep|sleep|dlopen|dlsym|printf|fprintf|snprintf|puts)\s*\(|pthread_|_lock\s*\(' build/clap_host_inline.h && echo "ok   the inline section of clap_host.h (omx_clap_host_run and the tempo word) names no allocator, sleep, lock, loader or printf"
 	./tests/core_link_test $(abspath $(CORE_LINK_FIXTURES))
 
-tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap-core.pc.in
+tests/core_link_test: tests/core_link_test.c $(CORE_SO) omx-clap.pc.in
 	rm -rf build/stage
 	$(MAKE) install-lib PREFIX=$(CURDIR)/build/stage/usr LIBDIR=$(CURDIR)/build/stage/usr/lib
 	$(PKG_CONFIG) --exists clap || printf 'Name: clap\nDescription: the headers named by CLAP_CFLAGS\nVersion: 1\nCflags: $(CLAP_CFLAGS)\n' > build/stage/usr/lib/pkgconfig/clap.pc
-	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(PKG_CONFIG) --print-errors --exists omx-clap-core \
-	    || { echo "core_link_test: the installed packages do not meet the Requires of the staged omx-clap-core.pc (pkg-config's words above): a stale set, not a link error" >&2; exit 1; }
+	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(PKG_CONFIG) --print-errors --exists omx-clap \
+	    || { echo "core_link_test: the installed packages do not meet the Requires of the staged omx-clap.pc (pkg-config's words above): a stale set, not a link error" >&2; exit 1; }
 	export PKG_CONFIG_PATH=$(CURDIR)/build/stage/usr/lib/pkgconfig$${PKG_CONFIG_PATH:+:$$PKG_CONFIG_PATH}; $(CC) -O2 -Wall -Wextra -Werror -std=gnu99 -D_GNU_SOURCE -DOMX_EXPECT_VERSION_NUM=$(VERSION_NUM)u -o $@ $< \
-	    $$($(PKG_CONFIG) --cflags --libs omx-clap-core) -Wl,-rpath,$(CURDIR)/build/stage/usr/lib -lpthread -lm
+	    $$($(PKG_CONFIG) --cflags --libs omx-clap) -Wl,-rpath,$(CURDIR)/build/stage/usr/lib -lpthread -lm
 
 # what one stage block costs, as the header is and with the six in_cycle stores relaxed (omx_clap_run's two,
 # omx_clap_run_ports' two and omx_clap_run_direct_status' two): a measurement
@@ -1156,7 +1211,7 @@ test-no-contract-copy:
 	python3 tests/no_contract_copy.py .
 
 # the protocol is plugin-hostd-protocol's: none of its tables or headers is back here under any name, nothing declares
-# what protocol.h declares, and the one rendered verb table is src/omx_clap_core_host_verbs.h (tests/no_protocol_copy.py,
+# what protocol.h declares, and the one rendered verb table is src/omx_clap_host_verbs.h (tests/no_protocol_copy.py,
 # with its self test)
 .PHONY: check-no-protocol-copy
 check-no-protocol-copy:
@@ -1319,7 +1374,7 @@ test-host-verbs: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRA
 test-host-verbs-sabotage: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_sabotage.sh
 
-# what the tests read of the verbs data/verbs.json declares, from the header over its renders (src/host_verbs.h) and
+# what the tests read of the verbs the omx-clap domain declares, from the header over its renders (src/host_verbs.h) and
 # the layout scheme from plugin-db's pin.h: a test names no code or verb of its own
 HASH := \#
 host_declared = $(shell printf '$(HASH)include "host_verbs.h"\n$(HASH)include <plugin-db/pin.h>\n%s\n' $(1) | $(CC) -Isrc $(CLAP_CFLAGS) $(PIN_CFLAGS) -E -P - | tail -n 1 | sed -e 's/^[("]//' -e 's/[)"]$$//')
@@ -1648,7 +1703,7 @@ test-package: test-fake test-lv2-plain
 lv2/tests/lv2_clap_test: lv2/tests/lv2_clap_test.c $(LV2_LIB) $(CORE_SO) lv2/tests/lv2_test_util.h $(LV2_FIXTURE_DIR)/lv2_direct_fixture.h $(LV2_FIXTURE_DIR)/lv2_fakes.h $(LV2_FIXTURE_DIR)/lv2_event_fixture.h $(LV2_FIXTURE_DIR)/lv2_ll_midi_fixture.h $(LV2_FIXTURE_DIR)/lv2_hints_fixture.h
 	$(CC) $(LV2_TEST_CFLAGS) $(CLAP_CFLAGS) -o $@ $< $(LV2_LIB) $(CRYPTO_LIBS) $(CORE_LINK_TEST) $(LV2_WRAP) -Wl,--wrap=pthread_create -ldl -lpthread -lm
 
-# lv2/clap: the CLAP face of the adapter, and the arms whose body is libomx-clap-core's run through it
+# lv2/clap: the CLAP face of the adapter, and the arms whose body is libomx-clap's run through it
 test-lv2-clap: lv2/tests/lv2_clap_test $(LV2_BUNDLES) $(LV2_HINTS_BUNDLES)
 	./lv2/tests/lv2_clap_test build/lv2
 
@@ -1663,7 +1718,7 @@ lv2/tests/lv2_cost: lv2/tests/lv2_cost.c $(LV2_LIB) lv2/tests/lv2_test_util.h sr
 
 # the adapter as a program outside this tree sees it: installed into a prefix of its own, found through its pkg-config
 # file and linked by that alone
-lv2/tests/lv2_link_test: lv2/tests/lv2_link_test.c $(LV2_LIB) omx-clap-lv2.pc.in omx-clap-core.pc.in src/omx_clap_raw.h
+lv2/tests/lv2_link_test: lv2/tests/lv2_link_test.c $(LV2_LIB) omx-clap-lv2.pc.in omx-clap.pc.in src/omx_clap_raw.h
 	rm -rf build/lv2-stage
 	$(MAKE) install-lib install-lv2 PREFIX=$(CURDIR)/build/lv2-stage/usr LIBDIR=$(CURDIR)/build/lv2-stage/usr/lib
 	$(PKG_CONFIG) --exists clap || printf 'Name: clap\nDescription: the headers named by CLAP_CFLAGS\nVersion: 1\nCflags: $(CLAP_CFLAGS)\n' > build/lv2-stage/usr/lib/pkgconfig/clap.pc

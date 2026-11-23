@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 
+sys.dont_write_bytecode = True  # plugin-hostd's tree is read, never written: no __pycache__ in its tests/lib
 sys.path.insert(0, os.environ.get('PLUGIN_HOSTD_TESTS_LIB') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'plugin-hostd', 'tests', 'lib'))
 import plugin_hostd_client  # noqa: E402  plugin-hostd-tests' lib/plugin_hostd_client.py
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 # The scan domain (contract.d/scan/scan.json) held to the consumer-move recipe (omx-contract docs/consumer-move.md, steps 1 to 4):
-#   1. the document conforms and is in the one formatting: $schema, the exact $id, info.x-owner omx-clap-core, info.x-stability
+#   1. the document conforms and is in the one formatting: $schema, the exact $id, info.x-owner omx-clap, info.x-stability
 #      experimental, every item prefixed SCAN_, SCAN_FIELD_SCOPES ending in the meter word (x-code 13, appended, never moved), and it
 #      validates with its six catalogs by omx-contract's reader and holds omx-contract fmt --check;
 #   2. no scan_vocabulary.h exists or is included, anywhere in the tree;
@@ -22,7 +22,7 @@ node -e '
   const bad = [];
   if (d.$schema !== "https://json-schema.org/draft/2020-12/schema") bad.push("$schema is " + d.$schema);
   if (d.$id !== "https://openmixer.org/contract/scan") bad.push("$id is " + d.$id);
-  if (d.info?.["x-owner"] !== "omx-clap-core") bad.push("info.x-owner is " + d.info?.["x-owner"]);
+  if (d.info?.["x-owner"] !== "omx-clap") bad.push("info.x-owner is " + d.info?.["x-owner"]);
   if (d.info?.["x-stability"] !== "experimental") bad.push("info.x-stability is " + d.info?.["x-stability"]);
   for (const n of Object.keys(d.components.schemas)) if (!n.startsWith("SCAN_")) bad.push("item " + n + " is not prefixed SCAN_");
   if (d.components.schemas.SCAN_FIELD_SCOPES?.["x-c-codes"] !== true) bad.push("SCAN_FIELD_SCOPES is not marked x-c-codes");

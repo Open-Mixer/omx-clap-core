@@ -42,8 +42,8 @@
  *     role; the RT thread running the instance never calls reset(). An off that was already off holds nothing: every
  *     block stays the plugin's output.
  *  7. THE ABI: configure accepts a consumer of this header (ABI 18, the oldest until the first release of
- *     libomx-clap-core.so.1) and refuses 0, ABI 17 (before the instance's named slot), ABI 16 (before the instance's resource hints), ABI 13 (before the instance's surround and ambisonic extensions), ABI 12
- *     (before the stage's wide bounce), the last header of libomx-clap-core.so.0 (ABI 11) and a newer one.
+ *     libomx-clap.so.1) and refuses 0, ABI 17 (before the instance's named slot), ABI 16 (before the instance's resource hints), ABI 13 (before the instance's surround and ambisonic extensions), ABI 12
+ *     (before the stage's wide bounce), the last header of libomx-clap.so.0 (ABI 11) and a newer one.
  *  8. THE SIDE CHAIN: a plugin with a stereo auxiliary input is admitted, reads silence until the caller binds a pair,
  *     reads the pair while it runs, reads silence again once unbound, keeps the binding over a deactivate and activate;
  *     binding while it runs, a bad port or a stereo port with one channel is refused; one auxiliary input beyond the
@@ -190,7 +190,7 @@ static void t_abi(void) {
   config.abi = 0;
   CHECK(omx_clap_host_configure(&config) == -1, "ABI 0 is refused");
   config.abi = 11;
-  CHECK(omx_clap_host_configure(&config) == -1, "a consumer of libomx-clap-core.so.0's last header (ABI 11) is refused");
+  CHECK(omx_clap_host_configure(&config) == -1, "a consumer of libomx-clap.so.0's last header (ABI 11) is refused");
   config.abi = OMX_CLAP_CORE_ABI + 1u;
   CHECK(omx_clap_host_configure(&config) == -1, "a consumer of a newer header is refused");
   config.abi = 12;

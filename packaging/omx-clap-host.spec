@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.34.0
+Version:        0.35.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -303,6 +303,13 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Mon Nov 23 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
+- Chain 3: the host verbs check reads plugin-hostd-protocol's words from the
+  domain plugin-hostd-protocol (V16) and the verb hosts are HOSTING_VERB_HOSTS
+  (V29); the param-contract unit code sheet is the domain omx-param-contract,
+  its renders are omx_param_units.h and omx_param_unit_ids.h, mapped onto
+  omx-contract's PARAM_UNITS_CLAP_ENCODED (V23d, omx-contract 3.22.0).
+
 * Sun Nov 22 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.0-1
 - Sorting pass: the panel words (V1), the host reply codes and track kinds (V15), the CLAP
   scale codes mapped to PARAM_SCALES (V21), the unit code sheet and omx_param_units.h (V23d),

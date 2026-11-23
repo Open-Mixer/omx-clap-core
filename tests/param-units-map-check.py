@@ -281,7 +281,7 @@ def main(argv):
     r2 = copy.deepcopy(domain)
     r2["x-render"]["c"][0]["guard"] = "OMX_PARAM_UNITS_H"
     must_be_red_render("the units header under omx-contract's guard", r2, ids_header)
-    must_be_red_render("an ids header whose dBPerOct row says dbPerOct", domain, (ids_header or "").replace('"dbPerOct", "dBPerOct"', '"dbPerOct", "dbPerOct"'))
+    must_be_red_render("an ids header whose dBPerOct row says dbPerOct (the token)", domain, (ids_header or "").replace('"dbPerOct", "dBPerOct"', '"dbPerOct", "dbPerOct"'))
     r3 = copy.deepcopy(domain)
     r3["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-file"] = domain.get("x-file")
     must_be_red_render("the ids item in the units sheet's x-file", r3, ids_header)

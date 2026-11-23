@@ -1157,6 +1157,12 @@ OMX_CLAP_EXPORT int omx_clap_host_standard_page(struct omx_clap_instance *in, ui
 /** The name of an OMX_CLAP_PARAM_UNITS code ("db", "hz", "semitone12TET"), NULL for a code the table does not hold. */
 OMX_CLAP_EXPORT const char *omx_clap_param_unit_name(uint32_t unit);
 
+/** The standard unit id an OMX_CLAP_PARAM_UNITS code stands for, the const of a word of omx-contract's PARAM_UNITS
+ * ("dB", "percent", "frames"; OMX_PARAM_UNIT_IDS), NULL for a code the table does not hold. The word a reply and a
+ * descriptor carry (plugin-hostd#215 D1); the token omx_clap_param_unit_name gives is the extension's own spelling,
+ * read only by the extension's encoder, decoder and fingerprint. */
+OMX_CLAP_EXPORT const char *omx_clap_param_unit_id(uint32_t unit);
+
 /** The name of an OMX_CLAP_PARAM_SCALES code ("linear", "log", "stepped"), NULL for any other. */
 OMX_CLAP_EXPORT const char *omx_clap_param_scale_name(uint32_t scale);
 

@@ -7,8 +7,9 @@
 #   - the data package omx-clap-contract lists it: the rpm as %{omx_contract_domain_dir}/scan/, the deb as
 #     usr/share/omx-contract/contract.d/scan, and neither package lists the domain anywhere else;
 #   - the reader, omx-clap-host (it ships omx-clap-scan), requires the loader (libomx-domain, libomx-domain0) and the data package, and
-#     the source builds with the loader's headers (libomx-domain-devel, libomx-domain-dev), omx-contract at 3.20.0, the first release
-#     that ships the loader and the installer's domain mode: a floor in every place that names omx-contract, none below it.
+#     the source builds with the loader's headers (libomx-domain-devel, libomx-domain-dev), at the tree's omx-contract floor (the
+#     spec's BuildRequires: omx-contract-devel), which is never below 3.20.0, the first release that ships the loader and the
+#     installer's domain mode: the loader's floor is that floor in every place, and no omx-contract floor is below 3.20.0.
 # usage: tests/domain-packaging-check.sh
 set -eu
 fail() { echo "domain-packaging-check: $1" >&2; exit 1; }
@@ -29,12 +30,16 @@ grep -qx "usr/share/omx-contract/contract.d/$dom" debian/omx-clap-contract.insta
 done
 # the reader requires the loader and the data package
 req() { grep -Eq "$1" "$spec" || fail "$spec: $2"; }
-req '^BuildRequires: libomx-domain-devel >= 3\.20\.0$' "no BuildRequires: libomx-domain-devel >= 3.20.0"
+floor=$(sed -n 's/^BuildRequires: omx-contract-devel >= \([0-9][0-9.]*\)$/\1/p' "$spec")
+[ -n "$floor" ] || fail "$spec: no BuildRequires: omx-contract-devel >= <floor>"
+[ "$(printf '3.20.0\n%s\n' "$floor" | sort -V | head -1)" = 3.20.0 ] || fail "$spec: the omx-contract floor $floor is below 3.20.0"
+fre=$(printf '%s' "$floor" | sed 's/\./\\./g')
+req "^BuildRequires: libomx-domain-devel >= $fre\$" "no BuildRequires: libomx-domain-devel >= $floor"
 host=$(awk '/^%description$/{exit} {print}' "$spec")
-printf '%s\n' "$host" | grep -qx 'Requires: libomx-domain >= 3.20.0' || fail "$spec: omx-clap-host does not require libomx-domain >= 3.20.0"
+printf '%s\n' "$host" | grep -qx "Requires: libomx-domain >= $floor" || fail "$spec: omx-clap-host does not require libomx-domain >= $floor"
 printf '%s\n' "$host" | grep -qx 'Requires: omx-clap-contract = %{version}-%{release}' || fail "$spec: omx-clap-host does not require omx-clap-contract at its own version"
-grep -Eq '^Build-Depends:|^ +libomx-domain-dev \(>= 3\.20\.0~\)' debian/control && grep -Eq 'libomx-domain-dev \(>= 3\.20\.0~\)' debian/control || fail "debian/control: no Build-Depends libomx-domain-dev (>= 3.20.0~)"
-awk '/^Package: omx-clap-host$/{f=1;next} /^Package:/{f=0} f' debian/control | grep -Eq '^Depends:.*libomx-domain0 \(>= 3\.20\.0~\)' || fail "debian/control: omx-clap-host does not depend on libomx-domain0 (>= 3.20.0~)"
+grep -Eq "libomx-domain-dev \\(>= $fre~\\)" debian/control || fail "debian/control: no Build-Depends libomx-domain-dev (>= $floor~)"
+awk '/^Package: omx-clap-host$/{f=1;next} /^Package:/{f=0} f' debian/control | grep -Eq "^Depends:.*libomx-domain0 \\(>= $fre~\\)" || fail "debian/control: omx-clap-host does not depend on libomx-domain0 (>= $floor~)"
 awk '/^Package: omx-clap-host$/{f=1;next} /^Package:/{f=0} f' debian/control | grep -Eq '^Depends:.*omx-clap-contract \(= \$\{source:Version\}\)' || fail "debian/control: omx-clap-host does not depend on omx-clap-contract at its own version"
 # omx-contract at 3.20.0 everywhere the tree names it
 low=$( { awk '/^%changelog/{exit} {print FILENAME":"FNR":"$0}' "$spec"; awk '{print FILENAME":"FNR":"$0}' debian/control; } | grep -E '(omx-contract(-devel|-data)?|libomx-contract-dev) *(>=|\(>=) *3\.1[0-9]\.[0-9]+' || true)

@@ -13,7 +13,7 @@ Rules-Requires-Root: no
 
 Package: omx-clap-host
 Architecture: any
-Depends: libplugin-hostd-protocol0 (>= 0.6.0~), libomx-domain0 (>= 3.22.0~), omx-clap-contract (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}
+Depends: libplugin-hostd-protocol0 (>= 0.8.0~), libomx-domain0 (>= 3.22.0~), omx-clap-contract (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}
 Recommends: liblilv-0-0
 Description: use CLAP and LV2 plugins on a JACK rig, driven like mod-host
  omx-clap-host hosts CLAP and LV2 plugins in a live JACK or PipeWire rig.

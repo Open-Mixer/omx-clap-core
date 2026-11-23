@@ -4,6 +4,9 @@
 
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
+- OMX_PARAM_CONTRACT_UNIT_IDS maps dbPerOct to dBPerOct and dbPerS to dBPerS, omx-contract's renamed PARAM_UNITS ids
+  (a unit id is camelCase, "/" reads "Per"; omx-contract#198, ruling 2026-11-23), no alias. param_info answers the
+  standard id through the new omx_clap_param_unit_id (plugin-hostd#215 D1).
 - The parameter contract's unit codes are omx-clap's: the domain omx-param-contract (shipped in omx-clap-contract)
   holds OMX_PARAM_CONTRACT_UNITS, the 29 codes omx-contract released plus 260 dbPerOct, 261 dbPerS, 262 dbtp, 263 lu,
   and OMX_PARAM_CONTRACT_UNIT_IDS, each token's standard unit id (the PARAM_UNITS const: dB, Hz, deg, dB-oct). They

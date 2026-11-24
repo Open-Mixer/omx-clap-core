@@ -34,6 +34,7 @@
 // the reading half (pc_read, pc_entry) is the host test's, through the library
 #pragma GCC diagnostic ignored "-Wunused-function"
 #include "../src/param_contract.h"
+#include "../src/omx_param_unit_ids.h"
 
 #include <omxcontract/omx_contract_limits.h>
 
@@ -98,14 +99,33 @@ static int symbol_ok(const char *symbol)
     return pc_symbol_ok(buffer);
 }
 
+/* omx_param_unit_ids.h's rows as the lookup a C reader writes (docs/units.md of omx-contract, "The render shape") */
+static const char *unit_id_of(unsigned code)
+{
+#define UNIT_ID_ROW(code_define, token, id) if (code == (code_define)) return id;
+    OMX_PARAM_UNIT_IDS(UNIT_ID_ROW)
+#undef UNIT_ID_ROW
+    return NULL;
+}
+
 int main(void)
 {
     CHECK(scale_code("linear") == OMX_PARAM_SCALES_LINEAR, "linear stands at omx-contract's PARAM_SCALES position %d (%ld)", OMX_PARAM_SCALES_LINEAR, scale_code("linear"));
     CHECK(scale_code("log") == OMX_PARAM_SCALES_LOG, "log stands at omx-contract's PARAM_SCALES position %d (%ld)", OMX_PARAM_SCALES_LOG, scale_code("log"));
     CHECK(scale_code("stepped") == OMX_PARAM_SCALES_STEPPED, "stepped stands at omx-contract's PARAM_SCALES position %d (%ld)", OMX_PARAM_SCALES_STEPPED, scale_code("stepped"));
 
-    /* the unit codes of omx-contract's <omxcontract/omx_param_units.h>: the vendor block's 257 and the four codes of 260 to
-     * 263 (dbPerOct, dbPerS, dbtp, lu) answer by their token; red until omx-contract carries the four */
+    /* the unit codes are this tree's (omx_param_units.h, the render of the omx-param-contract domain): the vendor block's
+     * four codes of 260 to 263 and the first of it answer by their token */
+    /* the code -> standard id lookup a reader builds from omx_param_unit_ids.h, joined to the code by its define */
+    {
+        struct { unsigned code; const char *id; } want[] = { { 260u, "dBPerOct" }, { 13u, "dB" }, { 14u, "percent" }, { 23u, "deg" }, { 264u, NULL } };
+        for (size_t i = 0; i < sizeof want / sizeof want[0]; i++) {
+            const char *got = unit_id_of(want[i].code);
+            CHECK(want[i].id ? (got && strcmp(got, want[i].id) == 0) : got == NULL, "code %u stands for %s (%s)", want[i].code,
+                  want[i].id ? want[i].id : "no id", got ? got : "none");
+        }
+    }
+
     CHECK(pc_unit_name(OMX_CLAP_UNIT_DBU) != NULL && strcmp(pc_unit_name(OMX_CLAP_UNIT_DBU), "dbu") == 0 && OMX_CLAP_UNIT_DBU == 257u,
           "257 is dbu");
     CHECK(OMX_CLAP_UNIT_DB_PER_OCT == 260u && strcmp(pc_unit_name(260), "dbPerOct") == 0, "260 is dbPerOct");

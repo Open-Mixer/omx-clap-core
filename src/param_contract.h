@@ -60,6 +60,7 @@
 #include <openssl/evp.h>
 
 #include "omx_clap_ext.h"
+#include "omx_param_unit_ids.h"
 #include "abi_guard.h"
 
 
@@ -193,6 +194,18 @@ static const char *pc_unit_name(uint32_t unit)
         default: return NULL;
     }
 #undef PC_UNIT_CASE
+}
+
+/* the standard unit id of a unit code (OMX_PARAM_UNIT_IDS), NULL for a code the table does not hold */
+static const char *pc_unit_id(uint32_t unit)
+{
+#define PC_UNIT_ID_CASE(code, token, id) case code: return id;
+    switch (unit)
+    {
+        OMX_PARAM_UNIT_IDS(PC_UNIT_ID_CASE)
+        default: return NULL;
+    }
+#undef PC_UNIT_ID_CASE
 }
 
 static const char *pc_scale_name(uint32_t scale)

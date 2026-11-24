@@ -20,7 +20,7 @@ CORE_VERSION = $(VERSION)
 CORE_SO = lib$(CORE).so
 CORE_SONAME = $(CORE_SO).$(CORE_MAJOR)
 CORE_FILE = $(CORE_SO).$(CORE_VERSION)
-CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_scales.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
+CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_units.h src/omx_param_unit_ids.h src/omx_param_scales.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
 CORE_MAP = src/omx-clap.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
 CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
@@ -335,6 +335,8 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR)
+	# the parameter contract's code sheet and its mapping to standard units, the same way: <contractdir>/omx-param-contract/omx-param-contract.json
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR)
 	# the scale codes, the same way: <contractdir>/omx-clap-scale/omx-clap-scale.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR)
 	# CLAP's own particulars (the flag for the stepped scale), the same way: <contractdir>/clap/clap.json
@@ -399,7 +401,7 @@ OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-c
 test-contract:
 	rm -rf build/contract
 	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)
-	sh tests/domain-scan-check.sh $(OMX_CONTRACT_DIR)
+	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/domain-scan-check.sh $(OMX_CONTRACT_DIR)
 	sh tests/domain-packaging-check.sh
 	$(CC) $(shell $(PKG_CONFIG) --cflags libomx-domain) tests/domain_installed_test.c -o build/contract/domain_installed_test $(shell $(PKG_CONFIG) --libs libomx-domain)
 	build/contract/domain_installed_test $(abspath build/contract/dir)
@@ -412,9 +414,15 @@ test-contract:
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
+	# V29: the hosts a verb names, HOSTING_VERB_HOSTS of data/hosting/verb-hosts.json, with its sabotage arms
+	node tests/hosting-verb-hosts-check.mjs
+	node tests/hosting-verb-hosts-check.mjs --self-test
 	# F2: the scale codes and the CLAP flag mapped to omx-contract's standard scales (PARAM_SCALES), with its sabotage
 	python3 -I tests/scale-maps-check.py contract.d build/contract/json/omx-contract.json
 	python3 -I tests/scale-maps-check.py --self-test contract.d build/contract/json/omx-contract.json
+	# F2: the code sheet's mapping to omx-contract's standard units (PARAM_UNITS), with its sabotage (needs omx-contract's grown unit list)
+	python3 -I tests/param-units-map-check.py contract.d build/contract/json/omx-contract.json
+	python3 -I tests/param-units-map-check.py --self-test contract.d build/contract/json/omx-contract.json
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 
@@ -870,7 +878,7 @@ tests/scan_panel_words_test: tests/scan_panel_words_test.c src/scan_panel.c src/
 test-param-contract: tests/param_contract_test
 	./tests/param_contract_test
 
-tests/param_contract_test: tests/param_contract_test.c src/param_contract.h src/omx_clap_ext.h src/abi_guard.S
+tests/param_contract_test: tests/param_contract_test.c src/param_contract.h src/omx_clap_ext.h src/omx_param_unit_ids.h src/abi_guard.S
 	$(CC) $(CLAP_CFLAGS) $(CRYPTO_CFLAGS) $(CFLAGS) -Werror -o $@ $< src/abi_guard.S $(CRYPTO_LIBS) -lm
 
 # the preset file of docs/presets.md on its own: JSON both ways, values exact, unknown members kept, base64, load keys
@@ -1214,8 +1222,8 @@ test-no-sha256-copy:
 	bash tests/no_sha256_copy.sh --self-test
 	bash tests/no_sha256_copy.sh .
 
-# the parameter units and the JSON string writer are omx-contract's (<omxcontract/omx_param_units.h>,
-# <omxcontract/omx_json_write.h>): no source under src/, lv2/ or tools/ spells a units row or an escape loop of its own
+# the parameter unit codes are this tree's (src/omx_param_units.h, the render of the omx-param-contract domain) and the JSON
+# string writer is omx-contract's (<omxcontract/omx_json_write.h>): no other source under src/, lv2/ or tools/ spells a units row or an escape loop of its own
 # (tests/no_contract_copy.py, with its self test)
 .PHONY: test-no-contract-copy
 test-no-contract-copy:
@@ -1366,20 +1374,34 @@ test-hostd-chain: $(PROG) tests/jack_identity tests/fake_compressor.clap tests/f
 # of its own (tests/host_verbs_e2e.sh): data/ installed into build/verbs-contract as the package installs it, unless
 # OMX_CONTRACT_PATH names the contract directories to read (the packaging job's installed one)
 HOST_VERBS_CONTRACT = $(abspath build/verbs-contract)
-# the plugin-hostd-protocol tree whose data/ (its verbs file, plugin-hostd's verbs) is the package read beside this one:
-# the checkout of PROTOCOL_DIR, or the release checkout CI names
+# the plugin-hostd-protocol tree whose domain plugin-hostd-protocol (contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json, the protocol's
+# words, chain of omx-clap-host among them) is installed beside this package: the checkout of PROTOCOL_DIR, or the
+# release checkout CI names
+# the omx-contract command whose reader rebuilds a domain's items (tests/host_verbs_check.py): the installed one, else
+# the checkout of OMX_CONTRACT_DIR
+OMX_CONTRACT_CLIDIR ?= $(or $(shell $(PKG_CONFIG) --variable=clidir omx-contract 2>/dev/null),$(abspath $(OMX_CONTRACT_DIR)))
+export OMX_CONTRACT_CLIDIR
 PROTOCOL_CONTRACT_DIR ?= $(PROTOCOL_DIR)
-PROTOCOL_VERSION = $(shell sed -n 's/^Version: *//p' $(PROTOCOL_CONTRACT_DIR)/packaging/plugin-hostd-protocol.spec)
-.PHONY: test-host-verbs test-host-verbs-sabotage host-verbs-contract
+# the domain itself: the checkout's contract.d/plugin-hostd-protocol, or, with no checkout named (plugin-hostd-protocol-devel
+# installed, so PROTOCOL_DIR is unset), the one plugin-hostd-protocol-contract installed in omx-contract's contract directory
+PROTOCOL_DOMAIN ?= $(if $(PROTOCOL_CONTRACT_DIR),$(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd-protocol,$(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null)/plugin-hostd-protocol)
+.PHONY: test-host-verbs test-host-verbs-sabotage test-host-verbs-domains host-verbs-contract
 host-verbs-contract:
 	rm -rf $(HOST_VERBS_CONTRACT)
 	@# the catalogs go into the build tree too, as test-contract's do: the test runs as any user, never root
 	$(MAKE) --no-print-directory install-contract DESTDIR= CONTRACTDIR=$(HOST_VERBS_CONTRACT) DATADIR=$(abspath $(HOST_VERBS_CONTRACT))-share
-	@# every other package that names omx-clap-host in its verbs file (plugin-hostd-protocol's: chain, preset_list, ...) is read too
-	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_CONTRACT_DIR)/data/verbs.json && test -n "$(PROTOCOL_VERSION)" || { echo "host-verbs-contract: no plugin-hostd-protocol checkout at $(PROTOCOL_CONTRACT_DIR) (PROTOCOL_CONTRACT_DIR), whose verbs file declares chain of omx-clap-host" >&2; exit 1; }
-	sh $(INSTALL_CONTRACT_DIR) plugin-hostd-protocol $(PROTOCOL_VERSION) $(CONTRACT_SCHEMA_MAJOR) $(PROTOCOL_CONTRACT_DIR)/data $(HOST_VERBS_CONTRACT) data
+	@# every other package that names omx-clap-host in its words (the domain plugin-hostd-protocol: chain,
+	@# preset_list, ...) is read too, installed as its package installs it: the domain alone, named after its package,
+	@# with no owner manifest beside it (omx-contract's reader reads a domain as the package of its name)
+	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json || { echo "host-verbs-contract: no domain plugin-hostd-protocol at $(PROTOCOL_DOMAIN) (a checkout named by PROTOCOL_CONTRACT_DIR, or plugin-hostd-protocol-contract installed), whose words declare chain of omx-clap-host" >&2; exit 1; }
+	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_DOMAIN) $(HOST_VERBS_CONTRACT)
 test-host-verbs: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_e2e.sh
+
+# where that guard reads plugin-hostd-protocol's verbs: the domain plugin-hostd-protocol, every domain through omx-contract's
+# rebuild (tests/host_verbs_domains.py); no socket, no PipeWire
+test-host-verbs-domains: host-verbs-contract
+	python3 -I tests/host_verbs_domains.py --contract-path $(HOST_VERBS_CONTRACT)
 
 # the sabotage of that guard (tests/host_verbs_sabotage.sh): a format and what the host owes a verb changed in a copy of
 # the declarations, a handler deleted and a verb with no declaration registered in a copy of the sources; each red
@@ -1903,7 +1925,7 @@ fuzz-static: $(FUZZ_HARNESSES:%=$(FUZZ_STATIC_BUILD)/fuzz_%)
 # the seed corpus is written from the tree's own fixtures (fuzz/gen-corpus.c), never from a network, and committed
 $(FUZZ_BUILD)/gen-corpus: fuzz/gen-corpus.c fuzz/fuzz.h src/preset_file.c src/preset_file.h src/lv2_locate.h
 	@mkdir -p $(@D)
-	$(FUZZ_CC) -O1 -g -std=gnu99 -Wall -Wextra -Werror -Isrc -o $@ fuzz/gen-corpus.c src/preset_file.c -lm
+	$(FUZZ_CC) -O1 -g -std=gnu99 -Wall -Wextra -Werror -Isrc -isystem $(OMX_CONTRACT_DIR)/include -o $@ fuzz/gen-corpus.c src/preset_file.c -lm
 
 fuzz-corpus: $(FUZZ_BUILD)/gen-corpus
 	rm -rf fuzz/corpus

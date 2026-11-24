@@ -885,7 +885,7 @@ test-preset-file: tests/preset_file_test
 	./tests/preset_file_test
 
 tests/preset_file_test: tests/preset_file_test.c src/preset_file.c src/preset_file.h
-	$(CC) $(CFLAGS) -Werror -Isrc -o $@ tests/preset_file_test.c src/preset_file.c -lm
+	$(CC) $(CFLAGS) $(PROTOCOL_CFLAGS) -Werror -Isrc -o $@ tests/preset_file_test.c src/preset_file.c -lm
 
 tests/msgring_test: tests/msgring_test.c src/omx_msgring.h src/hosted_stage_limits.h
 	$(CC) $(CFLAGS) -Werror -pthread -o $@ $<
@@ -1868,8 +1868,8 @@ FUZZ_DEPS      := fuzz/fuzz.h fuzz/alloc.h fuzz/alloc.c src/preset_file.c src/pr
 # $(1): the flags of the build; the reader is instrumented for the fuzzer's feedback without linking it
 define fuzz_build
 	@mkdir -p $(@D)
-	$(FUZZ_CC) $(1) -fsanitize=fuzzer-no-link -Isrc -include fuzz/alloc.h -c -o $@.reader.o $(FUZZ_READER_$*)
-	$(FUZZ_CC) $(1) -fsanitize=fuzzer -Isrc -Ifuzz -o $@ $< fuzz/alloc.c $@.reader.o -lm
+	$(FUZZ_CC) $(1) -fsanitize=fuzzer-no-link -Isrc $(PROTOCOL_CFLAGS) -include fuzz/alloc.h -c -o $@.reader.o $(FUZZ_READER_$*)
+	$(FUZZ_CC) $(1) -fsanitize=fuzzer -Isrc -Ifuzz $(PROTOCOL_CFLAGS) -o $@ $< fuzz/alloc.c $@.reader.o -lm
 endef
 
 $(FUZZ_BUILD)/fuzz_%: fuzz/fuzz_%.c $(FUZZ_DEPS)
@@ -1885,7 +1885,7 @@ fuzz-sabotage:
 
 # each record built plain and native with fuzz/standalone.c, no sanitizer, as OSS Verify's coverage build is
 fuzz-records:
-	FUZZ_BUILD=$(FUZZ_BUILD) FUZZ_CC=$(FUZZ_CC) fuzz/records.sh
+	FUZZ_BUILD=$(FUZZ_BUILD) FUZZ_CC=$(FUZZ_CC) PROTOCOL_CFLAGS='$(PROTOCOL_CFLAGS)' fuzz/records.sh
 
 # the coverage witness: the same harnesses without sanitizers, instrumented for llvm-cov, each run once over its seed
 # corpus; the llvm-cov and llvm-profdata of FUZZ_CC's own LLVM
@@ -1919,8 +1919,8 @@ FUZZ_STATIC_FLAGS := -O2 -g -std=gnu99 -D_GNU_SOURCE -Wall -Wextra -Werror
 
 $(FUZZ_STATIC_BUILD)/fuzz_%: fuzz/fuzz_%.c fuzz/standalone.c $(FUZZ_DEPS)
 	@mkdir -p $(@D)
-	$(FUZZ_CC) $(FUZZ_STATIC_FLAGS) -Isrc -include fuzz/alloc.h -c -o $@.reader.o $(FUZZ_READER_$*)
-	$(FUZZ_CC) $(FUZZ_STATIC_FLAGS) -static -Isrc -Ifuzz -o $@ $< fuzz/alloc.c fuzz/standalone.c $@.reader.o -lm
+	$(FUZZ_CC) $(FUZZ_STATIC_FLAGS) -Isrc $(PROTOCOL_CFLAGS) -include fuzz/alloc.h -c -o $@.reader.o $(FUZZ_READER_$*)
+	$(FUZZ_CC) $(FUZZ_STATIC_FLAGS) -static -Isrc -Ifuzz $(PROTOCOL_CFLAGS) -o $@ $< fuzz/alloc.c fuzz/standalone.c $@.reader.o -lm
 
 fuzz-static: $(FUZZ_HARNESSES:%=$(FUZZ_STATIC_BUILD)/fuzz_%)
 	@set -e; for h in $(FUZZ_HARNESSES); do \
@@ -1929,7 +1929,7 @@ fuzz-static: $(FUZZ_HARNESSES:%=$(FUZZ_STATIC_BUILD)/fuzz_%)
 # the seed corpus is written from the tree's own fixtures (fuzz/gen-corpus.c), never from a network, and committed
 $(FUZZ_BUILD)/gen-corpus: fuzz/gen-corpus.c fuzz/fuzz.h src/preset_file.c src/preset_file.h src/lv2_locate.h
 	@mkdir -p $(@D)
-	$(FUZZ_CC) -O1 -g -std=gnu99 -Wall -Wextra -Werror -Isrc -isystem $(OMX_CONTRACT_DIR)/include -o $@ fuzz/gen-corpus.c src/preset_file.c -lm
+	$(FUZZ_CC) -O1 -g -std=gnu99 -Wall -Wextra -Werror -Isrc $(PROTOCOL_CFLAGS) -isystem $(OMX_CONTRACT_DIR)/include -o $@ fuzz/gen-corpus.c src/preset_file.c -lm
 
 fuzz-corpus: $(FUZZ_BUILD)/gen-corpus
 	rm -rf fuzz/corpus

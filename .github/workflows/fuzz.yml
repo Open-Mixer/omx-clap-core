@@ -92,14 +92,15 @@ jobs:
           dnf install -y --setopt=install_weak_deps=False --setopt=retries=10 git clang compiler-rt llvm make gawk \
             diffutils glibc-static
 
-      # src/preset_file.c, which every harness is built from, includes <omxcontract/omx_json_write.h>
+      # src/preset_file.c, which every harness is built from, includes <omxcontract/omx_json_write.h>, and its
+      # src/preset_file.h <plugin-hostd/protocol.h> for the ceiling its file limit is asserted under
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
       # the checkout comes first: dnf builddep reads the spec from it
       - uses: actions/checkout@v4
 
-      - name: Install omx-contract-devel from the OpenMixer channel
+      - name: Install omx-contract-devel and plugin-hostd-protocol-devel from the OpenMixer channel
         run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
 
       # fuzz-sabotage applies each mutant with git and restores it with git checkout

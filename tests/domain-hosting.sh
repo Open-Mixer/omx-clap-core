@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# omx-clap-core publishes its hosting codes as a domain the omx-contract loader opens: the installed tree holds
+# omx-clap publishes its hosting codes as a domain the omx-contract loader opens: the installed tree holds
 # contract.d/hosting/hosting.json, the loader (omx-domain, over omx_domain_open_at) opens it, and every HOSTING_* item
 # lists exactly the codes data/hosting.json and data/hosting/*.json define. data/ stays the one source; the domain file is
 # what tools/render-domain.py derives from it. `make check-domain` is red on a missing file, a hand edit and an
@@ -93,8 +93,17 @@ since_red() { # <label> <sed script over the domain file>
 }
 since_red "an item without x-since" '0,/"x-since": "[0-9.]*",/{/"x-since": "[0-9.]*",/d}'
 since_red "an x-since above info.version" '0,/"x-since": "[0-9.]*"/s//"x-since": "99.0.0"/'
-# every item of the rendered file says the version that first carried it
-n=$(grep -c "\"x-since\": \"$(cat VERSION)\"" "$D"); [ "$n" -ge 19 ] || { echo "FAIL fewer than 19 items carry x-since $(cat VERSION): $n"; exit 1; }
+# every item of the rendered file says the version that first carried it: 0.35.0, the first release that ships the
+# domain, or a later one; never an earlier one (a version that shipped without the domain cannot have carried an item)
+FIRST=0.35.0
+python3 - "$D" "$FIRST" <<'P' || exit 1
+import json, sys
+items = json.load(open(sys.argv[1]))["components"]["schemas"]
+key = lambda v: tuple(int(p) for p in v.split("."))
+early = [n for n, b in items.items() if key(b.get("x-since", "0.0.0")) < key(sys.argv[2])]
+if len(items) < 19 or early:
+    sys.exit(f"FAIL {len(items)} items, and these carry no x-since or one before {sys.argv[2]}: {early}")
+P
 # a new version with the word appended renders, and the codes of the earlier words stay put
 fresh
 edit "$ADD"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
-"""Derive contract.d/hosting/hosting.json, omx-clap-core's hosting domain document, from data/hosting*.json.
+"""Derive contract.d/hosting/hosting.json, omx-clap's hosting domain document, from data/hosting*.json.
 
 data/hosting.json and data/hosting/*.json stay the source of the codes. The domain document carries one item per
 HOSTING_* codes item of them (each item's doc is its description), each code as a oneOf entry: the code as const, its key
@@ -47,9 +47,9 @@ def render(data_dir, version, old):
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://openmixer.org/contract/hosting",
         "info": {
-            "title": "The hosting codes of omx-clap-core",
+            "title": "The hosting codes of omx-clap",
             "version": version,
-            "x-owner": "omx-clap-core",
+            "x-owner": "omx-clap",
             "x-stability": "experimental",
         },
         "components": {"schemas": schemas},

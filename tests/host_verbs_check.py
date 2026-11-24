@@ -386,7 +386,7 @@ def main():
     preset = os.path.join(tempfile.mkdtemp(prefix='host-verbs-'), 'preset.json')
     with open(preset, 'w') as f:
         json.dump({'format': 'org.openmixer.preset/1', 'plugin': {'id': 'org.omx-clap-host.test.passthrough'},
-                   'id': 'p', 'name': 'P', 'params': [{'symbol': '0', 'unit': '', 'value': 0.5}]}, f)
+                   'id': 'p', 'name': 'P', 'params': [{'symbol': '0', 'unit': 'none', 'value': 0.5}]}, f)
     subst = {'fx': fx, 'fx2': fx2, 'synth': synth, 'scheme': o.layout_scheme, 'pin': o.layout_scheme + ':' + '0' * 64,
              'preset': preset, 'missing': os.path.join(os.path.dirname(preset), 'missing.json')}
 

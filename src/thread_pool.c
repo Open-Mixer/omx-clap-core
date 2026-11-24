@@ -163,7 +163,7 @@ static void futex_wake(_Atomic uint32_t *word, int count)
    boundary). The build calls it through OMX_ABI_VCALL, whose trampoline omx_abi_call6 (src/abi_guard.S) the gate
    cannot read: it saves the callee-saved registers, makes the one call, compares and restores them and counts, with
    no allocation, lock or system call. GCC places a macro's call at the macro, so the view is spelled here, at the
-   site (rt-gate #87, omx_abi_call6, ruled by %7 2026-11-15). */
+   site (omx_abi_call6, ruled 2026-11-15). */
 static void run_task(struct pool_helper *self, struct omx_clap_instance *in, uint32_t index)
 {
     uint64_t t0;

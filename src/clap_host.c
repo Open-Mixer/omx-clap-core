@@ -373,7 +373,7 @@ static struct omx_clap_instance *instance_of(const clap_host_t *host)
 }
 
 /* the embedder's audio-role predicate and its context, read as one pair: the predicate is called through its field,
-   which omx-rt-gate's omx-clap-core.abi declares audio (rt-gate #87, ruled by %7 2026-11-15) */
+   which omx-rt-gate's omx-clap-core.abi declares audio (ruled 2026-11-15) */
 struct omx_clap_audio_role
 {
     omx_clap_audio_role_fn is_audio;

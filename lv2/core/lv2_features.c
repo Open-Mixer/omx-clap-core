@@ -161,7 +161,7 @@ static uint32_t urid_segment_of(uint32_t i, uint32_t *base)
 }
 
 /* the slot of the URID index `i` in a segment already made, or NULL: no allocation, so lv2_urid_unlookup may run on
-   the audio thread (rt-gate #19) */
+   the audio thread */
 static _Atomic(const char *) *urid_slot(uint32_t i)
 {
     uint32_t base;
@@ -992,7 +992,7 @@ int lv2_log_emit(const struct omx_lv2_feature_options *o, LV2_URID type, const c
 
     if (o->log.mode == OMX_LV2_LOG_SILENT || !fmt)
         return 0;
-    n = omx_lv2_log_vformat(line, sizeof(line), fmt, ap);   // never vsnprintf: it may allocate (rt-gate #18)
+    n = omx_lv2_log_vformat(line, sizeof(line), fmt, ap);   // never vsnprintf: it may allocate
     if (n < 0)
         return n;
     if (o->log.mode == OMX_LV2_LOG_ROUTE)

@@ -29,7 +29,7 @@
  *    mask but one, and ends with the last deactivate;
  *  - a request from inside a task, on a helper or on the audio thread, is refused;
  *  - a helper's task that runs past the block is waited for and counted late;
- *  - a helper never claims a task while it runs on the requesting thread's CPU (ruling A, rt-gate #15): the requesting
+ *  - a helper never claims a task while it runs on the requesting thread's CPU (ruling A): the requesting
  *    thread, pinned here to a helper's core, takes that helper's share itself and spins only on tasks other helpers
  *    hold, so a same-priority helper queued behind it on its own core can never hold a task it waits for;
  *  - an affinity mask of one core gives no pool, with the log line that says so;

@@ -453,7 +453,7 @@ static int event_append(LV2_Event_Buffer *buf, uint32_t capacity, uint32_t frame
 }
 
 /* the host's audio-role predicate and its context: called through its field, which omx-rt-gate's omx-clap-core.abi
-   declares audio (rt-gate #87, ruled by %7 2026-11-15) */
+   declares audio (ruled 2026-11-15) */
 struct lv2_audio_role
 {
     lv2_audio_role_fn is_audio;

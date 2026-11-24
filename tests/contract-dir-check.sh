@@ -71,11 +71,12 @@ for f in worker_poll_us:WORKER_POLL_US worker_ring_bytes:WORKER_RING_BYTES; do
     echo "contract-dir-check: src/ sets ${f%%:*} from \"$*\", not from the declared OMX_HOSTED_STAGE_${f#*:}" >&2; exit 1; }
 done
 # each module loads as an ES module and exports its files' items, nothing else: the hosting module data/hosting.json's,
-# the vocabulary module every item of data/hosting/ and the codes and words of the host and omx-clap domains, a words item with its _WORDS
+# the vocabulary module every item of data/hosting/ and the codes and words of the host and omx-clap domains, a words item with its _WORDS;
+# a domain item with no x-file (OMX_CLAP_REPLIES) is read at run time only: it rebuilds no data file, so no module exports it
 node --input-type=module -e "import('$(pwd)/ts/omx-clap-hosting.js').then((m) => { const k = Object.keys(m).sort().join(' '); if (k !== 'HOSTED_STAGE_LIMITS HOSTING_IDLE_CODES HOSTING_WINDOW_CODES') { console.error('contract-dir-check: ts/omx-clap-hosting.js exports ' + k); process.exit(1); } })"
 node --input-type=module -e "
 import { readdirSync, readFileSync } from 'node:fs';
-const own = (f) => { const d = JSON.parse(readFileSync(f, 'utf8')); const items = f.startsWith('data/') ? d : d.components.schemas; return Object.entries(items).filter(([k, v]) => !k.startsWith('\$') && k !== 'requires' && (v.kind ?? v['x-kind']) !== 'verbs').flatMap(([k, v]) => ((v.kind ?? v['x-kind']) === 'words' ? [k, k + '_WORDS'] : [k])); };
+const own = (f) => { const d = JSON.parse(readFileSync(f, 'utf8')); const items = f.startsWith('data/') ? d : d.components.schemas; return Object.entries(items).filter(([k, v]) => !k.startsWith('\$') && k !== 'requires' && (v.kind ?? v['x-kind']) !== 'verbs' && (f.startsWith('data/') || v['x-file'] !== undefined)).flatMap(([k, v]) => ((v.kind ?? v['x-kind']) === 'words' ? [k, k + '_WORDS'] : [k])); };
 const items = [...readdirSync('data/hosting').flatMap((f) => own('data/hosting/' + f)), ...own('contract.d/host/host.json'), ...own('contract.d/omx-clap/omx-clap.json')].sort().join(' ');
 import('$(pwd)/ts/omx-clap-vocabulary.js').then((m) => { const k = Object.keys(m).sort().join(' '); if (k !== items) { console.error('contract-dir-check: ts/omx-clap-vocabulary.js exports ' + k + ', data/ declares ' + items); process.exit(1); } })"
 echo "contract-dir-check: omx-clap $version read back; $(echo "$committed" | sed 's/[a-z]*://g') the render of data/, byte for byte"

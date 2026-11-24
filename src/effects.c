@@ -4742,7 +4742,8 @@ int effects_note_drops(int effect_id, char *reply, size_t size)
     if (!instance_exist(effect_id))
         return ERR_INSTANCE_NON_EXISTS;
     stage = &g_effects[effect_id].clap->stage;
-    snprintf(reply, size, "resp 0 %u %u %u %u", atomic_load_explicit(&stage->notes_dropped, memory_order_relaxed),
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_NOTE_DROPS),
+             atomic_load_explicit(&stage->notes_dropped, memory_order_relaxed),
              atomic_load_explicit(&stage->releases_dropped, memory_order_relaxed),
              atomic_load_explicit(&stage->sysex_dropped, memory_order_relaxed),
              atomic_load_explicit(&stage->notes_unmappable, memory_order_relaxed));
@@ -4754,7 +4755,8 @@ int effects_note_input(int effect_id, char *reply, size_t size)
 {
     if (!instance_exist(effect_id))
         return ERR_INSTANCE_NON_EXISTS;
-    snprintf(reply, size, "resp 0 %s", g_effects[effect_id].note_ring_buf ? MIDI_PORT_NAME : HOST_WORD_NONE);
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_NOTE_INPUT),
+             g_effects[effect_id].note_ring_buf ? MIDI_PORT_NAME : HOST_WORD_NONE);
     return SUCCESS;
 }
 
@@ -4883,11 +4885,13 @@ int effects_idle_hold(char *reply, size_t size)
 
     omx_clap_host_idle_hold(&hold);
     if (hold.aggregate_us < 0)
-        snprintf(aggregate, sizeof(aggregate), "-");
+        snprintf(aggregate, sizeof(aggregate), "%s", HOST_WORD_NONE);
     else
         snprintf(aggregate, sizeof(aggregate), "%d", hold.aggregate_us);
-    snprintf(reply, size, "resp 0 %s %s %s %u %s", idle_hold_word_of(hold.target_us, target, sizeof(target)),
-             idle_hold_word_of(hold.held_us, held, sizeof(held)), aggregate, hold.active, hold.code[0] ? hold.code : "-");
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_IDLE_HOLD),
+             idle_hold_word_of(hold.target_us, target, sizeof(target)),
+             idle_hold_word_of(hold.held_us, held, sizeof(held)), aggregate, hold.active,
+             hold.code[0] ? hold.code : HOST_WORD_NONE);
     return SUCCESS;
 }
 
@@ -4900,7 +4904,8 @@ int effects_note_out_drops(int effect_id, char *reply, size_t size)
     if (!instance_exist(effect_id))
         return ERR_INSTANCE_NON_EXISTS;
     effect = &g_effects[effect_id];
-    snprintf(reply, size, "resp 0 %u %u %u", atomic_load_explicit(&effect->clap->note_out.dropped, memory_order_relaxed),
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_NOTE_OUT_DROPS),
+             atomic_load_explicit(&effect->clap->note_out.dropped, memory_order_relaxed),
              atomic_load_explicit(&effect->clap->note_out.unmapped, memory_order_relaxed),
              atomic_load_explicit(&effect->midi_out_full, memory_order_relaxed));
     return SUCCESS;

@@ -74,6 +74,17 @@
  * mask (OMX_ABI_* bits), the registers' names joined by commas, the plugin function and the block (src/abi_guard.h) */
 #define HOST_EVENT_ABI_CLOBBER_FMT OMX_HOST_EVENTS_ABI_CLOBBER " %d %#x %s %s %llu"
 
+/* the fields of a reply this package types (OMX_CLAP_REPLIES of contract.d/omx-clap/omx-clap.json), as its builder
+ * writes them: HOST_FIELDS_<VERB>(X) is a row X(name, conversion) per field, the declared name in the declared order,
+ * and HOST_FIELDS_FMT(HOST_FIELDS_<VERB>) the reply's format, resp 0 and one conversion per field
+ * (tests/host-replies-check.py holds the names and conversions to the declaration) */
+#define HOST_FIELDS_FMT_ONE(name, conversion) " " conversion
+#define HOST_FIELDS_FMT(fields) "resp 0" fields(HOST_FIELDS_FMT_ONE)
+#define HOST_FIELDS_NOTE_INPUT(X) X(port, "%s")
+#define HOST_FIELDS_IDLE_HOLD(X) X(target, "%s") X(held, "%s") X(aggregate, "%s") X(active, "%u") X(code, "%s")
+#define HOST_FIELDS_NOTE_DROPS(X) X(notes, "%u") X(releases, "%u") X(sysex, "%u") X(unmappable, "%u")
+#define HOST_FIELDS_NOTE_OUT_DROPS(X) X(dropped, "%u") X(unmapped, "%u") X(midi_out_full, "%u")
+
 
 /*
 ************************************************************************************************************************

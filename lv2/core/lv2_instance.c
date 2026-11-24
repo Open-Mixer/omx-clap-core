@@ -738,7 +738,10 @@ static LV2_Worker_Status respond(LV2_Worker_Respond_Handle h, uint32_t size, con
     return LV2_WORKER_SUCCESS;
 }
 
-/* [worker] every queued request through work(); how many */
+/* [worker] every queued request through work(); how many. omx-rt-gate's view (make test-rt-gate defines
+   OMX_RT_GATE_VIEW; never a build): work() called through its field, so the gate sees respond handed to it as
+   parameter 1 and judges respond as the worker root lv2.abi declares. The build calls it through omx_abi_g, whose
+   trampoline the gate cannot read (src/thread_pool.c, run_task's note) */
 static uint32_t worker_service(struct lv2_instance *in)
 {
     uint32_t done = 0, size;
@@ -747,8 +750,12 @@ static uint32_t worker_service(struct lv2_instance *in)
     while ((p = omx_msgring_peek(&in->requests, &size)) != NULL)
     {
         g_in_work = in;
+#ifdef OMX_RT_GATE_VIEW
+        in->worker->work(in->handle, respond, in, size, p);   // the gate's view: see the note above
+#else
         omx_abi_g(&in->abi, "work", (const void *)in->worker->work, OMX_ABI_A(in->handle), OMX_ABI_A(respond), OMX_ABI_A(in),
                   OMX_ABI_A(size), OMX_ABI_A(p), 0);
+#endif
         g_in_work = NULL;
         omx_msgring_pop(&in->requests);
         done++;

@@ -155,6 +155,11 @@ int main(void)
     free(text);
     CHECK(!preset_base64_decode("c3R*dGU=", &len) && !preset_base64_decode("c3RhdGV=", &len)
           && !preset_base64_decode("c", &len) && !preset_base64_decode("c3=RhdGU=", &len), "what is not base64 is refused");
+    // two '=' are the most a text pads with: "QQ==" is "A", and a third '=' is refused, a space between them or not
+    dec = preset_base64_decode("QQ==", &len);
+    CHECK(dec && len == 1 && dec[0] == 'A', "\"QQ==\", two '=', decodes to \"A\"");
+    free(dec);
+    CHECK(!preset_base64_decode("QQ===", &len) && !preset_base64_decode("QQ== =", &len), "a third '=' is refused: \"QQ===\" and \"QQ== =\"");
     ok = pads_past_int_refused();
     if (ok < 0)
         printf("skip the address space cannot hold 2^31 '=' and the decoder's buffer: a third '=' past an int unchecked\n");

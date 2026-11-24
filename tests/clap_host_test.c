@@ -1984,6 +1984,7 @@ typedef struct
     char last_preset[512];
     int32_t status;
     uint32_t process_calls;
+    uint32_t exprs, exprs_on_voice, exprs_channels;
 } poly_stats_t;
 
 static const poly_stats_t *poly_stats(const char *path)
@@ -2051,6 +2052,61 @@ static void synth_ids_checks(const char *path)
     CHECK(synth->note_ids.n_free == OMX_CLAP_NOTE_IDS && seen->voices == 0, "every id is free again (%u of %u)",
           synth->note_ids.n_free, OMX_CLAP_NOTE_IDS);
     CHECK(seen->voices_max > POLY_PER_BLOCK, "voices overlapped: up to %u at once", seen->voices_max);
+    omx_clap_host_close(synth);
+}
+
+/*
+ * MPE through the core, against synth-poly: the lower zone, master channel 1 and 15 members, channels 2 to 16, asked for
+ * through omx_clap_host_set_mpe. A note on channel 2 and one on channel 16 each reach the plugin with an id of their
+ * own; a member's bend, pressure and controller 74 reach the note of its channel under that note's id, and the master's
+ * bend reaches both notes, each under its own. The note offs start the voices' release, and the plugin's NOTE_END
+ * frees both ids, with no hold run out.
+ */
+static void synth_mpe_checks(const char *path)
+{
+    static const midi_at_t notes[] = {
+        { 0, { 0x91, 60, 100 }, 3 },    // note on, channel 2, the first member
+        { 1, { 0x9f, 64, 100 }, 3 },    // note on, channel 16, the last member
+        { 2, { 0xef, 0x7f, 0x7f }, 3 }, // channel 16's bend
+        { 3, { 0xd1, 64, 0 }, 2 },      // channel 2's pressure
+        { 4, { 0xbf, 74, 127 }, 3 },    // channel 16's controller 74
+        { 5, { 0xe0, 0, 0 }, 3 },       // the master's bend: one expression per note of the zone
+    };
+    static const midi_at_t offs[] = { { 0, { 0x81, 60, 0 }, 3 }, { 1, { 0x8f, 64, 0 }, 3 } };
+    float out_l[BLOCK], out_r[BLOCK];
+    struct omx_clap_instance *synth = open_synth(path, SYNTH_POLY, 2, CLAP_NOTE_DIALECT_CLAP);
+    const poly_stats_t *seen;
+    uint32_t b;
+
+    if (!synth)
+        return;
+    seen = poly_stats(path);
+    CHECK(seen != NULL, "synth-poly's counters are read through fake_synth_poly_stats");
+    if (!seen)
+    {
+        omx_clap_host_close(synth);
+        return;
+    }
+    omx_clap_host_set_mpe(synth, OMX_CLAP_MPE_LOWER, 15);
+    run_block(synth, notes, sizeof(notes) / sizeof(notes[0]), out_l, out_r);
+    CHECK(synth->mpe_zones.zone[0].members == 15 && synth->mpe_zones.zone[1].members == 0,
+          "MPE: the lower zone, master channel 1 and 15 members, no upper zone (%u, %u)", synth->mpe_zones.zone[0].members,
+          synth->mpe_zones.zone[1].members);
+    CHECK(seen->notes_on == 2 && seen->no_id == 0 && seen->voices == 2, "MPE: the notes on channels 2 and 16 reach the synth, each with an id (%u, %u without)",
+          seen->notes_on, seen->no_id);
+    CHECK(seen->exprs == 5 && seen->exprs_on_voice == 5,
+          "MPE: three member expressions and the master's bend on both notes, each under its note's id, channel and key (%u of %u)",
+          seen->exprs_on_voice, seen->exprs);
+    CHECK(seen->exprs_channels == (1u << 1 | 1u << 15), "MPE: channel 2 and channel 16 are both members of the lower zone (%#x)",
+          seen->exprs_channels);
+    run_block(synth, offs, sizeof(offs) / sizeof(offs[0]), out_l, out_r);
+    for (b = 0; b <= 1024u / BLOCK; b++)     /* the fake's FAKE_SYNTH_RELEASE, in blocks, and one more */
+        run_block(synth, NULL, 0, out_l, out_r);
+    CHECK(seen->ended == 2 && atomic_load(&synth->note_ids.notes_ended) == 2 && atomic_load(&synth->note_ids.ids_expired) == 0,
+          "MPE: both voices end with NOTE_END and the core frees their ids, no hold ran out (%u pushed, %u freed, %u expired)",
+          seen->ended, atomic_load(&synth->note_ids.notes_ended), atomic_load(&synth->note_ids.ids_expired));
+    CHECK(synth->note_ids.n_free == OMX_CLAP_NOTE_IDS && seen->voices == 0, "MPE: every id is free again (%u of %u)",
+          synth->note_ids.n_free, OMX_CLAP_NOTE_IDS);
     omx_clap_host_close(synth);
 }
 
@@ -2540,6 +2596,7 @@ static void synth_checks(const char *path)
     synth_notes_checks(path, SYNTH_MIDI2, 1, CLAP_NOTE_DIALECT_MIDI2);
     synth_notes_checks(path, SYNTH_MIDI2_PREF, 2, CLAP_NOTE_DIALECT_MIDI2);
     synth_ids_checks(path);
+    synth_mpe_checks(path);
     synth_voice_checks(path);
     synth_host_details_checks(path);
     synth_sleep_checks(path);

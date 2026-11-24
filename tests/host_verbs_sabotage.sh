@@ -85,7 +85,9 @@ src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/3/plugin-hostd-protocol/ve
 if [ -z "$src" ]; then
     echo "FAIL nopkg: no plugin-hostd-protocol/verbs.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1))
 else
-    cp -r "$src/3" "$nopkg/" && rm -rf "$nopkg/3/plugin-hostd-protocol"
+    # the whole contract directory less the package: the domains (contract.d, omx-clap's verbs since V15) stay, or the
+    # check stops at "no verb of omx-clap" before it reaches the package
+    cp -r "$src/." "$nopkg/" && rm -rf "$nopkg/3/plugin-hostd-protocol"
     OMX_CONTRACT_PATH=$nopkg "$root/tests/host_verbs_e2e.sh" >"$nopkg.log" 2>&1
     judge nopkg "$nopkg.log" "plugin-hostd-protocol's package is installed" $?
 fi

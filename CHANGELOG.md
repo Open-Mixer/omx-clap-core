@@ -18,6 +18,10 @@ Lines for the next release; the release moves them into debian/changelog and the
   host-verbs-contract reads both packages' contract directories as one, so a word declared by both is refused
   (contract.item.duplicate), and tests/no_protocol_copy.py refuses a verbs item, a rendered verb table or an item of the
   domains host and hosting-verb coming back. No alias, no second read.
+- The replies of note_input, note_drops and note_out_drops are plugin-hostd-protocol's: its table's reply_forms types them,
+  their one home, so OMX_CLAP_REPLIES drops them and types idle_hold alone. tests/host-replies-check.py holds
+  HOST_FIELDS_NOTE_INPUT, HOST_FIELDS_NOTE_DROPS and HOST_FIELDS_NOTE_OUT_DROPS to the table's names and types, and
+  refuses one of them typed here again (a reply with two homes).
 - No hand-kept version floor (owner ruling 2026-11-24): packaging/deps.txt is gone, the
   spec, debian/control and omx-clap.pc name every dependency without a version; what a package needs at run time is
   generated (sonames, ${shlibs:Depends}, = its own version). The data files state no `requires` (their only entry was the

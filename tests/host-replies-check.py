@@ -18,8 +18,11 @@ Held, one failure line each:
     count written resp <count>, is word for word the verb's x-reply;
   - every type is an arg_type of the table or an own type; an own type the table also declares has two homes, an own
     type no reply names is dead, and an own type's pattern compiles and has its spelling (x-docs);
-  - every typed reply with fields has its HOST_FIELDS_<VERB>(X) in src/host_verbs.h: its names, in order, the declared
-    ones, each conversion one the field's type is written with (TYPE_CONVERSIONS), and a source under src/ writes the
+  - every reply OMX_CLAP_REPLIES types with fields has its HOST_FIELDS_<VERB>(X) in src/host_verbs.h, and every
+    HOST_FIELDS_<VERB>(X) there is held to its reply's form, wherever that is typed: OMX_CLAP_REPLIES, or the protocol
+    table's one reply_form of the verb (note_input, note_drops and note_out_drops are the table's, the coordinator's
+    ruling on R5: the code reads their names and types from there, never from a copy here). Its names, in order, the
+    form's, each conversion one the field's type is written with (TYPE_CONVERSIONS), and a source under src/ writes the
     reply with HOST_FIELDS_FMT(HOST_FIELDS_<VERB>); a HOST_FIELDS_ of a verb typed nowhere is a failure too.
 --self-test breaks a copy of the inputs once per arm, each of which must fail. Exit 0 held; 1 a failure; 2 usage.
 """
@@ -116,6 +119,17 @@ def problems(inp):
     spellings = schemas.get(TYPES, {}).get('x-docs', {})
     arg_types = inp['table'].get('arg_types', {})
     protocol_typed = {c['verb'] for c in inp['table'].get('commands', []) if c.get('reply_forms')}
+    # the table's form of each verb it types with one plain form (no repeat, no tail): (resp, [(name, type)])
+    table_forms = {}
+    for c in inp['table'].get('commands', []):
+        rf = c.get('reply_forms') or []
+        if len(rf) == 1 and not rf[0].get('repeat') and not rf[0].get('tail'):
+            names, args = rf[0].get('names', []), rf[0].get('args', [])
+            if len(names) != len(args):
+                out.append('%s: the protocol table\'s reply_form names %d fields and types %d' % (c['verb'], len(names),
+                                                                                                len(args)))
+                continue
+            table_forms[c['verb']] = (rf[0].get('resp'), list(zip(names, args)))
 
     # every reply with a field has one home
     for title, v in verbs.items():
@@ -163,18 +177,29 @@ def problems(inp):
         except re.error as e:
             out.append('%s.%s: its pattern %r does not compile: %s' % (TYPES, kind, pattern, e))
 
-    # the code names the fields it writes, as the declaration types them
+    # the code names the fields it writes, as the declaration types them: OMX_CLAP_REPLIES, or the protocol table
     rows = {}
     for m in DEFINE.finditer(inp['header']):
         rows[m.group(1)] = ROW.findall(m.group(2))
     titled = {snake(t): t for t in verbs}
+    held = {}  # title -> (fields, where they are typed)
+    for title, (_, fields) in forms.items():
+        if fields:
+            held[title] = (fields, '%s.%s' % (REPLIES, title))
+    for title, v in verbs.items():
+        form = table_forms.get(v['const'])
+        if form and form[1] and title not in forms:
+            if spoken(*form) != v.get('x-reply'):
+                out.append('%s: the protocol table\'s reply_form says %r, its x-reply %r: the words disagree with the form'
+                           % (v['const'], spoken(*form), v.get('x-reply')))
+            if snake(title) in rows:
+                held[title] = (form[1], 'the protocol table\'s reply_form')
     for macro in rows:
         title = titled.get(macro)
-        if title not in forms or not forms[title][1]:
-            out.append('%s: HOST_FIELDS_%s names the fields of a reply %s types none of' % (HEADER, macro, REPLIES))
-    for title, (_, fields) in forms.items():
-        if not fields:
-            continue
+        if title not in held:
+            out.append('%s: HOST_FIELDS_%s names the fields of a reply %s and the protocol table type none of'
+                       % (HEADER, macro, REPLIES))
+    for title, (fields, where) in held.items():
         word, macro = verbs[title]['const'], snake(title)
         if macro not in rows:
             out.append('%s: %s has no HOST_FIELDS_%s(X), the fields its reply is written with' % (word, HEADER, macro))
@@ -184,8 +209,8 @@ def problems(inp):
             have = code[i][0] if i < len(code) else None
             want = fields[i][0] if i < len(fields) else None
             if have != want:
-                out.append('%s: field %d is %s in HOST_FIELDS_%s of %s, %s in %s.%s'
-                           % (word, i + 1, have or 'missing', macro, HEADER, want or 'missing', REPLIES, title))
+                out.append('%s: field %d is %s in HOST_FIELDS_%s of %s, %s in %s'
+                           % (word, i + 1, have or 'missing', macro, HEADER, want or 'missing', where))
             elif code[i][1] not in TYPE_CONVERSIONS.get(fields[i][1], {'%s'}):
                 out.append('%s: the field %s is written %s, which a %s is not written with (%s)'
                            % (word, have, code[i][1], fields[i][1],
@@ -207,6 +232,13 @@ def self_test(inp):
             fn(i['verbs']['components']['schemas'])
         return arm
 
+    def table(verb, fn):
+        def arm(i):
+            hit = [c for c in i['table']['commands'] if c['verb'] == verb and c.get('reply_forms')]
+            assert hit, verb
+            fn(hit[0])
+        return arm
+
     def header(old, new):
         def arm(i):
             assert old in i['header'], old
@@ -224,8 +256,19 @@ def self_test(inp):
         s[REPLIES]['x-value'][title] = line
 
     arms = [  # what, the change, a word of the failure it must raise
-        ('a reply undeclared (note_drops)', domain(lambda s: s[REPLIES]['x-value'].pop('noteDrops')),
-         'note_drops: its reply'),
+        ('a reply undeclared (note_drops, its reply_forms dropped from the table)',
+         table('note_drops', lambda c: c.pop('reply_forms')), 'note_drops: its reply'),
+        ('a reply undeclared (idle_hold)', domain(lambda s: s[REPLIES]['x-value'].pop('idleHold')),
+         'idle_hold: its reply'),
+        ('a reply the protocol table types typed here again (note_drops)',
+         domain(lambda s: typed(s, 'noteDrops', 'resp 0 notes:uint releases:uint sysex:uint unmappable:uint')),
+         'note_drops: typed in OMX_CLAP_REPLIES and by the protocol'),
+        ('a field renamed in the table (note_out_drops)',
+         table('note_out_drops', lambda c: c['reply_forms'][0]['names'].__setitem__(0, 'drops')),
+         'field 1 is dropped in HOST_FIELDS_NOTE_OUT_DROPS of src/host_verbs.h, drops in the protocol table'),
+        ('a type changed in the table (note_drops notes as word)',
+         table('note_drops', lambda c: c['reply_forms'][0]['args'].__setitem__(0, 'word')),
+         'the field notes is written %u, which a word is not written with'),
         ('a field renamed in the code (notes)', header('X(notes,', 'X(note_count,'),
          'field 1 is note_count in HOST_FIELDS_NOTE_DROPS'),
         ('a field dropped from the code (code of idle_hold)', header(' X(code, "%s")', ''),
@@ -239,7 +282,9 @@ def self_test(inp):
          protocol(lambda s: s['PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS']['oneOf'][3].update(
              {'x-reply': 'resp 0 <notes> <releases> <sysex> <lost>'})),
          'the words disagree with the form'),
-        ('a type declared nowhere', domain(lambda s: typed(s, 'noteInput', 'resp 0 port:jack-port')),
+        ('a type declared nowhere',
+         domain(lambda s: typed(s, 'idleHold', 'resp 0 target:jack-port held:hold aggregate:microseconds active:uint '
+                                               'code:word')),
          'the type jack-port, which neither'),
         ('an own type the protocol declares',
          domain(lambda s: (s[TYPES]['x-value'].update({'uint': '[0-9]+'}),
@@ -260,7 +305,7 @@ def self_test(inp):
          'still PENDING'),
         ('a key that is no verb', domain(lambda s: typed(s, 'noteDropz', 'resp 0 notes:uint')),
          'no verb omx-clap-host answers is titled noteDropz'),
-        ('a typed reply that is not resp 0 or resp count', domain(lambda s: typed(s, 'noteInput', 'resp 1 port:word')),
+        ('a typed reply that is not resp 0 or resp count', domain(lambda s: typed(s, 'idleHold', 'resp 1 target:hold')),
          'it is not resp 0 or resp count'),
         ('fields of a reply typed nowhere in the code',
          header('#define HOST_FIELDS_NOTE_INPUT(X)', '#define HOST_FIELDS_ALL_NOTES_OFF(X) X(channel, "%u")\n'

@@ -60,8 +60,8 @@
     X(OMX_CLAP_UNIT_DBU, "dbu", "dBu") \
     X(OMX_CLAP_UNIT_RATIO, "ratio", "ratio") \
     X(OMX_CLAP_UNIT_LUFS, "lufs", "LUFS") \
-    X(OMX_CLAP_UNIT_DB_PER_OCT, "dbPerOct", "dB-oct") \
-    X(OMX_CLAP_UNIT_DB_PER_S, "dbPerS", "dB-s") \
+    X(OMX_CLAP_UNIT_DB_PER_OCT, "dbPerOct", "dBPerOct") \
+    X(OMX_CLAP_UNIT_DB_PER_S, "dbPerS", "dBPerS") \
     X(OMX_CLAP_UNIT_DBTP, "dbtp", "dBTP") \
     X(OMX_CLAP_UNIT_LU, "lu", "LU")
 

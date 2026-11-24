@@ -22,10 +22,10 @@
 #define CLAP_HOST_LIMITS_H
 /*
  * GENERATED: DO NOT EDIT BY HAND.
- * Rendered from HOSTING_IDLE_CODES and HOSTING_WINDOW_CODES of data/hosting.json, where this tree declares the codes
- * of the dimensions it owns. The stage's numbers are hosted_stage_limits.h's, spelled once. The rendered file is kept in
- * this repository so the library builds on its own; the codes are changed where they are declared and the file is
- * re-rendered, never edited here. Every other refusal code is declared in data/hosting/ and rendered as
+ * Rendered from HOSTING_IDLE_CODES and HOSTING_WINDOW_CODES of contract.d/hosting/hosting.json, the hosting domain, where
+ * this tree declares the codes of the dimensions it owns. The stage's numbers are hosted_stage_limits.h's, spelled once. The
+ * rendered file is kept in this repository so the library builds on its own; the codes are changed where they are declared
+ * and the file is re-rendered, never edited here. Every other refusal code is declared in the same domain and rendered as
  * omx_clap_vocabulary.h (clap_host.h's CLAP_HOST_CODE_*).
  */
 

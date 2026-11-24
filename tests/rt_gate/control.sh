@@ -35,9 +35,9 @@ echo "ok   9 host roots derived (8 audio, 1 worker), the clean unit green"
 
 for case in '1 RT-ALLOC malloc try_push\[audio\]' '2 RT-LOCK pthread_mutex_lock try_push\[audio\]' \
             '3 RT-BLOCK nanosleep try_push\[audio\]' '4 RT-ALLOC malloc respond\[worker\]'; do
-  set -- $case
-  run "$1"; rc=$?
-  [ "$rc" = 1 ] || { cat "$out/$1" "$out/$1.err"; fail "plant $1 ($3 in ${4%%\\*}) read exit $rc, not 1"; }
-  grep -q "^$2 $3 at .*host_roots.c:[0-9]*:[0-9]* via $4" "$out/$1" || fail "plant $1: no '$2 $3 ... via $4' line"
-  echo "ok   plant $1: $2 $3 via ${4//\\/} reads red"
+  read -r plant code sym via <<< "$case"
+  run "$plant"; rc=$?
+  [ "$rc" = 1 ] || { cat "$out/$plant" "$out/$plant.err"; fail "plant $plant ($sym in ${via%%\\*}) read exit $rc, not 1"; }
+  grep -q "^$code $sym at .*host_roots.c:[0-9]*:[0-9]* via $via" "$out/$plant" || fail "plant $plant: no '$code $sym ... via $via' line"
+  echo "ok   plant $plant: $code $sym via ${via//\\/} reads red"
 done

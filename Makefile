@@ -304,8 +304,6 @@ install-lib: $(CORE_SO)
 	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
 	install -m 644 $(CORE_TS) $(DESTDIR)$(DATADIR)/$(CORE)/ts/
-	if [ -f $(RT_GATE_GRAPHS)/clap_host.ci ]; then install -d $(DESTDIR)$(DATADIR)/$(CORE)/rt-gate/graphs \
-	    && install -m 644 $(RT_GATE_GRAPHS)/*.ci $(DESTDIR)$(DATADIR)/$(CORE)/rt-gate/graphs/; fi
 
 # the LV2 adapter: the archive, its one header and its pkg-config file, what a program that hosts LV2 plugins as CLAP
 # plugins builds against; lilv is the program's to have at run time (the adapter dlopens liblilv-0.so.0)
@@ -428,7 +426,7 @@ test-contract:
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 
-install: install-lib install-lv2 install-tests install_man install-contract
+install: install-lib install-rt-gate-graphs install-lv2 install-tests install_man install-contract
 	install -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(UDEVDIR)
 	install -m 755 $(PROG) $(SCAN_PROG) $(DESTDIR)$(BINDIR)
 	install -d $(DESTDIR)$(DATADIR)/omx-clap-host
@@ -521,6 +519,9 @@ TEST_PLAIN = test-ci-runs-test-list \
     test-properties \
     test-properties-sabotage \
     test-state-busy \
+    test-rt-gate-control \
+    test-rt-gate \
+    test-rt-gate-sabotage \
     test-package
 # the sabotage arms that rebuild copies of the sources: CI runs them on a push to main and a tag, not on a pull request
 TEST_MAIN_ONLY = test-layouts-sabotage \
@@ -1067,9 +1068,12 @@ test-thread-pool: tests/thread_pool_test tests/fake_pool.clap
 # the ABI tables they fill. This tree binds the host side of CLAP and LV2 (--abi clap:host --abi lv2:host): try_push,
 # in_events.size and get, request_exec, tail.changed, request_flush, schedule_work and log.printf are audio, the respond
 # LV2 work is handed is worker. It binds its own embedding API too (--abi omx-clap-core, omx-dsp's omx-clap-core.abi):
-# the audio-role predicates and the log sink its embedder hands it are called through their fields, as audio. omx-dsp-devel installs the gate; OMX_RT_GATE=<path> names one built from an omx-dsp checkout.
+# the audio-role predicates and the log sink its embedder hands it are called through their fields, as audio. omx-dsp's
+# package omx-rt-gate installs the gate (a BuildRequires, packaging/deps.txt); OMX_RT_GATE=<path> names one built from
+# an omx-dsp checkout.
 #   rt-gate-graphs           the call graph of every compiled unit of the core and the LV2 adapter, the graphs this tree
-#                            ships (make install, $(DATADIR)/omx-clap-core/rt-gate/graphs) for a plugin's run to join
+#                            ships (make install-rt-gate-graphs, part of make install: $(DATADIR)/omx-clap/rt-gate/graphs,
+#                            in the -devel package) for a plugin's run to join
 #   test-rt-gate-control     tests/rt_gate/host_roots.c: every host root derived, clean green, a malloc, a lock or a
 #                            sleep planted in try_push and a malloc in respond each red
 #   test-rt-gate-sabotage    the gate's tables emptied in a copy: it judges nothing (exit 2), never a pass
@@ -1091,10 +1095,15 @@ RT_GATE_HOST_ROOTS = audio:clap_output_events.try_push audio:clap_input_events.s
 # omx-dsp's graphs, joined beside this tree's: the installed ones, unless OMX_RT_GATE_DSP_GRAPHS names others
 OMX_RT_GATE_DSP_GRAPHS ?= $(abspath $(dir $(shell command -v $(OMX_RT_GATE) 2>/dev/null))../share/omxdsp/rt-gate/graphs)
 
-.PHONY: rt-gate-graphs test-rt-gate-control test-rt-gate-sabotage test-rt-gate
+.PHONY: rt-gate-graphs install-rt-gate-graphs test-rt-gate-control test-rt-gate-sabotage test-rt-gate
 rt-gate-graphs:
 	rm -rf $(RT_GATE_GRAPHS) && mkdir -p build/rt-gate
 	$(OMX_RT_GATE) --write-graphs $(RT_GATE_GRAPHS) -- $(CC) $(RT_GATE_FLAGS) $(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC)
+	test -s $(RT_GATE_GRAPHS)/clap_host.ci || { echo "rt-gate-graphs: the gate wrote no clap_host.ci" >&2; exit 1; }
+
+install-rt-gate-graphs: rt-gate-graphs
+	install -d $(DESTDIR)$(DATADIR)/$(CORE)/rt-gate/graphs
+	install -m 644 $(RT_GATE_GRAPHS)/*.ci $(DESTDIR)$(DATADIR)/$(CORE)/rt-gate/graphs/
 
 test-rt-gate-control:
 	./tests/rt_gate/control.sh $(OMX_RT_GATE) $(CC)

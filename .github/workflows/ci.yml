@@ -1320,7 +1320,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/release.yml
     with:
-      publish: false
       arm: false  # aarch64/arm64 build at release only
 
 

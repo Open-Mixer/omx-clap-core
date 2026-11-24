@@ -219,7 +219,7 @@ expect "quit" "resp 0"
 
 contract_host good
 expect "add $uri 0" "resp 0"
-expect "param_info 0 0" "resp 0 frame stepped 0 4096 64 1 latency"
+expect "param_info 0 0" "resp 0 frames stepped 0 4096 64 1 latency"
 expect "param_info 0 1" "resp -103"
 expect "param_info 0 99" "resp -103"
 expect "param_info 0 :bypass" "resp -103"

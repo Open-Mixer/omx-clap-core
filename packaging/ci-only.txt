@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+# The OpenMixer packages a CI job installs by hand that the packaging does not declare, each with why: a job whose
+# target no package build runs (%check and dh_auto_test run make test-package: test-fake and test-lv2-plain). deps-render
+# refuses an install line naming any other undeclared OpenMixer package, a row here with no reason, a row the packaging
+# declares and a row no install line names.
+# <package>    <why>
+omx-contract   make test-contract (the contract job) checks the installed contract directory with omx-contract's own tables
+mod-host       the reference arm of the LV2 identity, parity and jack tests (test, chain-host-sabotage), none in test-package

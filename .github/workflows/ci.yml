@@ -209,6 +209,20 @@ jobs:
             echo "::error::the adapter seam check passed a table missing a row"; exit 1
           fi
 
+  # the lints run in a job of their own: a lint red never skips a step of the suite, which runs and reports whatever the
+  # lint says (a lint step before make test in the same job skipped the suite on its red, and hid every red behind it)
+  lint:
+    name: the licence headers and no upward dependency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every file a comment can be written in opens with its licence
+        uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
+      # the no-contract-copy and no-protocol-copy checks run in the groups the Makefile declares (TEST_PLAIN)
+      - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
+        run: make test-no-upward-deps
+
   test:
     needs: checks
     if: needs.checks.outputs.rpm-count != '0'
@@ -248,13 +262,6 @@ jobs:
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
           command -v mod-host
-
-      - name: Every file a comment can be written in opens with its licence
-        uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
-
-      # the no-contract-copy and no-protocol-copy checks run in the groups the Makefile declares (TEST_PLAIN)
-      - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
-        run: make test-no-upward-deps
 
       # the fuzz workflow runs on a tag only, so a fixture changed in a pull request reaches the committed seed corpus
       # here; the generator is plain C and gcc writes the bytes clang does

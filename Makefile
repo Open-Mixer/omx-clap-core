@@ -1083,6 +1083,11 @@ RT_GATE_FLAGS = -std=gnu99 -D_GNU_SOURCE -pthread -fPIC -fvisibility=hidden -Isr
 RT_GATE_UNITS = src/clap_host.c lv2/core/lv2_instance.c lv2/core/lv2_features.c
 RT_GATE_JOINED = $(filter-out $(RT_GATE_UNITS),$(CORE_SRC) $(LV2_CORE_SRC) $(LV2_CLAP_SRC))
 RT_GATE_ABIS = --abi clap:host --abi lv2:host --abi omx-clap-core
+# the host roots spec 7.13 declares, <role>:<ABI field>: each must be derived from the core's own units, or the gate
+# judges less than the host hands a plugin
+RT_GATE_HOST_ROOTS = audio:clap_output_events.try_push audio:clap_input_events.size audio:clap_input_events.get \
+    audio:clap_host_thread_pool.request_exec audio:clap_host_tail.changed audio:clap_host_params.request_flush \
+    audio:LV2_Worker_Schedule.schedule_work audio:LV2_Log_Log.printf worker:LV2_Worker_Interface.work
 # omx-dsp's graphs, joined beside this tree's: the installed ones, unless OMX_RT_GATE_DSP_GRAPHS names others
 OMX_RT_GATE_DSP_GRAPHS ?= $(abspath $(dir $(shell command -v $(OMX_RT_GATE) 2>/dev/null))../share/omxdsp/rt-gate/graphs)
 
@@ -1101,7 +1106,11 @@ test-rt-gate: test-rt-gate-control
 	rm -rf build/rt-gate/join && mkdir -p build/rt-gate
 	$(OMX_RT_GATE) --write-graphs build/rt-gate/join -- $(CC) $(RT_GATE_FLAGS) $(RT_GATE_JOINED)
 	$(OMX_RT_GATE) $(RT_GATE_ABIS) --graphs build/rt-gate/join --graphs $(OMX_RT_GATE_DSP_GRAPHS) --list-roots \
-	    -- $(CC) $(RT_GATE_FLAGS) $(RT_GATE_UNITS)
+	    -- $(CC) $(RT_GATE_FLAGS) $(RT_GATE_UNITS) > build/rt-gate/core.out; rc=$$?; cat build/rt-gate/core.out; exit $$rc
+	@missing=; for r in $(RT_GATE_HOST_ROOTS); do \
+	  grep -q "^ROOT [^ ]*\[$${r%%:*}\] $${r#*:} " build/rt-gate/core.out || missing="$$missing $$r"; done; \
+	  [ -z "$$missing" ] || { echo "FAIL the gate derived no root from the core's units for$$missing"; exit 1; }
+	@echo "ok   every host root spec 7.13 declares derived from the core's units ($(words $(RT_GATE_HOST_ROOTS)) fields)"
 
 # what one block of fake_pool's tasks costs, pool off against pool on (docs/thread-pool.md, Measured): a measurement
 tests/thread_pool_bench: tests/thread_pool_bench.c $(CORE_SO)

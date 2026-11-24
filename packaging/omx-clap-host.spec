@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.34.0
+Version:        0.34.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -82,6 +82,8 @@ Its documentation is on openmixer.org.
 %package -n omx-clap-libs
 Summary: The engine that runs CLAP plugins for omx-clap-host, as a library
 License: GPL-3.0-or-later
+# the name this package had before 0.34.0 (packaging/renamed.txt)
+Obsoletes: omx-clap-core < 0.34.0
 Requires: omx-clap-contract = %{version}-%{release}
 
 %description -n omx-clap-libs
@@ -94,6 +96,8 @@ Its documentation is on openmixer.org.
 %package -n omx-clap-devel
 Summary: Build a program that hosts CLAP plugins on omx-clap
 License: GPL-3.0-or-later
+# the name this package had before 0.34.0 (packaging/renamed.txt)
+Obsoletes: omx-clap-core-devel < 0.34.0
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
@@ -114,6 +118,8 @@ Its documentation is on openmixer.org.
 %package -n omx-clap-contract
 Summary: omx-clap's definitions in omx-contract's contract directory
 License: GPL-3.0-or-later
+# the name this package had before 0.34.0 (packaging/renamed.txt)
+Obsoletes: omx-clap-core-contract < 0.34.0
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
 Requires: omx-contract-data >= 3.21.0
@@ -302,6 +308,16 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.1-1
+- The packages 0.34.0 renamed obsolete their old names: omx-clap-libs
+  obsoletes omx-clap-core, omx-clap-devel omx-clap-core-devel and
+  omx-clap-contract omx-clap-core-contract, each below 0.34.0, so a host
+  holding 0.33.x upgrades in one dnf transaction; 0.34.0 refused it on the
+  files both names own (contract.d/scan, /usr/include/omx-clap-host). The
+  deb packages Break and Replace theirs the same way. The renames are
+  declared in packaging/renamed.txt, and no_backcompat holds the spec and
+  debian/control to it (#186).
+
 * Sun Nov 22 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.0-1
 - Sorting pass: the panel words (V1), the host reply codes and track kinds (V15), the CLAP
   scale codes mapped to PARAM_SCALES (V21), the unit code sheet and omx_param_units.h (V23d),

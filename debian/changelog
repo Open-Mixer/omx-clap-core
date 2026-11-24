@@ -1,3 +1,16 @@
+omx-clap-host (0.34.1) unstable; urgency=medium
+
+  * The packages 0.34.0 renamed Break and Replace their old names below
+    0.34.0: libomx-clap1 libomx-clap-core1, libomx-clap-dev
+    libomx-clap-core-dev and omx-clap-contract omx-clap-core-contract, so a
+    host holding 0.33.x upgrades in one transaction; 0.34.0 refused it on the
+    files both names own (contract.d/scan, /usr/include/omx-clap-host). The
+    RPM packages obsolete theirs the same way. The renames are declared in
+    packaging/renamed.txt, and no_backcompat holds the spec and
+    debian/control to it (#186).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Tue, 24 Nov 2026 21:00:00 +0100
+
 omx-clap-host (0.34.0) unstable; urgency=medium
 
   * Sorting pass: the panel words (V1), the host reply codes and track kinds (V15),

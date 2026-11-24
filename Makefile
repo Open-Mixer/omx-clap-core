@@ -585,8 +585,9 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
 
-# no backward-compatibility machinery: the current ABI only, no recorded-baseline ABI gate, no Breaks/Replaces/Conflicts,
-# no ignored release input (tests/no_backcompat.py; the self-test plants each old thing in a copy and finds it)
+# no backward-compatibility machinery: the current ABI only, no recorded-baseline ABI gate, no Breaks/Replaces/Conflicts/
+# Obsoletes but a rename's as packaging/renamed.txt declares it, no ignored release input (tests/no_backcompat.py; the
+# self-test plants each old thing in a copy and finds it, and takes each rename relation away and misses it)
 .PHONY: test-no-backcompat
 test-no-backcompat:
 	python3 tests/no_backcompat.py --self-test

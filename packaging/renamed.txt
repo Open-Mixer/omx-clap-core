@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+#
+# The packages this source built under another name, one per line. A host holding the old name upgrades onto the new
+# one in one transaction: the new RPM package carries `Obsoletes: <old rpm> < <since>`, the new DEB package
+# `Breaks: <old deb> (<< <since>~)` and `Replaces: <old deb> (<< <since>~)` (the packaging spec's §2.1 table). No
+# Provides of an old name: nothing is kept working under it. tests/no_backcompat.py holds the spec and debian/control
+# to exactly these rows, and refuses any other Breaks, Replaces, Conflicts or Obsoletes.
+#
+# old rpm               new rpm            old deb                 new deb            since
+omx-clap-core           omx-clap-libs      libomx-clap-core1       libomx-clap1       0.34.0
+omx-clap-core-devel     omx-clap-devel     libomx-clap-core-dev    libomx-clap-dev    0.34.0
+omx-clap-core-contract  omx-clap-contract  omx-clap-core-contract  omx-clap-contract  0.34.0

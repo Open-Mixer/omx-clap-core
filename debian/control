@@ -52,6 +52,8 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}, omx-clap-contract (= ${source:Version})
+Breaks: libomx-clap-core1 (<< 0.34.0~)
+Replaces: libomx-clap-core1 (<< 0.34.0~)
 Description: engine that runs CLAP plugins for omx-clap-host
  The library that loads and runs CLAP plugins: it checks a plugin before using
  it, activates and warms it up, keeps its parameters and saved state, and runs
@@ -66,6 +68,8 @@ Section: libdevel
 Architecture: any
 Multi-Arch: same
 Depends: libomx-clap1 (= ${binary:Version}), libomx-contract-dev (>= 3.21.0~), libomxdsp-dev (>= 0.34.0~), omx-panel-contract (>= 0.16.0~), omx-clap-contract (= ${source:Version}), clap-headers (>= 1.2.10~), ${misc:Depends}
+Breaks: libomx-clap-core-dev (<< 0.34.0~)
+Replaces: libomx-clap-core-dev (<< 0.34.0~)
 Description: build a program that hosts CLAP plugins on libomx-clap
  What you need to write a program that hosts CLAP plugins on libomx-clap:
  the headers, the pkg-config file, and the list of functions the library
@@ -77,6 +81,8 @@ Package: omx-clap-contract
 Architecture: all
 Multi-Arch: foreign
 Depends: omx-contract-data (>= 3.21.0~), ${misc:Depends}
+Breaks: omx-clap-core-contract (<< 0.34.0~)
+Replaces: omx-clap-core-contract (<< 0.34.0~)
 Description: omx-clap's definitions in omx-contract's contract directory
  omx-clap's definitions as files in omx-contract's contract directory,
  for any program that reads them at run time: the hosting limits and refusal

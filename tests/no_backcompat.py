@@ -4,7 +4,9 @@
 #
 # omx-clap carries no backward-compatibility machinery: the library accepts its current ABI only, there is no
 # recorded-baseline ABI gate, no package Breaks/Replaces/Conflicts lists, no ignored release input, and the meters
-# declaration is ours alone. Each check below fails while the old mechanism is in the tree.
+# declaration is ours alone. Each check below fails while the old mechanism is in the tree. The one package relation
+# allowed is a rename's, exactly as packaging/renamed.txt declares it: the new RPM package obsoletes the old name and
+# the new DEB package Breaks and Replaces it, below the release that renamed it, and nothing provides an old name.
 #
 #   no_backcompat.py <tree>       0 when none of it is left
 #   no_backcompat.py --self-test  each old thing planted in a scratch copy of the tree: every one is found
@@ -55,6 +57,77 @@ def grep(root, files, pat, where):
     return out
 
 
+def renamed(root):
+    rows = []
+    for line in text(root, "packaging/renamed.txt").splitlines():
+        f = line.split("#", 1)[0].split()
+        if f:
+            rows.append(f)
+    return rows
+
+
+def stanzas(body, start):
+    # {package: [lines]} of a spec (%package -n <name>) or debian/control (Package: <name>)
+    out, cur = {}, None
+    for line in body.splitlines():
+        m = re.match(start, line)
+        if m:
+            cur = m.group(1)
+            out[cur] = []
+        elif cur is not None:
+            out[cur].append(line)
+    return out
+
+
+def relations(root):
+    """row 8: the spec and debian/control carry a rename's relations exactly as packaging/renamed.txt states them"""
+    bad = []
+    rows = renamed(root)
+    spec = text(root, "packaging/omx-clap-host.spec")
+    control = text(root, "debian/control")
+    want_rpm, want_deb = set(), set()
+    for f in rows:
+        if len(f) != 5:
+            bad.append("row 8 packaging/renamed.txt: %s is not <old rpm> <new rpm> <old deb> <new deb> <since>" % " ".join(f))
+            continue
+        old_rpm, new_rpm, old_deb, new_deb, since = f
+        want_rpm.add((new_rpm, "Obsoletes: %s < %s" % (old_rpm, since)))
+        want_deb.add((new_deb, "Breaks: %s (<< %s~)" % (old_deb, since)))
+        want_deb.add((new_deb, "Replaces: %s (<< %s~)" % (old_deb, since)))
+        if re.search(r"^(%%package -n|Name:)\s*%s\s*$" % re.escape(old_rpm), spec, re.M):
+            bad.append("row 8 spec: %s is renamed and still built" % old_rpm)
+        if re.search(r"^Package:\s*%s\s*$" % re.escape(old_deb), control, re.M):
+            bad.append("row 8 debian/control: %s is renamed and still built" % old_deb)
+        if re.search(r"^Provides:.*\b%s\b" % re.escape(old_rpm), spec, re.M):
+            bad.append("row 8 spec: Provides %s, an old name" % old_rpm)
+        if re.search(r"^Provides:.*\b%s\b" % re.escape(old_deb), control, re.M):
+            bad.append("row 8 debian/control: Provides %s, an old name" % old_deb)
+    have_rpm = set()
+    for pkg, lines in stanzas(spec, r"^%package\s+(?:-n\s+)?(\S+)").items():
+        for line in lines:
+            if re.match(r"^(Obsoletes|Conflicts):", line):
+                have_rpm.add((pkg, " ".join(line.split())))
+    have_deb = set()
+    for pkg, lines in stanzas(control, r"^Package:\s*(\S+)").items():
+        for line in lines:
+            if re.match(r"^(Breaks|Replaces|Conflicts):", line):
+                have_deb.add((pkg, " ".join(line.split())))
+    # a relation before the first %package is the main package's: none is declared for it
+    head = spec.split("%package", 1)[0]
+    for n, line in enumerate(head.splitlines(), 1):
+        if re.match(r"^(Obsoletes|Conflicts):", line):
+            bad.append("row 8 spec: packaging/omx-clap-host.spec:%d: %s is no rename of packaging/renamed.txt" % (n, line.strip()))
+    for pkg, rel in sorted(have_rpm - want_rpm):
+        bad.append("row 8 spec: %s carries %s, no rename of packaging/renamed.txt" % (pkg, rel))
+    for pkg, rel in sorted(want_rpm - have_rpm):
+        bad.append("row 8 spec: %s lacks %s (packaging/renamed.txt)" % (pkg, rel))
+    for pkg, rel in sorted(have_deb - want_deb):
+        bad.append("row 8 debian/control: %s carries %s, no rename of packaging/renamed.txt" % (pkg, rel))
+    for pkg, rel in sorted(want_deb - have_deb):
+        bad.append("row 8 debian/control: %s lacks %s (packaging/renamed.txt)" % (pkg, rel))
+    return bad
+
+
 def check(root):
     bad = []
     files = list(walk(root))
@@ -74,9 +147,8 @@ def check(root):
     bad += grep(root, ["packaging/omx-clap-host.spec", "debian/libomx-clap-dev.install"], r"\.abi\b", "row 2 installed baseline")
     # 7: the meters declaration is ours alone
     bad += grep(root, ["src/clap_meters.h"], r"__has_include|OMX_CLAP_METERS_FROM_SDK", "row 7 either/or SDK branch")
-    # 8: no Breaks/Replaces/Conflicts
-    bad += grep(root, ["debian/control"], r"^(Breaks|Replaces):", "row 8 debian Breaks/Replaces")
-    bad += grep(root, ["packaging/omx-clap-host.spec"], r"^Conflicts:", "row 8 spec Conflicts")
+    # 8: no Breaks/Replaces/Conflicts/Obsoletes but a rename's, as packaging/renamed.txt declares it
+    bad += relations(root)
     bad += grep(root, wf, r"\^ (Breaks|Replaces):|^\s*moved:", "row 8 CI grep or langpacks moved")
     # 9: the xrun sentence has no older-host case
     bad += grep(root, ["doc/reference.md"], r"older omx-clap-host", "row 9 older host")
@@ -98,6 +170,10 @@ def self_test():
         ("src/clap_meters.h", "#if __has_include(<clap/ext/draft/meters.h>)\n"),
         ("debian/control", "Breaks: foo (<< 1~)\n"),
         ("packaging/omx-clap-host.spec", "Conflicts: foo < 1\n"),
+        ("packaging/omx-clap-host.spec", "Obsoletes: foo < 1\n"),
+        ("packaging/omx-clap-host.spec", "Provides: omx-clap-core-contract = 0.34.1\n"),
+        ("debian/control", "Provides: libomx-clap-core1\n"),
+        ("packaging/renamed.txt", "omx-clap-x omx-clap-y libomx-clap-x libomx-clap-y 0.34.0\n"),
         (".github/workflows/ci.yml", "          moved: ca:0.32.1\n"),
         (".github/workflows/ci.yml", "dpkg -I x | grep -E '^ Breaks: foo'\n"),
         ("doc/reference.md", "such as an older omx-clap-host\n"),
@@ -108,6 +184,24 @@ def self_test():
         print("FAIL self-test: the tree is not clean to start with (%d findings)" % len(start))
         return 1
     failed = 0
+    # a rename's relation taken away is found: each line naming an old name dropped from a scratch copy
+    for rel, line in (("packaging/omx-clap-host.spec", "Obsoletes: omx-clap-core-contract < 0.34.0\n"),
+                      ("debian/control", "Breaks: libomx-clap-core-dev (<< 0.34.0~)\n"),
+                      ("debian/control", "Replaces: libomx-clap-core1 (<< 0.34.0~)\n")):
+        with tempfile.TemporaryDirectory() as tmp:
+            scratch = os.path.join(tmp, "t")
+            shutil.copytree(ROOT, scratch, ignore=shutil.ignore_patterns(".git", "build", "node_modules"))
+            path = os.path.join(scratch, rel)
+            body = text(scratch, rel)
+            if line not in body:
+                print("FAIL self-test: %s is not in %s to take away" % (line.strip(), rel))
+                failed += 1
+                continue
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(body.replace(line, "", 1))
+            if not check(scratch):
+                print("FAIL self-test: %s taken from %s and not missed" % (line.strip(), rel))
+                failed += 1
     for rel, plant in cases:
         with tempfile.TemporaryDirectory() as tmp:
             scratch = os.path.join(tmp, "t")
@@ -121,7 +215,7 @@ def self_test():
                 failed += 1
     if failed:
         return 1
-    print("ok   no_backcompat self-test: each of %d old things planted is found" % len(cases))
+    print("ok   no_backcompat self-test: each of %d old things planted is found, and each of 3 rename relations taken away" % len(cases))
     return 0
 
 

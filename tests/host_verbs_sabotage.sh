@@ -4,7 +4,7 @@
 #
 # The sabotage of the verbs' guard (tests/host_verbs_e2e.sh): each arm breaks one thing and runs the guard, which must
 # go red on the check that names it. Two arms change the declaration and leave the host as it is: a copy of the
-# installed contract directory with one sed in its verbs.json (a format, what this host owes a verb). Two change the
+# installed contract directory with one sed in the omx-clap domain's document (a format, what this host owes a verb). Two change the
 # host and leave the declaration: a copy of the sources with one sed in src/main.c (a handler's registration deleted,
 # a verb with no declaration registered), built again. An arm whose guard stays green, goes red on something else, or
 # whose sed changed nothing fails the run. Nothing outside build/sabotage-host-verbs-* is touched.
@@ -34,17 +34,18 @@ judge() {
     fi
 }
 
-# declared <name> <sed expression on omx-clap-core's verbs.json> <the FAIL line's text>
+# declared <name> <sed expression on the omx-clap domain's document> <the FAIL line's text>
 declared() {
     local name=$1 expr=$2 fail=$3 dir=$root/build/sabotage-host-verbs-$1 src status
-    src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/3/omx-clap-core/verbs.json" ] && { echo "$d"; break; }; done)
-    [ -n "$src" ] || { echo "FAIL $name: no omx-clap-core/verbs.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1)); return; }
+    src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/omx-clap/omx-clap.json" ] && { echo "$d"; break; }; done)
+    [ -n "$src" ] || { echo "FAIL $name: no omx-clap/omx-clap.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1)); return; }
     rm -rf "$dir" "$dir.log"
     mkdir -p "$dir"
-    cp -r "$src/3" "$dir/"
-    sed -i -e "$expr" "$dir/3/omx-clap-core/verbs.json"
-    if cmp -s "$src/3/omx-clap-core/verbs.json" "$dir/3/omx-clap-core/verbs.json"; then
-        echo "FAIL $name: the sed left verbs.json as it was"
+    # the whole contract directory, the domain plugin-hostd-protocol with it: the arm breaks one word only
+    cp -r "$src/." "$dir/"
+    sed -i -e "$expr" "$dir/omx-clap/omx-clap.json"
+    if cmp -s "$src/omx-clap/omx-clap.json" "$dir/omx-clap/omx-clap.json"; then
+        echo "FAIL $name: the sed left omx-clap.json as it was"
         failures=$((failures + 1))
         return
     fi
@@ -72,20 +73,20 @@ hosted() {
     judge "$name" "$dir.log" "$fail" "$status"
 }
 
-declared format 's/"format": "remote_page_get %i %i"/"format": "remote_page_get %i"/' 'remote_page_get 0 \(required\)'
-declared owed '/"noteDrops": {/,/"since"/ s/"omx-clap-host": "required"/"omx-clap-host": "unsupported"/' 'note_drops 1 \(unsupported\)'
+declared format 's/"x-format": "remote_page_get %i %i"/"x-format": "remote_page_get %i"/' 'remote_page_get 0 \(required\)'
+declared owed '/"title": "noteDrops"/,/"x-since"/ s/"omx-clap-host": "required"/"omx-clap-host": "unsupported"/' 'note_drops 1 \(unsupported\)'
 hosted handler '/protocol_add_command(OMX_VERB_NOTE_DROPS_FMT, note_drops_cb);/d' 'missing \[.note_drops.\]'
 hosted undeclared 's/protocol_add_command(OMX_VERB_NOTE_DROPS_FMT, note_drops_cb);/&\n    protocol_add_command("note_peaks %i", note_drops_cb);/' 'registered "note_peaks %i": a verb with no declaration'
 
-# plugin-hostd's package left out of the contract path: its verbs file, which declares chain of this host, is not read
+# plugin-hostd-protocol's words left out of the contract path: the domain plugin-hostd-protocol, which declares chain of this
+# host, is not read; every other package and domain is
 nopkg=$root/build/sabotage-host-verbs-nopkg
 rm -rf "$nopkg" "$nopkg.log"
-mkdir -p "$nopkg"
-src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/3/plugin-hostd-protocol/verbs.json" ] && { echo "$d"; break; }; done)
+src=$(for d in ${OMX_CONTRACT_PATH//:/ }; do [ -f "$d/plugin-hostd-protocol/plugin-hostd-protocol.json" ] && { echo "$d"; break; }; done)
 if [ -z "$src" ]; then
-    echo "FAIL nopkg: no plugin-hostd-protocol/verbs.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1))
+    echo "FAIL nopkg: no plugin-hostd-protocol/plugin-hostd-protocol.json under $OMX_CONTRACT_PATH"; failures=$((failures + 1))
 else
-    cp -r "$src/3" "$nopkg/" && rm -rf "$nopkg/3/plugin-hostd-protocol"
+    cp -r "$src" "$nopkg" && rm -rf "$nopkg/plugin-hostd-protocol"
     OMX_CONTRACT_PATH=$nopkg "$root/tests/host_verbs_e2e.sh" >"$nopkg.log" 2>&1
     judge nopkg "$nopkg.log" "plugin-hostd-protocol's package is installed" $?
 fi

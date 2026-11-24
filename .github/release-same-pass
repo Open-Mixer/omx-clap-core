@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+# Packages other repositories release LATER in this same pass, one per line (release.yml's samepass job): the
+# channel-installability gate reports a breakage they cause or suffer instead of failing on it. Reviewed like code;
+# goes away with this release branch, so it can never excuse a break in a later pass.
+#
+# plugin-hostd, the source of plugin-hostd-contract, plugin-hostd-full and plugin-hostd-devel: the published 0.20.7 caps
+# omx-clap-contract and omx-clap-host below 0.33 (the dry run's RED: plugin-hostd-contract needs omx-clap-contract
+# < 0.33, plugin-hostd-full needs omx-clap-host < 0.33); its later release in this pass lifts them. omx-panel's reds
+# in the same run are its dependence on plugin-hostd-contract.
+plugin-hostd
+#
+# plugin-hostd-full, the same name as source and binary in deb and rpm: its published 0.20.7 caps omx-clap-host below 0.33.
+plugin-hostd-full
+#
+# plugin-qualify, the source of plugin-qualify (its qualification contract moved to plugin-hostd-contract, V5): 0.20.6 needs plugin-hostd >= 0.20.7, so it
+# moves with plugin-hostd in this pass.
+plugin-qualify
+#
+# plugin-qualification-records: the rpm source and binary, and a deb binary (the deb source is plugin-db-qualification);
+# it installs through plugin-qualify.
+plugin-qualification-records

@@ -42,8 +42,8 @@
  *     role; the RT thread running the instance never calls reset(). An off that was already off holds nothing: every
  *     block stays the plugin's output.
  *  7. THE ABI: configure accepts a consumer of this header (ABI 18, the oldest until the first release of
- *     libomx-clap-core.so.1) and refuses 0, ABI 17 (before the instance's named slot), ABI 16 (before the instance's resource hints), ABI 13 (before the instance's surround and ambisonic extensions), ABI 12
- *     (before the stage's wide bounce), the last header of libomx-clap-core.so.0 (ABI 11) and a newer one.
+ *     libomx-clap.so.1) and refuses 0, ABI 17 (before the instance's named slot), ABI 16 (before the instance's resource hints), ABI 13 (before the instance's surround and ambisonic extensions), ABI 12
+ *     (before the stage's wide bounce), the last header of libomx-clap.so.0 (ABI 11) and a newer one.
  *  8. THE SIDE CHAIN: a plugin with a stereo auxiliary input is admitted, reads silence until the caller binds a pair,
  *     reads the pair while it runs, reads silence again once unbound, keeps the binding over a deactivate and activate;
  *     binding while it runs, a bad port or a stereo port with one channel is refused; one auxiliary input beyond the
@@ -105,7 +105,7 @@ static void fault_path(char *out, size_t cap, int mode) { snprintf(out, cap, "%s
 static void t_abi(void) {
   struct omx_clap_host_config config;
   omx_clap_host_config_default(&config);
-  CHECK(config.abi == 21u && OMX_CLAP_CORE_ABI_OLDEST == 18u, "this header is ABI 21, the oldest accepted 18 (%u)", config.abi);
+  CHECK(config.abi == 21u && config.size == sizeof(config), "this header is ABI 21 and the default says its size (%u, %u)", config.abi, config.size);
   /* ABI 21 appends the bypass dry-path delay after keeps_on: no field of ABI 20 moves, and the stage finds it through
    * guard_off as struct omx_clap_guard_tail lays out the tail */
   CHECK(offsetof(struct omx_clap_instance, bypass_delay) >= offsetof(struct omx_clap_instance, keeps_on) + sizeof ((struct omx_clap_instance *)0)->keeps_on &&
@@ -190,7 +190,7 @@ static void t_abi(void) {
   config.abi = 0;
   CHECK(omx_clap_host_configure(&config) == -1, "ABI 0 is refused");
   config.abi = 11;
-  CHECK(omx_clap_host_configure(&config) == -1, "a consumer of libomx-clap-core.so.0's last header (ABI 11) is refused");
+  CHECK(omx_clap_host_configure(&config) == -1, "a consumer of libomx-clap.so.0's last header (ABI 11) is refused");
   config.abi = OMX_CLAP_CORE_ABI + 1u;
   CHECK(omx_clap_host_configure(&config) == -1, "a consumer of a newer header is refused");
   config.abi = 12;
@@ -202,41 +202,12 @@ static void t_abi(void) {
   config.abi = 17;
   CHECK(omx_clap_host_configure(&config) == -1, "a consumer of ABI 17, whose instance lacks the named slot, is refused");
   config.abi = OMX_CLAP_CORE_ABI;
-  CHECK(omx_clap_host_configure(&config) == 0, "a consumer of this header (ABI 18) is accepted");
-}
-
-/* ---- 11. the sized default (#301) ---- */
-static void t_config_default_sized(void) {
-  union { struct omx_clap_host_config cfg; unsigned char bytes[sizeof(struct omx_clap_host_config) + 64]; } probe;
-  struct omx_clap_host_config full;
-  uint32_t shrunk, i, moved;
-
-  /* too short to carry even `version` (the same floor omx_clap_host_configure holds a config to): refused whole */
-  memset(probe.bytes, 0xAA, sizeof(probe.bytes));
-  omx_clap_host_config_default_sized(&probe.cfg, 4);
-  for (moved = 0, i = 0; i < sizeof(probe.bytes); i++)
-    moved += probe.bytes[i] != 0xAA;
-  CHECK(moved == 0, "a caller_size of 4, too short to name a host, moves no byte (%u did)", moved);
-
-  /* a caller built before ABI 16 (no idle_hold_us): filled only up to its own sizeof, never past it, canary tail
-   * (the probe's own 64 bytes past the library's current struct) included */
-  shrunk = (uint32_t)offsetof(struct omx_clap_host_config, idle_hold_us);
-  memset(probe.bytes, 0xAA, sizeof(probe.bytes));
-  omx_clap_host_config_default_sized(&probe.cfg, shrunk);
-  for (moved = 0, i = shrunk; i < sizeof(probe.bytes); i++)
-    moved += probe.bytes[i] != 0xAA;
-  CHECK(moved == 0, "a caller_size of %u (no idle_hold_us) never writes past it, not even into the probe's own tail (%u byte(s) did)", shrunk, moved);
-  CHECK(probe.cfg.size == shrunk, "and says it filled exactly that much, never the library's own larger size (%u)", probe.cfg.size);
-  CHECK(probe.cfg.abi == OMX_CLAP_CORE_ABI && probe.cfg.clamp && probe.cfg.nonfinite && probe.cfg.warmup &&
-            !probe.cfg.note_inputs && !probe.cfg.preset_load && !probe.cfg.track_info && !probe.cfg.remote_controls &&
-            probe.cfg.lane_channels == 2,
-        "the fields it does reach are the usual defaults");
-  CHECK(probe.cfg.name && !strcmp(probe.cfg.name, "omx-clap-core") && probe.cfg.vendor && probe.cfg.url && probe.cfg.version,
-        "host, vendor, url and version are set as the plain default sets them");
-
-  /* the plain call is this one at the library's own current sizeof: unchanged by its existence */
-  omx_clap_host_config_default(&full);
-  CHECK(full.abi == OMX_CLAP_CORE_ABI && full.size == sizeof(full), "the plain default still fills to the library's own size (%u, %zu)", full.size, sizeof(full));
+  config.size = sizeof(config) - 1u;
+  CHECK(omx_clap_host_configure(&config) == -1, "a configuration of another size is refused");
+  config.size = sizeof(config) + 1u;
+  CHECK(omx_clap_host_configure(&config) == -1, "a larger configuration is refused too");
+  config.size = sizeof(config);
+  CHECK(omx_clap_host_configure(&config) == 0, "a consumer of this header is accepted");
 }
 
 static void t_witness(void) {
@@ -1425,7 +1396,6 @@ int main(int argc, char **argv) {
   }
   g_fault_dir = argv[1];
   t_abi();
-  t_config_default_sized();
   t_witness();
   t_guard_page();
   t_audio_role_on_split();

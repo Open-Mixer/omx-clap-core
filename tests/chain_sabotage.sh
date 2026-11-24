@@ -36,7 +36,7 @@ arm() {
         failures=$((failures + 1))
         return
     fi
-    # the copy's libomx-clap-core and nothing else: make exports LD_LIBRARY_PATH as the worktree, whose library is the
+    # the copy's libomx-clap and nothing else: make exports LD_LIBRARY_PATH as the worktree, whose library is the
     # one not broken and wins over a test's RUNPATH
     if (cd "$dir" && make -j"$jobs" "tests/$test" tests/fake.clap tests/fake_compressor.clap \
             && TSAN_OPTIONS=halt_on_error=1 LD_LIBRARY_PATH=$dir "./tests/$test" "$dir/tests/fake.clap" "$dir/tests/fake_compressor.clap") >"$log" 2>&1; then
@@ -84,7 +84,7 @@ arm blocks-alternate 's/chain->block\[s & 1u\]/chain->block[0]/' \
     'no member is handed its input as its output'
 
 # 9. a structure of another ABI or size is refused: read and written as if it were this header's
-arm abi-refusal 's/return abi >= OMX_CLAP_CHAIN_ABI_OLDEST/return 1 || abi >= OMX_CLAP_CHAIN_ABI_OLDEST/' \
+arm abi-refusal 's/return abi == OMX_CLAP_CHAIN_ABI/return 1 || abi == OMX_CLAP_CHAIN_ABI/' \
     'of another ABI'
 
 # 10. a change waits for the cycle that may still read the old plan before the next change builds into it: without the

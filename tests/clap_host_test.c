@@ -33,8 +33,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <omxdsp/omxdsp_definitions.h>
 #include "../src/clap_host.h"
 #include "../src/layout_pin.h"
+#include "../src/omx_param_units.h"
+#include "../src/omx_param_unit_ids.h"
 #include "test_util.h"
 
 #define PLUGIN_ID       "org.openmixer.delay"
@@ -1052,6 +1055,15 @@ static void contract_checks(const char *path)
 
     CHECK(omx_clap_param_unit_name(0x103) && strcmp(omx_clap_param_unit_name(0x103), "lufs") == 0
           && omx_clap_param_unit_name(25) == NULL && omx_clap_param_scale_name(3) == NULL, "the unit and scale tables");
+    /* plugin-hostd#215 D1: param_info's unit word is the standard id, a PARAM_UNITS const, never the code's token */
+    CHECK(omx_clap_param_unit_id(OMX_CLAP_UNIT_PC) && strcmp(omx_clap_param_unit_id(OMX_CLAP_UNIT_PC), "percent") == 0
+          && strcmp(omx_clap_param_unit_id(OMX_CLAP_UNIT_DB), "dB") == 0 && strcmp(omx_clap_param_unit_id(OMX_CLAP_UNIT_FRAME), "frames") == 0
+          && strcmp(omx_clap_param_unit_id(0x103), "LUFS") == 0 && strcmp(omx_clap_param_unit_id(OMX_CLAP_UNIT_NONE), "none") == 0
+          && omx_clap_param_unit_id(25) == NULL, "the standard unit id of a code: pc percent, db dB, frame frames, lufs LUFS");
+#define UNIT_ID_ROW(code, token, id) CHECK(omx_clap_param_unit_id(code) && strcmp(omx_clap_param_unit_id(code), id) == 0, \
+                                           "the code of %s stands for %s", token, id);
+    OMX_PARAM_UNIT_IDS(UNIT_ID_ROW)
+#undef UNIT_ID_ROW
     CHECK(omx_clap_param_number(0.10000000149011612, text, sizeof(text)) > 0 && strcmp(text, "0.10000000149011612") == 0,
           "a float's travel in the shortest decimal that reads back (%s)", text);
     CHECK(omx_clap_param_number(NAN, text, sizeof(text)) == -1 && omx_clap_param_number(1.0, text, 1) == -1,

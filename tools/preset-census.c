@@ -808,7 +808,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: %s [--timeout SECONDS] FILE|DIRECTORY...\n", argv[0]);
         return 2;
     }
-    omx_clap_host_config_default_sized(&config, sizeof(config));
+    omx_clap_host_config_default(&config);
     config.note_inputs = 1;
     config.lane_channels = 0;
     if (omx_clap_host_configure(&config) != 0)

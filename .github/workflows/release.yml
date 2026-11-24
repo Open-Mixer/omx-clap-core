@@ -7,7 +7,7 @@ name: release
 # Anything else, a manual run from a branch or the dry run of ci.yml, builds and assembles unsigned trees and
 # publishes nothing. Everything is in Open-Mixer/.github; the secrets are the organisation's.
 
-# A manual run with staged on (never a tag) builds fc44 x86_64 and trixie amd64 only, against the staging channel, and
+# A manual run with staged on (never a tag) builds the quick set only (fc45 x86_64, trixie arm64), against the staging channel, and
 # publishes them, signed, to the staging channel (staging/rpm and staging/deb of the channel repository), where the
 # next layer of the release chain finds them by adding the staging channel beside the real one. Nothing reaches the
 # real channel, and the real release still publishes once from the v<version> tag (Open-Mixer/.github build-rpm.yml
@@ -27,19 +27,15 @@ on:
         type: boolean
         default: true
       staged:
-        description: 'Build fc44 x86_64 and trixie amd64 only and publish them to the staging channel for the next layer; publishes nothing to the real channel'
+        description: 'Build the quick set only (fc45 x86_64, trixie arm64) and publish them to the staging channel for the next layer; publishes nothing to the real channel'
         type: boolean
         default: false
-      staged-deps:
-        description: 'Ignored by the shared workflows, kept for this wave only'
-        type: string
-        default: ''
       staging:
         description: 'Build against the staging channel, above the real one: a dry run only, never a tag or a publish'
         type: boolean
         default: false
       same_pass:
-        description: 'Packages other repositories release in the same pass, space separated: the channel-installability gate reports a range they fall outside of, instead of failing on it'
+        description: 'Packages other repositories release later in the same pass, space separated; empty reads .github/release-same-pass at the commit built'
         type: string
         default: ''
   workflow_call:
@@ -54,15 +50,12 @@ on:
       staged:
         type: boolean
         default: false
-      staged-deps:
-        type: string
-        default: ''
       staging:
         description: 'Build against the staging channel, above the real one: a dry run only, never a tag or a publish'
         type: boolean
         default: false
       same_pass:
-        description: 'Packages other repositories release in the same pass, space separated (channel-installability)'
+        description: 'Packages other repositories release later in the same pass, space separated; empty reads .github/release-same-pass at the commit built'
         type: string
         default: ''
 
@@ -72,18 +65,28 @@ permissions:
   actions: read
 
 jobs:
-  # the library's ABI against the baseline of the last release, before any build minutes are spent
-  abi:
-    uses: ./.github/workflows/abi.yml
+  # The packages other repositories release LATER in this same pass, for the channel-installability gate: read by the
+  # shared action (Open-Mixer/.github), never a copy. The dispatch same_pass input wins; otherwise the tracked
+  # .github/release-same-pass at the commit this run builds (the tag on a push), reviewed like code and gone with its
+  # release branch. tests/release_same_pass.py holds this wiring.
+  samepass:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.same.outputs.list }}
+    steps:
+      - id: same
+        uses: Open-Mixer/.github/.github/actions/same-pass@openmixer-v1
+        with:
+          list: ${{ inputs.same_pass }}
+          ref: ${{ github.sha }}
 
   rpm:
-    needs: abi
+    needs: samepass
     uses: Open-Mixer/.github/.github/workflows/build-rpm.yml@openmixer-v1
     with:
       staged: ${{ inputs.staged == true }}
-      staged-deps: ${{ inputs.staged-deps || '' }}
       staging: ${{ inputs.staging == true }}
-      same-pass: ${{ inputs.same_pass || '' }}
+      same-pass: ${{ needs.samepass.outputs.list }}
       package-name: omx-clap-host
       publish: ${{ github.event_name == 'push' || inputs.publish == true }}
       arch-matrix: ${{ (github.event_name != 'push' && inputs.arm == false) && '["x86_64"]' || '["x86_64", "aarch64"]' }}
@@ -92,13 +95,12 @@ jobs:
   # or skipped RPM job skips this one, so no DEB is published after a failed RPM.
   # beside the RPMs: the two publish jobs share one concurrency group, so their pushes never race
   deb:
-    needs: abi
+    needs: samepass
     uses: Open-Mixer/.github/.github/workflows/build-deb.yml@openmixer-v1
     with:
       staged: ${{ inputs.staged == true }}
-      staged-deps: ${{ inputs.staged-deps || '' }}
       staging: ${{ inputs.staging == true }}
-      same-pass: ${{ inputs.same_pass || '' }}
+      same-pass: ${{ needs.samepass.outputs.list }}
       package-name: omx-clap-host
       publish: ${{ github.event_name == 'push' || inputs.publish == true }}
       arch-matrix: ${{ (github.event_name != 'push' && inputs.arm == false) && '["amd64"]' || '["amd64", "arm64"]' }}
@@ -124,6 +126,6 @@ jobs:
           make docs
           version=$(tr -d '[:space:]' < VERSION)
           echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
-          tar -czf "omx-clap-core-api-docs-${version}.tar.gz" -C build/docs html
-          [ -f "omx-clap-core-api-docs-${version}.tar.gz" ]
-          gh release upload "$GITHUB_REF_NAME" omx-clap-core-api-docs-*.tar.gz --clobber
+          tar -czf "omx-clap-api-docs-${version}.tar.gz" -C build/docs html
+          [ -f "omx-clap-api-docs-${version}.tar.gz" ]
+          gh release upload "$GITHUB_REF_NAME" omx-clap-api-docs-*.tar.gz --clobber

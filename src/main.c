@@ -88,9 +88,9 @@
 ************************************************************************************************************************
 */
 
-/* SIGTERM and SIGINT run term_signal on whichever thread the kernel picks, PipeWire's loop threads among them, and two
- * signals can run it on two threads at once: running is atomic, and the socket is finished once, by the first of the
- * signal and quit to get there (finish) */
+/* SIGTERM, SIGINT and SIGHUP run term_signal on whichever thread the kernel picks, PipeWire's loop threads among them,
+ * and two signals can run it on two threads at once: running is atomic, and the socket is finished once, by the first
+ * of the signal and quit to get there (finish) */
 static atomic_int running;
 static atomic_flag finished = ATOMIC_FLAG_INIT;
 static volatile int quitting;
@@ -283,7 +283,7 @@ static void note_input_cb(proto_t *proto)
         protocol_response_int(resp, proto);
 }
 
-/* note_on, note_off and all_notes_off as data/verbs.json declares them: each word in its range, else -902 */
+/* note_on, note_off and all_notes_off as contract.d/omx-clap/omx-clap.json declares them: each word in its range, else -902 */
 static void note_cb(proto_t *proto)
 {
     uint8_t messages[16][3];
@@ -549,7 +549,7 @@ static void preset_load_cb(proto_t *proto)
         protocol_response_int(resp, proto);
 }
 
-/* preset_show <N> <key | file>: "resp 0 <json>", or one of the codes plugin-hostd's verbs file declares for it:
+/* preset_show <N> <key | file>: "resp 0 <json>", or one of the codes the domain plugin-hostd-protocol declares for it:
  * PRESET_INVALID for a file that is no preset file, PRESET_NOT_OFFERED for a key the plugin does not list */
 static void preset_show_cb(proto_t *proto)
 {
@@ -559,7 +559,7 @@ static void preset_show_cb(proto_t *proto)
 
     if (resp == SUCCESS)
         protocol_response(reply, proto);
-    else if (resp == ERR_LV2_INVALID_PRESET_URI)
+    else if (resp == ERR_HOST_INVALID_PRESET_URI)
         protocol_response_int(location[0] == '/' ? OMX_REPLY_PLUGIN_HOSTD_PRESET_INVALID_RESP
                                                  : OMX_REPLY_PLUGIN_HOSTD_PRESET_NOT_OFFERED_RESP, proto);
     else
@@ -580,7 +580,7 @@ static void preset_save_cb(proto_t *proto)
         n = snprintf(path, sizeof(path), "%s/%s", dir, file);
     resp = effects_preset_save(atoi(proto->list[1]), n > 0 && (size_t)n < sizeof(path) ? path : NULL, proto->list[4], reply,
                                sizeof(reply));
-    if (resp == SUCCESS || resp == ERR_LV2_INVALID_PRESET_URI)
+    if (resp == SUCCESS || resp == ERR_HOST_INVALID_PRESET_URI)
         protocol_response(reply, proto);
     else
         protocol_response_int(resp, proto);
@@ -675,7 +675,7 @@ static void term_signal(int sig)
     return; (void)sig;
 }
 
-/* preset_show in its instance form, preset_show <N> <load_key | file> (docs/presets.md), the one plugin-hostd's verbs file
+/* preset_show in its instance form, preset_show <N> <load_key | file> (docs/presets.md), the one the domain plugin-hostd-protocol
  * declares of this host (preset_show_cb): mod-host's preset_show <uri> has one word and is not answered here */
 #define PRESET_SHOW_INSTANCE "preset_show %i %s"
 
@@ -946,6 +946,8 @@ int main(int argc, char **argv)
     sigemptyset(&sig.sa_mask);
     sigaction(SIGTERM, &sig, NULL);
     sigaction(SIGINT, &sig, NULL);
+    // a hangup ends the host as a terminate does: the default action would kill it with its JACK clients still open
+    sigaction(SIGHUP, &sig, NULL);
 
     protocol_verbose(verbose);
 

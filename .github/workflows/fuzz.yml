@@ -55,7 +55,7 @@ jobs:
           else
             echo "fuzz=false" >> "$GITHUB_OUTPUT"
           fi
-  # the Fedora cells fuzz runs: check-matrix's answer (rule 11-10: fc45 beside fc44;
+  # the Fedora cells fuzz runs: check-matrix's answer (Fedora 45 alone: the fc44 builds are dropped;
   # the quick set while a release wave is open, the whole matrix declared here otherwise)
   checks:
     runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
@@ -68,15 +68,16 @@ jobs:
         uses: Open-Mixer/.github/.github/actions/check-matrix@openmixer-v1
         with:
           wave: ${{ vars.OMX_RELEASE_MATRIX }}
-          rpm-releases: '["44", "45"]'
+          rpm-releases: '["45"]'
           rpm-arches: '["x86_64"]'
+          x86-runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
 
 
   fuzz:
     name: fuzz the preset, state and manifest readers (${{ matrix.cell.image }})
     needs: [checks, changes]
     if: (needs.changes.outputs.fuzz == 'true') && needs.checks.outputs.rpm-count != '0'
-    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || vars.OMX_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.cell.runner }}
     # a backstop: fuzz-run spends 60 s on each harness and fuzz-sabotage runs seeds only, so the job ends well inside it
     timeout-minutes: 30
     strategy:
@@ -95,10 +96,11 @@ jobs:
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
 
-      - name: Install omx-contract-devel from the OpenMixer channel
-        run: dnf install -y --setopt=install_weak_deps=False --setopt=retries=10 'omx-contract-devel >= 3.16.0'
-
+      # the checkout comes first: dnf builddep reads the spec from it
       - uses: actions/checkout@v4
+
+      - name: Install omx-contract-devel from the OpenMixer channel
+        run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
 
       # fuzz-sabotage applies each mutant with git and restores it with git checkout
       - name: Let git work in the checkout

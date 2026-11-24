@@ -77,6 +77,7 @@
 #include <xmmintrin.h>
 #endif
 
+#include <omxdsp/omxdsp_definitions.h>
 #include "clap_stage.h"
 
 static const float RATES[] = {44100.0f, 48000.0f, 88200.0f, 96000.0f, 176400.0f, 192000.0f};

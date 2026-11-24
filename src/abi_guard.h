@@ -11,7 +11,7 @@
  * The host's frame is safe after it; another plugin's state in the same process is not, so a plugin that changes one
  * is run only in a worker of its own.
  *
- * Installed twice: with libomx-clap-core's headers (omx-clap-host/), whose library exports omx_abi_call6, and with the
+ * Installed twice: with libomx-clap's headers (omx-clap-host/), whose library exports omx_abi_call6, and with the
  * LV2 adapter's (omx-clap-lv2/), whose static archive carries its own hidden copy: a program that links only the archive
  * (plugin-qualify's measurers) defines OMX_ABI_LV2 before it includes this header, and gets that copy's names.
  */

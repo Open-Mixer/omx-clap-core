@@ -19,7 +19,7 @@
  */
 
 /** @file
- * @brief The chain of libomx-clap-core: an ordered list of stages one audio cycle runs in order (docs/chain.md). */
+ * @brief The chain of libomx-clap: an ordered list of stages one audio cycle runs in order (docs/chain.md). */
 
 /*
 ************************************************************************************************************************
@@ -67,10 +67,9 @@
 ************************************************************************************************************************
 */
 
-/** The version of the chain's structures: a field is only ever appended, and each append raises it. The library accepts
- * every ABI from OMX_CLAP_CHAIN_ABI_OLDEST up to its own, each at exactly the size that ABI gives a structure. */
+/** The version of the chain's structures. The library accepts this ABI only, at exactly the size this header gives a
+ * structure. */
 #define OMX_CLAP_CHAIN_ABI              1u
-#define OMX_CLAP_CHAIN_ABI_OLDEST       1u  ///< the oldest chain ABI the library accepts
 
 /** The most members one chain holds. */
 #define OMX_CLAP_CHAIN_MEMBERS_MAX      64u

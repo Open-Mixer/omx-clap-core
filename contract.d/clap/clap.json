@@ -1,0 +1,4436 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openmixer.org/contract/clap",
+  "info": {
+    "title": "CLAP's own particulars: how the format's words map to the standard vocabulary",
+    "version": "0.35.0",
+    "x-owner": "omx-clap",
+    "x-stability": "experimental"
+  },
+  "components": {
+    "schemas": {
+      "CLAP_PARAM_FLAG_SCALES": {
+        "description": "The scale a CLAP parameter flag stands for, by the flag's CLAP id (a term of omx-contract's CLAP params terms): the standard scale id of omx-contract's PARAM_SCALES. CLAP has a flag for the stepped scale alone; a parameter with none is linear until its plugin reports another through org.openmixer.param-contract/1.",
+        "x-since": "0.34.0",
+        "x-kind": "sheet",
+        "x-value": {
+          "CLAP_PARAM_IS_STEPPED": "stepped"
+        }
+      },
+      "CLAP_COLOR_TERMS": {
+        "description": "The identifiers of the CLAP header clap/color.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "colorTransparent",
+            "title": "colorTransparent",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_COLOR_TRANSPARENT",
+              "kind": "constant",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/color.json",
+        "x-format": "clap",
+        "x-spec": "clap/color.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EVENTS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/events.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "coreEventSpaceId",
+            "title": "coreEventSpaceId",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_CORE_EVENT_SPACE_ID",
+              "kind": "constant",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/omx_clap_midi.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "eventDontRecord",
+            "title": "eventDontRecord",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EVENT_DONT_RECORD",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "eventIsLive",
+            "title": "eventIsLive",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_EVENT_IS_LIVE",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "eventMidi",
+            "title": "eventMidi",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_EVENT_MIDI",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c",
+                "omx-plugins:plugins/omx-test-sine-voice/omx_test_sine_voice_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "eventMidi2",
+            "title": "eventMidi2",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_EVENT_MIDI2",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h"
+              ]
+            }
+          },
+          {
+            "const": "eventMidiSysex",
+            "title": "eventMidiSysex",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_EVENT_MIDI_SYSEX",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/omx_clap_midi.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "eventNoteChoke",
+            "title": "eventNoteChoke",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_EVENT_NOTE_CHOKE",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/omx_clap_midi.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "eventNoteEnd",
+            "title": "eventNoteEnd",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_EVENT_NOTE_END",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "omx-plugins:plugins/omx-test-sine-voice/omx_test_sine_voice_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "eventNoteExpression",
+            "title": "eventNoteExpression",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_EVENT_NOTE_EXPRESSION",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "eventNoteOff",
+            "title": "eventNoteOff",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_EVENT_NOTE_OFF",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/omx_clap_midi.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "eventNoteOn",
+            "title": "eventNoteOn",
+            "x-code": 10,
+            "x-term": {
+              "id": "CLAP_EVENT_NOTE_ON",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/omx_clap_midi.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "eventParamGestureBegin",
+            "title": "eventParamGestureBegin",
+            "x-code": 11,
+            "x-term": {
+              "id": "CLAP_EVENT_PARAM_GESTURE_BEGIN",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "eventParamGestureEnd",
+            "title": "eventParamGestureEnd",
+            "x-code": 12,
+            "x-term": {
+              "id": "CLAP_EVENT_PARAM_GESTURE_END",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "eventParamMod",
+            "title": "eventParamMod",
+            "x-code": 13,
+            "x-term": {
+              "id": "CLAP_EVENT_PARAM_MOD",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "eventParamValue",
+            "title": "eventParamValue",
+            "x-code": 14,
+            "x-term": {
+              "id": "CLAP_EVENT_PARAM_VALUE",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "eventTransport",
+            "title": "eventTransport",
+            "x-code": 15,
+            "x-term": {
+              "id": "CLAP_EVENT_TRANSPORT",
+              "kind": "event-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h"
+              ],
+              "word": "needs.transport"
+            }
+          },
+          {
+            "const": "noteExpressionBrightness",
+            "title": "noteExpressionBrightness",
+            "x-code": 16,
+            "x-term": {
+              "id": "CLAP_NOTE_EXPRESSION_BRIGHTNESS",
+              "kind": "enum-value",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h"
+              ]
+            }
+          },
+          {
+            "const": "noteExpressionExpression",
+            "title": "noteExpressionExpression",
+            "x-code": 17,
+            "x-term": {
+              "id": "CLAP_NOTE_EXPRESSION_EXPRESSION",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "noteExpressionPan",
+            "title": "noteExpressionPan",
+            "x-code": 18,
+            "x-term": {
+              "id": "CLAP_NOTE_EXPRESSION_PAN",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "noteExpressionPressure",
+            "title": "noteExpressionPressure",
+            "x-code": 19,
+            "x-term": {
+              "id": "CLAP_NOTE_EXPRESSION_PRESSURE",
+              "kind": "enum-value",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "noteExpressionTuning",
+            "title": "noteExpressionTuning",
+            "x-code": 20,
+            "x-term": {
+              "id": "CLAP_NOTE_EXPRESSION_TUNING",
+              "kind": "enum-value",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "noteExpressionVibrato",
+            "title": "noteExpressionVibrato",
+            "x-code": 21,
+            "x-term": {
+              "id": "CLAP_NOTE_EXPRESSION_VIBRATO",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "noteExpressionVolume",
+            "title": "noteExpressionVolume",
+            "x-code": 22,
+            "x-term": {
+              "id": "CLAP_NOTE_EXPRESSION_VOLUME",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "transportHasBeatsTimeline",
+            "title": "transportHasBeatsTimeline",
+            "x-code": 23,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_HAS_BEATS_TIMELINE",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/host_transport.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "transportHasSecondsTimeline",
+            "title": "transportHasSecondsTimeline",
+            "x-code": 24,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_HAS_SECONDS_TIMELINE",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/host_transport.h",
+                "omx-clap-core:src/clap_stage.h"
+              ]
+            }
+          },
+          {
+            "const": "transportHasTempo",
+            "title": "transportHasTempo",
+            "x-code": 25,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_HAS_TEMPO",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/host_transport.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:src/clap_host.h"
+              ],
+              "word": "needs.tempo"
+            }
+          },
+          {
+            "const": "transportHasTimeSignature",
+            "title": "transportHasTimeSignature",
+            "x-code": 26,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_HAS_TIME_SIGNATURE",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/host_transport.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "transportIsLoopActive",
+            "title": "transportIsLoopActive",
+            "x-code": 27,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_IS_LOOP_ACTIVE",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "transportIsPlaying",
+            "title": "transportIsPlaying",
+            "x-code": 28,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_IS_PLAYING",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/host_transport.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "transportIsRecording",
+            "title": "transportIsRecording",
+            "x-code": 29,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_IS_RECORDING",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "transportIsWithinPreRoll",
+            "title": "transportIsWithinPreRoll",
+            "x-code": 30,
+            "x-term": {
+              "id": "CLAP_TRANSPORT_IS_WITHIN_PRE_ROLL",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/events.json",
+        "x-format": "clap",
+        "x-spec": "clap/events.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_AMBISONIC_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/ambisonic.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "ambisonic",
+            "title": "ambisonic",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PORT_AMBISONIC",
+              "value": "ambisonic",
+              "kind": "port-type",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonic.draft/3",
+            "title": "ambisonic.draft/3",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_AMBISONIC_COMPAT",
+              "value": "clap.ambisonic.draft/3",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonic/3",
+            "title": "ambisonic/3",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_EXT_AMBISONIC",
+              "value": "clap.ambisonic/3",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonicNormalizationMaxn",
+            "title": "ambisonicNormalizationMaxn",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_AMBISONIC_NORMALIZATION_MAXN",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonicNormalizationN2d",
+            "title": "ambisonicNormalizationN2d",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_AMBISONIC_NORMALIZATION_N2D",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonicNormalizationN3d",
+            "title": "ambisonicNormalizationN3d",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_AMBISONIC_NORMALIZATION_N3D",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonicNormalizationSn2d",
+            "title": "ambisonicNormalizationSn2d",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_AMBISONIC_NORMALIZATION_SN2D",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonicNormalizationSn3d",
+            "title": "ambisonicNormalizationSn3d",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_AMBISONIC_NORMALIZATION_SN3D",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonicOrderingAcn",
+            "title": "ambisonicOrderingAcn",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_AMBISONIC_ORDERING_ACN",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "ambisonicOrderingFuma",
+            "title": "ambisonicOrderingFuma",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_AMBISONIC_ORDERING_FUMA",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/ambisonic.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/ambisonic.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_AUDIO_PORTS_ACTIVATION_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/audio-ports-activation.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "audio-ports-activation/2",
+            "title": "audio-ports-activation/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_AUDIO_PORTS_ACTIVATION",
+              "value": "clap.audio-ports-activation/2",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "audio-ports-activation/draft-2",
+            "title": "audio-ports-activation/draft-2",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_AUDIO_PORTS_ACTIVATION_COMPAT",
+              "value": "clap.audio-ports-activation/draft-2",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/audio-ports-activation.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/audio-ports-activation.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_AUDIO_PORTS_CONFIG_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/audio-ports-config.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "audio-ports-config",
+            "title": "audio-ports-config",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_AUDIO_PORTS_CONFIG",
+              "value": "clap.audio-ports-config",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "audio-ports-config-info/1",
+            "title": "audio-ports-config-info/1",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_AUDIO_PORTS_CONFIG_INFO",
+              "value": "clap.audio-ports-config-info/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "audio-ports-config-info/draft-0",
+            "title": "audio-ports-config-info/draft-0",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_EXT_AUDIO_PORTS_CONFIG_INFO_COMPAT",
+              "value": "clap.audio-ports-config-info/draft-0",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/audio-ports-config.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/audio-ports-config.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_AUDIO_PORTS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/audio-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "audio-ports",
+            "title": "audio-ports",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_AUDIO_PORTS",
+              "value": "clap.audio-ports",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ],
+              "word": "ports.kind audio"
+            }
+          },
+          {
+            "const": "audioPortIsMain",
+            "title": "audioPortIsMain",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORT_IS_MAIN",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ],
+              "word": "role main"
+            }
+          },
+          {
+            "const": "audioPortPrefers64bits",
+            "title": "audioPortPrefers64bits",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORT_PREFERS_64BITS",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortRequiresCommonSampleSize",
+            "title": "audioPortRequiresCommonSampleSize",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORT_REQUIRES_COMMON_SAMPLE_SIZE",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortSupports64bits",
+            "title": "audioPortSupports64bits",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORT_SUPPORTS_64BITS",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortsRescanChannelCount",
+            "title": "audioPortsRescanChannelCount",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORTS_RESCAN_CHANNEL_COUNT",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortsRescanFlags",
+            "title": "audioPortsRescanFlags",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORTS_RESCAN_FLAGS",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortsRescanInPlacePair",
+            "title": "audioPortsRescanInPlacePair",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORTS_RESCAN_IN_PLACE_PAIR",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortsRescanList",
+            "title": "audioPortsRescanList",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORTS_RESCAN_LIST",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortsRescanNames",
+            "title": "audioPortsRescanNames",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORTS_RESCAN_NAMES",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "audioPortsRescanPortType",
+            "title": "audioPortsRescanPortType",
+            "x-code": 10,
+            "x-term": {
+              "id": "CLAP_AUDIO_PORTS_RESCAN_PORT_TYPE",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "mono",
+            "title": "mono",
+            "x-code": 11,
+            "x-term": {
+              "id": "CLAP_PORT_MONO",
+              "value": "mono",
+              "kind": "port-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:lv2/clap/lv2_clap.c",
+                "omx-plugins:plugins/omx-keyed-gate/omx_gate_clap.c"
+              ],
+              "word": "layout mono"
+            }
+          },
+          {
+            "const": "stereo",
+            "title": "stereo",
+            "x-code": 12,
+            "x-term": {
+              "id": "CLAP_PORT_STEREO",
+              "value": "stereo",
+              "kind": "port-type",
+              "status": "used",
+              "by": [
+                "omx-clap-core:lv2/clap/lv2_clap.c",
+                "omx-plugins:plugins/omx-tremolo/omx_tremolo_clap.c",
+                "omx-plugins:plugins/omx-transient/omx_transient_clap.c"
+              ],
+              "word": "layout stereo"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/audio-ports.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/audio-ports.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_CONFIGURABLE_AUDIO_PORTS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/configurable-audio-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "configurable-audio-ports.draft1",
+            "title": "configurable-audio-ports.draft1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_CONFIGURABLE_AUDIO_PORTS_COMPAT",
+              "value": "clap.configurable-audio-ports.draft1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "configurable-audio-ports/1",
+            "title": "configurable-audio-ports/1",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_CONFIGURABLE_AUDIO_PORTS",
+              "value": "clap.configurable-audio-ports/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/configurable-audio-ports.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/configurable-audio-ports.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_CONTEXT_MENU_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/context-menu.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "context-menu.draft/0",
+            "title": "context-menu.draft/0",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_CONTEXT_MENU_COMPAT",
+              "value": "clap.context-menu.draft/0",
+              "kind": "extension",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "context-menu/1",
+            "title": "context-menu/1",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_CONTEXT_MENU",
+              "value": "clap.context-menu/1",
+              "kind": "extension",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuItemBeginSubmenu",
+            "title": "contextMenuItemBeginSubmenu",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_ITEM_BEGIN_SUBMENU",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuItemCheckEntry",
+            "title": "contextMenuItemCheckEntry",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_ITEM_CHECK_ENTRY",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuItemEndSubmenu",
+            "title": "contextMenuItemEndSubmenu",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_ITEM_END_SUBMENU",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuItemEntry",
+            "title": "contextMenuItemEntry",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_ITEM_ENTRY",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuItemSeparator",
+            "title": "contextMenuItemSeparator",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_ITEM_SEPARATOR",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuItemTitle",
+            "title": "contextMenuItemTitle",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_ITEM_TITLE",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuTargetKindGlobal",
+            "title": "contextMenuTargetKindGlobal",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_TARGET_KIND_GLOBAL",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "contextMenuTargetKindParam",
+            "title": "contextMenuTargetKindParam",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_CONTEXT_MENU_TARGET_KIND_PARAM",
+              "kind": "enum-value",
+              "status": "out-of-scope",
+              "ruling": "The console draws its own menus (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/context-menu.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/context-menu.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_BACKGROUND_ACTIVATION_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/background-activation.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "background-activation/1",
+            "title": "background-activation/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_BACKGROUND_ACTIVATION",
+              "value": "clap.background-activation/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/background-activation.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/background-activation.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_BACKGROUND_PROGRESS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/background-progress.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "background-progress/1",
+            "title": "background-progress/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_BACKGROUND_PROGRESS",
+              "value": "clap.background-progress/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/background-progress.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/background-progress.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_BACKGROUND_STATE_CONTEXT_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/background-state-context.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "background-state-context/1",
+            "title": "background-state-context/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_BACKGROUND_STATE_CONTEXT",
+              "value": "clap.background-state-context/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/background-state-context.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/background-state-context.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_EXTENSIBLE_AUDIO_PORTS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/extensible-audio-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "extensible-audio-ports/1",
+            "title": "extensible-audio-ports/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_EXTENSIBLE_AUDIO_PORTS",
+              "value": "clap.extensible-audio-ports/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/extensible-audio-ports.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/extensible-audio-ports.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_FLUSH_EVENTS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/flush-events.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "flush-events/1",
+            "title": "flush-events/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_FLUSH_EVENTS",
+              "value": "clap.flush-events/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/flush-events.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/flush-events.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_GAIN_ADJUSTMENT_METERING_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/gain-adjustment-metering.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "gain-adjustment-metering/0",
+            "title": "gain-adjustment-metering/0",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_GAIN_ADJUSTMENT_METERING",
+              "value": "clap.gain-adjustment-metering/0",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/effects.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/gain-adjustment-metering.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/gain-adjustment-metering.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_MINI_CURVE_DISPLAY_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/mini-curve-display.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "mini-curve-display/3",
+            "title": "mini-curve-display/3",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_MINI_CURVE_DISPLAY",
+              "value": "clap.mini-curve-display/3",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayAxisNameChanged",
+            "title": "miniCurveDisplayAxisNameChanged",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_AXIS_NAME_CHANGED",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayCurveChanged",
+            "title": "miniCurveDisplayCurveChanged",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_CURVE_CHANGED",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayCurveKindGainReduction",
+            "title": "miniCurveDisplayCurveKindGainReduction",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_CURVE_KIND_GAIN_REDUCTION",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayCurveKindGainResponse",
+            "title": "miniCurveDisplayCurveKindGainResponse",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_CURVE_KIND_GAIN_RESPONSE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayCurveKindPhaseResponse",
+            "title": "miniCurveDisplayCurveKindPhaseResponse",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_CURVE_KIND_PHASE_RESPONSE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayCurveKindTimeSeries",
+            "title": "miniCurveDisplayCurveKindTimeSeries",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_CURVE_KIND_TIME_SERIES",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayCurveKindTransferCurve",
+            "title": "miniCurveDisplayCurveKindTransferCurve",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_CURVE_KIND_TRANSFER_CURVE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          },
+          {
+            "const": "miniCurveDisplayCurveKindUnspecified",
+            "title": "miniCurveDisplayCurveKindUnspecified",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_MINI_CURVE_DISPLAY_CURVE_KIND_UNSPECIFIED",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#188"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/mini-curve-display.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/mini-curve-display.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_OCTAVE_NUMBER_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/octave-number.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "octave-number/1",
+            "title": "octave-number/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_OCTAVE_NUMBER",
+              "value": "clap.octave-number/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/octave-number.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/octave-number.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_PARAM_HOVERED_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/param-hovered.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "param-hovered/1",
+            "title": "param-hovered/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_PARAM_HOVERED",
+              "value": "clap.param-hovered/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/param-hovered.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/param-hovered.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_PARAMS_ORIGIN_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/params-origin.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "params-origin/1",
+            "title": "params-origin/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_PARAMS_ORIGIN",
+              "value": "clap.params-origin/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/params-origin.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/params-origin.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_PROJECT_LOCATION_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/project-location.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "project-location/2",
+            "title": "project-location/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_PROJECT_LOCATION",
+              "value": "clap.project-location/2",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationAudioTrack",
+            "title": "projectLocationAudioTrack",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_AUDIO_TRACK",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationDevice",
+            "title": "projectLocationDevice",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_DEVICE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationHasColor",
+            "title": "projectLocationHasColor",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_HAS_COLOR",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationHasIndex",
+            "title": "projectLocationHasIndex",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_HAS_INDEX",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationHybridTrack",
+            "title": "projectLocationHybridTrack",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_HYBRID_TRACK",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationInstumentTrack",
+            "title": "projectLocationInstumentTrack",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_INSTUMENT_TRACK",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationMasterTrack",
+            "title": "projectLocationMasterTrack",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_MASTER_TRACK",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationNestedDeviceChain",
+            "title": "projectLocationNestedDeviceChain",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_NESTED_DEVICE_CHAIN",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationProject",
+            "title": "projectLocationProject",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_PROJECT",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationReturnTrack",
+            "title": "projectLocationReturnTrack",
+            "x-code": 10,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_RETURN_TRACK",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationTrack",
+            "title": "projectLocationTrack",
+            "x-code": 11,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_TRACK",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "projectLocationTrackGroup",
+            "title": "projectLocationTrackGroup",
+            "x-code": 12,
+            "x-term": {
+              "id": "CLAP_PROJECT_LOCATION_TRACK_GROUP",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/project-location.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/project-location.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_RESOURCE_DIRECTORY_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/resource-directory.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "resource-directory/1",
+            "title": "resource-directory/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_RESOURCE_DIRECTORY",
+              "value": "clap.resource-directory/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#95"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/resource-directory.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/resource-directory.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_SCRATCH_MEMORY_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/scratch-memory.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "scratch-memory/1",
+            "title": "scratch-memory/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_SCRATCH_MEMORY",
+              "value": "clap.scratch-memory/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/plugin-qualify#116"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/scratch-memory.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/scratch-memory.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_TRANSPORT_CONTROL_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/transport-control.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "transport-control/2",
+            "title": "transport-control/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_TRANSPORT_CONTROL",
+              "value": "clap.transport-control/2",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/transport-control.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/transport-control.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_TRIGGERS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/triggers.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "eventTrigger",
+            "title": "eventTrigger",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EVENT_TRIGGER",
+              "kind": "event-type",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerClearAll",
+            "title": "triggerClearAll",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_TRIGGER_CLEAR_ALL",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerClearAutomations",
+            "title": "triggerClearAutomations",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_TRIGGER_CLEAR_AUTOMATIONS",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerIsAutomatablePerChannel",
+            "title": "triggerIsAutomatablePerChannel",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_TRIGGER_IS_AUTOMATABLE_PER_CHANNEL",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerIsAutomatablePerKey",
+            "title": "triggerIsAutomatablePerKey",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_TRIGGER_IS_AUTOMATABLE_PER_KEY",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerIsAutomatablePerNoteId",
+            "title": "triggerIsAutomatablePerNoteId",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_TRIGGER_IS_AUTOMATABLE_PER_NOTE_ID",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerIsAutomatablePerPort",
+            "title": "triggerIsAutomatablePerPort",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_TRIGGER_IS_AUTOMATABLE_PER_PORT",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerRescanAll",
+            "title": "triggerRescanAll",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_TRIGGER_RESCAN_ALL",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggerRescanInfo",
+            "title": "triggerRescanInfo",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_TRIGGER_RESCAN_INFO",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          },
+          {
+            "const": "triggers/1",
+            "title": "triggers/1",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_EXT_TRIGGERS",
+              "value": "clap.triggers/1",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/triggers.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/triggers.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_TUNING_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/tuning.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "tuning/2",
+            "title": "tuning/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_TUNING",
+              "value": "clap.tuning/2",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#186"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/tuning.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/tuning.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_UNDO_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/undo.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "undo/4",
+            "title": "undo/4",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_UNDO",
+              "value": "clap.undo/4",
+              "kind": "extension",
+              "status": "out-of-scope",
+              "ruling": "The console keeps its own undo (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "undo_context/4",
+            "title": "undo_context/4",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_UNDO_CONTEXT",
+              "value": "clap.undo_context/4",
+              "kind": "extension",
+              "status": "out-of-scope",
+              "ruling": "The console keeps its own undo (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "undo_delta/4",
+            "title": "undo_delta/4",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_EXT_UNDO_DELTA",
+              "value": "clap.undo_delta/4",
+              "kind": "extension",
+              "status": "out-of-scope",
+              "ruling": "The console keeps its own undo (ruled 2026-10-19, #95) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/undo.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/undo.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_DRAFT_WEBVIEW_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/draft/webview.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "webview",
+            "title": "webview",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_WINDOW_API_WEBVIEW",
+              "value": "webview",
+              "kind": "window-api",
+              "status": "out-of-scope",
+              "ruling": "The console draws every panel: no plugin UI runs in the console (GUI ruling 2026-10-19; native windows only in the standalone omx-clap-host, FreeMixer/omx-clap-core#180)."
+            }
+          },
+          {
+            "const": "webview/3",
+            "title": "webview/3",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_WEBVIEW",
+              "value": "clap.webview/3",
+              "kind": "extension",
+              "status": "out-of-scope",
+              "ruling": "A plugin's own UI, as `gui` (GUI ruling 2026-10-19) (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/draft/webview.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/draft/webview.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_EVENT_REGISTRY_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/event-registry.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "event-registry",
+            "title": "event-registry",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_EVENT_REGISTRY",
+              "value": "clap.event-registry",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/event-registry.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/event-registry.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_GUI_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/gui.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "cocoa",
+            "title": "cocoa",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_WINDOW_API_COCOA",
+              "value": "cocoa",
+              "kind": "window-api",
+              "status": "out-of-scope",
+              "ruling": "The console draws every panel: no plugin UI runs in the console (GUI ruling 2026-10-19; native windows only in the standalone omx-clap-host, FreeMixer/omx-clap-core#180)."
+            }
+          },
+          {
+            "const": "gui",
+            "title": "gui",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_GUI",
+              "value": "clap.gui",
+              "kind": "extension",
+              "status": "out-of-scope",
+              "ruling": "Never in the console (GUI ruling 2026-10-19); native windows in the standalone omx-clap-host are #180 (omx-clap-core doc/reference.md, FreeMixer/omx-clap-core#95)."
+            }
+          },
+          {
+            "const": "uikit",
+            "title": "uikit",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_WINDOW_API_UIKIT",
+              "value": "uikit",
+              "kind": "window-api",
+              "status": "out-of-scope",
+              "ruling": "The console draws every panel: no plugin UI runs in the console (GUI ruling 2026-10-19; native windows only in the standalone omx-clap-host, FreeMixer/omx-clap-core#180)."
+            }
+          },
+          {
+            "const": "wayland",
+            "title": "wayland",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_WINDOW_API_WAYLAND",
+              "value": "wayland",
+              "kind": "window-api",
+              "status": "out-of-scope",
+              "ruling": "The console draws every panel: no plugin UI runs in the console (GUI ruling 2026-10-19; native windows only in the standalone omx-clap-host, FreeMixer/omx-clap-core#180)."
+            }
+          },
+          {
+            "const": "win32",
+            "title": "win32",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_WINDOW_API_WIN32",
+              "value": "win32",
+              "kind": "window-api",
+              "status": "out-of-scope",
+              "ruling": "The console draws every panel: no plugin UI runs in the console (GUI ruling 2026-10-19; native windows only in the standalone omx-clap-host, FreeMixer/omx-clap-core#180)."
+            }
+          },
+          {
+            "const": "x11",
+            "title": "x11",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_WINDOW_API_X11",
+              "value": "x11",
+              "kind": "window-api",
+              "status": "out-of-scope",
+              "ruling": "The console draws every panel: no plugin UI runs in the console (GUI ruling 2026-10-19; native windows only in the standalone omx-clap-host, FreeMixer/omx-clap-core#180)."
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/gui.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/gui.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_LATENCY_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/latency.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "latency",
+            "title": "latency",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_LATENCY",
+              "value": "clap.latency",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ],
+              "word": "latency.reports"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/latency.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/latency.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_LOG_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/log.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "log",
+            "title": "log",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_LOG",
+              "value": "clap.log",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "logDebug",
+            "title": "logDebug",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_LOG_DEBUG",
+              "kind": "log-severity",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "logError",
+            "title": "logError",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_LOG_ERROR",
+              "kind": "log-severity",
+              "status": "used",
+              "by": [
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "logFatal",
+            "title": "logFatal",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_LOG_FATAL",
+              "kind": "log-severity",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "logHostMisbehaving",
+            "title": "logHostMisbehaving",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_LOG_HOST_MISBEHAVING",
+              "kind": "log-severity",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "logInfo",
+            "title": "logInfo",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_LOG_INFO",
+              "kind": "log-severity",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "logPluginMisbehaving",
+            "title": "logPluginMisbehaving",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_LOG_PLUGIN_MISBEHAVING",
+              "kind": "log-severity",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "logWarning",
+            "title": "logWarning",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_LOG_WARNING",
+              "kind": "log-severity",
+              "status": "used",
+              "by": [
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/log.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/log.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_NOTE_NAME_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/note-name.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "note-name",
+            "title": "note-name",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_NOTE_NAME",
+              "value": "clap.note-name",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/note-name.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/note-name.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_NOTE_PORTS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/note-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "note-ports",
+            "title": "note-ports",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_NOTE_PORTS",
+              "value": "clap.note-ports",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ],
+              "word": "ports.kind note"
+            }
+          },
+          {
+            "const": "noteDialectClap",
+            "title": "noteDialectClap",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_NOTE_DIALECT_CLAP",
+              "kind": "note-dialect",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ],
+              "word": "dialects clap"
+            }
+          },
+          {
+            "const": "noteDialectMidi",
+            "title": "noteDialectMidi",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_NOTE_DIALECT_MIDI",
+              "kind": "note-dialect",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ],
+              "word": "dialects midi"
+            }
+          },
+          {
+            "const": "noteDialectMidi2",
+            "title": "noteDialectMidi2",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_NOTE_DIALECT_MIDI2",
+              "kind": "note-dialect",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ],
+              "word": "dialects midi2"
+            }
+          },
+          {
+            "const": "noteDialectMidiMpe",
+            "title": "noteDialectMidiMpe",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_NOTE_DIALECT_MIDI_MPE",
+              "kind": "note-dialect",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ],
+              "word": "dialects midiMpe"
+            }
+          },
+          {
+            "const": "notePortsRescanAll",
+            "title": "notePortsRescanAll",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_NOTE_PORTS_RESCAN_ALL",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "notePortsRescanNames",
+            "title": "notePortsRescanNames",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_NOTE_PORTS_RESCAN_NAMES",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/note-ports.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/note-ports.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_PARAM_INDICATION_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/param-indication.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "param-indication.draft/4",
+            "title": "param-indication.draft/4",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_PARAM_INDICATION_COMPAT",
+              "value": "clap.param-indication.draft/4",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#187"
+            }
+          },
+          {
+            "const": "param-indication/4",
+            "title": "param-indication/4",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_PARAM_INDICATION",
+              "value": "clap.param-indication/4",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#187"
+            }
+          },
+          {
+            "const": "paramIndicationAutomationNone",
+            "title": "paramIndicationAutomationNone",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_PARAM_INDICATION_AUTOMATION_NONE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#187"
+            }
+          },
+          {
+            "const": "paramIndicationAutomationOverriding",
+            "title": "paramIndicationAutomationOverriding",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_PARAM_INDICATION_AUTOMATION_OVERRIDING",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#187"
+            }
+          },
+          {
+            "const": "paramIndicationAutomationPlaying",
+            "title": "paramIndicationAutomationPlaying",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_PARAM_INDICATION_AUTOMATION_PLAYING",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#187"
+            }
+          },
+          {
+            "const": "paramIndicationAutomationPresent",
+            "title": "paramIndicationAutomationPresent",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_PARAM_INDICATION_AUTOMATION_PRESENT",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#187"
+            }
+          },
+          {
+            "const": "paramIndicationAutomationRecording",
+            "title": "paramIndicationAutomationRecording",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_PARAM_INDICATION_AUTOMATION_RECORDING",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#187"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/param-indication.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/param-indication.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_PARAMS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/params.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "paramClearAll",
+            "title": "paramClearAll",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PARAM_CLEAR_ALL",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "paramClearAutomations",
+            "title": "paramClearAutomations",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_PARAM_CLEAR_AUTOMATIONS",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "paramClearModulations",
+            "title": "paramClearModulations",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_PARAM_CLEAR_MODULATIONS",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "paramIsAutomatable",
+            "title": "paramIsAutomatable",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_AUTOMATABLE",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c",
+                "omx-plugins:plugins/omx-tremolo/omx_tremolo_clap.c"
+              ],
+              "word": "automatable"
+            }
+          },
+          {
+            "const": "paramIsAutomatablePerChannel",
+            "title": "paramIsAutomatablePerChannel",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_AUTOMATABLE_PER_CHANNEL",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsAutomatablePerKey",
+            "title": "paramIsAutomatablePerKey",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_AUTOMATABLE_PER_KEY",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsAutomatablePerNoteId",
+            "title": "paramIsAutomatablePerNoteId",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_AUTOMATABLE_PER_NOTE_ID",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsAutomatablePerPort",
+            "title": "paramIsAutomatablePerPort",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_AUTOMATABLE_PER_PORT",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsBypass",
+            "title": "paramIsBypass",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_BYPASS",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/param_contract.h",
+                "omx-clap-core:src/effects.c"
+              ],
+              "word": "meaning bypass"
+            }
+          },
+          {
+            "const": "paramIsEnum",
+            "title": "paramIsEnum",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_ENUM",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/param_contract.h",
+                "omx-clap-core:src/clap_host.h"
+              ],
+              "word": "kind choice"
+            }
+          },
+          {
+            "const": "paramIsHidden",
+            "title": "paramIsHidden",
+            "x-code": 10,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_HIDDEN",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ],
+              "word": "hidden"
+            }
+          },
+          {
+            "const": "paramIsModulatable",
+            "title": "paramIsModulatable",
+            "x-code": 11,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_MODULATABLE",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/clap_host.h",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsModulatablePerChannel",
+            "title": "paramIsModulatablePerChannel",
+            "x-code": 12,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_MODULATABLE_PER_CHANNEL",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsModulatablePerKey",
+            "title": "paramIsModulatablePerKey",
+            "x-code": 13,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_MODULATABLE_PER_KEY",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsModulatablePerNoteId",
+            "title": "paramIsModulatablePerNoteId",
+            "x-code": 14,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_MODULATABLE_PER_NOTE_ID",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsModulatablePerPort",
+            "title": "paramIsModulatablePerPort",
+            "x-code": 15,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_MODULATABLE_PER_PORT",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsPeriodic",
+            "title": "paramIsPeriodic",
+            "x-code": 16,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_PERIODIC",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/param_contract.h",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramIsReadonly",
+            "title": "paramIsReadonly",
+            "x-code": 17,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_READONLY",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/param_contract.h",
+                "omx-clap-core:src/effects.c"
+              ],
+              "word": "readonly"
+            }
+          },
+          {
+            "const": "paramIsStepped",
+            "title": "paramIsStepped",
+            "x-code": 18,
+            "x-term": {
+              "id": "CLAP_PARAM_IS_STEPPED",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/param_contract.h",
+                "omx-clap-core:src/omx_clap_ext.h"
+              ],
+              "word": "scale stepped"
+            }
+          },
+          {
+            "const": "paramRequiresProcess",
+            "title": "paramRequiresProcess",
+            "x-code": 19,
+            "x-term": {
+              "id": "CLAP_PARAM_REQUIRES_PROCESS",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "paramRescanAll",
+            "title": "paramRescanAll",
+            "x-code": 20,
+            "x-term": {
+              "id": "CLAP_PARAM_RESCAN_ALL",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "paramRescanInfo",
+            "title": "paramRescanInfo",
+            "x-code": 21,
+            "x-term": {
+              "id": "CLAP_PARAM_RESCAN_INFO",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.h"
+              ]
+            }
+          },
+          {
+            "const": "paramRescanText",
+            "title": "paramRescanText",
+            "x-code": 22,
+            "x-term": {
+              "id": "CLAP_PARAM_RESCAN_TEXT",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "paramRescanValues",
+            "title": "paramRescanValues",
+            "x-code": 23,
+            "x-term": {
+              "id": "CLAP_PARAM_RESCAN_VALUES",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "params",
+            "title": "params",
+            "x-code": 24,
+            "x-term": {
+              "id": "CLAP_EXT_PARAMS",
+              "value": "clap.params",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/params.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/params.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_POSIX_FD_SUPPORT_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/posix-fd-support.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "posix-fd-support",
+            "title": "posix-fd-support",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_POSIX_FD_SUPPORT",
+              "value": "clap.posix-fd-support",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "posixFdError",
+            "title": "posixFdError",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_POSIX_FD_ERROR",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "posixFdRead",
+            "title": "posixFdRead",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_POSIX_FD_READ",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "posixFdWrite",
+            "title": "posixFdWrite",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_POSIX_FD_WRITE",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/posix-fd-support.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/posix-fd-support.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_PRESET_LOAD_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/preset-load.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "preset-load.draft/2",
+            "title": "preset-load.draft/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_PRESET_LOAD_COMPAT",
+              "value": "clap.preset-load.draft/2",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "preset-load/2",
+            "title": "preset-load/2",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_PRESET_LOAD",
+              "value": "clap.preset-load/2",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c",
+                "plugin-qualify:src/host-profiles.ts"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/preset-load.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/preset-load.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_REMOTE_CONTROLS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/remote-controls.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "remote-controls.draft/2",
+            "title": "remote-controls.draft/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_REMOTE_CONTROLS_COMPAT",
+              "value": "clap.remote-controls.draft/2",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "remote-controls/2",
+            "title": "remote-controls/2",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_REMOTE_CONTROLS",
+              "value": "clap.remote-controls/2",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c",
+                "omx-plugins:tools/clap-ext-probe.c",
+                "omx-plugins:plugins/omx-tremolo/omx_tremolo_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "remoteControlsCount",
+            "title": "remoteControlsCount",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_REMOTE_CONTROLS_COUNT",
+              "value": 8,
+              "kind": "enum-value",
+              "status": "used",
+              "by": [
+                "omx-plugins:tools/panel-description.mjs",
+                "omx-plugins:tools/clap-ext-probe.c",
+                "omx-plugins:plugins/omx-tremolo/omx_tremolo_clap.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/remote-controls.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/remote-controls.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_RENDER_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/render.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "render",
+            "title": "render",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_RENDER",
+              "value": "clap.render",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "renderOffline",
+            "title": "renderOffline",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_RENDER_OFFLINE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "renderRealtime",
+            "title": "renderRealtime",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_RENDER_REALTIME",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/render.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/render.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_STATE_CONTEXT_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/state-context.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "state-context/2",
+            "title": "state-context/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_STATE_CONTEXT",
+              "value": "clap.state-context/2",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "stateContextForDuplicate",
+            "title": "stateContextForDuplicate",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_STATE_CONTEXT_FOR_DUPLICATE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "stateContextForPreset",
+            "title": "stateContextForPreset",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_STATE_CONTEXT_FOR_PRESET",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          },
+          {
+            "const": "stateContextForProject",
+            "title": "stateContextForProject",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_STATE_CONTEXT_FOR_PROJECT",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/state-context.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/state-context.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_STATE_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/state.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "state",
+            "title": "state",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_STATE",
+              "value": "clap.state",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/state.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/state.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_SURROUND_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/surround.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "surround",
+            "title": "surround",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PORT_SURROUND",
+              "value": "surround",
+              "kind": "port-type",
+              "status": "used",
+              "by": [
+                "omx-contract:docs/descriptors.md"
+              ],
+              "word": "layout surround"
+            }
+          },
+          {
+            "const": "surround.draft/4",
+            "title": "surround.draft/4",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_SURROUND_COMPAT",
+              "value": "clap.surround.draft/4",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surround/4",
+            "title": "surround/4",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_EXT_SURROUND",
+              "value": "clap.surround/4",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundBc",
+            "title": "surroundBc",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_SURROUND_BC",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundBl",
+            "title": "surroundBl",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_SURROUND_BL",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundBr",
+            "title": "surroundBr",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_SURROUND_BR",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundFc",
+            "title": "surroundFc",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_SURROUND_FC",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundFl",
+            "title": "surroundFl",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_SURROUND_FL",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundFlc",
+            "title": "surroundFlc",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_SURROUND_FLC",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundFr",
+            "title": "surroundFr",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_SURROUND_FR",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundFrc",
+            "title": "surroundFrc",
+            "x-code": 10,
+            "x-term": {
+              "id": "CLAP_SURROUND_FRC",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundLfe",
+            "title": "surroundLfe",
+            "x-code": 11,
+            "x-term": {
+              "id": "CLAP_SURROUND_LFE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundSl",
+            "title": "surroundSl",
+            "x-code": 12,
+            "x-term": {
+              "id": "CLAP_SURROUND_SL",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundSr",
+            "title": "surroundSr",
+            "x-code": 13,
+            "x-term": {
+              "id": "CLAP_SURROUND_SR",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTbc",
+            "title": "surroundTbc",
+            "x-code": 14,
+            "x-term": {
+              "id": "CLAP_SURROUND_TBC",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTbl",
+            "title": "surroundTbl",
+            "x-code": 15,
+            "x-term": {
+              "id": "CLAP_SURROUND_TBL",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTbr",
+            "title": "surroundTbr",
+            "x-code": 16,
+            "x-term": {
+              "id": "CLAP_SURROUND_TBR",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTc",
+            "title": "surroundTc",
+            "x-code": 17,
+            "x-term": {
+              "id": "CLAP_SURROUND_TC",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTfc",
+            "title": "surroundTfc",
+            "x-code": 18,
+            "x-term": {
+              "id": "CLAP_SURROUND_TFC",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTfl",
+            "title": "surroundTfl",
+            "x-code": 19,
+            "x-term": {
+              "id": "CLAP_SURROUND_TFL",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTfr",
+            "title": "surroundTfr",
+            "x-code": 20,
+            "x-term": {
+              "id": "CLAP_SURROUND_TFR",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTsl",
+            "title": "surroundTsl",
+            "x-code": 21,
+            "x-term": {
+              "id": "CLAP_SURROUND_TSL",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          },
+          {
+            "const": "surroundTsr",
+            "title": "surroundTsr",
+            "x-code": 22,
+            "x-term": {
+              "id": "CLAP_SURROUND_TSR",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#92"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/surround.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/surround.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_TAIL_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/tail.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "tail",
+            "title": "tail",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_TAIL",
+              "value": "clap.tail",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/tail.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/tail.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_THREAD_CHECK_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/thread-check.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "thread-check",
+            "title": "thread-check",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_THREAD_CHECK",
+              "value": "clap.thread-check",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/thread-check.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/thread-check.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_THREAD_POOL_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/thread-pool.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "thread-pool",
+            "title": "thread-pool",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_THREAD_POOL",
+              "value": "clap.thread-pool",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/thread-pool.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/thread-pool.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_TIMER_SUPPORT_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/timer-support.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "timer-support",
+            "title": "timer-support",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_TIMER_SUPPORT",
+              "value": "clap.timer-support",
+              "kind": "extension",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#90"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/timer-support.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/timer-support.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_TRACK_INFO_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/track-info.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "track-info.draft/1",
+            "title": "track-info.draft/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_TRACK_INFO_COMPAT",
+              "value": "clap.track-info.draft/1",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c",
+                "plugin-qualify:native/clap-qualify.c"
+              ]
+            }
+          },
+          {
+            "const": "track-info/1",
+            "title": "track-info/1",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_EXT_TRACK_INFO",
+              "value": "clap.track-info/1",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c",
+                "omx-plugins:tools/clap-ext-probe.c",
+                "omx-plugins:plugins/omx-tremolo/omx_tremolo_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "trackInfoHasAudioChannel",
+            "title": "trackInfoHasAudioChannel",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_TRACK_INFO_HAS_AUDIO_CHANNEL",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "trackInfoHasTrackColor",
+            "title": "trackInfoHasTrackColor",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_TRACK_INFO_HAS_TRACK_COLOR",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "trackInfoHasTrackName",
+            "title": "trackInfoHasTrackName",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_TRACK_INFO_HAS_TRACK_NAME",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "trackInfoIsForBus",
+            "title": "trackInfoIsForBus",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_TRACK_INFO_IS_FOR_BUS",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/effects.c",
+                "omx-clap-core:src/clap_host.c",
+                "omx-plugins:tools/clap-ext-probe.c"
+              ]
+            }
+          },
+          {
+            "const": "trackInfoIsForMaster",
+            "title": "trackInfoIsForMaster",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_TRACK_INFO_IS_FOR_MASTER",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/effects.c",
+                "omx-clap-core:src/clap_host.c",
+                "omx-plugins:tools/clap-ext-probe.c"
+              ]
+            }
+          },
+          {
+            "const": "trackInfoIsForReturnTrack",
+            "title": "trackInfoIsForReturnTrack",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_TRACK_INFO_IS_FOR_RETURN_TRACK",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/effects.c",
+                "omx-clap-core:src/clap_host.c",
+                "omx-plugins:tools/clap-ext-probe.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/track-info.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/track-info.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_EXT_VOICE_INFO_TERMS": {
+        "description": "The identifiers of the CLAP header clap/ext/voice-info.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "voice-info",
+            "title": "voice-info",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_EXT_VOICE_INFO",
+              "value": "clap.voice-info",
+              "kind": "extension",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/clap_host_extensions.h",
+                "omx-clap-core:src/clap_host.c"
+              ],
+              "word": "instrument.voices"
+            }
+          },
+          {
+            "const": "voiceInfoSupportsOverlappingNotes",
+            "title": "voiceInfoSupportsOverlappingNotes",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_VOICE_INFO_SUPPORTS_OVERLAPPING_NOTES",
+              "kind": "flag",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/scan.c",
+                "omx-clap-core:src/clap_host.h"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/ext/voice-info.json",
+        "x-format": "clap",
+        "x-spec": "clap/ext/voice-info.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_FACTORY_DRAFT_PLUGIN_INVALIDATION_TERMS": {
+        "description": "The identifiers of the CLAP header clap/factory/draft/plugin-invalidation.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "plugin-invalidation-factory/1",
+            "title": "plugin-invalidation-factory/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PLUGIN_INVALIDATION_FACTORY_ID",
+              "value": "clap.plugin-invalidation-factory/1",
+              "kind": "factory",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/factory/draft/plugin-invalidation.json",
+        "x-format": "clap",
+        "x-spec": "clap/factory/draft/plugin-invalidation.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_FACTORY_DRAFT_PLUGIN_STATE_CONVERTER_TERMS": {
+        "description": "The identifiers of the CLAP header clap/factory/draft/plugin-state-converter.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "plugin-state-converter-factory/1",
+            "title": "plugin-state-converter-factory/1",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PLUGIN_STATE_CONVERTER_FACTORY_ID",
+              "value": "clap.plugin-state-converter-factory/1",
+              "kind": "factory",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#207"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/factory/draft/plugin-state-converter.json",
+        "x-format": "clap",
+        "x-spec": "clap/factory/draft/plugin-state-converter.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_FACTORY_PLUGIN_FACTORY_TERMS": {
+        "description": "The identifiers of the CLAP header clap/factory/plugin-factory.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "plugin-factory",
+            "title": "plugin-factory",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FACTORY_ID",
+              "value": "clap.plugin-factory",
+              "kind": "factory",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/omx_clap_raw.h",
+                "omx-clap-core:src/effects.c",
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/factory/plugin-factory.json",
+        "x-format": "clap",
+        "x-spec": "clap/factory/plugin-factory.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_FACTORY_PRESET_DISCOVERY_TERMS": {
+        "description": "The identifiers of the CLAP header clap/factory/preset-discovery.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "preset-discovery-factory/2",
+            "title": "preset-discovery-factory/2",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_FACTORY_ID",
+              "value": "clap.preset-discovery-factory/2",
+              "kind": "factory",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#95"
+            }
+          },
+          {
+            "const": "preset-discovery-factory/draft-2",
+            "title": "preset-discovery-factory/draft-2",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_FACTORY_ID_COMPAT",
+              "value": "clap.preset-discovery-factory/draft-2",
+              "kind": "factory",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#95"
+            }
+          },
+          {
+            "const": "presetDiscoveryIsDemoContent",
+            "title": "presetDiscoveryIsDemoContent",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_IS_DEMO_CONTENT",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#95"
+            }
+          },
+          {
+            "const": "presetDiscoveryIsFactoryContent",
+            "title": "presetDiscoveryIsFactoryContent",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_IS_FACTORY_CONTENT",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#95"
+            }
+          },
+          {
+            "const": "presetDiscoveryIsFavorite",
+            "title": "presetDiscoveryIsFavorite",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_IS_FAVORITE",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#95"
+            }
+          },
+          {
+            "const": "presetDiscoveryIsUserContent",
+            "title": "presetDiscoveryIsUserContent",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_IS_USER_CONTENT",
+              "kind": "flag",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#95"
+            }
+          },
+          {
+            "const": "presetDiscoveryLocationFile",
+            "title": "presetDiscoveryLocationFile",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_LOCATION_FILE",
+              "kind": "enum-value",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/clap_host.c"
+              ]
+            }
+          },
+          {
+            "const": "presetDiscoveryLocationPlugin",
+            "title": "presetDiscoveryLocationPlugin",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_PRESET_DISCOVERY_LOCATION_PLUGIN",
+              "kind": "enum-value",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/effects.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/factory/preset-discovery.json",
+        "x-format": "clap",
+        "x-spec": "clap/factory/preset-discovery.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_FIXEDPOINT_TERMS": {
+        "description": "The identifiers of the CLAP header clap/fixedpoint.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "beattimeFactor",
+            "title": "beattimeFactor",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_BEATTIME_FACTOR",
+              "kind": "constant",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/host_transport.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "sectimeFactor",
+            "title": "sectimeFactor",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_SECTIME_FACTOR",
+              "kind": "constant",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/host_transport.h"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/fixedpoint.json",
+        "x-format": "clap",
+        "x-spec": "clap/fixedpoint.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_ID_TERMS": {
+        "description": "The identifiers of the CLAP header clap/id.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "invalidId",
+            "title": "invalidId",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_INVALID_ID",
+              "kind": "constant",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/effects.c",
+                "omx-clap-core:lv2/clap/lv2_clap.c",
+                "omx-plugins:plugins/omx-test-sine-voice/omx_test_sine_voice_clap.c"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/id.json",
+        "x-format": "clap",
+        "x-spec": "clap/id.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_PLUGIN_FEATURES_TERMS": {
+        "description": "The identifiers of the CLAP header clap/plugin-features.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "ambisonic",
+            "title": "ambisonic",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_AMBISONIC",
+              "value": "ambisonic",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "analyzer",
+            "title": "analyzer",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_ANALYZER",
+              "value": "analyzer",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:tools/descriptor.mjs"
+              ],
+              "word": "features analyzer"
+            }
+          },
+          {
+            "const": "audio-effect",
+            "title": "audio-effect",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_AUDIO_EFFECT",
+              "value": "audio-effect",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-chorus/generated/omx_chorus_params.h",
+                "omx-plugins:plugins/omx-comp/generated/omx_comp_params.h"
+              ],
+              "word": "features audio-effect"
+            }
+          },
+          {
+            "const": "chorus",
+            "title": "chorus",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_CHORUS",
+              "value": "chorus",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-chorus/generated/omx_chorus_params.h"
+              ]
+            }
+          },
+          {
+            "const": "compressor",
+            "title": "compressor",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_COMPRESSOR",
+              "value": "compressor",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-comp/generated/omx_comp_params.h"
+              ]
+            }
+          },
+          {
+            "const": "de-esser",
+            "title": "de-esser",
+            "x-code": 5,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_DEESSER",
+              "value": "de-esser",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-deesser/generated/omx_deesser_params.h"
+              ]
+            }
+          },
+          {
+            "const": "delay",
+            "title": "delay",
+            "x-code": 6,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_DELAY",
+              "value": "delay",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-delay/generated/omx_delay_params.h"
+              ]
+            }
+          },
+          {
+            "const": "distortion",
+            "title": "distortion",
+            "x-code": 7,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_DISTORTION",
+              "value": "distortion",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-drive/generated/omx_drive_params.h"
+              ]
+            }
+          },
+          {
+            "const": "drum",
+            "title": "drum",
+            "x-code": 8,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_DRUM",
+              "value": "drum",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "openmixer:console"
+              ]
+            }
+          },
+          {
+            "const": "drum-machine",
+            "title": "drum-machine",
+            "x-code": 9,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_DRUM_MACHINE",
+              "value": "drum-machine",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "equalizer",
+            "title": "equalizer",
+            "x-code": 10,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_EQUALIZER",
+              "value": "equalizer",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-eq16/generated/omx_eq16_params.h",
+                "omx-plugins:plugins/omx-eq32/generated/omx_eq32_params.h"
+              ]
+            }
+          },
+          {
+            "const": "expander",
+            "title": "expander",
+            "x-code": 11,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_EXPANDER",
+              "value": "expander",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "openmixer:console",
+                "omx-plugins:tools/gen-presets.mjs"
+              ]
+            }
+          },
+          {
+            "const": "filter",
+            "title": "filter",
+            "x-code": 12,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_FILTER",
+              "value": "filter",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-strip/generated/omx_strip_params.h"
+              ]
+            }
+          },
+          {
+            "const": "flanger",
+            "title": "flanger",
+            "x-code": 13,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_FLANGER",
+              "value": "flanger",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-flanger/generated/omx_flanger_params.h"
+              ]
+            }
+          },
+          {
+            "const": "frequency-shifter",
+            "title": "frequency-shifter",
+            "x-code": 14,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_FREQUENCY_SHIFTER",
+              "value": "frequency-shifter",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "gate",
+            "title": "gate",
+            "x-code": 15,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_GATE",
+              "value": "gate",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-keyed-gate/generated/omx_gate_params.h",
+                "omx-plugins:plugins/omx-strip/generated/omx_strip_params.h"
+              ]
+            }
+          },
+          {
+            "const": "glitch",
+            "title": "glitch",
+            "x-code": 16,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_GLITCH",
+              "value": "glitch",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "granular",
+            "title": "granular",
+            "x-code": 17,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_GRANULAR",
+              "value": "granular",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "instrument",
+            "title": "instrument",
+            "x-code": 18,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_INSTRUMENT",
+              "value": "instrument",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-test-sine-voice/generated/omx_test_sine_voice_decl.h"
+              ],
+              "word": "features instrument"
+            }
+          },
+          {
+            "const": "limiter",
+            "title": "limiter",
+            "x-code": 19,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_LIMITER",
+              "value": "limiter",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-limiter/generated/omx_limiter_params.h"
+              ]
+            }
+          },
+          {
+            "const": "mastering",
+            "title": "mastering",
+            "x-code": 20,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_MASTERING",
+              "value": "mastering",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "mixing",
+            "title": "mixing",
+            "x-code": 21,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_MIXING",
+              "value": "mixing",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-strip/generated/omx_strip_params.h"
+              ]
+            }
+          },
+          {
+            "const": "mono",
+            "title": "mono",
+            "x-code": 22,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_MONO",
+              "value": "mono",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "openmixer:console",
+                "omx-plugins:tools/descriptor.mjs"
+              ]
+            }
+          },
+          {
+            "const": "multi-effects",
+            "title": "multi-effects",
+            "x-code": 23,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_MULTI_EFFECTS",
+              "value": "multi-effects",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "note-detector",
+            "title": "note-detector",
+            "x-code": 24,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_NOTE_DETECTOR",
+              "value": "note-detector",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "note-effect",
+            "title": "note-effect",
+            "x-code": 25,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_NOTE_EFFECT",
+              "value": "note-effect",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-test-note-echo/generated/omx_test_note_echo_decl.h"
+              ],
+              "word": "features note-effect"
+            }
+          },
+          {
+            "const": "phase-vocoder",
+            "title": "phase-vocoder",
+            "x-code": 26,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_PHASE_VOCODER",
+              "value": "phase-vocoder",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "phaser",
+            "title": "phaser",
+            "x-code": 27,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_PHASER",
+              "value": "phaser",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-phaser/generated/omx_phaser_params.h"
+              ]
+            }
+          },
+          {
+            "const": "pitch-correction",
+            "title": "pitch-correction",
+            "x-code": 28,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_PITCH_CORRECTION",
+              "value": "pitch-correction",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "pitch-shifter",
+            "title": "pitch-shifter",
+            "x-code": 29,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_PITCH_SHIFTER",
+              "value": "pitch-shifter",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-pitch/generated/omx_pitch_params.h"
+              ]
+            }
+          },
+          {
+            "const": "restoration",
+            "title": "restoration",
+            "x-code": 30,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_RESTORATION",
+              "value": "restoration",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "reverb",
+            "title": "reverb",
+            "x-code": 31,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_REVERB",
+              "value": "reverb",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-reverb/generated/omx_reverb_params.h"
+              ]
+            }
+          },
+          {
+            "const": "sampler",
+            "title": "sampler",
+            "x-code": 32,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_SAMPLER",
+              "value": "sampler",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "openmixer:console"
+              ]
+            }
+          },
+          {
+            "const": "stereo",
+            "title": "stereo",
+            "x-code": 33,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_STEREO",
+              "value": "stereo",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-chorus/generated/omx_chorus_params.h",
+                "omx-plugins:plugins/omx-comp/generated/omx_comp_params.h"
+              ]
+            }
+          },
+          {
+            "const": "surround",
+            "title": "surround",
+            "x-code": 34,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_SURROUND",
+              "value": "surround",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "plugin-db:contract.d/plugin-feature/plugin-feature.json"
+              ]
+            }
+          },
+          {
+            "const": "synthesizer",
+            "title": "synthesizer",
+            "x-code": 35,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_SYNTHESIZER",
+              "value": "synthesizer",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-test-sine-voice/generated/omx_test_sine_voice_decl.h"
+              ]
+            }
+          },
+          {
+            "const": "transient-shaper",
+            "title": "transient-shaper",
+            "x-code": 36,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_TRANSIENT_SHAPER",
+              "value": "transient-shaper",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-transient/generated/omx_transient_params.h"
+              ]
+            }
+          },
+          {
+            "const": "tremolo",
+            "title": "tremolo",
+            "x-code": 37,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_TREMOLO",
+              "value": "tremolo",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-tremolo/generated/omx_tremolo_params.h"
+              ]
+            }
+          },
+          {
+            "const": "utility",
+            "title": "utility",
+            "x-code": 38,
+            "x-term": {
+              "id": "CLAP_PLUGIN_FEATURE_UTILITY",
+              "value": "utility",
+              "kind": "plugin-feature",
+              "status": "used",
+              "by": [
+                "omx-plugins:plugins/omx-test-note-echo/generated/omx_test_note_echo_decl.h",
+                "omx-plugins:plugins/omx-test-transport-probe/generated/omx_test_transport_probe_decl.h"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/plugin-features.json",
+        "x-format": "clap",
+        "x-spec": "clap/plugin-features.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_PROCESS_TERMS": {
+        "description": "The identifiers of the CLAP header clap/process.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "processContinue",
+            "title": "processContinue",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_PROCESS_CONTINUE",
+              "kind": "process-status",
+              "status": "used",
+              "by": [
+                "omx-clap-core:lv2/clap/lv2_clap.c",
+                "omx-plugins:plugins/omx-tremolo/omx_tremolo_clap.c",
+                "omx-plugins:plugins/omx-transient/omx_transient_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "processContinueIfNotQuiet",
+            "title": "processContinueIfNotQuiet",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_PROCESS_CONTINUE_IF_NOT_QUIET",
+              "kind": "process-status",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "processError",
+            "title": "processError",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_PROCESS_ERROR",
+              "kind": "process-status",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/hosted_stage.h",
+                "omx-clap-core:src/clap_stage.h",
+                "omx-clap-core:lv2/clap/lv2_clap.c"
+              ]
+            }
+          },
+          {
+            "const": "processSleep",
+            "title": "processSleep",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_PROCESS_SLEEP",
+              "kind": "process-status",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "processTail",
+            "title": "processTail",
+            "x-code": 4,
+            "x-term": {
+              "id": "CLAP_PROCESS_TAIL",
+              "kind": "process-status",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/process.json",
+        "x-format": "clap",
+        "x-spec": "clap/process.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_STRING_SIZES_TERMS": {
+        "description": "The identifiers of the CLAP header clap/string-sizes.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "nameSize",
+            "title": "nameSize",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_NAME_SIZE",
+              "kind": "enum-value",
+              "status": "used",
+              "by": [
+                "omx-clap-core:src/effects.c",
+                "omx-clap-core:src/clap_meters.h",
+                "omx-clap-core:src/clap_host.h"
+              ]
+            }
+          },
+          {
+            "const": "pathSize",
+            "title": "pathSize",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_PATH_SIZE",
+              "kind": "enum-value",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/string-sizes.json",
+        "x-format": "clap",
+        "x-spec": "clap/string-sizes.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_TIMESTAMP_TERMS": {
+        "description": "The identifiers of the CLAP header clap/timestamp.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "timestampUnknown",
+            "title": "timestampUnknown",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_TIMESTAMP_UNKNOWN",
+              "kind": "constant",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/timestamp.json",
+        "x-format": "clap",
+        "x-spec": "clap/timestamp.h",
+        "x-version": "1.2.10"
+      },
+      "CLAP_VERSION_TERMS": {
+        "description": "The identifiers of the CLAP header clap/version.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
+        "x-since": "0.34.0",
+        "oneOf": [
+          {
+            "const": "version",
+            "title": "version",
+            "x-code": 0,
+            "x-term": {
+              "id": "CLAP_VERSION",
+              "kind": "constant",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "versionMajor",
+            "title": "versionMajor",
+            "x-code": 1,
+            "x-term": {
+              "id": "CLAP_VERSION_MAJOR",
+              "kind": "constant",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "versionMinor",
+            "title": "versionMinor",
+            "x-code": 2,
+            "x-term": {
+              "id": "CLAP_VERSION_MINOR",
+              "kind": "constant",
+              "status": "supported-later",
+              "issue": "FreeMixer/omx-clap-core#196"
+            }
+          },
+          {
+            "const": "versionRevision",
+            "title": "versionRevision",
+            "x-code": 3,
+            "x-term": {
+              "id": "CLAP_VERSION_REVISION",
+              "kind": "constant",
+              "status": "used",
+              "by": [
+                "openmixer:console"
+              ]
+            }
+          }
+        ],
+        "x-kind": "terms",
+        "x-file": "formats/clap/version.json",
+        "x-format": "clap",
+        "x-spec": "clap/version.h",
+        "x-version": "1.2.10"
+      }
+    }
+  }
+}

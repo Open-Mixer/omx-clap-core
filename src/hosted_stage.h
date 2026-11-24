@@ -24,7 +24,7 @@
 /*
 ************************************************************************************************************************
 *
-* The format-free RT stage of a hosted plugin, part of libomx-clap-core: the private bounce, the commanded bypass, the
+* The format-free RT stage of a hosted plugin, part of libomx-clap: the private bounce, the commanded bypass, the
 * one-block constant-gain crossfade and the deliver, the clamp, the non-finite strike, the finite scan, the preamble
 * and the tail of a run, the warm-up drive and the parameter queue. clap_stage.h is the CLAP body over it.
 *

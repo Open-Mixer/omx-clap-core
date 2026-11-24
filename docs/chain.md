@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 <!-- Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com> -->
-# The chain object of libomx-clap-core
+# The chain object of libomx-clap
 
 `clap_chain.h` installs beside `clap_host.h` under `include/omx-clap-host/`: an ordered list of stages that one audio
 cycle runs in order, each stage's output the next one's input, in the caller's own thread. It is the mechanics measured in
@@ -117,11 +117,8 @@ or `OMX_CLAP_CHAIN_ERR_NO_MEMBER`, and publishes nothing. The function is in the
 Every structure a consumer allocates (`struct omx_clap_chain_config`, `struct omx_clap_chain_member`,
 `struct omx_clap_chain_report`, `struct omx_clap_chain_member_info`) carries `abi` (`OMX_CLAP_CHAIN_ABI` of the header
 the caller compiled against) and `size` (its `sizeof` as the caller compiled it) as its first two fields. The library
-reads and writes such a structure only when its `abi` is one the library knows and its `size` is exactly the size that
-ABI gives the structure; anything else is refused `OMX_CLAP_CHAIN_ERR_ABI`, nothing read and nothing written (never a silent read of a grown structure, never a write past the caller's own). The chain itself is opaque, allocated
-and freed by the library. The structures are in `abi/libomx-clap-core.so.1.layout` and the functions in
-`abi/libomx-clap-core.so.1.abi`, which the `abi` CI job holds the build to; the functions are in the version node
-`OMX_CLAP_CORE_0.16`.
+reads and writes such a structure only when its `abi` is the library's own and its `size` is exactly the size this header gives the structure; anything else is refused `OMX_CLAP_CHAIN_ERR_ABI`, nothing read and nothing written (never a silent read of a grown structure, never a write past the caller's own). The chain itself is opaque, allocated
+and freed by the library. The functions are in the version node `OMX_CLAP_CORE_0.16`.
 
 ## Proof
 
@@ -217,8 +214,8 @@ stderr line. A line of one member is a chain of one: the head in its own client,
 
 ### The declaration, and the refusal behind plugin-hostd
 
-plugin-hostd's verbs file declares `chain` of omx-clap-host as `required`, and this host implements it: a line of two
-or more members answers `resp 0`. `make test-host-verbs` installs plugin-hostd's package (`PLUGIN_HOSTD_DIR`) beside
+the domain plugin-hostd-protocol declares `chain` of omx-clap-host as `required`, and this host implements it:
+a line of two or more members answers `resp 0`. `make test-host-verbs` installs that domain (`PROTOCOL_DIR`) beside
 this one and drives that line, so a host that refuses it, or a build without that package, goes red. A `resp -902`
 the daemon logs (`refused chain <n> ...`) is one of the refusals above, whose reason this host writes to its own
 stderr just before; the daemon's stderr alone does not name it. `state_load` answers one code for the whole directory;

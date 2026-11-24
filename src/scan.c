@@ -961,7 +961,7 @@ static void put_panel(FILE *out, const struct omx_clap_instance *instance)
         const omx_clap_panel_description_display_t *d = SCAN_PANEL_ROW(&p, SCAN_PANEL_DISPLAYS, omx_clap_panel_description_display_t, i);
 
         fprintf(out, "%s{\"kind\":", i ? "," : "");
-        put_panel_code(out, scan_panel_display_kind_word(d->kind), d->kind);
+        fprintf(out, "%u", d->kind); /* a number: the words are omx-panel's, never this tree's */
         fprintf(out, ",\"section\":%u,\"source\":", d->section);
         put_panel_code(out, scan_panel_display_source_word(d->source), d->source);
         fputs(",\"meterIds\":[", out);

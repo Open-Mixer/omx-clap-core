@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
+usr/share/omx-contract/contract.d/3/omx-clap
+usr/share/omx-contract/contract.d/scan
+usr/share/omx-contract/contract.d/omx-param-contract
+usr/share/omx-contract/contract.d/omx-clap-scale
+usr/share/omx-contract/contract.d/clap
+usr/share/omx-contract/contract.d/host
+usr/share/omx-contract/contract.d/omx-clap

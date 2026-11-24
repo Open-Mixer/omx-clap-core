@@ -3,16 +3,16 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
 # hosting-codes-check.sh — every hosting code the C sources write is declared: an OMX_HOSTING_* macro of
-# src/omx_clap_core_vocabulary.h, which data/hosting/ renders, or a CLAP_HOST_CODE_* define of src/clap_host_limits.h,
+# src/omx_clap_vocabulary.h, which data/hosting/ renders, or a CLAP_HOST_CODE_* define of src/clap_host_limits.h,
 # which data/hosting.json renders for the idle dimension (hosting.idle.*, #296); contract-dir-check.sh holds both files
 # to the data. Never a literal of their own.
 #
-#   hosting-codes-check.sh [--self-test] [--root <dir>] [<omx_clap_core_vocabulary.h>]
+#   hosting-codes-check.sh [--self-test] [--root <dir>] [<omx_clap_vocabulary.h>]
 #
 # The sources are src/ and lv2/ (their .c and .h, lv2/tests/ left out: a test compares against the literal on purpose,
-# an oracle the macro cannot be; src/clap_host_limits.h and src/omx_clap_core_vocabulary.h left out: they are the
+# an oracle the macro cannot be; src/clap_host_limits.h and src/omx_clap_vocabulary.h left out: they are the
 # renders, this tree's declaration). Outside comments, a string literal holding a hosting.<word> is a failure, and so is
-# an OMX_HOSTING_ name the header does not define. The header is <root>/src/omx_clap_core_vocabulary.h unless named.
+# an OMX_HOSTING_ name the header does not define. The header is <root>/src/omx_clap_vocabulary.h unless named.
 # --self-test runs the check on a copy of the sources once clean and once per
 # sabotage: a hand-typed code in a define, one inside a longer string, a name the header lacks, each of which must fail;
 # and a quoted code inside a comment, which must not.
@@ -30,14 +30,14 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-[ -n "$header" ] || header=$root/src/omx_clap_core_vocabulary.h
+[ -n "$header" ] || header=$root/src/omx_clap_vocabulary.h
 [ -f "$header" ] || { echo "hosting-codes-check: no $header (the render of data/hosting/)" >&2; exit 2; }
 
 # the check proper, over the sources under $1: one line per failure on stderr, the count of codes used on stdout
 check() {
   local dir=$1
   local files
-  files=$(cd "$dir" && find src lv2 -path lv2/tests -prune -o \( -name '*.c' -o -name '*.h' \) -type f -print | grep -vx -e 'src/clap_host_limits.h' -e 'src/omx_clap_core_vocabulary.h' | sort)
+  files=$(cd "$dir" && find src lv2 -path lv2/tests -prune -o \( -name '*.c' -o -name '*.h' \) -type f -print | grep -vx -e 'src/clap_host_limits.h' -e 'src/omx_clap_vocabulary.h' | sort)
   [ -n "$files" ] || { echo "hosting-codes-check: no sources under $dir" >&2; return 2; }
   (cd "$dir" && perl -e '
     my $header = shift;
@@ -54,7 +54,7 @@ check() {
       while ($text =~ m{\G(?:("(?:\\.|[^"\\\n])*")|(\x27(?:\\.|[^\x27\\\n])*\x27)|(/\*.*?\*/)|(//[^\n]*)|([A-Za-z_][A-Za-z0-9_]*)|(.))}gs) {
         my ($tok, $str, $id) = ($&, $1, $5);
         if (defined $str && $str =~ /(?<![A-Za-z0-9_.-])(hosting\.[a-z][a-z0-9.-]*)/) {
-          print STDERR "hosting-codes-check: $f:$line: \"$1\" is hand-typed: write the OMX_HOSTING_ macro of omx_clap_core_vocabulary.h\n";
+          print STDERR "hosting-codes-check: $f:$line: \"$1\" is hand-typed: write the OMX_HOSTING_ macro of omx_clap_vocabulary.h\n";
           $bad = 1;
         } elsif (defined $id && $id =~ /^OMX_HOSTING_/) {
           $used{$id} = 1;

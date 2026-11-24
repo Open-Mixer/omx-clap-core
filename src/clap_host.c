@@ -21,7 +21,7 @@
 /*
 ************************************************************************************************************************
 *
-* The control-thread host of libomx-clap-core (see clap_host.h for the contract).
+* The control-thread host of libomx-clap (see clap_host.h for the contract).
 *
 * Threads, as CLAP assigns them: everything here is [main-thread] and runs on the control thread that opened the
 * instance, except the host callbacks a plugin may call from its audio thread ([thread-safe]: request_*, log,
@@ -129,7 +129,7 @@ static pthread_mutex_t g_binaries_lock = PTHREAD_MUTEX_INITIALIZER;
 /* the defaults until a host configures the process */
 static struct omx_clap_host_config g_config =
 {
-    OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap-core", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, OMX_HOSTED_STAGE_IDLE_HOLD_US
+    OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, OMX_HOSTED_STAGE_IDLE_HOLD_US
 };
 static int g_configured;
 static _Atomic int g_sealed;    // a binary was opened: the configuration can no longer change
@@ -2257,46 +2257,28 @@ static int64_t istream_read(const clap_istream_t *stream, void *data, uint64_t s
 ************************************************************************************************************************
 */
 
-void omx_clap_host_config_default_sized(struct omx_clap_host_config *config, uint32_t caller_size)
+void omx_clap_host_config_default(struct omx_clap_host_config *config)
 {
     static const struct omx_clap_host_config defaults =
     {
-        OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap-core", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, 0
+        OMX_CLAP_CORE_ABI, sizeof(struct omx_clap_host_config), 1, 1, 1, 0, 0, "omx-clap", "Pau Aliagas", "https://github.com/Open-Mixer/omx-clap-core", "0", 0, 0, 2, 0
     };
-    uint32_t n;
 
-    // too short to even carry a size that names a host: refused whole, as omx_clap_host_configure refuses it (#301)
-    if (caller_size < offsetof(struct omx_clap_host_config, version) + sizeof(config->version))
-        return;
-    n = caller_size < sizeof(defaults) ? caller_size : sizeof(defaults);
-    memcpy(config, &defaults, n);
-    config->size = n;
-    if (n >= offsetof(struct omx_clap_host_config, idle_hold_us) + sizeof(config->idle_hold_us))
-        config->idle_hold_us = idle_hold_target_default();
-}
-
-void omx_clap_host_config_default(struct omx_clap_host_config *config)
-{
-    omx_clap_host_config_default_sized(config, sizeof(struct omx_clap_host_config));
+    *config = defaults;
+    config->idle_hold_us = idle_hold_target_default();
 }
 
 int omx_clap_host_configure(const struct omx_clap_host_config *config)
 {
-    struct omx_clap_host_config merged;
-
-    if (!config || config->abi < OMX_CLAP_CORE_ABI_OLDEST || config->abi > OMX_CLAP_CORE_ABI || config->size < offsetof(struct omx_clap_host_config, version) + sizeof(config->version))
+    if (!config || config->abi != OMX_CLAP_CORE_ABI || config->size != sizeof(*config))
         return -1;
     if (g_configured || g_sealed)
         return -1;
-    // a caller built against an older header has fewer fields: the rest are the defaults'
-    omx_clap_host_config_default(&merged);
-    memcpy(&merged, config, config->size < sizeof(merged) ? config->size : sizeof(merged));
-    merged.size = sizeof(merged);
-    if (!merged.name || !merged.vendor || !merged.url || !merged.version)
+    if (!config->name || !config->vendor || !config->url || !config->version)
         return -1;
-    g_config = merged;
+    g_config = *config;
     g_configured = 1;
-    idle_hold_configure(merged.idle_hold_us);
+    idle_hold_configure(config->idle_hold_us);
     return 0;
 }
 
@@ -2602,6 +2584,11 @@ int omx_clap_resource_hint_figure(const omx_resource_hints_t *hints, uint32_t in
 const char *omx_clap_param_unit_name(uint32_t unit)
 {
     return pc_unit_name(unit);
+}
+
+const char *omx_clap_param_unit_id(uint32_t unit)
+{
+    return pc_unit_id(unit);
 }
 
 const char *omx_clap_param_scale_name(uint32_t scale)

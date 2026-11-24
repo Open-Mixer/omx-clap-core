@@ -11,7 +11,7 @@
 #
 # OMX_CLAP_HOST:    the binary (default ./omx-clap-host)
 # JACK_E2E_PORT:    the socket port (default 5566); the feedback port is the next one
-# HOST_*, OMX_HOST_*: what data/verbs.json declares, read from src/host_verbs.h by make test-jack-info
+# HOST_*, OMX_HOST_*: what contract.d/omx-clap/omx-clap.json declares, read from src/host_verbs.h by make test-jack-info
 
 set -u
 
@@ -219,7 +219,7 @@ expect "quit" "resp 0"
 
 contract_host good
 expect "add $uri 0" "resp 0"
-expect "param_info 0 0" "resp 0 frame stepped 0 4096 64 1 latency"
+expect "param_info 0 0" "resp 0 frames stepped 0 4096 64 1 latency"
 expect "param_info 0 1" "resp -103"
 expect "param_info 0 99" "resp -103"
 expect "param_info 0 :bypass" "resp -103"

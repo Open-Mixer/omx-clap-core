@@ -11,7 +11,7 @@
 #
 # path: modhost (LV2 through mod-host), clap (CLAP through omx-clap-host), adapter (LV2 through omx-clap-host and
 # libomx-clap-lv2), inproc-clap / inproc-lv2 (the plugin in a PipeWire filter's own process callback through
-# libomx-clap-core, the LV2 one through libomx-clap-lv2: the engine's in-process tier), hostd (LV2 through
+# libomx-clap, the LV2 one through libomx-clap-lv2: the engine's in-process tier), hostd (LV2 through
 # plugin-hostd, its worker omx-clap-host with the adapter, one pool worker for the set), jalv (LV2, one jalv process
 # per plugin, as Zynthian runs its layers; RSS and CPU are the sum over them, RSS empty is 0: no host before an add).
 # clap-series and adapter-series: clap's and adapter's plugins in one client each, linked in series (the noise into the

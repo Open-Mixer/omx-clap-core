@@ -6,7 +6,7 @@
 //   node hosting-values-check.mjs <whole-read json> <src dir>
 //   node hosting-values-check.mjs --self-test <whole-read json> <src dir>
 //
-// <whole-read json> is `omx-contract render --target json` of the contract directory that holds omx-clap-core's
+// <whole-read json> is `omx-contract render --target json` of the contract directory that holds omx-clap's
 // package: HOSTED_STAGE_LIMITS as the reader parsed it, not as a render spelled it. Each field of HOSTED_STAGE_LIMITS
 // must stand in <src dir>/hosted_stage_limits.h as OMX_HOSTED_STAGE_<FIELD> with its value, its one spelling; each code
 // of the package's codes items (HOSTING_IDLE_CODES, the dimension this tree owns) in clap_host_limits.h as

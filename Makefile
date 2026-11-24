@@ -529,12 +529,12 @@ TEST_MAIN_ONLY = test-layouts-sabotage \
     test-transport-sabotage
 # the target starts a user, net, pid and mount namespace of its own: CI probes that the runner allows one first
 TEST_NS = test-socket
-# run on a desk, in no CI step: test-jack and test-identity load omx-delay, a plugin of omx-plugins (make test-jack
-# CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity), and so does test-scan's omx-delay arm (test-fake runs the rest of
-# that test on the fake plugins). This repository's CI installs nothing of omx-plugins (tests/no-upward-deps-check.sh).
-# tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step; BUILDING.md names these three.
+# run on a desk, in no CI step: the targets of tests/desk_only.tsv, each with the narrowest piece of it a CI step runs
+# and why the rest cannot run in CI (each loads omx-delay, a plugin of omx-plugins, which this repository's CI does not
+# install: tests/no-upward-deps-check.sh). tests/ci_runs_test_list.py holds every other test-* and check-* target, and
+# each row's piece, to a CI step; BUILDING.md names them.
 TEST_DESK = test-scan
-DESK_ONLY = test-jack test-identity $(TEST_DESK)
+DESK_ONLY = $(shell awk -F'\t' '$$1 ~ /^(test|check)-/ { print $$1 }' tests/desk_only.tsv)
 .PHONY: print-test-plain print-test-main-only print-test-ns print-desk-only
 print-desk-only:
 	@echo $(DESK_ONLY)
@@ -553,6 +553,11 @@ test: $(TEST_PLAIN) $(TEST_MAIN_ONLY) $(TEST_NS) $(TEST_DESK) tests/clap_host_te
 test-scan: $(SCAN_PROG) tests/clap_scan_test tests/fake.clap tests/crash.clap tests/fake_synth.clap tests/fake_panel.clap
 	@$(call run_or_skip_clap_test_plugin,OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) $(CLAP_TEST_PLUGIN) $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap))
 
+# the same on every input but omx-delay.clap ("-"): test-scan's piece CI runs (tests/desk_only.tsv)
+.PHONY: test-scan-fake
+test-scan-fake: $(SCAN_PROG) tests/clap_scan_test tests/fake.clap tests/crash.clap tests/fake_synth.clap tests/fake_panel.clap
+	OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
+
 # the scanner's sources and the core compiled directly into the test, bypassing the shared library so the whole walk
 # carries AddressSanitizer's instrumentation: a directory of real .clap files listed, then everything main() built
 # (roots, files, failures, seen) must be off the heap again. Needs libasan; CI runs it, the package builds do not
@@ -568,7 +573,7 @@ test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 # the pin is plugin-db's: a build dependency on plugin-hostd would close the cycle this repository was cut out of
 # omx-clap is the lower layer: no header, package or pkg-config ask of omx-plugins in its build, tests, CI or
 # packaging (#117); it owns the panel-description layout. No omx-plugins package is installed either, plugins included:
-# the tests that load a published plugin (test-jack, test-identity, test-scan's omx-delay arm) are desk-only (DESK_ONLY).
+# the tests that load a published plugin are desk-only (DESK_ONLY, tests/desk_only.tsv), each with the piece CI runs.
 .PHONY: test-no-upward-deps
 test-no-upward-deps:
 	bash tests/no-upward-deps-check.sh --self-test
@@ -624,14 +629,13 @@ test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-
 test-fake: test-clap-inventory test-plugin-hostd-ref
 test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
-test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool test-panel-words
+test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap test-scan-fake test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool test-panel-words
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
 	./tests/resource_hints_test $(abspath tests/fake_ext.clap)
 	./tests/clap_unoffered_test $(abspath tests/fake.clap)
 	./tests/clap_state_busy_test $(abspath tests/fake_state.clap)
 	./tests/idle_hold_test $(abspath tests/fake.clap)
 	./tests/clap_host_test - $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(abspath tests/fake_mover.clap) $(abspath tests/fault-17.clap)
-	OMX_CONTRACT_PATH=$(abspath contract.d) ./tests/clap_scan_test ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath tests/crash.clap) - $(abspath tests/fake_synth.clap) $(abspath $(LV2_FIXTURE_DIR)) $(abspath tests/fake_panel.clap)
 
 # every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_vocabulary.h, the render of
 # data/hosting/: no hand-typed "hosting." literal, no name that header lacks (tests/hosting-codes-check.sh, with its sabotage arms); and
@@ -1242,6 +1246,12 @@ test-socket: $(PROG)
 # the host over jack, in a PipeWire of its own: every command on the wire and the ports it makes
 test-jack: $(PROG) tests/fake.clap tests/jack_latency_probe tests/jack_meter_source tests/jack_synth_probe
 	CLAP_TEST_PLUGIN=$(CLAP_TEST_PLUGIN) ./tests/jack_e2e.sh
+
+# the same with no omx-delay.clap ("-"): every step but its arm, on the fake plugins; test-jack's piece CI runs
+# (tests/desk_only.tsv)
+.PHONY: test-jack-fake-arms
+test-jack-fake-arms: $(PROG) tests/fake.clap tests/jack_latency_probe tests/jack_meter_source tests/jack_synth_probe
+	CLAP_TEST_PLUGIN=- ./tests/jack_e2e.sh
 
 tests/jack_latency_probe: tests/jack_latency_probe.c
 	$(CC) $(shell $(PKG_CONFIG) --cflags jack) $(CFLAGS) -Werror -o $@ $< $(shell $(PKG_CONFIG) --libs jack)

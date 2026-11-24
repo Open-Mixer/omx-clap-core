@@ -59,9 +59,15 @@ runs `tests/jack_e2e.sh`: the host over jack inside a PipeWire of its own
 exit), every command over the socket and the graph read back after each
 one. The PipeWire of the session that runs it is never touched.
 
-`test-jack`, `test-identity` and the omx-delay arm of `test-scan` load omx-delay,
-a plugin of omx-plugins, which this repository's CI does not install: they run
-on a desk only and are the Makefile's `DESK_ONLY` list.
+`test-jack`, `test-identity` and `test-scan` load omx-delay, a plugin of
+omx-plugins, which this repository's CI does not install: they run on a desk
+only and are the rows of `tests/desk_only.tsv` (the Makefile's `DESK_ONLY`),
+each with its reason and the narrowest piece of it CI runs:
+`make test-jack-fake-arms` (`tests/jack_e2e.sh` with `CLAP_TEST_PLUGIN=-`,
+every step but the omx-delay arm), `make test-identity-lv2` (the same script
+on this tree's fixture bundle) and `make test-scan-fake` (the scanner on every
+input but omx-delay). `make test-ci-runs-test-list` fails on a desk-only
+target with no row, no reason, or a piece no CI step runs.
 
     make test-jack-synth
 

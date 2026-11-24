@@ -11,7 +11,8 @@
 # held; each step is printed. Nothing here touches the PipeWire of the session
 # that runs it.
 #
-# CLAP_TEST_PLUGIN: the omx-delay .clap (default /usr/lib/clap/omx-delay.clap)
+# CLAP_TEST_PLUGIN: the omx-delay .clap (default /usr/lib/clap/omx-delay.clap); "-" leaves its arm out and
+#                   runs every other step, on the fake plugins (make test-jack-fake-arms, what CI runs)
 # OMX_CLAP_HOST:    the binary (default ./omx-clap-host)
 # JACK_E2E_PORT:    the socket port (default 5560)
 
@@ -29,14 +30,17 @@ source=$here/jack_meter_source
 listen=$here/jack_synth_probe
 
 if [ -z "${JACK_E2E_INSIDE:-}" ]; then
-    if [ ! -e "$plugin" ] && [ -z "${CI:-}" ]; then
+    if [ "$plugin" != - ] && [ ! -e "$plugin" ] && [ -z "${CI:-}" ]; then
         echo "skip: $plugin not found (install omx-plugins or set CLAP_TEST_PLUGIN)"
         exit 0
     fi
-    for f in "$plugin" "$host" "$fake" "$probe" "$source" "$listen"; do
+    for f in "$host" "$fake" "$probe" "$source" "$listen"; do
         [ -e "$f" ] || { echo "missing $f" >&2; exit 2; }
     done
-    plugin=$(readlink -f "$plugin")
+    if [ "$plugin" != - ]; then
+        [ -e "$plugin" ] || { echo "missing $plugin" >&2; exit 2; }
+        plugin=$(readlink -f "$plugin")
+    fi
     JACK_E2E_INSIDE=1 CLAP_TEST_PLUGIN=$plugin OMX_CLAP_HOST=$host JACK_E2E_PORT=$port \
         exec unshare --user --map-root-user --net --pid --fork --mount-proc "$0" "$@"
 fi
@@ -105,30 +109,35 @@ nodes() {
     run pw-dump 2>/dev/null | grep -c "\"node.name\": \"$1\""
 }
 
-expect "add clap:$plugin#org.openmixer.delay 0" "resp 0"
-for p in effect_0:in_1 effect_0:in_2 effect_0:out_1 effect_0:out_2; do
-    graph_has "$p"; step $? "port $p in the graph"
-done
-[ "$(nodes effect_0)" -ge 1 ]; step $? "pw-dump sees node effect_0 ($(nodes effect_0))"
+# ---- omx-delay in slot 0: left out when CLAP_TEST_PLUGIN is "-" ----
+if [ "$plugin" != - ]; then
+    expect "add clap:$plugin#org.openmixer.delay 0" "resp 0"
+    for p in effect_0:in_1 effect_0:in_2 effect_0:out_1 effect_0:out_2; do
+        graph_has "$p"; step $? "port $p in the graph"
+    done
+    [ "$(nodes effect_0)" -ge 1 ]; step $? "pw-dump sees node effect_0 ($(nodes effect_0))"
 
-expect "param_get 0 2" "resp 0 0.3000"
-expect "param_set 0 2 1.0" "resp 0"
-expect "param_get 0 2" "resp 0 1.0000"
-expect "param_set 0 0 5" "resp 0"
-expect "param_get 0 0" "resp 0 5.0000"
-expect "param_set 0 99 1" "resp -103"
-expect "param_get 0 :bypass" "resp 0 0.0000"
-expect "bypass 0 1" "resp 0"
-expect "param_get 0 :bypass" "resp 0 1.0000"
-expect "bypass 0 0" "resp 0"
-expect "param_get 0 :bypass" "resp 0 0.0000"
+    expect "param_get 0 2" "resp 0 0.3000"
+    expect "param_set 0 2 1.0" "resp 0"
+    expect "param_get 0 2" "resp 0 1.0000"
+    expect "param_set 0 0 5" "resp 0"
+    expect "param_get 0 0" "resp 0 5.0000"
+    expect "param_set 0 99 1" "resp -103"
+    expect "param_get 0 :bypass" "resp 0 0.0000"
+    expect "bypass 0 1" "resp 0"
+    expect "param_get 0 :bypass" "resp 0 1.0000"
+    expect "bypass 0 0" "resp 0"
+    expect "param_get 0 :bypass" "resp 0 0.0000"
 
-expect "state_save $state_dir" "resp 0"
-[ -s "$state_dir/effect_0.clapstate" ]; step $? "state file effect_0.clapstate ($(stat -c %s "$state_dir/effect_0.clapstate" 2>/dev/null || echo 0) bytes)"
-expect "param_set 0 2 0.5" "resp 0"
-expect "param_get 0 2" "resp 0 0.5000"
-expect "state_load $state_dir" "resp 0"
-expect "param_get 0 2" "resp 0 1.0000"
+    expect "state_save $state_dir" "resp 0"
+    [ -s "$state_dir/effect_0.clapstate" ]; step $? "state file effect_0.clapstate ($(stat -c %s "$state_dir/effect_0.clapstate" 2>/dev/null || echo 0) bytes)"
+    expect "param_set 0 2 0.5" "resp 0"
+    expect "param_get 0 2" "resp 0 0.5000"
+    expect "state_load $state_dir" "resp 0"
+    expect "param_get 0 2" "resp 0 1.0000"
+else
+    echo "     the omx-delay arm left out (CLAP_TEST_PLUGIN=-): slot 0 stays empty"
+fi
 
 expect "add clap:$fake#org.omx-clap-host.test.passthrough 1" "resp 1"
 sleep 0.5
@@ -245,8 +254,10 @@ expect "remove 3" "resp 0"
 expect "remove 2" "resp 0"
 ! graph_has effect_2:in_1 && ! graph_has effect_3:out_1; step $? "no effect_2 or effect_3 port after remove"
 
-expect "remove 0" "resp 0"
-! graph_has effect_0:in_1 && ! graph_has effect_0:out_1; step $? "no effect_0 port after remove"
+if [ "$plugin" != - ]; then
+    expect "remove 0" "resp 0"
+    ! graph_has effect_0:in_1 && ! graph_has effect_0:out_1; step $? "no effect_0 port after remove"
+fi
 graph_has effect_1:in_1; step $? "effect_1 still there"
 expect "remove 1" "resp 0"
 ! graph_has effect_1:out_1; step $? "no effect_1 port after remove"

@@ -465,6 +465,16 @@ jobs:
             echo "::warning::test-jack-fake SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
+      # test-jack's every step but its omx-delay arm, on the fake plugins: commands over the socket, the ports, latency,
+      # the lane's width and relayouts, idle hold (tests/desk_only.tsv: test-jack's piece CI runs)
+      - name: Test the host over jack on the fake plugins
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make test-jack-fake-arms
+          else
+            echo "::warning::test-jack-fake-arms SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+          fi
+
       # Layout pinning over jack: pin_expect before add, a layout that differs destroyed before activate.
       - name: Test layout pinning over jack
         run: |
@@ -662,8 +672,8 @@ jobs:
 
       - name: Name what this job does not run
         run: |
-          echo "test-jack, test-identity and test-scan's omx-delay arm are NOT run here: they load omx-delay, a plugin of omx-plugins, and this repository's CI installs nothing of it (DESK_ONLY in the Makefile)."
-          echo "They stay in the Makefile for the desk: make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity; make test-scan."
+          echo "The desk-only targets are NOT run here, each for the reason tests/desk_only.tsv gives; the piece of each a CI container can run is a step of this job:"
+          awk -F'\t' '$1 ~ /^(test|check)-/ { print "  " $1 ": its CI piece, " $2 ", is a step of this job" }' tests/desk_only.tsv
 
   # each guard of the host's chain broken in a copy of the sources, the chain tests red on it (#104). About a quarter of an
   # hour of host runs, in a job of its own beside build and test, on the same container and the same setup.

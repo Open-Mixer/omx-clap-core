@@ -84,7 +84,7 @@ static int scan_domain_open(void)
 
     memset(&err, 0, sizeof(err));
     if (!list || !*list)
-        rc = omx_domain_open(SCAN_DOMAIN, &g_scan_domain, &err);
+        rc = omx_domain_open(SCAN_DOMAIN, NULL, &g_scan_domain, &err);
     else
     {
         char *copy = strdup(list), *save = NULL, *dir;
@@ -94,7 +94,7 @@ static int scan_domain_open(void)
         rc = OMX_CONTRACT_CODE_DIR_ABSENT;
         for (dir = strtok_r(copy, ":", &save); dir; dir = strtok_r(NULL, ":", &save))
         {
-            rc = omx_domain_open_at(dir, SCAN_DOMAIN, &g_scan_domain, &err);
+            rc = omx_domain_open_at(dir, SCAN_DOMAIN, NULL, &g_scan_domain, &err);
             if (rc != OMX_CONTRACT_CODE_DIR_ABSENT)
                 break; /* the first directory that holds the domain wins, opened or refused */
         }

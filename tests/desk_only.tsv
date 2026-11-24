@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pau Aliagas
+#
+# The test targets that run on a desk only, the Makefile's DESK_ONLY (print-desk-only), one per line, tab separated:
+# the target, the narrowest piece of it a CI container runs (a Makefile target of its own, run by a CI step), and why
+# the rest of it cannot run in CI. tests/ci_runs_test_list.py holds every other test-* and check-* target to a CI step,
+# and each row here to its reason and its piece.
+test-jack	test-jack-fake-arms	its first arm drives omx-delay.clap over jack (parameters, bypass, state save and load); omx-delay is a plugin of omx-plugins, the layer above, and this repository's CI installs nothing of it (tests/no-upward-deps-check.sh). test-jack-fake-arms runs every other step of tests/jack_e2e.sh, on the fake plugins
+test-identity	test-identity-lv2	it compares omx-delay four ways bit for bit, its LV2 bundle and its CLAP twin, both from the omx-plugins packages, which this repository's CI does not install (tests/no-upward-deps-check.sh). test-identity-lv2 runs the same script, tests/clap_lv2_identity.sh, on this tree's fixture bundle the three ways an LV2 bundle has (mod-host, the adapter, the adapter in process)
+test-scan	test-scan-fake	its omx-delay arm scans omx-delay.clap, a plugin of omx-plugins, which this repository's CI does not install (tests/no-upward-deps-check.sh). test-scan-fake runs tests/clap_scan_test on every other input: the fake plugins, the crashing one, the LV2 fixtures and the panel fixture

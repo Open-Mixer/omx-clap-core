@@ -424,9 +424,9 @@
 #define OMX_REPLY_HOST_PROPERTY_QUEUE_FULL_TEXT_EN "The plugin had no room for this value before its next block, so it was not kept. Send it again."
 
 /* HOST_TRACK_KINDS (contract.d/host/host.json) */
-#define OMX_HOST_TRACK_KINDS_BUS "bus"
-#define OMX_HOST_TRACK_KINDS_RETURN "return"
-#define OMX_HOST_TRACK_KINDS_MASTER "master"
+#define OMX_HOST_TRACK_KINDS_BUS "bus" ///< a mix bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_BUS in its track info
+#define OMX_HOST_TRACK_KINDS_RETURN "return" ///< an effects return: the plugin sees CLAP_TRACK_INFO_IS_FOR_RETURN_TRACK in its track info
+#define OMX_HOST_TRACK_KINDS_MASTER "master" ///< the master bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_MASTER in its track info
 /** The number of words of HOST_TRACK_KINDS. */
 #define OMX_HOST_TRACK_KINDS_COUNT 3u
 /** The words of HOST_TRACK_KINDS in their declared order, as a C initializer list. */

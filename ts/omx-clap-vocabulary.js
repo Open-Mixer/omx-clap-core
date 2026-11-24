@@ -955,13 +955,16 @@ export const HOST_REPLY_CODES = {
  */
 export const HOST_TRACK_KINDS = {
   "bus": {
-    "word": "bus"
+    "word": "bus",
+    "doc": "a mix bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_BUS in its track info"
   },
   "return": {
-    "word": "return"
+    "word": "return",
+    "doc": "an effects return: the plugin sees CLAP_TRACK_INFO_IS_FOR_RETURN_TRACK in its track info"
   },
   "master": {
-    "word": "master"
+    "word": "master",
+    "doc": "the master bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_MASTER in its track info"
   }
 };
 

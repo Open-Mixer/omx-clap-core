@@ -956,12 +956,15 @@ export declare const HOST_REPLY_CODES: {
 export declare const HOST_TRACK_KINDS: {
   readonly bus: {
     readonly word: "bus";
+    readonly doc: "a mix bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_BUS in its track info";
   };
   readonly return: {
     readonly word: "return";
+    readonly doc: "an effects return: the plugin sees CLAP_TRACK_INFO_IS_FOR_RETURN_TRACK in its track info";
   };
   readonly master: {
     readonly word: "master";
+    readonly doc: "the master bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_MASTER in its track info";
   };
 };
 

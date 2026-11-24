@@ -418,6 +418,17 @@ test-contract:
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 
+# the language packs' gate (ci.yml, the langpacks action's gate): omx-contract translate --check over data/ and the host
+# domain's codes, whose translations catalogs/ holds (V15 moved reply.host.* into contract.d/host, which --owner does not read)
+OMX_CONTRACT ?= omx-contract
+.PHONY: catalog-gate
+catalog-gate:
+	rm -rf build/catalog-gate
+	mkdir -p build/catalog-gate
+	cp -r data catalogs build/catalog-gate/
+	node tests/domain-data.mjs contract.d/host/host.json build/catalog-gate/data/host-domain.json
+	$(OMX_CONTRACT) translate --check --owner build/catalog-gate
+
 install: install-lib install-lv2 install-tests install_man install-contract
 	install -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(UDEVDIR)
 	install -m 755 $(PROG) $(SCAN_PROG) $(DESTDIR)$(BINDIR)

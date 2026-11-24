@@ -169,6 +169,8 @@ jobs:
           base: omx-clap-contract
           owner: omx-clap
           spec: packaging/omx-clap-host.spec
+          # data/ and the host domain's codes (contract.d/host), whose translations catalogs/ holds
+          gate: make --no-print-directory catalog-gate
 
   docs:
     name: make docs (the public headers are fully documented)
@@ -206,6 +208,20 @@ jobs:
           if TABLE="$RUNNER_TEMP/short.tsv" tools/adapter-seam.sh > /dev/null 2>&1; then
             echo "::error::the adapter seam check passed a table missing a row"; exit 1
           fi
+
+  # the lints run in a job of their own: a lint red never skips a step of the suite, which runs and reports whatever the
+  # lint says (a lint step before make test in the same job skipped the suite on its red, and hid every red behind it)
+  lint:
+    name: the licence headers and no upward dependency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every file a comment can be written in opens with its licence
+        uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
+      # the no-contract-copy and no-protocol-copy checks run in the groups the Makefile declares (TEST_PLAIN)
+      - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
+        run: make test-no-upward-deps
 
   test:
     needs: checks
@@ -247,13 +263,6 @@ jobs:
           pkg-config --exists omx-contract
           command -v mod-host
 
-      - name: Every file a comment can be written in opens with its licence
-        uses: Open-Mixer/.github/.github/actions/spdx-check@openmixer-v1
-
-      # the no-contract-copy and no-protocol-copy checks run in the groups the Makefile declares (TEST_PLAIN)
-      - name: No omx-plugins header, package or pkg-config ask in the build, tests, CI or packaging
-        run: make test-no-upward-deps
-
       # the fuzz workflow runs on a tag only, so a fixture changed in a pull request reaches the committed seed corpus
       # here; the generator is plain C and gcc writes the bytes clang does
       - name: The seed corpus is what the fixtures give
@@ -263,6 +272,9 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # the daemon's own build requirements (the qualification store's reader, sqlite, cjson), from its spec with its
+          # check stage off, so no package this tree builds comes from the channel under it
+          dnf builddep -y --setopt=install_weak_deps=False --without=check /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
@@ -713,6 +725,9 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # the daemon's own build requirements (the qualification store's reader, sqlite, cjson), from its spec with its
+          # check stage off, so no package this tree builds comes from the channel under it
+          dnf builddep -y --setopt=install_weak_deps=False --without=check /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
@@ -901,7 +916,7 @@ jobs:
             echo /usr/share/omx-clap/catalogs/$lang.json > expected.txt
             diff -u expected.txt files.txt
           done
-          for pkg in omx-clap omx-clap-devel; do
+          for pkg in omx-clap-libs omx-clap-devel; do
             rpm -qp --requires rpms/$pkg-[0-9]*.${{ matrix.cell.arch }}.rpm | tee requires.txt
             grep -qx "omx-clap-contract = $(cat VERSION)-.*" requires.txt
           done

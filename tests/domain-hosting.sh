@@ -7,7 +7,7 @@
 # lists exactly the codes data/hosting.json and data/hosting/*.json define. data/ stays the one source; the domain file is
 # what tools/render-domain.py derives from it. `make check-domain` is red on a missing file, a hand edit and an
 # un-rendered data change; the refusals (a word added or removed under an unchanged VERSION, an x-code that moved, a version going down) are omx-contract's `domain check`, and validate holds every item's x-since.
-#   env: INSTALL_CONTRACT_DIR (install-contract-dir.sh, 3.20.0 or later), OMX_DOMAIN (the omx-domain command),
+#   env: INSTALL_CONTRACT_DIR (install-contract-dir.sh, 3.22.0 or later: its --domain mode names the installing package), OMX_DOMAIN (the omx-domain command),
 #        OMX_CONTRACT_DIR (an omx-contract checkout or install, for check-domain's fmt and validate)
 set -eu
 : "${MAKE:=make}"
@@ -21,7 +21,7 @@ D=contract.d/hosting/hosting.json
 
 # the installed tree holds the domain, and the loader opens it with exactly the codes of the data
 mkdir -p "$tmp/dest/contractdir"
-sh "$INSTALL_CONTRACT_DIR" --domain contract.d/hosting "$tmp/dest/contractdir"
+sh "$INSTALL_CONTRACT_DIR" --domain contract.d/hosting "$tmp/dest/contractdir" omx-clap
 test -f "$tmp/dest/contractdir/hosting/hosting.json" || { echo "FAIL the installed tree has no hosting/hosting.json"; exit 1; }
 python3 - data > "$tmp/items" <<'P'
 import glob, json, sys

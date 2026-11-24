@@ -59,10 +59,13 @@ PIN_LIBS = $(shell $(PKG_CONFIG) --libs plugin-db)
 # built from it (make test-no-hostd-build-dep)
 PLUGIN_HOSTD_DIR ?= ../plugin-hostd
 
-# plugin-hostd-tests' protocol clients (lib/protocol.sh, lib/plugin_hostd_client.py), which every e2e test and bench
-# sources: the checkout's, else the installed package's
+# plugin-hostd-tests' shell protocol client (lib/protocol.sh), which every e2e shell test and bench sources: the
+# checkout's, else the installed package's. The Python client, plugin_hostd_client, is the protocol's
+# (python3-plugin-hostd-client; PLUGIN_HOSTD_CLIENT_DIR a plugin-hostd-protocol checkout's clients/python), never
+# plugin-hostd's: make test-client-from-protocol
 PLUGIN_HOSTD_TESTS_LIB ?= $(firstword $(wildcard $(PLUGIN_HOSTD_DIR)/tests/lib) /usr/libexec/plugin-hostd/tests/lib)
 export PLUGIN_HOSTD_TESTS_LIB
+export PLUGIN_HOSTD_CLIENT_DIR
 
 # CLAP headers: pkg-config when clap-devel is installed, CLAP_CFLAGS=-I<dir> otherwise
 CLAP_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags clap 2>/dev/null)
@@ -586,6 +589,14 @@ test-no-hostd-build-dep:
 	python3 tests/no_hostd_build_dep.py --self-test
 	python3 tests/no_hostd_build_dep.py .
 
+# the protocol's Python client comes from the protocol (python3-plugin-hostd-client, or PLUGIN_HOSTD_CLIENT_DIR on a
+# plugin-hostd-protocol checkout's clients/python), never from a plugin-hostd checkout or plugin-hostd-tests
+# (plugin-hostd-protocol issue 45): the tests of this lower layer run with no plugin-hostd installed
+.PHONY: test-client-from-protocol
+test-client-from-protocol:
+	python3 tests/client_from_protocol.py --self-test
+	python3 tests/client_from_protocol.py .
+
 # the installed omx-clap.pc and debian/control carry the omx-contract and omx-dsp ranges the spec declares, the one
 # place they are stated (#66); the self-test moves the spec's range and finds the .pc moved with it
 .PHONY: test-pc-range-parity
@@ -620,7 +631,7 @@ test-build-floors:
 	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
 
 test: test-no-backcompat
-test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-client-from-protocol test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-clap-inventory test-plugin-hostd-ref
 test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat

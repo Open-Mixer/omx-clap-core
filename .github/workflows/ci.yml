@@ -26,8 +26,9 @@ env:
   # printed and a branch that does not resolve is refused by name). The chain passes its own chain head through this same
   # variable: omx-clap's tests get plugin-hostd's tree at plugin-hostd's chain head, a test-only checkout before the
   # omx-clap line's tests, while plugin-hostd still builds and installs after omx-clap. Its pin header and vocabulary
-  # (pkg-config plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/ (protocol.sh,
-  # plugin_hostd_client.py) all come from this one tree; the protocol is the plugin-hostd-protocol the job installs
+  # (pkg-config plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/protocol.sh (the shell
+  # client) all come from this one tree; the protocol is the plugin-hostd-protocol the job installs, and the Python client
+  # plugin_hostd_client is its python3-plugin-hostd-client (plugin-hostd-protocol#45), installed beside it
   PLUGIN_HOSTD_BRANCH: main
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
   OMX_CONTRACT_REF: v3.20.0
@@ -242,7 +243,7 @@ jobs:
           set -euo pipefail
           dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
           # omx-contract, the command: its reader rebuilds a domain's items for tests/host_verbs_check.py (node)
-          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host omx-contract
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host omx-contract python3-plugin-hostd-client
           pkg-config --exists plugin-hostd-protocol
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
@@ -703,7 +704,7 @@ jobs:
         run: |
           set -euo pipefail
           dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
-          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host python3-plugin-hostd-client
           pkg-config --exists plugin-hostd-protocol
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
@@ -974,7 +975,7 @@ jobs:
           }
           dnf_retry --setopt=install_weak_deps=False pipewire iproute util-linux python3 \
             rpms/omx-clap-host-[0-9]*.${{ matrix.cell.arch }}.rpm \
-            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm 'plugin-hostd-protocol-contract >= 0.8.0' omx-contract
+            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm 'plugin-hostd-protocol-contract >= 0.8.0' omx-contract python3-plugin-hostd-client
           rpm -qf /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json | grep -q '^omx-clap-contract-'
           # the domain plugin-hostd-protocol names this host too (chain: required), and the check reads it
           # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)

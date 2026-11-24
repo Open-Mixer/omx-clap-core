@@ -2,20 +2,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 # The scan domain's install and requirements (omx-contract docs/consumer-move.md, step 6), read from the tree, no build:
-#   - make install-contract installs the domain by the installer's domain mode, `install-contract-dir.sh --domain contract.d/scan`,
-#     and writes no `install` line of its own for it;
+#   - make install-contract installs the domain by the installer's domain mode, `install-contract-dir.sh --domain contract.d/scan
+#     <contractdir> omx-clap`, naming omx-clap, the package its info.x-owner names (omx-contract #88), and writes no `install`
+#     line of its own for it;
 #   - the data package omx-clap-contract lists it: the rpm as %{omx_contract_domain_dir}/scan/, the deb as
 #     usr/share/omx-contract/contract.d/scan, and neither package lists the domain anywhere else;
 #   - the reader, omx-clap-host (it ships omx-clap-scan), requires the loader (libomx-domain, libomx-domain0) and the data package, and
 #     the source builds with the loader's headers (libomx-domain-devel, libomx-domain-dev), at the tree's omx-contract floor (the
-#     spec's BuildRequires: omx-contract-devel), which is never below 3.20.0, the first release that ships the loader and the
-#     installer's domain mode: the loader's floor is that floor in every place, and no omx-contract floor is below 3.20.0.
+#     spec's BuildRequires: omx-contract-devel), which is never below 3.22.0, the first release whose domain mode names the
+#     installing package (#88): the loader's floor is that floor in every place, and no omx-contract floor is below 3.20.0.
 # usage: tests/domain-packaging-check.sh
 set -eu
 fail() { echo "domain-packaging-check: $1" >&2; exit 1; }
 spec=packaging/omx-clap-host.spec
 # the installer, in make install-contract
-grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contract\.d/scan( |$)' Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/scan"
+grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contract\.d/scan +[^ ]+ +(\$\(CORE\)|omx-clap)$' Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/scan as omx-clap"
 ! grep -En '^[[:space:]]*install .*contract\.d/scan' Makefile || fail "Makefile: a hand-written install line for contract.d/scan (the installer's domain mode installs it)"
 # the data package lists it
 contract_files=$(awk '/^%files -n omx-clap-contract/{f=1;next} /^%files|^%package|^%changelog/{f=0} f' "$spec")
@@ -23,7 +24,7 @@ printf '%s\n' "$contract_files" | grep -qx '%{omx_contract_domain_dir}/scan/' ||
 grep -qx 'usr/share/omx-contract/contract.d/scan' debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/scan"
 # the code sheet's domains, omx-param-contract, omx-clap-scale, clap, host and omx-clap, the same way
 for dom in omx-param-contract omx-clap-scale clap host omx-clap; do
-grep -Eq "(install-contract-dir\\.sh|\\\$\\(INSTALL_CONTRACT_DIR\\)) +--domain +contract\\.d/$dom( |\$)" Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/$dom"
+grep -Eq "(install-contract-dir\\.sh|\\\$\\(INSTALL_CONTRACT_DIR\\)) +--domain +contract\\.d/$dom +[^ ]+ +(\\\$\\(CORE\\)|omx-clap)\$" Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/$dom as omx-clap"
 ! grep -En "^[[:space:]]*install .*contract\\.d/$dom" Makefile || fail "Makefile: a hand-written install line for contract.d/$dom"
 printf '%s\n' "$contract_files" | grep -qx "%{omx_contract_domain_dir}/$dom/" || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/$dom/"
 grep -qx "usr/share/omx-contract/contract.d/$dom" debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/$dom"
@@ -32,7 +33,7 @@ done
 req() { grep -Eq "$1" "$spec" || fail "$spec: $2"; }
 floor=$(sed -n 's/^BuildRequires: omx-contract-devel >= \([0-9][0-9.]*\)$/\1/p' "$spec")
 [ -n "$floor" ] || fail "$spec: no BuildRequires: omx-contract-devel >= <floor>"
-[ "$(printf '3.20.0\n%s\n' "$floor" | sort -V | head -1)" = 3.20.0 ] || fail "$spec: the omx-contract floor $floor is below 3.20.0"
+[ "$(printf '3.22.0\n%s\n' "$floor" | sort -V | head -1)" = 3.22.0 ] || fail "$spec: the omx-contract floor $floor is below 3.22.0, the installer that names the package (#88)"
 fre=$(printf '%s' "$floor" | sed 's/\./\\./g')
 req "^BuildRequires: libomx-domain-devel >= $fre\$" "no BuildRequires: libomx-domain-devel >= $floor"
 host=$(awk '/^%description$/{exit} {print}' "$spec")

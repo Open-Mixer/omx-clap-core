@@ -331,21 +331,21 @@ CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
 .PHONY: install-contract test-contract test-domain check-domain render-domain
 install-contract:
-	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.20.0 or later (its --domain mode installs contract.d/scan), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
+	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.22.0 or later (its --domain mode installs contract.d/scan as the package that owns it), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# the hosting domain, by the installer's domain mode: <contractdir>/hosting/hosting.json, as it is (no schema major)
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/hosting $(DESTDIR)$(CONTRACTDIR)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/hosting $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# the parameter contract's code sheet and its mapping to standard units, the same way: <contractdir>/omx-param-contract/omx-param-contract.json
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# the scale codes, the same way: <contractdir>/omx-clap-scale/omx-clap-scale.json
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# CLAP's own particulars (the flag for the stepped scale), the same way: <contractdir>/clap/clap.json
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/clap $(DESTDIR)$(CONTRACTDIR)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/clap $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# the host's reply codes and events (host) and its verbs (omx-clap), the same way: <contractdir>/host/host.json, <contractdir>/omx-clap/omx-clap.json
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/host $(DESTDIR)$(CONTRACTDIR)
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap $(DESTDIR)$(CONTRACTDIR)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/host $(DESTDIR)$(CONTRACTDIR) $(CORE)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
 
@@ -1410,7 +1410,7 @@ host-verbs-contract:
 	@# preset_list, ...) is read too, installed as its package installs it: the domain alone, named after its package,
 	@# with no owner manifest beside it (omx-contract's reader reads a domain as the package of its name)
 	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json || { echo "host-verbs-contract: no domain plugin-hostd-protocol at $(PROTOCOL_DOMAIN) (a checkout named by PROTOCOL_CONTRACT_DIR, or plugin-hostd-protocol-contract installed), whose words declare chain of omx-clap-host" >&2; exit 1; }
-	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_DOMAIN) $(HOST_VERBS_CONTRACT)
+	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_DOMAIN) $(HOST_VERBS_CONTRACT) plugin-hostd-protocol
 test-host-verbs: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_e2e.sh
 

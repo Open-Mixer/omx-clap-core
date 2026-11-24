@@ -283,7 +283,7 @@ static void note_input_cb(proto_t *proto)
         protocol_response_int(resp, proto);
 }
 
-/* note_on, note_off and all_notes_off as data/verbs.json declares them: each word in its range, else -902 */
+/* note_on, note_off and all_notes_off as contract.d/omx-clap/omx-clap.json declares them: each word in its range, else -902 */
 static void note_cb(proto_t *proto)
 {
     uint8_t messages[16][3];
@@ -549,7 +549,7 @@ static void preset_load_cb(proto_t *proto)
         protocol_response_int(resp, proto);
 }
 
-/* preset_show <N> <key | file>: "resp 0 <json>", or one of the codes plugin-hostd's verbs file declares for it:
+/* preset_show <N> <key | file>: "resp 0 <json>", or one of the codes the domain plugin-hostd-protocol declares for it:
  * PRESET_INVALID for a file that is no preset file, PRESET_NOT_OFFERED for a key the plugin does not list */
 static void preset_show_cb(proto_t *proto)
 {
@@ -675,7 +675,7 @@ static void term_signal(int sig)
     return; (void)sig;
 }
 
-/* preset_show in its instance form, preset_show <N> <load_key | file> (docs/presets.md), the one plugin-hostd's verbs file
+/* preset_show in its instance form, preset_show <N> <load_key | file> (docs/presets.md), the one the domain plugin-hostd-protocol
  * declares of this host (preset_show_cb): mod-host's preset_show <uri> has one word and is not answered here */
 #define PRESET_SHOW_INSTANCE "preset_show %i %s"
 

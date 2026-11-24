@@ -1,9 +1,45 @@
+omx-clap-host (0.35.0) unstable; urgency=medium
+
+  * Chain 3: the host verbs check reads plugin-hostd-protocol's words from
+    the domain plugin-hostd-protocol (V16) and the verb hosts are
+    HOSTING_VERB_HOSTS (V29); the param-contract unit code sheet is the
+    domain omx-param-contract, its renders are omx_param_units.h and
+    omx_param_unit_ids.h, mapped onto omx-contract's PARAM_UNITS_CLAP_ENCODED
+    (V23d, omx-contract 3.22.0).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Mon, 23 Nov 2026 22:00:00 +0100
+
+omx-clap-host (0.34.0) unstable; urgency=medium
+
+  * Sorting pass: the panel words (V1), the host reply codes and track kinds (V15),
+    the CLAP scale codes mapped to PARAM_SCALES (V21), the unit code sheet and
+    omx_param_units.h (V23d), the rates (V25) and the CLAP terms (V27a, V27b) now
+    owned here.
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Sun, 22 Nov 2026 12:30:00 +0100
+
 omx-clap-host (0.33.1) unstable; urgency=medium
 
-  * omx-clap-core-contract publishes the hosting codes as the hosting domain
-    (contract.d/hosting, rendered from data/); omx-contract floor 3.20.1.
+  * The scan domain's x-since on SCAN_DOCUMENTS and SCAN_FIELD_SCOPES is the
+    domain version that carried them, 1.0.0, not the omx-contract release
+    3.7.0; a check holds an x-since to a version of its own domain and never
+    above its info.version (#139).
+  * The fuzz workflow checks the repository out before dnf builddep reads the
+    spec (#142).
+  * The sources use the ERR_HOST_* names of plugin-hostd-protocol, whose first
+    release is 0.6.0, so the floor is plugin-hostd-protocol >= 0.6.0 (was
+    0.5.9). Floors only: no ceilings, no Conflicts, Breaks, Replaces or
+    Obsoletes, no epoch (#144).
+  * clap-core no longer depends upward on omx-panel: OMX_CLAP_PANEL_DISPLAY_KINDS
+    and the check that installed omx-panel are dropped; the display kind table
+    is omx-panel's, the struct field stays a number (an ABI code) and
+    omx-clap-scan prints it as a number (#145).
+  * ci: the deb, rpm and fuzz cells come from check-matrix and run on the runner
+    it names, deb cells on arm64 (the channel's trixie development debs are
+    arm64 only), and Fedora 44 is out, Fedora 45 alone (#147).
+  * ci: the commit identity check of public-sources is on (#150).
 
- -- Pau Aliagas <linuxnow@gmail.com>  Thu, 19 Nov 2026 18:30:00 +0100
+ -- Pau Aliagas <linuxnow@gmail.com>  Thu, 19 Nov 2026 18:00:00 +0100
 
 omx-clap-host (0.33.0) unstable; urgency=medium
 

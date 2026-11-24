@@ -59,9 +59,10 @@
  * libomx-domain, never literals here (omx-contract docs/consumer-move.md, step 4). Only the codes, which index the words, are compiled in
  * (scan_codes.h, the one item C indexes by). This is a command line: it reads OMX_CONTRACT_PATH, a ':' list of directories standing where
  * the contract directory stands (the first that holds the domain wins), and passes each to omx_domain_open_at; without it, the installed
- * directory. The library code of omx-clap-core never reads it. A missing, invalid or too-old domain is refused by name, exit 78. */
+ * directory. The library code of omx-clap never reads it. A missing, invalid or too-old domain is refused by name, exit 78. The floor is
+ * the release that shipped the items read here, 0.33.0: the domain is versioned with the package (BUILDING.md, #123). */
 #define SCAN_DOMAIN "scan"
-#define SCAN_DOMAIN_FLOOR "1.0.0"
+#define SCAN_DOMAIN_FLOOR "0.33.0"
 #define SCAN_SCOPES_ITEM "SCAN_FIELD_SCOPES"
 #define SCOPE(NAME) (g_scope[OMX_SCAN_FIELD_SCOPES_##NAME])
 #define SCAN_EX_CONFIG 78
@@ -191,7 +192,7 @@ struct lv2_find {
 ************************************************************************************************************************
 */
 
-/* the extension ids a plugin is asked for, each by its TERM id (omx-contract data/formats/clap) */
+/* the extension ids a plugin is asked for, each by its TERM id (the clap domain, contract.d/clap/clap.json) */
 static const named_t g_extensions[] = {
     { "CLAP_EXT_AMBISONIC", "clap.ambisonic/3" },
     { "CLAP_EXT_AMBISONIC_COMPAT", "clap.ambisonic.draft/3" },
@@ -382,7 +383,7 @@ static const prefix_t g_prefixes[] = {
     { "foaf", "http://xmlns.com/foaf/0.1/", NULL },
 };
 
-/* the fields asked of an LV2 plugin and of each port: every property TERM (omx-contract data/formats/lv2) but lv2:port and
+/* the fields asked of an LV2 plugin and of each port: every property TERM (plugin-db's lv2 domain) but lv2:port and
  * lv2:index, the scopes themselves, and the RDF and DOAP predicates the table reads; 1: a resource it names is written by
  * its label (a port group) */
 static const struct { const char *curie; int by_label; } g_lv2_fields[] = {
@@ -835,7 +836,7 @@ static void clap_panel(const struct omx_clap_instance *in)
         const omx_clap_panel_description_display_t *d = SCAN_PANEL_ROW(&p, SCAN_PANEL_DISPLAYS, omx_clap_panel_description_display_t, i);
 
         snprintf(scope, sizeof(scope), "%s:%u", SCOPE(DISPLAY), p.table[SCAN_PANEL_DISPLAYS].index[i]);
-        record_code(scope, "omx_clap_panel_display.kind", scan_panel_display_kind_enum(d->kind), d->kind);
+        record_number(scope, "omx_clap_panel_display.kind", d->kind);
         record_number(scope, "omx_clap_panel_display.section", d->section);
         record_code(scope, "omx_clap_panel_display.source", scan_panel_display_source_enum(d->source), d->source);
         record_id(scope, "omx_clap_panel_display.meter_ids[0]", d->meter_ids[0]);

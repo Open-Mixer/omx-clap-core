@@ -34,7 +34,7 @@ arm() {
         failures=$((failures + 1))
         return
     fi
-    # the copy's libomx-clap-core and nothing else, never the worktree's that make exports
+    # the copy's libomx-clap and nothing else, never the worktree's that make exports
     if (cd "$dir" && LD_LIBRARY_PATH=$dir "$@") >"$log" 2>&1; then
         echo "FAIL $name: survived, the test stays green with $file broken (log $log)"
         failures=$((failures + 1))

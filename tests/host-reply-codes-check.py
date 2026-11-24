@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """Every number the host answers is named in the vocabulary (omx-clap-core#34): each ERR_* name src/ uses, resolved to
-its number by plugin-hostd-protocol's host-errors.h, has a code with an English sentence in data/ (HOST_REPLY_CODES
-or another group), so a table built from the vocabularies (plugin-hostd-protocol's reply_codes) names every refusal
+its number by plugin-hostd-protocol's host-errors.h, has a code with an English sentence in data/ or in a domain of
+contract.d/ (HOST_REPLY_CODES is the host domain's, contract.d/host/host.json, since V15), so a table built from the vocabularies (plugin-hostd-protocol's reply_codes) names every refusal
 and a controller asks for none by number. -2, the instance number already taken, is reply.host.instance-already-exists.
 
   tests/host-reply-codes-check.py --header <host-errors.h> [--self-test]
@@ -39,6 +39,27 @@ def answered(sources, numbers):
     return out
 
 
+def from_domain(doc):
+    """a domain document's codes items in the data form: {item: {"codes": {title: {code, resp, text}}}}"""
+    out = {}
+    for name, it in (doc.get("components") or {}).get("schemas", {}).items():
+        if it.get("x-kind", "codes") != "codes" or not isinstance(it.get("oneOf"), list):
+            continue
+        out[name] = {"kind": "codes", "codes": {w.get("title"): {"code": w.get("const"), "resp": w.get("x-resp"),
+                                                                 "text": {"en": w.get("x-text")}}
+                                                for w in it["oneOf"]}}
+    return out
+
+
+def load_docs(root):
+    """data/*.json as written, and every contract.d/<domain>/<domain>.json in the data form"""
+    docs = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(root, "data", "*.json")))]
+    for f in sorted(glob.glob(os.path.join(root, "contract.d", "*", "*.json"))):
+        if os.path.basename(f) == os.path.basename(os.path.dirname(f)) + ".json":
+            docs.append(from_domain(json.load(open(f))))
+    return docs
+
+
 def coded(docs):
     """{resp: code entry} of every code of data/"""
     out = {}
@@ -63,7 +84,7 @@ def problems(sources, docs, numbers):
     for resp, names in sorted(answered(sources, numbers).items(), reverse=True):
         c = have.get(resp)
         if c is None:
-            out.append("resp %d (%s) is answered by src/ and has no code in data/" % (resp, ", ".join(sorted(names))))
+            out.append("resp %d (%s) is answered by src/ and has no code in data/ or contract.d/" % (resp, ", ".join(sorted(names))))
         elif not ((c.get("text") or {}).get("en") or "").strip():
             out.append("%s (resp %d) has no English sentence" % (c["code"], resp))
     for resp, code in sorted(NAMED.items()):
@@ -79,7 +100,7 @@ def main():
         return 2
     numbers = host_numbers(args[args.index("--header") + 1])
     sources = [open(f).read() for f in sorted(glob.glob(os.path.join(ROOT, "src", "*.c")))]
-    docs = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(ROOT, "data", "*.json")))]
+    docs = load_docs(ROOT)
     if "--self-test" in args:
         arms = []
         dropped = copy.deepcopy(docs)

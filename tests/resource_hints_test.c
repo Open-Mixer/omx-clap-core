@@ -21,7 +21,7 @@
 
 /*
  * The resource hints a plugin declares about itself (org.openmixer.resource-hints.draft/0, omx-contract's
- * RESOURCE_HINTS), through libomx-clap-core against tests/fake_ext.clap, which states two of them and leaves five clear
+ * RESOURCE_HINTS), through libomx-clap against tests/fake_ext.clap, which states two of them and leaves five clear
  * with garbage in their members: the two read back, the five read as unknown and never as zero; one bit flipped and
  * restored; a bit RESOURCE_HINTS has no hint for, and a flag that is neither 0 nor 1, refused with their codes; no
  * extension, and a get that answers false, read as none. The words are omx-contract's, in its order.

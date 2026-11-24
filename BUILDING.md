@@ -14,7 +14,7 @@ checkout where the library is built if missing and whose path becomes the
 binary's rpath. The layout pin's
 serialisation is plugin-db's header `plugin-db/pin.h`: from `pkg-config
 plugin-db` (the plugin-db-devel package). The verbs the host answers past mod-host's are this
-tree's own, declared in `data/verbs.json` (below). The CLAP
+tree's own, declared in `contract.d/omx-clap/omx-clap.json` (below). The CLAP
 headers come from `pkg-config --cflags clap` (Fedora `clap-devel`) or `CLAP_CFLAGS`.
 JACK's headers and library come from `pkg-config jack` (the
 pipewire-jack-audio-connection-kit-devel package) or, when that is absent,
@@ -29,7 +29,7 @@ shows Wayland windows alone. `make test-jack-window-wl` checks such a build too,
 
     make test CLAP_TEST_PLUGIN=<some>.clap
 
-builds `libomx-clap-core.so.1`, checks its exports and the libraries it needs
+builds `libomx-clap.so.1`, checks its exports and the libraries it needs
 (`tests/exports.sh`), links `tests/core_link_test.c` to the installed library
 and runs it with the defaults, and runs the lifecycle test against a plugin without jack, and against
 `tests/fake.clap`, a plugin built for the test that carries the port
@@ -224,15 +224,15 @@ The core library
 ----------------
 
 The CLAP hosting core, everything that runs a plugin except the jack plumbing and
-the mod-host verbs, is a shared library of its own, `libomx-clap-core.so.1`, so that
+the mod-host verbs, is a shared library of its own, `libomx-clap.so.1`, so that
 a program that hosts CLAP plugins in its own process runs the same core. omx-clap-host
 and omx-clap-scan link it; a program that hosts plugins in its own process links the same file.
 
     make install-lib [PREFIX=/usr LIBDIR=/usr/lib64]
 
-installs the library, `omx-clap-core.pc`, the headers under
+installs the library, `omx-clap.pc`, the headers under
 `include/omx-clap-host/` and the export list. `pkg-config --cflags --libs
-omx-clap-core` builds a program against it; `tests/core_link_test.c` is one, linked
+omx-clap` builds a program against it; `tests/core_link_test.c` is one, linked
 to the `.so` alone. The library names no jack, no socket and no protocol library.
 
 - `hosted_stage.h`, `clap_stage.h`: the RT body, inline, so the caller's own RT thread
@@ -242,7 +242,7 @@ to the `.so` alone. The library names no jack, no socket and no protocol library
 - `clap_host_limits.h`: every number the core reads, rendered from
   `data/hosting.json` and committed here; never edited by hand. The refusal codes
   are this tree's, declared in `data/hosting/<dimension>.json` and rendered as
-  `omx_clap_core_vocabulary.h` (committed, installed beside it, never edited by hand):
+  `omx_clap_vocabulary.h` (committed, installed beside it, never edited by hand):
   `clap_host.h` names the core's as `CLAP_HOST_CODE_*`.
 - `hosted_stage_limits.h`: the same numbers as `OMX_HOSTED_STAGE_<FIELD>`, the LV2
   worker's two included, for a host that reads those names; rendered from the same
@@ -301,17 +301,17 @@ What a host differs in is a configuration, set once per process with
 | `clap.preset-load` host extension | not offered | offered |
 | `clap.track-info` and `clap.remote-controls` host extensions | not offered | offered |
 | widest main port activation admits (`lane_channels`; 0 any) | 2 | 2 |
-| host name, vendor, url | omx-clap-core, Pau Aliagas | omx-clap-host, Pau Aliagas |
+| host name, vendor, url | omx-clap, Pau Aliagas | omx-clap-host, Pau Aliagas |
 
-The packages are `omx-clap-core` and `omx-clap-core-devel` (RPM), `libomx-clap-core1`
-and `libomx-clap-core-dev` (deb), built from the same tag as omx-clap-host, which
-depends on the library. Both require `omx-clap-core-contract` (RPM noarch, deb
+The packages are `omx-clap` and `omx-clap-devel` (RPM), `libomx-clap1`
+and `libomx-clap-dev` (deb), built from the same tag as omx-clap-host, which
+depends on the library. Both require `omx-clap-contract` (RPM noarch, deb
 `Architecture: all`) at their own version: the files `make install` puts into
 omx-contract's contract directory, which a program reads at run time.
 
 The version rule: a field is only ever appended to a structure and a function only
 added, and that is a new minor (`0.1.0` to `0.2.0`, the soname unchanged); a field or a
-function removed, moved or changed is a new soname major (`libomx-clap-core.so.1`, a new
+function removed, moved or changed is a new soname major (`libomx-clap.so.1`, a new
 package name).
 
 The message ring
@@ -353,7 +353,7 @@ changes a symbol (`follow`, refused under R3).
 
 `make test-panel-abi` pins `org.openmixer.panel-description/1` as
 `omx_clap_ext.h` declares it: the id, and the size and member offsets of each
-structure, stated once in `tests/panel_abi_test.c`. omx-clap-core owns that
+structure, stated once in `tests/panel_abi_test.c`. omx-clap owns that
 layout; omx-plugins holds its `omx_panel_description.h` to this tree's
 installed header (its `make panel-abi`). Nothing here needs an omx-plugins
 package: `make test-no-upward-deps` fails on an include, a pkg-config ask or a
@@ -370,54 +370,74 @@ their records and their seeds; `.github/workflows/fuzz.yml` runs them all.
 
 The hosting limits are declared in `data/hosting.json` and the hosting codes in
 `data/hosting/<dimension>.json`, in omx-contract's schema; every hosting code the
-sources write is an `OMX_HOSTING_*` macro of `src/omx_clap_core_vocabulary.h`, their
-render (`render --package omx-clap-core`), and
+sources write is an `OMX_HOSTING_*` macro of `src/omx_clap_vocabulary.h`, their
+render (`render --package omx-clap`), and
 `make test-codes` (in `make test` and `make test-fake`, `tests/hosting-codes-check.sh`)
 fails on a `"hosting.` literal in `src/` or `lv2/` and on an `OMX_HOSTING_*`
 name that header lacks; its `--self-test` breaks the sources each way and
 requires each to fail. `make install` puts them into omx-contract's contract
-directory, `$(pkg-config --variable=contractdir omx-contract)/3/omx-clap-core/`
+directory, `$(pkg-config --variable=contractdir omx-contract)/3/omx-clap/`
 (the codes under `hosting/`),
 with a `MANIFEST.json` naming this version, using the install script
 omx-contract-devel 3.3.0 ships (or `OMX_CONTRACT_DIR=<checkout>`'s); the
-packages ship them in `omx-clap-core-contract`.
+packages ship them in `omx-clap-contract`.
+
+Every domain under `contract.d/` is versioned with the package: its
+`info.version` is `VERSION`, and an item's `x-since` is the omx-clap-core
+release that first shipped the item. That is omx-contract's x-since rule
+(`docs/contract-dir.md`, omx-contract#123) with the domain's version read as
+the package's (#123): plugin-hostd compares an `x-since` with its omx-clap-core
+floor, so a domain version of its own would answer another question. A verb
+that shipped before the domains existed keeps its release (the verbs of
+`data/verbs.json`, 0.22.0 and 0.26.0; the property verbs, 0.32.5, under the
+map node `OMX_CLAP_CORE_0.33`); the scan's items shipped in 0.33.0, the clap
+and scale domains' in 0.34.0, the param-contract code sheet in 0.35.0. A
+release that bumps `VERSION` bumps every domain's `info.version` with it.
+`make test-fields` runs `tests/domain-x-since-check.py` over every domain: an
+`info.version` that is not `VERSION`, an `x-since` that is not a version and an
+`x-since` above `info.version` are refused, and its `--self-test` plants each
+in every domain.
 
 The verbs omx-clap-host answers past mod-host's are declared in
-`data/verbs.json`, a `verbs` item of omx-contract's schema (3.3.0): the ones it
+`contract.d/omx-clap/omx-clap.json`, a `verbs` item of omx-contract's schema (3.3.0): the ones it
 shares with plugin-hostd (`track_info`, `remote_pages`, `remote_page_get`,
 `param_info`, `pin_expect`, `chain_expect`, `note_input`, `note_on`, `note_off`,
 `all_notes_off`) and its own (`audio_ports`, `hide_external_ui`, `idle_hold`,
 `note_drops`, `note_out_drops`), each with its format, its reply, the refusal
 codes it answers (`HOST_REPLY_CODES`) and what each host owes it. Their render,
-`src/omx_clap_core_host_verbs.h`, names a verb `OMX_VERB_<VERB>` and
+`src/omx_clap_host_verbs.h`, names a verb `OMX_VERB_<VERB>` and
 `OMX_VERB_<VERB>_FMT`, its refusals' numbers `OMX_VERB_<VERB>_CODES_INIT`, and
-`omx_clap_core_host_verbs()` is the table of what each host owes each verb;
+`omx_clap_host_verbs()` is the table of what each host owes each verb;
 another host renders the same macros from the installed contract directory
 (`omx-contract render --target c --installed`, `omxcontract/omx_host_verbs.h`).
 `src/host_verbs.h` holds the grammar over it.
 `make test-codes` runs `tests/host-verbs-check.sh`, which fails on a verb's word
 or format typed in `src/` or `lv2/` and on a `HOST_REPLY_*` number that is not
 the declared one, with its `--self-test`. `make test-host-verbs` installs the
-package into `build/verbs-contract` (or reads `OMX_CONTRACT_PATH`) and drives
-the host: each verb declared `required` answers a well-formed line with the
+package into `build/verbs-contract`, with plugin-hostd-protocol's domain
+`plugin-hostd` of the checkout at `PROTOCOL_DIR` beside it (or reads
+`OMX_CONTRACT_PATH`), every domain read through omx-contract's reader, and
+drives the host: each verb declared `required` answers a well-formed line with the
 declared reply and each malformed one with the declared code, an `unsupported`
 one answers `-902`, and the verbs the host registers are the declared ones.
 `make test-host-verbs-sabotage` changes a format and what the host owes a verb
 in a copy of the declarations, deletes a handler and registers an undeclared
 verb in a copy of the sources, and requires each to go red.
+`make test-host-verbs-domains` holds where that check reads the protocol's
+verbs (`tests/host_verbs_domains.py`, no socket).
 The two rendered headers install with the other core headers under
 `include/omx-clap-host/`, and the TypeScript module under
-`share/omx-clap-core/ts/`, which `pkg-config --variable=tsdir omx-clap-core`
-names: a TypeScript build copies `omx-clap-core-hosting.js` and its `.d.ts`
+`share/omx-clap/ts/`, which `pkg-config --variable=tsdir omx-clap`
+names: a TypeScript build copies `omx-clap-hosting.js` and its `.d.ts`
 from there, or points a path at them; no npm package is published.
 `make test-contract OMX_CONTRACT_DIR=<omx-contract checkout>` installs them into
 a directory of its own beside omx-contract's own files, reads them back through
 omx-contract's reader and renders the package's own files with
-`omx-contract render --package omx-clap-core`, framed by the `render` word of
+`omx-contract render --package omx-clap`, framed by the `render` word of
 `data/hosting.json` (header, guard, project, banner, prefixes, the omitted
 fields, the level rule): `src/clap_host_limits.h`, `src/hosted_stage_limits.h`
-and the TypeScript module `ts/omx-clap-core-hosting.js` with its
-`omx-clap-core-hosting.d.ts` must be that render, byte for byte. Beside that, `tests/hosting-values-check.mjs` takes the
+and the TypeScript module `ts/omx-clap-hosting.js` with its
+`omx-clap-hosting.d.ts` must be that render, byte for byte. Beside that, `tests/hosting-values-check.mjs` takes the
 values of `HOSTED_STAGE_LIMITS` as the reader parsed them (`render --target json`) and holds every
 define of the two headers to its value, and its `--self-test` changes, drops and adds a define for every value and
 requires each to fail. It needs node and the checkout's `npm ci`.
@@ -468,7 +488,7 @@ builds the fixture bundles into `build/lv2/` and runs the adapter's tests:
 `lv2/tests/lv2_run_test` (the LV2 half of a block against fake plugins),
 `lv2/tests/lv2_host_test` (bundles, ports, refusals, features and the worker),
 `lv2/tests/lv2_features_test` (each feature option as a probe plugin sees it, no lilv),
-`lv2/tests/lv2_clap_test` (the CLAP face, and libomx-clap-core's body around it),
+`lv2/tests/lv2_clap_test` (the CLAP face, and libomx-clap's body around it),
 `lv2/tests/lv2_link_test` (a program built against the installed files through
 pkg-config alone) and, when `lv2_validate` is installed, the fixture bundles against
 the LV2 specifications. `make lv2-cost` prints what the adapter costs per `process()`
@@ -478,8 +498,8 @@ call at 96 and 192 kHz, quantum 128. What each test proves is listed in
 The version
 -----------
 
-The file `VERSION` holds the one version of the whole tree: the programs, `libomx-clap-core`
-(its file is `libomx-clap-core.so.<major>.<minor>.<patch>`) and `libomx-clap-lv2`, with the
+The file `VERSION` holds the one version of the whole tree: the programs, `libomx-clap`
+(its file is `libomx-clap.so.<major>.<minor>.<patch>`) and `libomx-clap-lv2`, with the
 `.pc` files and the manual pages. The Makefile reads it and hands it to the compiler, so no
 source file spells it. A release is: put the
 version in `VERSION`, the spec's `Version` and a new top entry of `debian/changelog`, run `make render-domain` and commit `contract.d/hosting/hosting.json` (it carries `VERSION`; see the README's release steps), and tag `v<version>`. `make version-check` and the version job in CI refuse a tree

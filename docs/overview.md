@@ -25,7 +25,7 @@ What is supported, what is not and the test behind each row is in
 process of its own, hosts CLAP and LV2 with omx-clap-host as the worker of both, and mod-host for
 an LV2 plugin the adapter refuses.
 
-The CLAP hosting core is a library of its own, `libomx-clap-core`, for programs that host CLAP
+The CLAP hosting core is a library of its own, `libomx-clap`, for programs that host CLAP
 plugins themselves: it checks a plugin before using it, runs its audio on your thread and keeps
 its parameters and state. The host, the core and the LV2 adapter share one version.
 
@@ -34,13 +34,13 @@ The latest release ships these packages, all from the same version:
 | What | Fedora | Debian |
 |---|---|---|
 | The host and the scanner: `omx-clap-host`, `omx-clap-scan`, their manual pages | `omx-clap-host` | `omx-clap-host` |
-| The hosting core, a shared library | `omx-clap-core` | `libomx-clap-core1` |
-| Headers, pkg-config file and ABI baseline to build a program on the core | `omx-clap-core-devel` | `libomx-clap-core-dev` |
-| The core's definitions in omx-contract's contract directory: hosting limits and codes, the host verbs | `omx-clap-core-contract` (noarch) | `omx-clap-core-contract` (all) |
+| The hosting core, a shared library | `omx-clap` | `libomx-clap1` |
+| Headers, pkg-config file and ABI baseline to build a program on the core | `omx-clap-devel` | `libomx-clap-dev` |
+| The core's definitions in omx-contract's contract directory: hosting limits and codes, the host verbs | `omx-clap-contract` (noarch) | `omx-clap-contract` (all) |
 | Headers, pkg-config file and static library of the LV2 adapter, to link at build time (LV2 at run time is `omx-clap-host` with lilv) | `omx-clap-lv2-devel` | `libomx-clap-lv2-dev` |
 
 For your own program, install the `-devel` / `-dev` package and build with
-`pkg-config --cflags --libs omx-clap-core` (and `omx-clap-lv2` for the adapter).
+`pkg-config --cflags --libs omx-clap` (and `omx-clap-lv2` for the adapter).
 
 Status
 ------
@@ -56,7 +56,7 @@ the continuous integration runs on every push, and the packages it builds:
   for bit against mod-host and against the adapter in process.
 - The host in a JACK graph, over PipeWire's JACK and over JACK2's `jackd` (x86_64): port layout,
   latency, MIDI input for instruments, meters.
-- The exported symbols of `libomx-clap-core` against a versioned baseline.
+- The exported symbols of `libomx-clap` against a versioned baseline.
 - RPMs (Fedora 44, x86_64 and aarch64) and DEBs (bookworm and trixie, amd64 and arm64), each
   installed in a clean root or container.
 

@@ -24,7 +24,7 @@
 /*
 ************************************************************************************************************************
 *
-* The CLAP body of the RT stage, part of libomx-clap-core: a plugin's process() on the consumer's own RT thread, over
+* The CLAP body of the RT stage, part of libomx-clap: a plugin's process() on the consumer's own RT thread, over
 * hosted_stage.h. It loads, creates, activates and destroys nothing: that is the control thread's (clap_host.h).
 *
 * Per block (omx_clap_run):
@@ -42,7 +42,7 @@
 *     one shared empty list (omx_clap_no_events) instead of the stage's: no event is built, and no list the stage or the
 *     instance keeps is read through.
 *     out_events.try_push is a counting sink: a CLAP_EVENT_PARAM_VALUE from the plugin raises plugin_changed and nothing
-*     is stored. libomx-clap-core's instance puts lists of its own in the stage's two (clap_host.h): its sink also keeps
+*     is stored. libomx-clap's instance puts lists of its own in the stage's two (clap_host.h): its sink also keeps
 *     the plugin's values and gestures for the control thread, and its input list turns the host's modulations and
 *     gestures, which ride the ring as tagged records, into their events.
 *  3. process() with steady_time a running frame counter from activate, never -1, transport NULL (a processing block
@@ -622,7 +622,7 @@ static inline void omx_clap_note_end(struct omx_clap_note_ids *n, const clap_eve
 }
 
 /** The output event list of a stage with note ids: every event goes on to the stage's own sink (s->out_events, which
- * counts it, raises plugin_changed on a value, and in libomx-clap-core's instance also keeps the plugin's values and
+ * counts it, raises plugin_changed on a value, and in libomx-clap's instance also keeps the plugin's values and
  * gestures), and a CLAP_EVENT_NOTE_END frees the id it names. Nothing else is stored on the RT. */
 static inline bool omx_clap_out_push_ids(const struct clap_output_events *list, const clap_event_header_t *event)
 {

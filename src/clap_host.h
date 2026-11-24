@@ -19,12 +19,12 @@
  */
 
 /** @file
- * @brief The control-thread host of libomx-clap-core: load, judge, activate, publish and tear down a CLAP plugin. */
+ * @brief The control-thread host of libomx-clap: load, judge, activate, publish and tear down a CLAP plugin. */
 
 /*
 ************************************************************************************************************************
 *
-* The control-thread host of libomx-clap-core: the only unit that loads a CLAP file and the CLAP main thread of every
+* The control-thread host of libomx-clap: the only unit that loads a CLAP file and the CLAP main thread of every
 * instance it hosts. It owns everything clap_stage.h (the RT body) does not: load, judge the ports, activate, warm up,
 * publish, unpublish, rate change, restart, parameters as rows, the read-back shadow, state, latency, the host object.
 *
@@ -60,7 +60,7 @@
 #include "clap_host_extensions.h"
 #include "clap_stage.h"
 #include "omx_clap_ext.h"
-#include "omx_clap_core_vocabulary.h"
+#include "omx_clap_vocabulary.h"
 #include "omx_msgring.h"
 
 
@@ -96,7 +96,7 @@
 #define OMX_CLAP_LAYOUT_DECLARED        1   ///< request_layout: the plugin cannot offer it; its declared layout stands
 
 /** The refusals the core returns, by the hosting code a verdict names them by: each the code data/hosting/ declares, from
- * omx_clap_core_vocabulary.h, its render. A code is never reworded. */
+ * omx_clap_vocabulary.h, its render. A code is never reworded. */
 #define CLAP_HOST_CODE_HEADLESS_FAILED      OMX_HOSTING_CLAP_HEADLESS_FAILED
 #define CLAP_HOST_CODE_NOTE_INPUT           OMX_HOSTING_CLAP_NOTE_INPUT  ///< the plugin declares a note input the configuration refuses
 #define CLAP_HOST_CODE_NO_AUDIO_OUTPUT      OMX_HOSTING_TOPOLOGY_NO_AUDIO_OUTPUT  ///< an audio input or an auxiliary port but no main output: nothing to carry (a plugin with no audio port at all passes the strip through instead, #270)
@@ -1156,6 +1156,12 @@ OMX_CLAP_EXPORT int omx_clap_host_standard_page(struct omx_clap_instance *in, ui
 
 /** The name of an OMX_CLAP_PARAM_UNITS code ("db", "hz", "semitone12TET"), NULL for a code the table does not hold. */
 OMX_CLAP_EXPORT const char *omx_clap_param_unit_name(uint32_t unit);
+
+/** The standard unit id an OMX_CLAP_PARAM_UNITS code stands for, the const of a word of omx-contract's PARAM_UNITS
+ * ("dB", "percent", "frames"; OMX_PARAM_UNIT_IDS), NULL for a code the table does not hold. The word a reply and a
+ * descriptor carry (plugin-hostd#215 D1); the token omx_clap_param_unit_name gives is the extension's own spelling,
+ * read only by the extension's encoder, decoder and fingerprint. */
+OMX_CLAP_EXPORT const char *omx_clap_param_unit_id(uint32_t unit);
 
 /** The name of an OMX_CLAP_PARAM_SCALES code ("linear", "log", "stepped"), NULL for any other. */
 OMX_CLAP_EXPORT const char *omx_clap_param_scale_name(uint32_t scale);

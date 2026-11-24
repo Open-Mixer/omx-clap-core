@@ -415,7 +415,7 @@ messages no dialect of the plugin carries, since the instance was added.
 Nothing is allocated or locked on the audio thread.
 
 A controller that is not a jack client plays an instrument through the
-socket with the note verbs it shares with plugin-hostd (`data/verbs.json`). `note_input <N>` answers
+socket with the note verbs it shares with plugin-hostd (`contract.d/omx-clap/omx-clap.json`). `note_input <N>` answers
 `resp 0 midi_in` for an instance that takes notes and `resp 0 -` for one
 that takes none. `note_on <N> <channel> <key> <velocity>`,
 `note_off <N> <channel> <key> <velocity>` and `all_notes_off <N>` (controller
@@ -1016,7 +1016,7 @@ panel record (`tests/clap_scan_test.c`, `panel_checks`).
 Layout pin
 ----------
 
-`pin_expect <N> omx-layout/1:<sha256>` is declared in `data/verbs.json`; plugin-hostd sends it
+`pin_expect <N> omx-layout/1:<sha256>` is declared in `contract.d/omx-clap/omx-clap.json`; plugin-hostd sends it
 just before the `add` of instance `N` with the layout pin of the plugin. That
 `add` computes the plugin's layout after `init()` and before `activate()`,
 every parameter `params.get_info()` gives in the `omx-layout/1` serialisation of
@@ -1034,8 +1034,8 @@ Strip and controls
 ------------------
 
 `track_info`, `remote_pages`, `remote_page_get` and `param_info` are verbs
-omx-clap-host shares with plugin-hostd, declared in `data/verbs.json` (rendered
-as `omx_clap_core_host_verbs.h`), answered from the plugin:
+omx-clap-host shares with plugin-hostd, declared in `contract.d/omx-clap/omx-clap.json` (rendered
+as `omx_clap_host_verbs.h`), answered from the plugin:
 
 - `track_info <N> <name> <color> [kind]` stores the strip's name (`""` for none),
   colour (`#RRGGBB`, or `-` for none) and kind, then calls the plugin's
@@ -1060,9 +1060,11 @@ as `omx_clap_core_host_verbs.h`), answered from the plugin:
   all is answered from `clap.params` alone, never a mixture of the two: unit
   `none`, scale `stepped` and step 1 for `CLAP_PARAM_IS_STEPPED` or
   `CLAP_PARAM_IS_ENUM` (`linear` and 0 otherwise), its range and default, and
-  the symbol `param_<id>`. The unit is a name of the contract's
-  table (`none`, LV2's local names `s`, `ms`, `db`, `hz`, `semitone12TET` and
-  the rest, then `dbfs`, `dbu`, `ratio`, `lufs`), the scale `linear`, `log` or
+  the symbol `param_<id>`. The unit is the standard id the contract's code
+  stands for, a const of omx-contract's `PARAM_UNITS` (`OMX_PARAM_UNIT_IDS`:
+  `none`, `s`, `ms`, `dB`, `Hz`, `percent`, `st`, `frames` and the rest, then
+  `dBFS`, `dBu`, `ratio`, `LUFS`), never the contract's own token
+  (plugin-hostd#215 D1), the scale `linear`, `log` or
   `stepped`, and each number the shortest decimal that reads back to the same
   double (`0.10000000149011612`, `1e-7`). The host reads and checks the
   contract once, at `add`: a plugin whose contract breaks
@@ -1080,7 +1082,7 @@ as `omx_clap_core_host_verbs.h`), answered from the plugin:
   `resp 0 none linear -60 0 -20 0 gain_db`); one whose symbol is longer than
   a contract holds answers `resp -511`.
 
-  The same reading is libomx-clap-core's: `omx_clap_host_param_contract` says
+  The same reading is libomx-clap's: `omx_clap_host_param_contract` says
   whether the contract holds (or which rule it broke) and
   `omx_clap_host_param_meaning` what one parameter means from the contract,
   `omx_clap_host_param_described` the same with the `clap.params` fallback above
@@ -1088,7 +1090,9 @@ as `omx_clap_core_host_verbs.h`), answered from the plugin:
   `omx_clap_host_standard_pages` and `omx_clap_host_standard_page` the pages
   above;
   `omx_clap_param_unit_name`, `omx_clap_param_scale_name` and
-  `omx_clap_param_number` write the words and numbers above.
+  `omx_clap_param_number` write the words and numbers above, and
+  `omx_clap_param_unit_id` the standard unit id a code stands for (`OMX_PARAM_UNIT_IDS`:
+  `pc` is `percent`), the word `param_info` answers (plugin-hostd#215 D1).
 
 CLAP extensions
 ---------------

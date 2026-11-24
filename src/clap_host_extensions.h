@@ -19,7 +19,7 @@
  */
 
 /** @file
- * @brief The host extensions libomx-clap-core offers a hosted plugin. */
+ * @brief The host extensions libomx-clap offers a hosted plugin. */
 
 /*
  * clap_host_extensions.h: the host extensions the core's host object offers a plugin. This file is their home: the list

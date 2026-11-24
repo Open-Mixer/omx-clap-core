@@ -36,7 +36,7 @@ arm() {
         failures=$((failures + 1))
         return
     fi
-    # the copy's libomx-clap-core and nothing else: make exports LD_LIBRARY_PATH as the worktree, whose library is the
+    # the copy's libomx-clap and nothing else: make exports LD_LIBRARY_PATH as the worktree, whose library is the
     # one not broken and wins over a test's RUNPATH
     if (cd "$dir" && make -j"$jobs" "tests/$test" tests/fake.clap tests/fake_compressor.clap \
             && TSAN_OPTIONS=halt_on_error=1 LD_LIBRARY_PATH=$dir "./tests/$test" "$dir/tests/fake.clap" "$dir/tests/fake_compressor.clap") >"$log" 2>&1; then

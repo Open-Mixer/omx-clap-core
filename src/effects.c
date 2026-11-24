@@ -4090,7 +4090,8 @@ int effects_preset_get(int effect_id, int index, char *reply, size_t size)
     effect = &g_effects[effect_id];
     if (index < 0 || (uint32_t)index >= effect->presets_count)
         return ERR_INVALID_OPERATION;
-    n = snprintf(reply, size, "resp 0 %s %s", effect->preset_keys[index], effect->preset_names[index]);
+    n = snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PRESET_GET), effect->preset_keys[index],
+                 effect->preset_names[index]);
     if (n < 0 || (size_t)n >= size)
         return ERR_INVALID_OPERATION;
     for (char *c = reply; *c; c++)
@@ -4195,7 +4196,7 @@ int effects_pin_layout(int effect_id, char *reply, size_t size)
     if (!g_effects[effect_id].clap ||
         preset_identity(&g_effects[effect_id], &id, &version, fingerprint, sizeof(fingerprint)) != 0)
         return ERR_INVALID_OPERATION;
-    snprintf(reply, size, "resp 0 %s", fingerprint);
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PIN_LAYOUT), fingerprint);
     return SUCCESS;
 }
 
@@ -4512,7 +4513,7 @@ static int preset_show_reply(const struct pj *v, char **reply)
         return ERR_MEMORY_ALLOCATION;
     n = strlen(text) + sizeof("resp 0 ");
     if ((*reply = malloc(n)) != NULL)
-        snprintf(*reply, n, "resp 0 %s", text);
+        snprintf(*reply, n, HOST_FIELDS_FMT(HOST_FIELDS_PRESET_SHOW), text);
     free(text);
     return *reply ? SUCCESS : ERR_MEMORY_ALLOCATION;
 }
@@ -5159,7 +5160,8 @@ int effects_property_info(int effect_id, int index, char *reply, size_t size)
         return OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID_RESP;
     info.name[sizeof(info.name) - 1] = '\0';
     quoted(name, sizeof(name), info.name);
-    snprintf(reply, size, "resp 0 %s %s %s %s", info.symbol, info.kind == OMX_CLAP_PROPERTY_PATH ? "path" : "string",
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PROPERTY_INFO), info.symbol,
+             info.kind == OMX_CLAP_PROPERTY_PATH ? "path" : "string",
              (info.flags & rw) == rw ? "rw" : (info.flags & OMX_CLAP_PROPERTY_IS_WRITABLE) ? "w" : "r", name);
     return SUCCESS;
 }
@@ -5169,6 +5171,7 @@ int effects_property_get(int effect_id, const char *symbol, char *reply, size_t 
     struct omx_clap_instance *clap;
     omx_clap_property_info_t info;
     char value[OMX_CLAP_PROPERTY_VALUE_MAX];
+    char word[2 * OMX_CLAP_PROPERTY_VALUE_MAX + 3];
     int32_t len;
     int rc;
 
@@ -5184,10 +5187,11 @@ int effects_property_get(int effect_id, const char *symbol, char *reply, size_t 
         return OMX_REPLY_HOST_PROPERTY_ACCESS_RESP;
     if ((size_t)len >= sizeof(value))
         return OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP;
-    // the reply is one line of the protocol: a value whose escaped word does not fit is answered as too large
-    if (size < 8 || quoted_value(reply + 7, size - 7, value) != 0)
+    // the reply is one line of the protocol: a value whose escaped word does not fit beside "resp 0 " is answered as too
+    // large
+    if (size < 8 || quoted_value(word, size - 7 < sizeof(word) ? size - 7 : sizeof(word), value) != 0)
         return OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP;
-    memcpy(reply, "resp 0 ", 7);
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PROPERTY_GET), word);
     return SUCCESS;
 }
 

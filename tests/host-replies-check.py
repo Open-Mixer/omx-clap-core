@@ -18,12 +18,16 @@ Held, one failure line each:
     count written resp <count>, is word for word the verb's x-reply;
   - every type is an arg_type of the table or an own type; an own type the table also declares has two homes, an own
     type no reply names is dead, and an own type's pattern compiles and has its spelling (x-docs);
-  - every reply OMX_CLAP_REPLIES types with fields has its HOST_FIELDS_<VERB>(X) in src/host_verbs.h, and every
-    HOST_FIELDS_<VERB>(X) there is held to its reply's form, wherever that is typed: OMX_CLAP_REPLIES, or the protocol
-    table's one reply_form of the verb (note_input, note_drops and note_out_drops are the table's, the coordinator's
-    ruling on R5: the code reads their names and types from there, never from a copy here). Its names, in order, the
-    form's, each conversion one the field's type is written with (TYPE_CONVERSIONS), and a source under src/ writes the
-    reply with HOST_FIELDS_FMT(HOST_FIELDS_<VERB>); a HOST_FIELDS_ of a verb typed nowhere is a failure too.
+  - every reply this source writes with fields, wherever it is typed, has its HOST_FIELDS_<VERB>(X) in src/host_verbs.h,
+    and every HOST_FIELDS_<VERB>(X) there is held to its reply's form: OMX_CLAP_REPLIES, or the protocol table's one
+    reply_form of the verb (the coordinator's ruling on R5: the code reads a table-typed reply's names and types from
+    there, never from a copy here). The replies this source writes are read from the code, never listed here: every
+    verb registered with protocol_add_command under src/ (its macro read by a #define under src/, by its name
+    OMX_VERB_<VERB>_FMT, or by the table's `declared` macro of the verb; a macro none of these names is a failure)
+    whose table reply_form has fields (a tail field included; a repeated form is named, not held). Its names, in
+    order, the form's, each conversion one the field's type is written with (TYPE_CONVERSIONS), and a source under
+    src/ writes the reply with HOST_FIELDS_FMT(HOST_FIELDS_<VERB>); a HOST_FIELDS_ of a verb typed nowhere is a
+    failure too.
 --self-test breaks a copy of the inputs once per arm, each of which must fail. Exit 0 held; 1 a failure; 2 usage.
 """
 import argparse
@@ -59,10 +63,10 @@ TYPE_CONVERSIONS = {'uint': {'%u'}, 'int': {'%d', '%i'}}
 FIELD = re.compile(r'^([a-z][a-z0-9_]*):([a-z][a-z0-9-]*|[a-z][A-Za-z0-9]*)$')
 DEFINE = re.compile(r'^[ \t]*#define[ \t]+HOST_FIELDS_([A-Z0-9_]+)\(X\)((?:[^\n]*\\\n)*[^\n]*)', re.M)
 ROW = re.compile(r'X\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*"([^"]*)"\s*\)')
-
-
-def snake(title):
-    return re.sub(r'([A-Z])', r'_\1', title).upper()
+# a verb this source answers: protocol_add_command(<macro or literal>, <callback>)
+REGISTER = re.compile(r'\bprotocol_add_command\(\s*([A-Za-z_][A-Za-z0-9_]*|"[^"]*")\s*,')
+LOCAL_VERB = re.compile(r'^[ \t]*#define[ \t]+([A-Za-z_][A-Za-z0-9_]*)[ \t]+"([^" ]+)', re.M)
+OMX_VERB_FMT = re.compile(r'^OMX_VERB_([A-Z0-9_]+)_FMT$')
 
 
 def load(root, table_path, verbs_path):
@@ -103,6 +107,43 @@ def spoken(resp, fields):
     return ' '.join(['resp', '0' if resp == '0' else '<count>'] + ['<%s>' % n for n, _ in fields])
 
 
+def registered(inp, out):
+    """the verbs the sources register with protocol_add_command, each with where: {verb: 'src/x.c (MACRO)'}"""
+    commands = {c['verb'] for c in inp['table'].get('commands', [])}
+    declared = {}
+    for c in inp['table'].get('commands', []):
+        where = c.get('declared', '')
+        if where.startswith('include/'):
+            declared[where.split()[-1]] = c['verb']
+    local = {}
+    for text in inp['sources'].values():
+        for m in LOCAL_VERB.finditer(text):
+            local[m.group(1)] = m.group(2)
+    verbs = {}
+    for path, text in sorted(inp['sources'].items()):
+        for m in REGISTER.finditer(text):
+            token = m.group(1)
+            fmt = OMX_VERB_FMT.match(token)
+            if token.startswith('"'):
+                verb = token.strip('"').split(' ')[0]
+            elif token in local:
+                verb = local[token]
+            elif fmt:
+                verb = fmt.group(1).lower()
+            elif token in declared:
+                verb = declared[token]
+            else:
+                out.append('%s: protocol_add_command(%s): no #define under src/, no OMX_VERB_<VERB>_FMT name and no '
+                           'declared macro of the protocol table names its verb' % (path, token))
+                continue
+            if verb not in commands:
+                out.append('%s: protocol_add_command(%s) registers %s, which is no verb of the protocol table'
+                           % (path, token, verb))
+                continue
+            verbs.setdefault(verb, '%s (%s)' % (path, token))
+    return verbs
+
+
 def problems(inp):
     out = []
     schemas = inp['domain']['components']['schemas']
@@ -119,11 +160,12 @@ def problems(inp):
     spellings = schemas.get(TYPES, {}).get('x-docs', {})
     arg_types = inp['table'].get('arg_types', {})
     protocol_typed = {c['verb'] for c in inp['table'].get('commands', []) if c.get('reply_forms')}
-    # the table's form of each verb it types with one plain form (no repeat, no tail): (resp, [(name, type)])
+    # the table's form of each verb it types with one form of fixed fields (no repeat; a tail is its last field):
+    # (resp, [(name, type)])
     table_forms = {}
     for c in inp['table'].get('commands', []):
         rf = c.get('reply_forms') or []
-        if len(rf) == 1 and not rf[0].get('repeat') and not rf[0].get('tail'):
+        if len(rf) == 1 and not rf[0].get('repeat'):
             names, args = rf[0].get('names', []), rf[0].get('args', [])
             if len(names) != len(args):
                 out.append('%s: the protocol table\'s reply_form names %d fields and types %d' % (c['verb'], len(names),
@@ -181,26 +223,27 @@ def problems(inp):
     rows = {}
     for m in DEFINE.finditer(inp['header']):
         rows[m.group(1)] = ROW.findall(m.group(2))
-    titled = {snake(t): t for t in verbs}
-    held = {}  # title -> (fields, where they are typed)
+    held = {}  # verb -> (fields, where they are typed)
     for title, (_, fields) in forms.items():
         if fields:
-            held[title] = (fields, '%s.%s' % (REPLIES, title))
+            held[verbs[title]['const']] = (fields, '%s.%s' % (REPLIES, title))
     for title, v in verbs.items():
         form = table_forms.get(v['const'])
         if form and form[1] and title not in forms:
             if spoken(*form) != v.get('x-reply'):
                 out.append('%s: the protocol table\'s reply_form says %r, its x-reply %r: the words disagree with the form'
                            % (v['const'], spoken(*form), v.get('x-reply')))
-            if snake(title) in rows:
-                held[title] = (form[1], 'the protocol table\'s reply_form')
+    # every reply the table types with fields that this source registers is held, macro or none
+    for word in registered(inp, out):
+        form = table_forms.get(word)
+        if form and form[1] and word not in held:
+            held[word] = (form[1], 'the protocol table\'s reply_form')
     for macro in rows:
-        title = titled.get(macro)
-        if title not in held:
+        if macro.lower() not in held:
             out.append('%s: HOST_FIELDS_%s names the fields of a reply %s and the protocol table type none of'
                        % (HEADER, macro, REPLIES))
-    for title, (fields, where) in held.items():
-        word, macro = verbs[title]['const'], snake(title)
+    for word, (fields, where) in held.items():
+        macro = word.upper()
         if macro not in rows:
             out.append('%s: %s has no HOST_FIELDS_%s(X), the fields its reply is written with' % (word, HEADER, macro))
             continue
@@ -252,6 +295,12 @@ def self_test(inp):
             i['sources'][hit[0]] = i['sources'][hit[0]].replace(old, new)
         return arm
 
+    def each(*steps):
+        def arm(i):
+            for step in steps:
+                step(i)
+        return arm
+
     def typed(s, title, line):
         s[REPLIES]['x-value'][title] = line
 
@@ -278,6 +327,30 @@ def self_test(inp):
         ('a reply written without its fields (note_out_drops)',
          sources('HOST_FIELDS_FMT(HOST_FIELDS_NOTE_OUT_DROPS)', '"resp 0 %u %u %u"'),
          'HOST_FIELDS_FMT(HOST_FIELDS_NOTE_OUT_DROPS)'),
+        ('a table-typed reply written with a hand-typed format and no macro (property_get)',
+         each(header('#define HOST_FIELDS_PROPERTY_GET(X) X(value, "%s")\n', ''),
+              sources('HOST_FIELDS_FMT(HOST_FIELDS_PROPERTY_GET)', '"resp 0 %s"')),
+         'property_get: src/host_verbs.h has no HOST_FIELDS_PROPERTY_GET(X)'),
+        ('property_get\'s field renamed in the table',
+         table('property_get', lambda c: c['reply_forms'][0]['names'].__setitem__(0, 'text')),
+         'field 1 is value in HOST_FIELDS_PROPERTY_GET of src/host_verbs.h, text in the protocol table'),
+        ('a wrong-typed reply planted in property_get (value as %u)',
+         header('X(value, "%s")', 'X(value, "%u")'),
+         'the field value is written %u, which a quoted-escaped is not written with'),
+        ('a reply registered by a #define under src/ written by hand (preset_show)',
+         sources('HOST_FIELDS_FMT(HOST_FIELDS_PRESET_SHOW)', '"resp 0 %s"'),
+         'preset_show: no source under src/ writes its reply with HOST_FIELDS_FMT(HOST_FIELDS_PRESET_SHOW)'),
+        ('a reply registered by the table\'s declared macro, its fields dropped (preset_show by EFFECT_PRESET_SHOW)',
+         each(sources('#define PRESET_SHOW_INSTANCE "preset_show %i %s"\n', ''),
+              sources('PRESET_SHOW_INSTANCE', 'EFFECT_PRESET_SHOW'),
+              header('#define HOST_FIELDS_PRESET_SHOW(X) X(json, "%s")\n', '')),
+         'preset_show: src/host_verbs.h has no HOST_FIELDS_PRESET_SHOW(X)'),
+        ('a registration whose macro names no verb',
+         sources('protocol_add_command(OMX_VERB_PROPERTY_GET_FMT,', 'protocol_add_command(PROPERTY_GET_LINE,'),
+         'protocol_add_command(PROPERTY_GET_LINE): no #define under src/'),
+        ('a registration of a verb the table has not',
+         sources('protocol_add_command(OMX_VERB_PROPERTY_GET_FMT,', 'protocol_add_command("property_peek %i %s",'),
+         'registers property_peek, which is no verb of the protocol table'),
         ('the words disagree with the form (x-reply renamed)',
          protocol(lambda s: s['PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS']['oneOf'][3].update(
              {'x-reply': 'resp 0 <notes> <releases> <sysex> <lost>'})),
@@ -353,9 +426,14 @@ def main():
     if found:
         return 1
     typed = inp['domain']['components']['schemas'][REPLIES]['x-value']
-    print('host-replies-check: %d replies typed in %s (%s), each written by the fields it declares; %s the protocol\'s '
-          'to type; %s pending' % (len(typed), REPLIES, ', '.join(sorted(typed)), ', '.join(sorted(PROTOCOL_OWNED)),
-                                    ', '.join(sorted(PENDING))))
+    forms = {c['verb']: c['reply_forms'] for c in inp['table'].get('commands', []) if len(c.get('reply_forms') or []) == 1}
+    written = registered(inp, [])
+    by_table = sorted(v for v in written if forms.get(v) and not forms[v][0].get('repeat') and forms[v][0].get('names'))
+    repeated = sorted(v for v in written if forms.get(v) and forms[v][0].get('repeat'))
+    print('host-replies-check: %d replies typed in %s (%s) and %d by the protocol table (%s), each written by the fields '
+          'it declares; %s the protocol\'s to type; %s pending; a repeated form not held: %s'
+          % (len(typed), REPLIES, ', '.join(sorted(typed)), len(by_table), ', '.join(by_table),
+             ', '.join(sorted(PROTOCOL_OWNED)), ', '.join(sorted(PENDING)), ', '.join(repeated) or 'none'))
     return self_test(inp) if args.self_test else 0
 
 

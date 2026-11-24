@@ -715,8 +715,9 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 # PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS, read from its domain in PROTOCOL_DOMAINS) is an OMX_VERB_ macro of
 # <plugin-hostd/plugin_hostd_protocol_host_verbs.h>, no source defines a reply number (tests/host-verbs-check.sh, with its
 # sabotage arms); and every reply this package owns typed in OMX_CLAP_REPLIES, word for word its verb's x-reply, and every
-# reply written by the fields its home declares, OMX_CLAP_REPLIES or the protocol table's reply_forms (note_input,
-# note_drops, note_out_drops) (tests/host-replies-check.py, with its sabotage arms)
+# reply written by the fields its home declares, OMX_CLAP_REPLIES or the protocol table's reply_forms (every verb
+# protocol_add_command registers under src/ whose table form has fields) (tests/host-replies-check.py, with its sabotage
+# arms)
 .PHONY: test-codes test-verbs-source
 # every number the host answers has a code (#34): it reads plugin-hostd-protocol's host-errors.h, so it runs where the
 # protocol's headers are, the build's jobs, never test-contract's (which has omx-contract alone)

@@ -40,6 +40,8 @@ PKG_CONFIG ?= pkg-config
 ifeq ($(shell $(PKG_CONFIG) --exists plugin-hostd-protocol && echo true), true)
 PROTOCOL_CFLAGS = $(shell $(PKG_CONFIG) --cflags plugin-hostd-protocol)
 PROTOCOL_LIBS = $(shell $(PKG_CONFIG) --libs plugin-hostd-protocol)
+# the protocol's one verb table (its arg_types and reply_forms), which tests/host-replies-check.py reads
+PROTOCOL_TABLE = $(shell $(PKG_CONFIG) --variable=table plugin-hostd-protocol)
 else
 PROTOCOL_DIR ?= ../plugin-hostd-protocol
 # absolute and exported, so a copy of the tree built elsewhere (the sabotage arms) finds the same checkout
@@ -47,6 +49,7 @@ override PROTOCOL_DIR := $(abspath $(PROTOCOL_DIR))
 export PROTOCOL_DIR
 PROTOCOL_LIB = $(PROTOCOL_DIR)/libplugin-hostd-protocol.so
 PROTOCOL_CFLAGS = -I$(PROTOCOL_DIR)/include
+PROTOCOL_TABLE = $(PROTOCOL_DIR)/protocol/plugin-hostd-protocol.json
 # the checkout's library is not installed: the binary finds it there through its rpath
 PROTOCOL_LIBS = -L$(PROTOCOL_DIR) -lplugin-hostd-protocol -Wl,-rpath,$(abspath $(PROTOCOL_DIR))
 endif
@@ -636,7 +639,9 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 # every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_vocabulary.h, the render of
 # data/hosting/: no hand-typed "hosting." literal, no name that header lacks (tests/hosting-codes-check.sh, with its sabotage arms); and
 # every verb the omx-clap domain declares is an OMX_VERB_ macro of src/omx_clap_host_verbs.h, every reply number of
-# src/host_verbs.h the declared one (tests/host-verbs-check.sh, with its sabotage arms)
+# src/host_verbs.h the declared one (tests/host-verbs-check.sh, with its sabotage arms); and every reply this package
+# owns typed in OMX_CLAP_REPLIES, word for word its x-reply, and written by the fields it declares (tests/host-replies-check.py,
+# with its sabotage arms)
 .PHONY: test-codes test-verbs-source
 # every number the host answers has a code (#34): it reads plugin-hostd-protocol's host-errors.h, so it runs where the
 # protocol's headers are, the build's jobs, never test-contract's (which has omx-contract alone)
@@ -649,6 +654,7 @@ test-codes: test-verbs-source
 test-verbs-source:
 	bash tests/host-verbs-check.sh
 	bash tests/host-verbs-check.sh --self-test
+	python3 -I tests/host-replies-check.py --table $(PROTOCOL_TABLE) --self-test
 
 # the stage against fake plugins at six rates, and the core over the fault fixtures and fakes: the witness, the guard
 # page, the audio role on a split, the whole roster and the tempo

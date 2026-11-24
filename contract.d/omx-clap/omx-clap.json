@@ -508,6 +508,30 @@
         ],
         "x-kind": "verbs",
         "x-file": "verbs.json"
+      },
+      "OMX_CLAP_REPLIES": {
+        "description": "The replies of this domain's verbs whose shape this package owns, typed, by the verb's title: resp 0 or resp count, then name:type for each field, in the form of plugin-hostd-protocol's reply_forms (plugin-hostd-protocol#19), each type an arg_type of the protocol's table or one of OMX_CLAP_REPLY_TYPES. Each is the verb's x-reply with every <name> typed; a client decodes the reply by it as it decodes the protocol's own. Read at run time; tests/host-replies-check.py holds it to the x-replies and to the fields the code writes.",
+        "x-since": "0.35.0",
+        "x-kind": "sheet",
+        "x-value": {
+          "noteInput": "resp 0 port:word",
+          "idleHold": "resp 0 target:hold held:hold aggregate:microseconds active:uint code:word",
+          "noteDrops": "resp 0 notes:uint releases:uint sysex:uint unmappable:uint",
+          "noteOutDrops": "resp 0 dropped:uint unmapped:uint midi_out_full:uint"
+        }
+      },
+      "OMX_CLAP_REPLY_TYPES": {
+        "description": "The types of OMX_CLAP_REPLIES that plugin-hostd-protocol's table does not declare, each declared once: its pattern, which a field of the type matches whole, and its spelling in x-docs.",
+        "x-since": "0.35.0",
+        "x-kind": "sheet",
+        "x-value": {
+          "hold": "off|[0-9]+",
+          "microseconds": "-|[0-9]+"
+        },
+        "x-docs": {
+          "hold": "the CPU idle hold, off for none, else its latency in microseconds",
+          "microseconds": "a latency in microseconds, or - when it cannot be read"
+        }
       }
     }
   }

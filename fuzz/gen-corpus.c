@@ -21,6 +21,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <omxcontract/omx_vocabulary.h>
+
 #include "fuzz.h"
 #include "lv2_locate.h"
 #include "preset_file.h"
@@ -133,7 +135,8 @@ static void seed_tree(const char *name, const struct pj *doc, int pretty)
 static void built_presets(void)
 {
     static const struct { const char *symbol, *unit; double value; } params[] = {
-        { "gain", "dB", -6.0 }, { "mix", "", 0.25 }, { "time", "ms", 0.1 }, { "3", "", 1e-3 },
+        { "gain", OMX_PARAM_UNITS_DB, -6.0 }, { "mix", OMX_PARAM_UNITS_NONE, 0.25 }, { "time", OMX_PARAM_UNITS_MS, 0.1 },
+        { "3", OMX_PARAM_UNITS_NONE, 1e-3 },
     };
     struct pj doc, plugin, rows, state, row;
     char *ttl, *body;

@@ -70,7 +70,7 @@ valid; a file with a state body is `org.openmixer.preset/2`. Any other version i
       "id": "<stable id>", "name": "<display name>",
       "createdAt": "2026-10-22T21:00:00Z", "modifiedAt": "2026-10-22T21:00:00Z",
       "carries": "params+state",
-      "params": [ { "symbol": "<symbol>", "unit": "", "value": 0.25 } ],
+      "params": [ { "symbol": "<symbol>", "unit": "none", "value": 0.25 } ],
       "state": { "encoding": "base64", "context": "preset", "bytes": "<base64>" }
     }
 

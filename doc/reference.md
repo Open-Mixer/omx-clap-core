@@ -1060,9 +1060,11 @@ as `omx_clap_host_verbs.h`), answered from the plugin:
   all is answered from `clap.params` alone, never a mixture of the two: unit
   `none`, scale `stepped` and step 1 for `CLAP_PARAM_IS_STEPPED` or
   `CLAP_PARAM_IS_ENUM` (`linear` and 0 otherwise), its range and default, and
-  the symbol `param_<id>`. The unit is a name of the contract's
-  table (`none`, LV2's local names `s`, `ms`, `db`, `hz`, `semitone12TET` and
-  the rest, then `dbfs`, `dbu`, `ratio`, `lufs`), the scale `linear`, `log` or
+  the symbol `param_<id>`. The unit is the standard id the contract's code
+  stands for, a const of omx-contract's `PARAM_UNITS` (`OMX_PARAM_UNIT_IDS`:
+  `none`, `s`, `ms`, `dB`, `Hz`, `percent`, `st`, `frames` and the rest, then
+  `dBFS`, `dBu`, `ratio`, `LUFS`), never the contract's own token
+  (plugin-hostd#215 D1), the scale `linear`, `log` or
   `stepped`, and each number the shortest decimal that reads back to the same
   double (`0.10000000149011612`, `1e-7`). The host reads and checks the
   contract once, at `add`: a plugin whose contract breaks
@@ -1088,7 +1090,9 @@ as `omx_clap_host_verbs.h`), answered from the plugin:
   `omx_clap_host_standard_pages` and `omx_clap_host_standard_page` the pages
   above;
   `omx_clap_param_unit_name`, `omx_clap_param_scale_name` and
-  `omx_clap_param_number` write the words and numbers above.
+  `omx_clap_param_number` write the words and numbers above, and
+  `omx_clap_param_unit_id` the standard unit id a code stands for (`OMX_PARAM_UNIT_IDS`:
+  `pc` is `percent`), the word `param_info` answers (plugin-hostd#215 D1).
 
 CLAP extensions
 ---------------

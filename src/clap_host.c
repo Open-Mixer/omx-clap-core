@@ -2575,6 +2575,11 @@ const char *omx_clap_param_unit_name(uint32_t unit)
     return pc_unit_name(unit);
 }
 
+const char *omx_clap_param_unit_id(uint32_t unit)
+{
+    return pc_unit_id(unit);
+}
+
 const char *omx_clap_param_scale_name(uint32_t scale)
 {
     return pc_scale_name(scale);

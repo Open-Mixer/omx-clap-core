@@ -169,6 +169,8 @@ jobs:
           base: omx-clap-contract
           owner: omx-clap
           spec: packaging/omx-clap-host.spec
+          # data/ and the host domain's codes (contract.d/host), whose translations catalogs/ holds
+          gate: make --no-print-directory catalog-gate
 
   docs:
     name: make docs (the public headers are fully documented)

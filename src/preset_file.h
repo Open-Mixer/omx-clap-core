@@ -34,6 +34,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <plugin-hostd/protocol.h>
+
 /* the format word and the two versions a file may carry; any other is refused */
 #define PRESET_FORMAT_PREFIX  "org.openmixer.preset/"
 #define PRESET_FORMAT_PARAMS  PRESET_FORMAT_PREFIX "1"
@@ -60,6 +62,9 @@
 
 /* the largest preset file read, in bytes: a state body of OMX_HOSTED_STAGE_STATE_MAX_BYTES in base64 and its parameters */
 #define PRESET_FILE_MAX_BYTES (3u * 1024u * 1024u)
+/* stricter than the protocol's ceiling, never above it: a file this host writes is one every reader of the format reads */
+_Static_assert(PRESET_FILE_MAX_BYTES <= PHD_PRESET_FILE_MAX,
+               "PRESET_FILE_MAX_BYTES is above the protocol's PHD_PRESET_FILE_MAX: other readers would refuse such a file");
 /* how deep a file's arrays and objects nest at most */
 #define PRESET_JSON_DEPTH_MAX 32
 

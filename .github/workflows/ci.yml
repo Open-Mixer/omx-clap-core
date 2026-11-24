@@ -152,11 +152,19 @@ jobs:
         run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec && dnf install -y --setopt=install_weak_deps=False omx-contract
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
       # (plugin-hostd-protocol#27: a stale staged contract package outranked the channel)
+      # a pull request into devel builds against the staging channel (devel -> staging -> prod, Open-Mixer/.github
+      # add-openmixer): there a package from staging is expected; anywhere else one is refused as before
       - name: Every omx package comes from the channel
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
         run: |
           set -euo pipefail
           dnf repoquery --installed --qf '%{name} %{version} %{from_repo}\n' 'omx-*' | tee /tmp/from-repo
-          if grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi
+          case $EVENT:$BASE in
+            pull_request*:devel) echo "a pull request into devel: a package from the staging channel is expected here" ;;
+            *) if grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi ;;
+          esac
 
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract

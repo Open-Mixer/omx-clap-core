@@ -329,8 +329,11 @@ INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=d
 .PHONY: install-contract test-contract test-domain check-domain
 install-contract:
 	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel (its --domain mode installs contract.d/scan as the package that owns it), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
-	@# the installer is probed for the mode used below, never by version (no floor): one without --domain is older than this tree (#214)
-	@grep -q -e '--domain' $(INSTALL_CONTRACT_DIR) || { echo "install-contract: $(INSTALL_CONTRACT_DIR) has no --domain mode: the omx-contract installer found is older than the contract tree" >&2; exit 1; }
+	@# the installer is probed, before any install step, for the --domain form every call below makes (four arguments, the last
+	@# the package that installs the domain), never by version (no floor): a dry call with no operands prints its usage and
+	@# installs nothing. One whose usage has no `--domain <path>/contract.d/<domain> <contractdir> <package>` (no --domain mode,
+	@# or the three-argument one) is older than this tree (#214)
+	@sh $(INSTALL_CONTRACT_DIR) --domain 2>&1 | grep -qF -e '--domain <path>/contract.d/<domain> <contractdir> <package>' || { echo "install-contract: $(INSTALL_CONTRACT_DIR) has no --domain mode: the omx-contract installer found is older than the contract tree" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR) $(CORE)

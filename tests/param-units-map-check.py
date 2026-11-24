@@ -13,7 +13,7 @@ sheet, and OMX_PARAM_CONTRACT_UNIT_IDS, each token's standard unit id); <omx-con
 scale-maps-check.py.
 
   (a) golden: the sheet holds the 29 tokens of omx-contract's sheet at 3.20.2 with their codes, and the four codes of
-      260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to its golden standard id;
+      260 to 263 (dBPerOct, dBPerS, dBTP, LU), and every token maps to its golden standard id;
   (c) the mapped ids are exactly omx-contract's PARAM_UNITS_CLAP_ENCODED (the ids the extension encodes, param domain;
       a words item whose words copy PARAM_UNITS by x-from, each id its word's const; any other kind is refused), and every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dBPerOct;
       never the lowercase key the word is filed under, which is this level's spelling), and no two codes map to one id;

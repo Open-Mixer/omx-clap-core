@@ -161,7 +161,7 @@ jobs:
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
       # libomx-domain ships omx-domain, the loader's command: make test-domain opens the installed hosting domain with it;
-      # check-domain holds contract.d/hosting/hosting.json to what tools/render-domain.py derives from data/hosting*.json
+      # check-domain holds contract.d/hosting/hosting.json, the one home of the hosting codes: domain check, fmt, validate, every code documented
       - name: libomx-domain
         run: dnf install -y --setopt=install_weak_deps=False libomx-domain
       - name: make check-domain
@@ -874,6 +874,7 @@ jobs:
             files "$rpm" > files.txt
             printf '%s\n' '/usr/lib*/libomx-clap.so.1' "/usr/lib*/libomx-clap.so.$(cat VERSION)" /usr/share/licenses/omx-clap-libs/COPYING /usr/share/doc/omx-clap-libs/README.md \
               /usr/share/omx-clap/ts/omx-clap-hosting.js /usr/share/omx-clap/ts/omx-clap-hosting.d.ts \
+              /usr/share/omx-clap/ts/omx-clap-hosting-codes.js /usr/share/omx-clap/ts/omx-clap-hosting-codes.d.ts \
               /usr/share/omx-clap/ts/omx-clap-vocabulary.js /usr/share/omx-clap/ts/omx-clap-vocabulary.d.ts | sort > expected.txt
             diff -u <(sed 's,/usr/lib64/,/usr/lib*/,' files.txt) expected.txt
             # the library names no jack and no protocol library
@@ -1046,7 +1047,7 @@ jobs:
           ! grep -q 'liblilv' ldd.txt
           # the hosting codes' TypeScript modules are in the runtime package: omx-clap-devel is not installed
           # in this clean root, and plugin-qualify reads them at this path with no headers
-          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
+          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-hosting-codes.js omx-clap-hosting-codes.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
             test -s "/tmp/clean-root/usr/share/omx-clap/ts/$f"
           done
 
@@ -1189,6 +1190,8 @@ jobs:
           dpkg -L libomx-clap1 | sort > core1-files.txt
           grep -qx "$tsdir/omx-clap-hosting.js" core1-files.txt
           grep -qx "$tsdir/omx-clap-hosting.d.ts" core1-files.txt
+          grep -qx "$tsdir/omx-clap-hosting-codes.js" core1-files.txt
+          grep -qx "$tsdir/omx-clap-hosting-codes.d.ts" core1-files.txt
           grep -qx "$tsdir/omx-clap-vocabulary.js" core1-files.txt
           grep -qx "$tsdir/omx-clap-vocabulary.d.ts" core1-files.txt
           ! grep -qx "$tsdir/omx-clap-hosting.js" dev-files.txt
@@ -1289,7 +1292,7 @@ jobs:
       - name: The runtime package alone carries the hosting codes' TypeScript modules
         run: |
           set -euo pipefail
-          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
+          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-hosting-codes.js omx-clap-hosting-codes.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
             test -s "/usr/share/omx-clap/ts/$f"
           done
 

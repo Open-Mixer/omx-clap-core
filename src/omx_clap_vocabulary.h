@@ -14,7 +14,7 @@
  * @brief The vocabulary of omx-clap: every code and every word as a string define, with its sentence
  * where it carries one. */
 
-/* HOSTING_CLAP_CODES (data/hosting/clap.json) */
+/* HOSTING_CLAP_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_CLAP_EXTENSIONS_NOT_COVERED "hosting.clap.extensions-not-covered" ///< unknown: the plugin passed headless with OMX_CLAP_HOST_EXTENSIONS offered, and this host offers fewer of them, so that pass is not this host's; the record names the extensions it lacks
 /** The source sentence (English) of OMX_HOSTING_CLAP_EXTENSIONS_NOT_COVERED. */
 #define OMX_HOSTING_CLAP_EXTENSIONS_NOT_COVERED_TEXT_EN "Not every extension this plugin declares is covered by what was checked. Check the plugin against the extensions this host covers, or accept the gap."
@@ -40,7 +40,7 @@
 /** The source sentence (English) of OMX_HOSTING_CLAP_UNQUALIFIED. */
 #define OMX_HOSTING_CLAP_UNQUALIFIED_TEXT_EN "This plugin has not been qualified for hosting. Qualify it before relying on it."
 
-/* HOSTING_COST_CODES (data/hosting/cost.json) */
+/* HOSTING_COST_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_COST_ABOVE_CEILING "hosting.cost.above-ceiling" ///< unsuitable: the plugin's P95 core fraction at the judged rate and quantum is above the host profile's per-instance ceiling
 /** The source sentence (English) of OMX_HOSTING_COST_ABOVE_CEILING. */
 #define OMX_HOSTING_COST_ABOVE_CEILING_TEXT_EN "The plugin\342\200\231s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less."
@@ -57,7 +57,7 @@
 /** The source sentence (English) of OMX_HOSTING_COST_WITHIN_CEILING. */
 #define OMX_HOSTING_COST_WITHIN_CEILING_TEXT_EN "The plugin\342\200\231s measured CPU cost is within the ceiling for this rate and quantum."
 
-/* HOSTING_FEATURES_CODES (data/hosting/features.json) */
+/* HOSTING_FEATURES_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_FEATURES_ATOM_IN_UNFED "hosting.features.atom-in-unfed" ///< a non-MIDI atom input no buffer here can feed
 /** The source sentence (English) of OMX_HOSTING_FEATURES_ATOM_IN_UNFED. */
 #define OMX_HOSTING_FEATURES_ATOM_IN_UNFED_TEXT_EN "This plugin declares a non-MIDI atom input that nothing here can feed. Run it where that input can be fed, or accept it stays empty."
@@ -80,7 +80,7 @@
 /** The source sentence (English) of OMX_HOSTING_FEATURES_SCAN_PREDATES_FIELD. */
 #define OMX_HOSTING_FEATURES_SCAN_PREDATES_FIELD_TEXT_EN "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check."
 
-/* HOSTING_LATENCY_CODES (data/hosting/latency.json) */
+/* HOSTING_LATENCY_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_LATENCY_NONCONFORMING "hosting.latency.nonconforming" ///< unknown: the measured latency does not scale with rate as a conforming plugin's does (its scaling class is nonconforming), so its figure is not used
 /** The source sentence (English) of OMX_HOSTING_LATENCY_NONCONFORMING. */
 #define OMX_HOSTING_LATENCY_NONCONFORMING_TEXT_EN "This plugin\342\200\231s reported latency does not conform to what a host can use. Don\342\200\231t trust its reported latency."
@@ -94,7 +94,7 @@
 /** The source sentence (English) of OMX_HOSTING_LATENCY_UNMEASURED. */
 #define OMX_HOSTING_LATENCY_UNMEASURED_TEXT_EN "This plugin\342\200\231s latency has not been measured. Measure it before relying on it."
 
-/* HOSTING_MEMORY_CODES (data/hosting/memory.json) */
+/* HOSTING_MEMORY_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_MEMORY_ABOVE_CEILING "hosting.memory.above-ceiling" ///< the measured figure passes the host's budget for one instance or for all its plugins; the params name the figure, the ceiling, and whether the ceiling is provisional
 /** The source sentence (English) of OMX_HOSTING_MEMORY_ABOVE_CEILING. */
 #define OMX_HOSTING_MEMORY_ABOVE_CEILING_TEXT_EN "This plugin\342\200\231s measured memory is above the host\342\200\231s budget. Raise the budget, or use a plugin that uses less memory."
@@ -108,17 +108,17 @@
 /** The source sentence (English) of OMX_HOSTING_MEMORY_WITHIN_PROVISIONAL_CEILING. */
 #define OMX_HOSTING_MEMORY_WITHIN_PROVISIONAL_CEILING_TEXT_EN "This plugin\342\200\231s measured memory is under a budget that has not yet been measured on this kind of host. This is not a guarantee that it fits, only that it is under that provisional budget."
 
-/* HOSTING_OUTPUT_CODES (data/hosting/output.json) */
+/* HOSTING_OUTPUT_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_OUTPUT_NON_FINITE "hosting.output.non-finite" ///< the plugin produced non-finite output
 /** The source sentence (English) of OMX_HOSTING_OUTPUT_NON_FINITE. */
 #define OMX_HOSTING_OUTPUT_NON_FINITE_TEXT_EN "This plugin produced non-finite output: infinities or NaNs. Treat its output as a fault."
 
-/* HOSTING_OVERRIDE_CODES (data/hosting/override.json) */
+/* HOSTING_OVERRIDE_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_OVERRIDE_CURATOR_ISOLATED "hosting.override.curator-isolated" ///< unsuitable: the curator's override holds the plugin isolated, whatever its measurements say
 /** The source sentence (English) of OMX_HOSTING_OVERRIDE_CURATOR_ISOLATED. */
 #define OMX_HOSTING_OVERRIDE_CURATOR_ISOLATED_TEXT_EN "The curator\342\200\231s override is isolated from this run. Apply the override where the curator\342\200\231s run can see it."
 
-/* HOSTING_PATCH_CODES (data/hosting/patch.json) */
+/* HOSTING_PATCH_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_PATCH_BUSY "hosting.patch.busy" ///< a patch write found the previous one not yet taken by the plugin's thread; the host retries it for a while before answering this
 /** The source sentence (English) of OMX_HOSTING_PATCH_BUSY. */
 #define OMX_HOSTING_PATCH_BUSY_TEXT_EN "The plugin\342\200\231s patch is busy right now. Try again once it\342\200\231s free."
@@ -129,12 +129,12 @@
 /** The source sentence (English) of OMX_HOSTING_PATCH_TOO_LARGE. */
 #define OMX_HOSTING_PATCH_TOO_LARGE_TEXT_EN "This patch is too large for the plugin to accept. Use a smaller patch."
 
-/* HOSTING_PRESET_CODES (data/hosting/preset.json) */
+/* HOSTING_PRESET_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_PRESET_NOT_FOUND "hosting.preset.not-found" ///< the bundle holds no preset of that name for this plugin
 /** The source sentence (English) of OMX_HOSTING_PRESET_NOT_FOUND. */
 #define OMX_HOSTING_PRESET_NOT_FOUND_TEXT_EN "This preset could not be found. Check its name and location and try again."
 
-/* HOSTING_PROVENANCE_CODES (data/hosting/provenance.json) */
+/* HOSTING_PROVENANCE_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_PROVENANCE_HOST_DIFFERS "hosting.provenance.host-differs" ///< unknown: the figures were measured on a host other than the one the console runs on, so no verdict is carried over from them
 /** The source sentence (English) of OMX_HOSTING_PROVENANCE_HOST_DIFFERS. */
 #define OMX_HOSTING_PROVENANCE_HOST_DIFFERS_TEXT_EN "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference."
@@ -142,7 +142,7 @@
 /** The source sentence (English) of OMX_HOSTING_PROVENANCE_SWEEP_CONTROL_DID_NOT_FIRE. */
 #define OMX_HOSTING_PROVENANCE_SWEEP_CONTROL_DID_NOT_FIRE_TEXT_EN "The sweep\342\200\231s control plugin did not fire during the measurement. Check the control plugin and measure again."
 
-/* HOSTING_REALISED_CODES (data/hosting/realised.json) */
+/* HOSTING_REALISED_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_DISABLED "hosting.disabled" ///< the console's in-process switch is off: an LV2 runs isolated, and a third-party CLAP, which has no other path, is refused
 /** The source sentence (English) of OMX_HOSTING_DISABLED. */
 #define OMX_HOSTING_DISABLED_TEXT_EN "This plugin is disabled. Enable it before using it."
@@ -159,7 +159,7 @@
 /** The source sentence (English) of OMX_HOSTING_UNJUDGED. */
 #define OMX_HOSTING_UNJUDGED_TEXT_EN "This plugin has not been judged yet. Judge it before trusting any verdict about it."
 
-/* HOSTING_RESOURCE_HINTS_CODES (data/hosting/resource-hints.json) */
+/* HOSTING_RESOURCE_HINTS_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_RESOURCE_HINTS_OUT_OF_RANGE "hosting.resource-hints.out-of-range" ///< a figure below zero, or past what its hint's member holds
 /** The source sentence (English) of OMX_HOSTING_RESOURCE_HINTS_OUT_OF_RANGE. */
 #define OMX_HOSTING_RESOURCE_HINTS_OUT_OF_RANGE_TEXT_EN "This plugin declared a resource hint figure below zero, or past what that hint can hold. None of its hints are trusted; every one reads as unknown."
@@ -170,7 +170,7 @@
 /** The source sentence (English) of OMX_HOSTING_RESOURCE_HINTS_WRONG_UNIT. */
 #define OMX_HOSTING_RESOURCE_HINTS_WRONG_UNIT_TEXT_EN "This plugin declared a resource hint figure in the wrong unit: a flag that is not a boolean, or a count, time or size that is not a whole number. None of its hints are trusted; every one reads as unknown."
 
-/* HOSTING_RT_SAFETY_CODES (data/hosting/rt-safety.json) */
+/* HOSTING_RT_SAFETY_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_RT_SAFETY_CLEAN_UNDER_SWEEP "hosting.rt-safety.clean-under-sweep" ///< suitable: the interposer counted no allocation, lock or system call on the audio thread over the armed blocks with every parameter swept
 /** The source sentence (English) of OMX_HOSTING_RT_SAFETY_CLEAN_UNDER_SWEEP. */
 #define OMX_HOSTING_RT_SAFETY_CLEAN_UNDER_SWEEP_TEXT_EN "The plugin showed no real-time safety violation under the sweep. It passed clean."
@@ -196,7 +196,7 @@
 /** The source sentence (English) of OMX_HOSTING_RT_SAFETY_VIOLATIONS_IN_RUN. */
 #define OMX_HOSTING_RT_SAFETY_VIOLATIONS_IN_RUN_TEXT_EN "The plugin violated real-time safety during the run. Treat it as not real-time safe."
 
-/* HOSTING_STABILITY_CODES (data/hosting/stability.json) */
+/* HOSTING_STABILITY_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_STABILITY_CYCLES_BELOW_FLOOR "hosting.stability.cycles-below-floor" ///< unknown: the plugin was instantiated fewer times than the policy's cycle floor
 /** The source sentence (English) of OMX_HOSTING_STABILITY_CYCLES_BELOW_FLOOR. */
 #define OMX_HOSTING_STABILITY_CYCLES_BELOW_FLOOR_TEXT_EN "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result."
@@ -231,7 +231,7 @@
 /** The source sentence (English) of OMX_HOSTING_STABILITY_UNSOAKED. */
 #define OMX_HOSTING_STABILITY_UNSOAKED_TEXT_EN "This plugin has not been soaked. Soak it before trusting it over a long run."
 
-/* HOSTING_STATE_CODES (data/hosting/state.json) */
+/* HOSTING_STATE_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_STATE_NOT_A_COPY "hosting.state.not-a-copy" ///< not a save's copy directory of the root
 /** The source sentence (English) of OMX_HOSTING_STATE_NOT_A_COPY. */
 #define OMX_HOSTING_STATE_NOT_A_COPY_TEXT_EN "This path is not a save\342\200\231s copy directory of the state root. Use the copy directory a save actually made."
@@ -254,7 +254,7 @@
 /** The source sentence (English) of OMX_HOSTING_STATE_UNREADABLE. */
 #define OMX_HOSTING_STATE_UNREADABLE_TEXT_EN "This plugin\342\200\231s saved state could not be read. Treat it as lost, or restore it from a working copy."
 
-/* HOSTING_TOPOLOGY_CODES (data/hosting/topology.json) */
+/* HOSTING_TOPOLOGY_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_TOPOLOGY_AMBISONIC_CONFIG "hosting.topology.ambisonic-config" ///< an ambisonic port refuses the carrier's ordering or normalisation
 /** The source sentence (English) of OMX_HOSTING_TOPOLOGY_AMBISONIC_CONFIG. */
 #define OMX_HOSTING_TOPOLOGY_AMBISONIC_CONFIG_TEXT_EN "This plugin\342\200\231s ambisonic port refuses the carrier\342\200\231s channel ordering or normalisation. Use a carrier whose ordering and normalisation this port accepts."
@@ -304,7 +304,7 @@
 #define OMX_HOSTING_VERB_HOSTS(X) \
     X(0u, "plugin-hostd", PLUGIN_HOSTD) X(1u, "omx-clap-host", OMX_CLAP_HOST) X(2u, "mod-host", MOD_HOST)
 
-/* HOSTING_WORKER_CODES (data/hosting/worker.json) */
+/* HOSTING_WORKER_CODES (contract.d/hosting/hosting.json) */
 #define OMX_HOSTING_WORKER_NONCONFORMING "hosting.worker.nonconforming" ///< unsuitable: the plugin's worker interface was refused while its latency was measured, so it is not hostable
 /** The source sentence (English) of OMX_HOSTING_WORKER_NONCONFORMING. */
 #define OMX_HOSTING_WORKER_NONCONFORMING_TEXT_EN "This plugin\342\200\231s worker does not conform to what a worker must do. Don\342\200\231t rely on its worker."

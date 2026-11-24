@@ -18,14 +18,17 @@
             "title": "idleHoldRefused",
             "description": "the device could not be opened for writing (no permission, or no such device): the host runs with no hold",
             "x-code": 0,
-            "x-text": "The CPU idle-latency device could not be opened for writing, so the host runs with no hold on it. Grant write access to /dev/cpu_dma_latency, or accept that idle states are not held."
+            "x-text": "The CPU idle-latency device could not be opened for writing, so the host runs with no hold on it. Grant write access to /dev/cpu_dma_latency, or accept that idle states are not held.",
+            "x-name": "idleHoldRefused"
           }
         ],
         "x-source": {
           "impl": [
             "src/idle_hold.c#idle_hold_open"
           ]
-        }
+        },
+        "x-file": "hosting-codes.json",
+        "x-kind": "codes"
       },
       "HOSTING_WINDOW_CODES": {
         "description": "The hosting codes of the window dimension, hosting.window.*: why omx-clap-host refuses to show a plugin's own window (clap.gui) when show_external_ui asks for it (#180). The dimension is the standalone host's: the console never shows a plugin's native window.",
@@ -36,21 +39,24 @@
             "title": "windowNoDisplay",
             "description": "no display to show it on: none is named, or its server refused the connection; the plugin runs on",
             "x-code": 0,
-            "x-text": "There is no display to show the window on: none was named, or its server refused the connection. The plugin keeps running without a window."
+            "x-text": "There is no display to show the window on: none was named, or its server refused the connection. The plugin keeps running without a window.",
+            "x-name": "windowNoDisplay"
           },
           {
             "const": "hosting.window.unsupported",
             "title": "windowUnsupported",
             "description": "the plugin has no clap.gui, or its clap.gui offers no window API the host shows, embedded or floating",
             "x-code": 1,
-            "x-text": "This plugin has no window, or none in a form this host can show, embedded or floating. Run it without a window."
+            "x-text": "This plugin has no window, or none in a form this host can show, embedded or floating. Run it without a window.",
+            "x-name": "windowUnsupported"
           },
           {
             "const": "hosting.window.refused",
             "title": "windowRefused",
             "description": "the plugin's clap.gui answered false when asked to create, embed or show its window",
             "x-code": 2,
-            "x-text": "The plugin refused to create, embed or show its own window when asked. Run it without a window."
+            "x-text": "The plugin refused to create, embed or show its own window when asked. Run it without a window.",
+            "x-name": "windowRefused"
           }
         ],
         "x-source": {
@@ -58,7 +64,9 @@
             "src/window.c#window_api_pick",
             "src/window.c#window_make"
           ]
-        }
+        },
+        "x-file": "hosting-codes.json",
+        "x-kind": "codes"
       },
       "HOSTING_CLAP_CODES": {
         "description": "The hosting codes of the clap dimension: hosting.clap.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -69,58 +77,68 @@
             "title": "clapExtensionsNotCovered",
             "description": "unknown: the plugin passed headless with OMX_CLAP_HOST_EXTENSIONS offered, and this host offers fewer of them, so that pass is not this host's; the record names the extensions it lacks",
             "x-code": 0,
-            "x-text": "Not every extension this plugin declares is covered by what was checked. Check the plugin against the extensions this host covers, or accept the gap."
+            "x-text": "Not every extension this plugin declares is covered by what was checked. Check the plugin against the extensions this host covers, or accept the gap.",
+            "x-name": "clapExtensionsNotCovered"
           },
           {
             "const": "hosting.clap.format-not-hosted",
             "title": "clapFormatNotHosted",
             "description": "unsuitable: the host profile has no CLAP path (its clapExtensions is null), so no CLAP runs on it whatever was measured",
             "x-code": 1,
-            "x-text": "This host does not host the CLAP format. Use a host that does."
+            "x-text": "This host does not host the CLAP format. Use a host that does.",
+            "x-name": "clapFormatNotHosted"
           },
           {
             "const": "hosting.clap.headless-failed",
             "title": "clapHeadlessFailed",
             "description": "unsuitable: init() or activate() failed with no window and only OMX_CLAP_HOST_EXTENSIONS offered (a plugin that requires the gui extension, or whose init returns false)",
             "x-code": 2,
-            "x-text": "The plugin failed while being checked headless, with no window. Fix what failed and check it again."
+            "x-text": "The plugin failed while being checked headless, with no window. Fix what failed and check it again.",
+            "x-name": "clapHeadlessFailed"
           },
           {
             "const": "hosting.clap.latency-mismatch",
             "title": "clapLatencyMismatch",
             "description": "unsuitable: at one declared rate the latency the plugin declares is not the frame the qualifier's impulse arrives at (for an instrument, its note sounds before the declared latency); the record names the rate, declared and measured frames",
             "x-code": 3,
-            "x-text": "The plugin’s reported latency does not match what was measured. Trust the measured figure, not the plugin’s own report."
+            "x-text": "The plugin’s reported latency does not match what was measured. Trust the measured figure, not the plugin’s own report.",
+            "x-name": "clapLatencyMismatch"
           },
           {
             "const": "hosting.clap.note-input",
             "title": "clapNoteInput",
             "description": "the plugin declares a note input the configuration refuses",
             "x-code": 4,
-            "x-text": "This configuration refuses the note input the plugin declares. Run the plugin in a configuration that accepts its note input, or without notes."
+            "x-text": "This configuration refuses the note input the plugin declares. Run the plugin in a configuration that accepts its note input, or without notes.",
+            "x-name": "clapNoteInput"
           },
           {
             "const": "hosting.clap.process-error",
             "title": "clapProcessError",
             "description": "unsuitable: process() returned CLAP_PROCESS_ERROR during the parameter or note sweep; the record counts the errors",
             "x-code": 5,
-            "x-text": "The plugin’s processing call returned an error. Treat the plugin as faulty for this block."
+            "x-text": "The plugin’s processing call returned an error. Treat the plugin as faulty for this block.",
+            "x-name": "clapProcessError"
           },
           {
             "const": "hosting.clap.thread-violation",
             "title": "clapThreadViolation",
             "description": "conditional: the strict thread-check caught a [main-thread] host call from the audio thread, or process() on another thread; the plugin runs isolated in a worker of its own",
             "x-code": 6,
-            "x-text": "The plugin called back from the wrong thread. Treat the plugin as not thread-safe."
+            "x-text": "The plugin called back from the wrong thread. Treat the plugin as not thread-safe.",
+            "x-name": "clapThreadViolation"
           },
           {
             "const": "hosting.clap.unqualified",
             "title": "clapUnqualified",
             "description": "unknown: no CLAP qualification is on record for the plugin (or its sweep made no process() call), so its topology, features and real-time safety are not judged",
             "x-code": 7,
-            "x-text": "This plugin has not been qualified for hosting. Qualify it before relying on it."
+            "x-text": "This plugin has not been qualified for hosting. Qualify it before relying on it.",
+            "x-name": "clapUnqualified"
           }
-        ]
+        ],
+        "x-file": "hosting/clap.json",
+        "x-kind": "codes"
       },
       "HOSTING_COST_CODES": {
         "description": "The hosting codes of the cost dimension: hosting.cost.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -131,37 +149,44 @@
             "title": "costAboveCeiling",
             "description": "unsuitable: the plugin's P95 core fraction at the judged rate and quantum is above the host profile's per-instance ceiling",
             "x-code": 0,
-            "x-text": "The plugin’s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less."
+            "x-text": "The plugin’s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less.",
+            "x-name": "costAboveCeiling"
           },
           {
             "const": "hosting.cost.fields-missing",
             "title": "costFieldsMissing",
             "description": "unknown: the cost record at the judged rate and quantum lacks a figure the comparison needs (refused before comparing, so an absent figure never passes); the record names them",
             "x-code": 1,
-            "x-text": "The cost measurement is missing fields it needs. Measure the plugin’s cost again, completely."
+            "x-text": "The cost measurement is missing fields it needs. Measure the plugin’s cost again, completely.",
+            "x-name": "costFieldsMissing"
           },
           {
             "const": "hosting.cost.spiky-tail",
             "title": "costSpiky",
             "description": "conditional: the P95 cost per sample is more than the policy's tail ratio above the median at the judged rate and quantum",
             "x-code": 2,
-            "x-text": "The plugin’s CPU cost has a spiky tail: occasional blocks cost much more than the rest. Treat it as unreliable at this rate and quantum."
+            "x-text": "The plugin’s CPU cost has a spiky tail: occasional blocks cost much more than the rest. Treat it as unreliable at this rate and quantum.",
+            "x-name": "costSpiky"
           },
           {
             "const": "hosting.cost.unmeasured-at-rate-and-quantum",
             "title": "costUnmeasured",
             "description": "unknown: no cost was measured at the rate and quantum being judged",
             "x-code": 3,
-            "x-text": "The plugin’s CPU cost has not been measured at this rate and quantum. Measure it before relying on a ceiling."
+            "x-text": "The plugin’s CPU cost has not been measured at this rate and quantum. Measure it before relying on a ceiling.",
+            "x-name": "costUnmeasured"
           },
           {
             "const": "hosting.cost.within-ceiling",
             "title": "costWithinCeiling",
             "description": "suitable: the P95 core fraction is within the host's per-instance ceiling and the tail is within the policy's ratio",
             "x-code": 4,
-            "x-text": "The plugin’s measured CPU cost is within the ceiling for this rate and quantum."
+            "x-text": "The plugin’s measured CPU cost is within the ceiling for this rate and quantum.",
+            "x-name": "costWithinCeiling"
           }
-        ]
+        ],
+        "x-file": "hosting/cost.json",
+        "x-kind": "codes"
       },
       "HOSTING_FEATURES_CODES": {
         "description": "The hosting codes of the features dimension: hosting.features.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -172,51 +197,60 @@
             "title": "featuresAtomInUnfed",
             "description": "a non-MIDI atom input no buffer here can feed",
             "x-code": 0,
-            "x-text": "This plugin declares a non-MIDI atom input that nothing here can feed. Run it where that input can be fed, or accept it stays empty."
+            "x-text": "This plugin declares a non-MIDI atom input that nothing here can feed. Run it where that input can be fed, or accept it stays empty.",
+            "x-name": "featuresAtomInUnfed"
           },
           {
             "const": "hosting.features.host-not-provided",
             "title": "featuresDisqualifying",
             "description": "unsuitable: the plugin requires a feature the host refuses to provide on the audio thread (a disqualifying one, or one that pins the quantum where the quantum is not pinned); the record names them",
             "x-code": 1,
-            "x-text": "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature."
+            "x-text": "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature.",
+            "x-name": "featuresDisqualifying"
           },
           {
             "const": "hosting.features.midi-in-fed-empty",
             "title": "featuresMidiIn",
             "description": "conditional: the plugin has a MIDI input, which an insert on a host that plays no notes never feeds; on the LV2 path an input the host cannot feed is refused at add",
             "x-code": 2,
-            "x-text": "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none."
+            "x-text": "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none.",
+            "x-name": "featuresMidiIn"
           },
           {
             "const": "hosting.features.missing",
             "title": "featuresMissing",
             "description": "unsuitable: the plugin requires a feature the host does not provide; the LV2 adapter refuses it at add from its TTL, before its binary is opened",
             "x-code": 3,
-            "x-text": "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere."
+            "x-text": "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere.",
+            "x-name": "featuresMissing"
           },
           {
             "const": "hosting.features.ports-unreadable",
             "title": "featuresPortsUnreadable",
             "description": "the plugin declares ports its reader cannot read (a port node shared by several plugins of one bundle, a port with no symbol), so none reaches the host: the bundle's data is the fault, not the layout (omx-clap-core#255)",
             "x-code": 4,
-            "x-text": "This plugin declares ports its reader cannot read, so none of them reach the host. The fault is in the plugin’s own bundle, not in this host."
+            "x-text": "This plugin declares ports its reader cannot read, so none of them reach the host. The fault is in the plugin’s own bundle, not in this host.",
+            "x-name": "featuresPortsUnreadable"
           },
           {
             "const": "hosting.features.all-provided",
             "title": "featuresProvided",
             "description": "suitable: every feature the plugin requires is provided, and nothing in its descriptor is a caution",
             "x-code": 5,
-            "x-text": "This plugin has every feature it needs."
+            "x-text": "This plugin has every feature it needs.",
+            "x-name": "featuresProvided"
           },
           {
             "const": "hosting.features.scan-predates-field",
             "title": "featuresUnscanned",
             "description": "unknown: the plugin's scan record has no feature list, because it was taken before the scan read one",
             "x-code": 6,
-            "x-text": "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check."
+            "x-text": "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check.",
+            "x-name": "featuresUnscanned"
           }
-        ]
+        ],
+        "x-file": "hosting/features.json",
+        "x-kind": "codes"
       },
       "HOSTING_LATENCY_CODES": {
         "description": "The hosting codes of the latency dimension: hosting.latency.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -227,30 +261,36 @@
             "title": "latencyNonconforming",
             "description": "unknown: the measured latency does not scale with rate as a conforming plugin's does (its scaling class is nonconforming), so its figure is not used",
             "x-code": 0,
-            "x-text": "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency."
+            "x-text": "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency.",
+            "x-name": "latencyNonconforming"
           },
           {
             "const": "hosting.latency.parameter-dependent",
             "title": "latencyParameterDependent",
             "description": "conditional: the parameter sweep moved the plugin's latency; allowed where the host compensates, as it reads the live figure each cycle",
             "x-code": 1,
-            "x-text": "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it."
+            "x-text": "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it.",
+            "x-name": "latencyParameterDependent"
           },
           {
             "const": "hosting.latency.resolved",
             "title": "latencyResolved",
             "description": "suitable: the plugin's latency is measured and fixed (for a CLAP, the declared figure is what was measured at every declared rate)",
             "x-code": 2,
-            "x-text": "This plugin’s latency has been resolved to a fixed figure."
+            "x-text": "This plugin’s latency has been resolved to a fixed figure.",
+            "x-name": "latencyResolved"
           },
           {
             "const": "hosting.latency.unmeasured",
             "title": "latencyUnmeasured",
             "description": "unknown: there is no latency figure, or the benchmark declared it unmeasurable; fails closed, never passed by default",
             "x-code": 3,
-            "x-text": "This plugin’s latency has not been measured. Measure it before relying on it."
+            "x-text": "This plugin’s latency has not been measured. Measure it before relying on it.",
+            "x-name": "latencyUnmeasured"
           }
-        ]
+        ],
+        "x-file": "hosting/latency.json",
+        "x-kind": "codes"
       },
       "HOSTING_MEMORY_CODES": {
         "description": "The hosting codes of the memory dimension: hosting.memory.*, what a qualifier, a host or the console read of a plugin's measured memory against a host's budget, by code, never by prose.",
@@ -261,30 +301,36 @@
             "title": "memoryAboveCeiling",
             "description": "the measured figure passes the host's budget for one instance or for all its plugins; the params name the figure, the ceiling, and whether the ceiling is provisional",
             "x-code": 0,
-            "x-text": "This plugin’s measured memory is above the host’s budget. Raise the budget, or use a plugin that uses less memory."
+            "x-text": "This plugin’s measured memory is above the host’s budget. Raise the budget, or use a plugin that uses less memory.",
+            "x-name": "memoryAboveCeiling"
           },
           {
             "const": "hosting.memory.unmeasured",
             "title": "memoryUnmeasured",
             "description": "no figure at the host's rate and quantum, so the plugin is not known to fit; a missing figure never reads as fitting",
             "x-code": 1,
-            "x-text": "This plugin’s memory has not been measured at the host’s rate and quantum, so it is not known to fit. Measure it before trusting that it fits."
+            "x-text": "This plugin’s memory has not been measured at the host’s rate and quantum, so it is not known to fit. Measure it before trusting that it fits.",
+            "x-name": "memoryUnmeasured"
           },
           {
             "const": "hosting.memory.within-ceiling",
             "title": "memoryWithinCeiling",
             "description": "the measured figure fits a budget that was itself measured on that kind of host",
             "x-code": 2,
-            "x-text": "This plugin’s measured memory fits a budget that was itself measured on this kind of host."
+            "x-text": "This plugin’s measured memory fits a budget that was itself measured on this kind of host.",
+            "x-name": "memoryWithinCeiling"
           },
           {
             "const": "hosting.memory.within-provisional-ceiling",
             "title": "memoryWithinProvisionalCeiling",
             "description": "the measured figure is under a budget not yet measured on that kind of host, so this says the figure and the ceiling, not that the plugin fits",
             "x-code": 3,
-            "x-text": "This plugin’s measured memory is under a budget that has not yet been measured on this kind of host. This is not a guarantee that it fits, only that it is under that provisional budget."
+            "x-text": "This plugin’s measured memory is under a budget that has not yet been measured on this kind of host. This is not a guarantee that it fits, only that it is under that provisional budget.",
+            "x-name": "memoryWithinProvisionalCeiling"
           }
-        ]
+        ],
+        "x-file": "hosting/memory.json",
+        "x-kind": "codes"
       },
       "HOSTING_OUTPUT_CODES": {
         "description": "The hosting codes of the output dimension: hosting.output.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -295,9 +341,12 @@
             "title": "outputNonFinite",
             "description": "the plugin produced non-finite output",
             "x-code": 0,
-            "x-text": "This plugin produced non-finite output: infinities or NaNs. Treat its output as a fault."
+            "x-text": "This plugin produced non-finite output: infinities or NaNs. Treat its output as a fault.",
+            "x-name": "outputNonFinite"
           }
-        ]
+        ],
+        "x-file": "hosting/output.json",
+        "x-kind": "codes"
       },
       "HOSTING_OVERRIDE_CODES": {
         "description": "The hosting codes of the override dimension: hosting.override.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -308,9 +357,12 @@
             "title": "overrideIsolated",
             "description": "unsuitable: the curator's override holds the plugin isolated, whatever its measurements say",
             "x-code": 0,
-            "x-text": "The curator’s override is isolated from this run. Apply the override where the curator’s run can see it."
+            "x-text": "The curator’s override is isolated from this run. Apply the override where the curator’s run can see it.",
+            "x-name": "overrideIsolated"
           }
-        ]
+        ],
+        "x-file": "hosting/override.json",
+        "x-kind": "codes"
       },
       "HOSTING_PATCH_CODES": {
         "description": "The hosting codes of the patch dimension: hosting.patch.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -321,23 +373,28 @@
             "title": "patchBusy",
             "description": "a patch write found the previous one not yet taken by the plugin's thread; the host retries it for a while before answering this",
             "x-code": 0,
-            "x-text": "The plugin’s patch is busy right now. Try again once it’s free."
+            "x-text": "The plugin’s patch is busy right now. Try again once it’s free.",
+            "x-name": "patchBusy"
           },
           {
             "const": "hosting.patch.not-writable",
             "title": "patchNotWritable",
             "description": "the plugin lists no such writable property, or the adapter did not create it: a patch write is refused",
             "x-code": 1,
-            "x-text": "This plugin’s patch cannot be written. Treat it as read-only."
+            "x-text": "This plugin’s patch cannot be written. Treat it as read-only.",
+            "x-name": "patchNotWritable"
           },
           {
             "const": "hosting.patch.too-large",
             "title": "patchTooLarge",
             "description": "the value of a patch write is longer than the property's max_bytes",
             "x-code": 2,
-            "x-text": "This patch is too large for the plugin to accept. Use a smaller patch."
+            "x-text": "This patch is too large for the plugin to accept. Use a smaller patch.",
+            "x-name": "patchTooLarge"
           }
-        ]
+        ],
+        "x-file": "hosting/patch.json",
+        "x-kind": "codes"
       },
       "HOSTING_PRESET_CODES": {
         "description": "The hosting codes of the preset dimension: hosting.preset.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -348,9 +405,12 @@
             "title": "presetNotFound",
             "description": "the bundle holds no preset of that name for this plugin",
             "x-code": 0,
-            "x-text": "This preset could not be found. Check its name and location and try again."
+            "x-text": "This preset could not be found. Check its name and location and try again.",
+            "x-name": "presetNotFound"
           }
-        ]
+        ],
+        "x-file": "hosting/preset.json",
+        "x-kind": "codes"
       },
       "HOSTING_PROVENANCE_CODES": {
         "description": "The hosting codes of the provenance dimension: hosting.provenance.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -361,16 +421,20 @@
             "title": "hostProvenanceDiffers",
             "description": "unknown: the figures were measured on a host other than the one the console runs on, so no verdict is carried over from them",
             "x-code": 0,
-            "x-text": "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference."
+            "x-text": "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference.",
+            "x-name": "hostProvenanceDiffers"
           },
           {
             "const": "hosting.provenance.sweep-control-did-not-fire",
             "title": "sweepControlDidNotFire",
             "description": "unknown: the sweep's positive control did not fire, so nothing the sweep measured counts",
             "x-code": 1,
-            "x-text": "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again."
+            "x-text": "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again.",
+            "x-name": "sweepControlDidNotFire"
           }
-        ]
+        ],
+        "x-file": "hosting/provenance.json",
+        "x-kind": "codes"
       },
       "HOSTING_REALISED_CODES": {
         "description": "What the console did with a plugin's verdict: hosting.realised.* and the outcomes with no dimension (hosting.disabled, hosting.unjudged, hosting.no-realisation, hosting.linked), read by code, never by prose.",
@@ -381,37 +445,44 @@
             "title": "disabled",
             "description": "the console's in-process switch is off: an LV2 runs isolated, and a third-party CLAP, which has no other path, is refused",
             "x-code": 0,
-            "x-text": "This plugin is disabled. Enable it before using it."
+            "x-text": "This plugin is disabled. Enable it before using it.",
+            "x-name": "disabled"
           },
           {
             "const": "hosting.linked",
             "title": "linked",
             "description": "the plugin is one of the engine's statically linked CLAPs and runs in-process on the node that carries the CLAP bank",
             "x-code": 1,
-            "x-text": "This plugin is realised linked into the host’s own process."
+            "x-text": "This plugin is realised linked into the host’s own process.",
+            "x-name": "linked"
           },
           {
             "const": "hosting.no-realisation",
             "title": "noRealisation",
             "description": "the plugin earned a path that has no body here: no LV2 adapter or CLAP bank to run it, or a port class the stage cannot bind",
             "x-code": 2,
-            "x-text": "This plugin has no realisation: nothing runs it. Give it a way to run before using it."
+            "x-text": "This plugin has no realisation: nothing runs it. Give it a way to run before using it.",
+            "x-name": "noRealisation"
           },
           {
             "const": "hosting.realised.in-process",
             "title": "realisedInProcess",
             "description": "the plugin runs in-process: it earned it and the console's switch allows it",
             "x-code": 3,
-            "x-text": "This plugin is realised in its own process, isolated from the host’s."
+            "x-text": "This plugin is realised in its own process, isolated from the host’s.",
+            "x-name": "realisedInProcess"
           },
           {
             "const": "hosting.unjudged",
             "title": "unjudged",
             "description": "the plugin has no verdict on record for this build (a linked CLAP without a row measured on the pinned build): it is refused at load",
             "x-code": 4,
-            "x-text": "This plugin has not been judged yet. Judge it before trusting any verdict about it."
+            "x-text": "This plugin has not been judged yet. Judge it before trusting any verdict about it.",
+            "x-name": "unjudged"
           }
-        ]
+        ],
+        "x-file": "hosting/realised.json",
+        "x-kind": "codes"
       },
       "HOSTING_RESOURCE_HINTS_CODES": {
         "description": "The hosting codes of the resource-hints dimension: hosting.resource-hints.*, why the host refuses the hints a plugin declares about itself (omx-contract's RESOURCE_HINTS, through the CLAP draft org.openmixer.resource-hints.draft/0 or the omxres LV2 properties). A refused declaration is trusted for none of its hints: every hint reads as unknown.",
@@ -422,21 +493,24 @@
             "title": "resourceHintsOutOfRange",
             "description": "a figure below zero, or past what its hint's member holds",
             "x-code": 0,
-            "x-text": "This plugin declared a resource hint figure below zero, or past what that hint can hold. None of its hints are trusted; every one reads as unknown."
+            "x-text": "This plugin declared a resource hint figure below zero, or past what that hint can hold. None of its hints are trusted; every one reads as unknown.",
+            "x-name": "resourceHintsOutOfRange"
           },
           {
             "const": "hosting.resource-hints.unknown-hint",
             "title": "resourceHintsUnknownHint",
             "description": "the declared mask sets a bit RESOURCE_HINTS has no hint for",
             "x-code": 1,
-            "x-text": "This plugin’s declared hints set a bit that names no known hint. None of its hints are trusted; every one reads as unknown."
+            "x-text": "This plugin’s declared hints set a bit that names no known hint. None of its hints are trusted; every one reads as unknown.",
+            "x-name": "resourceHintsUnknownHint"
           },
           {
             "const": "hosting.resource-hints.wrong-unit",
             "title": "resourceHintsWrongUnit",
             "description": "a figure not in its hint's unit: a flag that is not a boolean, a count, a time or a size that is not an integer",
             "x-code": 2,
-            "x-text": "This plugin declared a resource hint figure in the wrong unit: a flag that is not a boolean, or a count, time or size that is not a whole number. None of its hints are trusted; every one reads as unknown."
+            "x-text": "This plugin declared a resource hint figure in the wrong unit: a flag that is not a boolean, or a count, time or size that is not a whole number. None of its hints are trusted; every one reads as unknown.",
+            "x-name": "resourceHintsWrongUnit"
           }
         ],
         "x-source": {
@@ -444,7 +518,9 @@
             "src/clap_host.c#resource_hints_read",
             "lv2/core/lv2_world.c#resource_hints_read"
           ]
-        }
+        },
+        "x-file": "hosting/resource-hints.json",
+        "x-kind": "codes"
       },
       "HOSTING_RT_SAFETY_CODES": {
         "description": "The hosting codes of the rt-safety dimension: hosting.rt-safety.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -455,58 +531,68 @@
             "title": "rtSafetyClean",
             "description": "suitable: the interposer counted no allocation, lock or system call on the audio thread over the armed blocks with every parameter swept",
             "x-code": 0,
-            "x-text": "The plugin showed no real-time safety violation under the sweep. It passed clean."
+            "x-text": "The plugin showed no real-time safety violation under the sweep. It passed clean.",
+            "x-name": "rtSafetyClean"
           },
           {
             "const": "hosting.rt-safety.not-reproducible",
             "title": "rtSafetyNotReproducible",
             "description": "unknown: the interposer's counts varied between runs of the same plugin",
             "x-code": 1,
-            "x-text": "The real-time safety measurement could not be reproduced. Measure it again before trusting it."
+            "x-text": "The real-time safety measurement could not be reproduced. Measure it again before trusting it.",
+            "x-name": "rtSafetyNotReproducible"
           },
           {
             "const": "hosting.rt-safety.clean-under-notes",
             "title": "rtSafetyNotesClean",
             "description": "suitable: played under the interposer, the plugin made no allocation, lock or system call",
             "x-code": 2,
-            "x-text": "The plugin showed no real-time safety violation while playing notes. It passed clean."
+            "x-text": "The plugin showed no real-time safety violation while playing notes. It passed clean.",
+            "x-name": "rtSafetyNotesClean"
           },
           {
             "const": "hosting.rt-safety.notes-unmeasured",
             "title": "rtSafetyNotesUnmeasured",
             "description": "unknown: the plugin takes notes and was not played under the interposer; the parameter sweep alone says nothing about a voice",
             "x-code": 3,
-            "x-text": "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it."
+            "x-text": "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it.",
+            "x-name": "rtSafetyNotesUnmeasured"
           },
           {
             "const": "hosting.rt-safety.violations-under-notes",
             "title": "rtSafetyNotesViolations",
             "description": "conditional: played under the interposer, the plugin allocated, locked or made a system call; it runs in a worker of its own",
             "x-code": 4,
-            "x-text": "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes."
+            "x-text": "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes.",
+            "x-name": "rtSafetyNotesViolations"
           },
           {
             "const": "hosting.rt-safety.own-threads",
             "title": "rtSafetyOwnThreads",
             "description": "conditional: the plugin started threads of its own at instantiate (counted from /proc/self/task); a worker thread is not RT-unsafe, so the plugin still shares a worker (D20)",
             "x-code": 5,
-            "x-text": "The plugin starts threads of its own beside its audio. It is real-time safe, and it can share a worker; its threads share the cores with the audio."
+            "x-text": "The plugin starts threads of its own beside its audio. It is real-time safe, and it can share a worker; its threads share the cores with the audio.",
+            "x-name": "rtSafetyOwnThreads"
           },
           {
             "const": "hosting.rt-safety.unmeasured",
             "title": "rtSafetyUnmeasured",
             "description": "unknown: no interposer count was taken with every parameter swept (or the plugin has none to sweep), so the audio thread was never traced",
             "x-code": 6,
-            "x-text": "The plugin’s real-time safety has not been measured. Measure it before relying on it."
+            "x-text": "The plugin’s real-time safety has not been measured. Measure it before relying on it.",
+            "x-name": "rtSafetyUnmeasured"
           },
           {
             "const": "hosting.rt-safety.violations-in-run",
             "title": "rtSafetyViolations",
             "description": "conditional: the interposer counted allocations, locks or system calls on the audio thread over the armed blocks; the plugin runs in a worker of its own, never grouped with RT-safe plugins",
             "x-code": 7,
-            "x-text": "The plugin violated real-time safety during the run. Treat it as not real-time safe."
+            "x-text": "The plugin violated real-time safety during the run. Treat it as not real-time safe.",
+            "x-name": "rtSafetyViolations"
           }
-        ]
+        ],
+        "x-file": "hosting/rt-safety.json",
+        "x-kind": "codes"
       },
       "HOSTING_STABILITY_CODES": {
         "description": "The hosting codes of the stability dimension: hosting.stability.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -517,79 +603,92 @@
             "title": "stabilityBelowFloor",
             "description": "unknown: the plugin was instantiated fewer times than the policy's cycle floor",
             "x-code": 0,
-            "x-text": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result."
+            "x-text": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result.",
+            "x-name": "stabilityBelowFloor"
           },
           {
             "const": "hosting.stability.crash-unattributed",
             "title": "stabilityCrashUnattributed",
             "description": "unknown: a crash was recorded that no signature attributes to the plugin",
             "x-code": 1,
-            "x-text": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them."
+            "x-text": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them.",
+            "x-name": "stabilityCrashUnattributed"
           },
           {
             "const": "hosting.stability.crashed-attributed-plugin",
             "title": "stabilityCrashedAttributed",
             "description": "unsuitable: a recorded crash is attributed to the plugin's own binary",
             "x-code": 2,
-            "x-text": "This plugin crashed during the run. Don’t host it until it’s fixed."
+            "x-text": "This plugin crashed during the run. Don’t host it until it’s fixed.",
+            "x-name": "stabilityCrashedAttributed"
           },
           {
             "const": "hosting.stability.callee-saved-clobbered",
             "title": "stabilityCalleeSavedClobbered",
             "description": "the plugin returned from a call with a callee-saved register changed (0.26.2): the host's guard put it back, but not the other members' state in the same process, so the plugin runs only in a worker of its own",
             "x-code": 3,
-            "x-text": "This plugin returned from a call having changed a register it should have preserved. The host put the register back, but other plugins sharing its process were not protected, so it now runs only in a worker of its own."
+            "x-text": "This plugin returned from a call having changed a register it should have preserved. The host put the register back, but other plugins sharing its process were not protected, so it now runs only in a worker of its own.",
+            "x-name": "stabilityCalleeSavedClobbered"
           },
           {
             "const": "hosting.stability.crashed-live-on-this-rig",
             "title": "stabilityCrashedLive",
             "description": "the plugin crashed live on this rig",
             "x-code": 4,
-            "x-text": "This plugin crashed live on this rig. Don’t host it on this rig until it’s fixed."
+            "x-text": "This plugin crashed live on this rig. Don’t host it on this rig until it’s fixed.",
+            "x-name": "stabilityCrashedLive"
           },
           {
             "const": "hosting.stability.links-gui-toolkit",
             "title": "stabilityLinksGuiToolkit",
             "description": "conditional: the plugin links a GUI toolkit, a caution only where it shares a process",
             "x-code": 5,
-            "x-text": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one."
+            "x-text": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one.",
+            "x-name": "stabilityLinksGuiToolkit"
           },
           {
             "const": "hosting.stability.soak-failed-at-rate",
             "title": "stabilitySoakFailedAtRate",
             "description": "unsuitable: the soak failed at the very rate being judged (a supervisor timeout aside, which is the harness's)",
             "x-code": 6,
-            "x-text": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed."
+            "x-text": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed.",
+            "x-name": "stabilitySoakFailedAtRate"
           },
           {
             "const": "hosting.stability.soaked",
             "title": "stabilitySoaked",
             "description": "suitable: the plugin cleared the cycle floor and the soak, with no crash and no caution",
             "x-code": 7,
-            "x-text": "The plugin completed its soak test. It held up over the run."
+            "x-text": "The plugin completed its soak test. It held up over the run.",
+            "x-name": "stabilitySoaked"
           },
           {
             "const": "hosting.stability.spawns-threads",
             "title": "stabilitySpawnsThreads",
             "description": "conditional: the plugin spawns threads, a caution only where it shares a process",
             "x-code": 8,
-            "x-text": "This plugin spawns its own threads. Watch it for behaviour a host does not control."
+            "x-text": "This plugin spawns its own threads. Watch it for behaviour a host does not control.",
+            "x-name": "stabilitySpawnsThreads"
           },
           {
             "const": "hosting.stability.unmeasured",
             "title": "stabilityUnmeasured",
             "description": "unknown: no lifecycle measurement is on record",
             "x-code": 9,
-            "x-text": "This plugin’s stability has not been measured. Measure it before relying on it."
+            "x-text": "This plugin’s stability has not been measured. Measure it before relying on it.",
+            "x-name": "stabilityUnmeasured"
           },
           {
             "const": "hosting.stability.unsoaked",
             "title": "stabilityUnsoaked",
             "description": "unknown: the soak ran for less than the policy's time, did not sweep the parameters, or failed at some rate",
             "x-code": 10,
-            "x-text": "This plugin has not been soaked. Soak it before trusting it over a long run."
+            "x-text": "This plugin has not been soaked. Soak it before trusting it over a long run.",
+            "x-name": "stabilityUnsoaked"
           }
-        ]
+        ],
+        "x-file": "hosting/stability.json",
+        "x-kind": "codes"
       },
       "HOSTING_STATE_CODES": {
         "description": "The hosting codes of the state dimension: hosting.state.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -600,51 +699,60 @@
             "title": "stateNotACopy",
             "description": "not a save's copy directory of the root",
             "x-code": 0,
-            "x-text": "This path is not a save’s copy directory of the state root. Use the copy directory a save actually made."
+            "x-text": "This path is not a save’s copy directory of the state root. Use the copy directory a save actually made.",
+            "x-name": "stateNotACopy"
           },
           {
             "const": "hosting.state.path-on-audio",
             "title": "statePathOnAudio",
             "description": "makePath: called on the audio role",
             "x-code": 1,
-            "x-text": "This path was requested from the audio role, where it cannot be made. Request it from outside the audio role."
+            "x-text": "This path was requested from the audio role, where it cannot be made. Request it from outside the audio role.",
+            "x-name": "statePathOnAudio"
           },
           {
             "const": "hosting.state.path-outside",
             "title": "statePathOutside",
             "description": "makePath: empty, absolute, or a `..` component",
             "x-code": 2,
-            "x-text": "This path is empty, absolute, or steps outside with a `..` component. Use a path relative to the state root, with no `..`."
+            "x-text": "This path is empty, absolute, or steps outside with a `..` component. Use a path relative to the state root, with no `..`.",
+            "x-name": "statePathOutside"
           },
           {
             "const": "hosting.state.path-symlink",
             "title": "statePathSymlink",
             "description": "makePath: a component is a symbolic link",
             "x-code": 3,
-            "x-text": "A component of this path is a symbolic link, which is not allowed here. Use a path with no symbolic links."
+            "x-text": "A component of this path is a symbolic link, which is not allowed here. Use a path with no symbolic links.",
+            "x-name": "statePathSymlink"
           },
           {
             "const": "hosting.state.path-too-long",
             "title": "statePathTooLong",
             "description": "makePath: PATH_MAX or more, or a long component",
             "x-code": 4,
-            "x-text": "This path, or one of its components, is too long. Use a shorter path."
+            "x-text": "This path, or one of its components, is too long. Use a shorter path.",
+            "x-name": "statePathTooLong"
           },
           {
             "const": "hosting.state.path-unmakeable",
             "title": "statePathUnmakeable",
             "description": "makePath: a directory could not be made",
             "x-code": 5,
-            "x-text": "The directory for this path could not be made. Check that the state root is writable and try again."
+            "x-text": "The directory for this path could not be made. Check that the state root is writable and try again.",
+            "x-name": "statePathUnmakeable"
           },
           {
             "const": "hosting.state.unreadable",
             "title": "stateUnreadable",
             "description": "the plugin does not declare the state feature, has no state interface, or its restore failed",
             "x-code": 6,
-            "x-text": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy."
+            "x-text": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy.",
+            "x-name": "stateUnreadable"
           }
-        ]
+        ],
+        "x-file": "hosting/state.json",
+        "x-kind": "codes"
       },
       "HOSTING_TOPOLOGY_CODES": {
         "description": "The hosting codes of the topology dimension: hosting.topology.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -655,72 +763,84 @@
             "title": "topologyAmbisonicConfig",
             "description": "an ambisonic port refuses the carrier's ordering or normalisation",
             "x-code": 0,
-            "x-text": "This plugin’s ambisonic port refuses the carrier’s channel ordering or normalisation. Use a carrier whose ordering and normalisation this port accepts."
+            "x-text": "This plugin’s ambisonic port refuses the carrier’s channel ordering or normalisation. Use a carrier whose ordering and normalisation this port accepts.",
+            "x-name": "topologyAmbisonicConfig"
           },
           {
             "const": "hosting.topology.channel-map-unknown",
             "title": "topologyChannelMapUnknown",
             "description": "a surround port names a channel id the host does not know, or refuses the carrier's channel mask",
             "x-code": 1,
-            "x-text": "This plugin’s surround port names a channel this host does not know, or refuses the carrier’s channel mask. Use a carrier whose channels this host recognises."
+            "x-text": "This plugin’s surround port names a channel this host does not know, or refuses the carrier’s channel mask. Use a carrier whose channels this host recognises.",
+            "x-name": "topologyChannelMapUnknown"
           },
           {
             "const": "hosting.topology.instrument",
             "title": "topologyInstrument",
             "description": "suitable: on a host that plays notes, the plugin has no audio input, a note or MIDI input and an audio output (one or two channels for a CLAP)",
             "x-code": 2,
-            "x-text": "This plugin is hosted as an instrument: it has no audio input of its own."
+            "x-text": "This plugin is hosted as an instrument: it has no audio input of its own.",
+            "x-name": "topologyInstrument"
           },
           {
             "const": "hosting.topology.matched",
             "title": "topologyMatched",
             "description": "suitable: the plugin's main audio ports are mono to mono or stereo to stereo, with no sidechain input",
             "x-code": 3,
-            "x-text": "This plugin’s ports match the topology it is hosted on."
+            "x-text": "This plugin’s ports match the topology it is hosted on.",
+            "x-name": "topologyMatched"
           },
           {
             "const": "hosting.topology.no-audio-input",
             "title": "topologyNoAudioInput",
             "description": "the plugin has no audio input",
             "x-code": 4,
-            "x-text": "This plugin has no audio input."
+            "x-text": "This plugin has no audio input.",
+            "x-name": "topologyNoAudioInput"
           },
           {
             "const": "hosting.topology.no-audio-output",
             "title": "topologyNoAudioOutput",
             "description": "the host has nothing of the plugin to carry: a CLAP plugin with an audio input or an auxiliary port and no main output, an LV2 plugin with no port at all (any other plugin with no audio output is hosted as a pass-through tool)",
             "x-code": 5,
-            "x-text": "This plugin has nothing for the host to carry on its output: it declares an audio input or auxiliary port but no main output. Use a plugin with a main audio output, or run it as a pass-through tool."
+            "x-text": "This plugin has nothing for the host to carry on its output: it declares an audio input or auxiliary port but no main output. Use a plugin with a main audio output, or run it as a pass-through tool.",
+            "x-name": "topologyNoAudioOutput"
           },
           {
             "const": "hosting.topology.port-too-wide",
             "title": "topologyPortTooWide",
             "description": "a port of more channels than the limit, or an ambisonic port whose channels are not (order+1)²",
             "x-code": 6,
-            "x-text": "This plugin’s port has more channels than the limit, or its ambisonic channel count is not valid for its order. Use a plugin whose ports stay within the channel limit."
+            "x-text": "This plugin’s port has more channels than the limit, or its ambisonic channel count is not valid for its order. Use a plugin whose ports stay within the channel limit.",
+            "x-name": "topologyPortTooWide"
           },
           {
             "const": "hosting.topology.port-without-channels",
             "title": "topologyPortWithoutChannels",
             "description": "a port of zero channels",
             "x-code": 7,
-            "x-text": "This plugin declares a port with zero channels. Fix the plugin’s port declaration before hosting it."
+            "x-text": "This plugin declares a port with zero channels. Fix the plugin’s port declaration before hosting it.",
+            "x-name": "topologyPortWithoutChannels"
           },
           {
             "const": "hosting.topology.too-many-ports",
             "title": "topologyTooManyPorts",
             "description": "more than the limit of auxiliary ports on one side, or more than one main port on a side",
             "x-code": 8,
-            "x-text": "This plugin declares more auxiliary ports than the limit on one side, or more than one main port on a side. Use a plugin within the port limits."
+            "x-text": "This plugin declares more auxiliary ports than the limit on one side, or more than one main port on a side. Use a plugin within the port limits.",
+            "x-name": "topologyTooManyPorts"
           },
           {
             "const": "hosting.topology.wider-than-strip",
             "title": "topologyWiderThanStrip",
             "description": "a main port is wider than the lane the caller runs the plugin on",
             "x-code": 9,
-            "x-text": "This plugin’s main port is wider than the strip it runs on. Run it on a strip wide enough for its main port."
+            "x-text": "This plugin’s main port is wider than the strip it runs on. Run it on a strip wide enough for its main port.",
+            "x-name": "topologyWiderThanStrip"
           }
-        ]
+        ],
+        "x-file": "hosting/topology.json",
+        "x-kind": "codes"
       },
       "HOSTING_WORKER_CODES": {
         "description": "The hosting codes of the worker dimension: hosting.worker.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
@@ -731,10 +851,41 @@
             "title": "workerNonconforming",
             "description": "unsuitable: the plugin's worker interface was refused while its latency was measured, so it is not hostable",
             "x-code": 0,
-            "x-text": "This plugin’s worker does not conform to what a worker must do. Don’t rely on its worker."
+            "x-text": "This plugin’s worker does not conform to what a worker must do. Don’t rely on its worker.",
+            "x-name": "workerNonconforming"
           }
-        ]
+        ],
+        "x-file": "hosting/worker.json",
+        "x-kind": "codes"
       }
     }
-  }
+  },
+  "x-render": {
+    "c": [
+      {
+        "header": "clap_host_limits.h",
+        "guard": "CLAP_HOST_LIMITS_H",
+        "project": "omx-clap-host",
+        "banner": [
+          "Rendered from HOSTING_IDLE_CODES and HOSTING_WINDOW_CODES of data/hosting.json, where this tree declares the codes",
+          "of the dimensions it owns. The stage's numbers are hosted_stage_limits.h's, spelled once. The rendered file is kept in",
+          "this repository so the library builds on its own; the codes are changed where they are declared and the file is",
+          "re-rendered, never edited here. Every other refusal code is declared in data/hosting/ and rendered as",
+          "omx_clap_vocabulary.h (clap_host.h's CLAP_HOST_CODE_*)."
+        ],
+        "brief": "The codes of the idle and window dimensions.",
+        "includes": [
+          "stddef.h"
+        ],
+        "codes": {
+          "comment": "the idle dimension, what the library answers about its hold of /dev/cpu_dma_latency (#296), and the window dimension, why omx-clap-host shows no plugin window (#180)",
+          "prefix": "CLAP_HOST_CODE_"
+        }
+      }
+    ],
+    "ts": {
+      "module": "omx-clap-hosting-codes"
+    }
+  },
+  "x-file": "hosting-codes.json"
 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 //
-// code-text-check.mjs — every refusal and verdict code this tree declares (data/*.json, data/hosting/*.json: hosting.*
-// and reply.host.*, the dimensions and the verbs this repo owns) carries `text.en`, its English source sentence and
+// code-text-check.mjs — every refusal and verdict code this tree declares (data/*.json, data/hosting/*.json, and the
+// hosting and host domains: hosting.* and reply.host.*, the dimensions and the verbs this repo owns) carries `text.en`, its English source sentence and
 // nothing else, and its Catalan in catalogs/ca.json under the code, with the same `{name}` placeholders, each one of
 // `args` (omx-contract 3.12.0, spec 7.11, omx-contract#90). The catalog holds no key that is not a code of ours. Each
 // file's `requires.omx-contract-schema` floor must be at least 3.12.0, the schema that has catalogs.
@@ -22,11 +22,11 @@ function dataFiles(root) {
   for (const f of readdirSync(join(root, 'data', 'hosting'))) {
     if (f.endsWith('.json')) files.push(join(root, 'data', 'hosting', f));
   }
-  files.push(join(root, 'contract.d', 'host', 'host.json'));
+  files.push(join(root, 'contract.d', 'hosting', 'hosting.json'), join(root, 'contract.d', 'host', 'host.json'));
   return files;
 }
 
-/** A domain document's codes items as the data form's (the host domain: reply.host.*): code, text and args by title. */
+/** A domain document's codes items as the data form's (the hosting domain: hosting.*; the host domain: reply.host.*): code, text and args by title. */
 function fromDomain(doc) {
   const out = { requires: { 'omx-contract-schema': '>= 3.12.0' } };
   for (const [name, it] of Object.entries(doc.components.schemas)) {
@@ -101,7 +101,7 @@ function selfTest(root) {
   const tmp = mkdtempSync(join(tmpdir(), 'code-text-check-'));
   try {
     const cat = JSON.parse(readFileSync(join(root, 'catalogs', 'ca.json'), 'utf8'));
-    const code = JSON.parse(readFileSync(join(root, 'data', 'hosting', 'preset.json'), 'utf8')).HOSTING_PRESET_CODES.codes.presetNotFound.code;
+    const code = JSON.parse(readFileSync(join(root, 'contract.d', 'hosting', 'hosting.json'), 'utf8')).components.schemas.HOSTING_PRESET_CODES.oneOf.find((w) => w.title === 'presetNotFound').const;
     const arms = [
       ['a code with no Catalan', (c) => { delete c.messages[code]; }, 'no Catalan'],
       ['a catalog key that is no code', (c) => { c.messages['hosting.zz.gone'] = 'Ja no hi és.'; }, 'no code of ours'],

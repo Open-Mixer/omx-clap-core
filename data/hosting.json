@@ -6,26 +6,6 @@
   "render": {
     "c": [
       {
-        "header": "clap_host_limits.h",
-        "guard": "CLAP_HOST_LIMITS_H",
-        "project": "omx-clap-host",
-        "banner": [
-          "Rendered from HOSTING_IDLE_CODES and HOSTING_WINDOW_CODES of data/hosting.json, where this tree declares the codes",
-          "of the dimensions it owns. The stage's numbers are hosted_stage_limits.h's, spelled once. The rendered file is kept in",
-          "this repository so the library builds on its own; the codes are changed where they are declared and the file is",
-          "re-rendered, never edited here. Every other refusal code is declared in data/hosting/ and rendered as",
-          "omx_clap_vocabulary.h (clap_host.h's CLAP_HOST_CODE_*)."
-        ],
-        "brief": "The codes of the idle and window dimensions.",
-        "includes": [
-          "stddef.h"
-        ],
-        "codes": {
-          "comment": "the idle dimension, what the library answers about its hold of /dev/cpu_dma_latency (#296), and the window dimension, why omx-clap-host shows no plugin window (#180)",
-          "prefix": "CLAP_HOST_CODE_"
-        }
-      },
-      {
         "header": "hosted_stage_limits.h",
         "guard": "HOSTED_STAGE_LIMITS_H",
         "project": "omx-clap-host",
@@ -65,7 +45,8 @@
         "src/clap_host.c#describe_ports",
         "src/clap_host.c#param_count_of",
         "src/clap_host.c#host_preset_on_error",
-        "src/clap_host.c#wait_stopped", "src/clap_host.c#state_load_done",
+        "src/clap_host.c#wait_stopped",
+        "src/clap_host.c#state_load_done",
         "src/effects.c#clap_state_save",
         "src/effects.c#configure_lv2_with",
         "src/idle_hold.c#idle_hold_target_default",
@@ -125,59 +106,6 @@
       "paramCountMax": "the widest parameter count the core trusts",
       "latencyHoldMs": "the hold before a hosted stage's new latency takes effect, in milliseconds",
       "idleHoldUs": "the latency the library holds /dev/cpu_dma_latency at while an instance is active, in microseconds: 10 keeps the cores in C1"
-    }
-  },
-  "HOSTING_IDLE_CODES": {
-    "kind": "codes",
-    "since": "2.20.0",
-    "source": {
-      "impl": [
-        "src/idle_hold.c#idle_hold_open"
-      ]
-    },
-    "doc": "The hosting codes of the idle dimension, hosting.idle.*: what libomx-clap answers about its hold of the CPU idle states (/dev/cpu_dma_latency) while a plugin is active. The dimension is this library's: the hold lives in it, for every host that links it (#296).",
-    "codes": {
-      "idleHoldRefused": {
-        "code": "hosting.idle.hold-refused",
-        "doc": "the device could not be opened for writing (no permission, or no such device): the host runs with no hold",
-        "text": {
-          "en": "The CPU idle-latency device could not be opened for writing, so the host runs with no hold on it. Grant write access to /dev/cpu_dma_latency, or accept that idle states are not held."
-        }
-      }
-    }
-  },
-  "HOSTING_WINDOW_CODES": {
-    "kind": "codes",
-    "since": "3.1.0",
-    "source": {
-      "impl": [
-        "src/window.c#window_api_pick",
-        "src/window.c#window_make"
-      ]
-    },
-    "doc": "The hosting codes of the window dimension, hosting.window.*: why omx-clap-host refuses to show a plugin's own window (clap.gui) when show_external_ui asks for it (#180). The dimension is the standalone host's: the console never shows a plugin's native window.",
-    "codes": {
-      "windowNoDisplay": {
-        "code": "hosting.window.no-display",
-        "doc": "no display to show it on: none is named, or its server refused the connection; the plugin runs on",
-        "text": {
-          "en": "There is no display to show the window on: none was named, or its server refused the connection. The plugin keeps running without a window."
-        }
-      },
-      "windowUnsupported": {
-        "code": "hosting.window.unsupported",
-        "doc": "the plugin has no clap.gui, or its clap.gui offers no window API the host shows, embedded or floating",
-        "text": {
-          "en": "This plugin has no window, or none in a form this host can show, embedded or floating. Run it without a window."
-        }
-      },
-      "windowRefused": {
-        "code": "hosting.window.refused",
-        "doc": "the plugin's clap.gui answered false when asked to create, embed or show its window",
-        "text": {
-          "en": "The plugin refused to create, embed or show its own window when asked. Run it without a window."
-        }
-      }
     }
   }
 }

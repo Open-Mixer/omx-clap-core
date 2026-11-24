@@ -239,14 +239,14 @@ to the `.so` alone. The library names no jack, no socket and no protocol library
   runs it without a call through the library. The layout of `struct omx_hosted_stage`,
   `struct omx_clap_stage` and `struct omx_clap_instance` is therefore part of the ABI.
 - `clap_host.h`: the control thread's side, the exported functions, `omx_clap_host_*`.
-- `clap_host_limits.h`: every number the core reads, rendered from
-  `data/hosting.json` and committed here; never edited by hand. The refusal codes
-  are this tree's, declared in `data/hosting/<dimension>.json` and rendered as
-  `omx_clap_vocabulary.h` (committed, installed beside it, never edited by hand):
-  `clap_host.h` names the core's as `CLAP_HOST_CODE_*`.
-- `hosted_stage_limits.h`: the same numbers as `OMX_HOSTED_STAGE_<FIELD>`, the LV2
-  worker's two included, for a host that reads those names; rendered from the same
-  file and committed here, never edited by hand.
+- `clap_host_limits.h`: the codes of the idle and window dimensions, rendered from
+  the hosting domain, `contract.d/hosting/hosting.json`, and committed here; never
+  edited by hand. The refusal codes are this tree's, declared in that domain (their
+  one home) and rendered as `omx_clap_vocabulary.h` (committed, installed beside it,
+  never edited by hand): `clap_host.h` names the core's as `CLAP_HOST_CODE_*`.
+- `hosted_stage_limits.h`: every number the core reads, as `OMX_HOSTED_STAGE_<FIELD>`,
+  the LV2 worker's two included; rendered from `data/hosting.json` and committed here,
+  never edited by hand.
 - `omx_clap_ext.h`: the openmixer vendor extension a plugin serves through `get_extension`,
   `org.openmixer.declaration/1`, `org.openmixer.param-contract/1` and
   `org.openmixer.panel-description/1`, as exact C structures. Header only: the library exports nothing
@@ -369,15 +369,16 @@ and `make fuzz-static`. `fuzz/README.md` has the harnesses, their properties,
 their records and their seeds; `.github/workflows/fuzz.yml` runs them all.
 
 The hosting limits are declared in `data/hosting.json` and the hosting codes in
-`data/hosting/<dimension>.json`, in omx-contract's schema; every hosting code the
+the hosting domain, `contract.d/hosting/hosting.json` (each item's `x-file` the data
+path the render rebuilds it into); every hosting code the
 sources write is an `OMX_HOSTING_*` macro of `src/omx_clap_vocabulary.h`, their
 render (`render --package omx-clap`), and
 `make test-codes` (in `make test` and `make test-fake`, `tests/hosting-codes-check.sh`)
 fails on a `"hosting.` literal in `src/` or `lv2/` and on an `OMX_HOSTING_*`
 name that header lacks; its `--self-test` breaks the sources each way and
 requires each to fail. `make install` puts them into omx-contract's contract
-directory, `$(pkg-config --variable=contractdir omx-contract)/3/omx-clap/`
-(the codes under `hosting/`),
+directory, `$(pkg-config --variable=contractdir omx-contract)/3/omx-clap/`, and
+the hosting domain at `<contractdir>/hosting/hosting.json`,
 with a `MANIFEST.json` naming this version, using the install script
 omx-contract-devel 3.3.0 ships (or `OMX_CONTRACT_DIR=<checkout>`'s); the
 packages ship them in `omx-clap-contract`.
@@ -426,18 +427,20 @@ verb in a copy of the sources, and requires each to go red.
 `make test-host-verbs-domains` holds where that check reads the protocol's
 verbs (`tests/host_verbs_domains.py`, no socket).
 The two rendered headers install with the other core headers under
-`include/omx-clap-host/`, and the TypeScript module under
+`include/omx-clap-host/`, and the TypeScript modules under
 `share/omx-clap/ts/`, which `pkg-config --variable=tsdir omx-clap`
-names: a TypeScript build copies `omx-clap-hosting.js` and its `.d.ts`
+names: a TypeScript build copies `omx-clap-hosting.js` (the stage's numbers),
+`omx-clap-hosting-codes.js` (the idle and window codes) and their `.d.ts`
 from there, or points a path at them; no npm package is published.
 `make test-contract OMX_CONTRACT_DIR=<omx-contract checkout>` installs them into
 a directory of its own beside omx-contract's own files, reads them back through
 omx-contract's reader and renders the package's own files with
-`omx-contract render --package omx-clap`, framed by the `render` word of
-`data/hosting.json` (header, guard, project, banner, prefixes, the omitted
-fields, the level rule): `src/clap_host_limits.h`, `src/hosted_stage_limits.h`
-and the TypeScript module `ts/omx-clap-hosting.js` with its
-`omx-clap-hosting.d.ts` must be that render, byte for byte. Beside that, `tests/hosting-values-check.mjs` takes the
+`omx-contract render --package omx-clap --with-domain <dir>/hosting` (and the
+other domains this tree owns), framed by the `render` word of `data/hosting.json`
+and the hosting domain's `x-render` (header, guard, project, banner, prefixes, the
+omitted fields, the level rule): `src/clap_host_limits.h`, `src/hosted_stage_limits.h`
+and the TypeScript modules `ts/omx-clap-hosting.js` and `ts/omx-clap-hosting-codes.js`
+with their `.d.ts` must be that render, byte for byte. Beside that, `tests/hosting-values-check.mjs` takes the
 values of `HOSTED_STAGE_LIMITS` as the reader parsed them (`render --target json`) and holds every
 define of the two headers to its value, and its `--self-test` changes, drops and adds a define for every value and
 requires each to fail. It needs node and the checkout's `npm ci`.

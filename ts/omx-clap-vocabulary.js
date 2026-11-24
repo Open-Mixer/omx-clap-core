@@ -4,7 +4,7 @@
 
 /**
  * The hosting codes of the clap dimension: hosting.clap.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/clap.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_CLAP_CODES = {
   "clapExtensionsNotCovered": {
@@ -67,7 +67,7 @@ export const HOSTING_CLAP_CODES = {
 
 /**
  * The hosting codes of the cost dimension: hosting.cost.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/cost.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_COST_CODES = {
   "costAboveCeiling": {
@@ -109,7 +109,7 @@ export const HOSTING_COST_CODES = {
 
 /**
  * The hosting codes of the features dimension: hosting.features.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/features.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_FEATURES_CODES = {
   "featuresAtomInUnfed": {
@@ -165,7 +165,7 @@ export const HOSTING_FEATURES_CODES = {
 
 /**
  * The hosting codes of the latency dimension: hosting.latency.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/latency.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_LATENCY_CODES = {
   "latencyNonconforming": {
@@ -200,7 +200,7 @@ export const HOSTING_LATENCY_CODES = {
 
 /**
  * The hosting codes of the memory dimension: hosting.memory.*, what a qualifier, a host or the console read of a plugin's measured memory against a host's budget, by code, never by prose.
- * @see data/hosting/memory.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_MEMORY_CODES = {
   "memoryAboveCeiling": {
@@ -235,7 +235,7 @@ export const HOSTING_MEMORY_CODES = {
 
 /**
  * The hosting codes of the output dimension: hosting.output.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/output.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_OUTPUT_CODES = {
   "outputNonFinite": {
@@ -249,7 +249,7 @@ export const HOSTING_OUTPUT_CODES = {
 
 /**
  * The hosting codes of the override dimension: hosting.override.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/override.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_OVERRIDE_CODES = {
   "overrideIsolated": {
@@ -263,7 +263,7 @@ export const HOSTING_OVERRIDE_CODES = {
 
 /**
  * The hosting codes of the patch dimension: hosting.patch.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/patch.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_PATCH_CODES = {
   "patchBusy": {
@@ -291,7 +291,7 @@ export const HOSTING_PATCH_CODES = {
 
 /**
  * The hosting codes of the preset dimension: hosting.preset.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/preset.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_PRESET_CODES = {
   "presetNotFound": {
@@ -305,7 +305,7 @@ export const HOSTING_PRESET_CODES = {
 
 /**
  * The hosting codes of the provenance dimension: hosting.provenance.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/provenance.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_PROVENANCE_CODES = {
   "hostProvenanceDiffers": {
@@ -326,7 +326,7 @@ export const HOSTING_PROVENANCE_CODES = {
 
 /**
  * What the console did with a plugin's verdict: hosting.realised.* and the outcomes with no dimension (hosting.disabled, hosting.unjudged, hosting.no-realisation, hosting.linked), read by code, never by prose.
- * @see data/hosting/realised.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_REALISED_CODES = {
   "disabled": {
@@ -368,7 +368,7 @@ export const HOSTING_REALISED_CODES = {
 
 /**
  * The hosting codes of the resource-hints dimension: hosting.resource-hints.*, why the host refuses the hints a plugin declares about itself (omx-contract's RESOURCE_HINTS, through the CLAP draft org.openmixer.resource-hints.draft/0 or the omxres LV2 properties). A refused declaration is trusted for none of its hints: every hint reads as unknown.
- * @see data/hosting/resource-hints.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_RESOURCE_HINTS_CODES = {
   "resourceHintsOutOfRange": {
@@ -396,7 +396,7 @@ export const HOSTING_RESOURCE_HINTS_CODES = {
 
 /**
  * The hosting codes of the rt-safety dimension: hosting.rt-safety.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/rt-safety.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_RT_SAFETY_CODES = {
   "rtSafetyClean": {
@@ -459,7 +459,7 @@ export const HOSTING_RT_SAFETY_CODES = {
 
 /**
  * The hosting codes of the stability dimension: hosting.stability.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/stability.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_STABILITY_CODES = {
   "stabilityBelowFloor": {
@@ -543,7 +543,7 @@ export const HOSTING_STABILITY_CODES = {
 
 /**
  * The hosting codes of the state dimension: hosting.state.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/state.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_STATE_CODES = {
   "stateNotACopy": {
@@ -599,7 +599,7 @@ export const HOSTING_STATE_CODES = {
 
 /**
  * The hosting codes of the topology dimension: hosting.topology.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/topology.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_TOPOLOGY_CODES = {
   "topologyAmbisonicConfig": {
@@ -706,7 +706,7 @@ export const HOSTING_VERB_HOSTS = {
 
 /**
  * The hosting codes of the worker dimension: hosting.worker.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/worker.json
+ * @see contract.d/hosting/hosting.json
  */
 export const HOSTING_WORKER_CODES = {
   "workerNonconforming": {

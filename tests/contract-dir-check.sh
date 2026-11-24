@@ -28,7 +28,7 @@ ocv=$(sed -n 's/^  "version": "\([0-9.]*\)",$/\1/p' "$oc/package.json")
 sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" -x codes.json -x scale-vectors.json omx-contract "$ocv" 3 "$oc/data" "$dir" data
 # omx-contract's own domains (the param domain: PARAM_UNITS and PARAM_SCALES, the standard words the mappings name)
 for d in "$oc"/contract.d/*/; do
-  [ -d "$d" ] && sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" --domain "${d%/}" "$dir"
+  [ -d "$d" ] && sh "${OMX_CONTRACT_SCRIPT:-$oc/tools/install-contract-dir.sh}" --domain "${d%/}" "$dir" omx-contract
 done
 
 $tool validate --contract-dir "$dir" --needs "omx-clap@>= $version" --catalogs catalogs

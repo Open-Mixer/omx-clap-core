@@ -262,6 +262,10 @@ static void data_documents(void)
         free(names[i]);
     }
     free(names);
+    // the hosting codes' one home, the hosting domain (the codes data/hosting/ held before the move, #156)
+    text = slurp("contract.d/hosting/hosting.json", &len);
+    seed("preset", "domain-hosting", text, len);
+    free(text);
 }
 
 static void preset_corpus(void)

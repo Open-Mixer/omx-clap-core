@@ -25,13 +25,9 @@ CORE_MAP = src/omx-clap.map
 # the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
 CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
 
-# The library floors the installed omx-clap.pc names in Requires.private, read back from the spec, which is generated
-# from the one place they are declared, packaging/deps.txt: $(call spec_floor,<devel>) is the floor. Floors only: our own
-# packages carry no ceiling. tests/pc_range_parity.py holds the installed .pc to the spec.
+# The installed omx-clap.pc names the libraries it takes headers from in Requires.private, by name: no version floor
+# anywhere (owner ruling 2026-11-24). tests/pc_range_parity.py holds the installed .pc to that.
 SPEC = packaging/omx-clap-host.spec
-spec_floor = $(shell sed -n -E 's/^BuildRequires:[[:space:]]*$(1)[[:space:]]*>=[[:space:]]*([0-9.]+)[[:space:]]*$$/\1/p' $(SPEC))
-OMX_CONTRACT_FLOOR = $(call spec_floor,omx-contract-devel)
-OMXDSP_FLOOR = $(call spec_floor,omx-dsp-devel)
 
 PKG_CONFIG ?= pkg-config
 
@@ -294,12 +290,8 @@ install-lib: $(CORE_SO)
 	ln -sf $(CORE_FILE) $(DESTDIR)$(LIBDIR)/$(CORE_SONAME)
 	ln -sf $(CORE_SONAME) $(DESTDIR)$(LIBDIR)/$(CORE_SO)
 	install -m 644 $(CORE_HEADERS) $(DESTDIR)$(INCLUDEDIR)/omx-clap-host/
-	@for v in '$(OMX_CONTRACT_FLOOR)' '$(OMXDSP_FLOOR)'; do \
-	  printf '%s\n' "$$v" | grep -qxE '[0-9]+(\.[0-9]+)*' || { echo "install-lib: $(SPEC) declares no single omx-contract-devel and omx-dsp-devel BuildRequires floor (got '$$v')" >&2; exit 1; }; done
 	sed -e 's,@PREFIX@,$(PREFIX),' -e 's,@LIBDIR@,$(LIBDIR),' -e 's,@INCLUDEDIR@,$(INCLUDEDIR),' \
 	    -e 's,@DATADIR@,$(DATADIR),' -e 's,@VERSION@,$(CORE_VERSION),' \
-	    -e 's,@OMX_CONTRACT_FLOOR@,$(OMX_CONTRACT_FLOOR),' \
-	    -e 's,@OMXDSP_FLOOR@,$(OMXDSP_FLOOR),' \
 	    omx-clap.pc.in > $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap.pc
 	chmod 644 $(DESTDIR)$(LIBDIR)/pkgconfig/omx-clap.pc
 	install -m 644 $(CORE_MAP) $(DESTDIR)$(DATADIR)/$(CORE)/
@@ -624,17 +616,18 @@ test-dev-so-runtime-dep:
 	python3 tests/dev_so_runtime_dep.py --self-test
 	python3 tests/dev_so_runtime_dep.py .
 
-# the installed build dependencies meet the spec's ranges before anything runs (tests/build-floors.sh): a stale set is
-# refused by name here, never read later as undefined references in the consumer link (the staged verify of 0.32.5)
-.PHONY: test-build-floors
-test-build-floors:
-	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh --self-test
-	PKG_CONFIG=$(PKG_CONFIG) bash tests/build-floors.sh $(SPEC)
+# no hand-kept version floor (owner ruling 2026-11-24): no packaging/deps.txt, no `>= X` in the spec, debian/control or a .pc template, and a
+# data file's requires / a domain's info.x-requires is a list of names (tests/no_floors_check.py). The build installs the lower
+# level's published packages; the relations a package needs are generated (sonames, = its own version).
+.PHONY: test-no-floors
+test-no-floors:
+	python3 tests/no_floors_check.py --self-test
+	python3 tests/no_floors_check.py .
 
 test: test-no-backcompat
-test: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test: test-no-upward-deps test-no-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-clap-inventory test-plugin-hostd-ref
-test-fake: test-no-upward-deps test-build-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-upward-deps test-no-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap $(SCAN_PROG) tests/clap_scan_test tests/crash.clap test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool test-panel-words
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
@@ -2009,14 +2002,11 @@ test-no-host-nproc:
 	sh tools/no-host-nproc.sh --self-test
 	sh tools/no-host-nproc.sh
 
-# The dependency floors are written once, in packaging/deps.txt; the spec and debian/control are generated from it with
-# Open-Mixer/.github's deps-render. make deps writes them, make deps-check refuses drift (name a checkout of that
-# repository: make deps-check DOTGITHUB=<dir>).
+# No packaging/deps.txt (owner ruling 2026-11-24): there is no floor to render. make deps-check runs Open-Mixer/.github's deps-render in
+# its check mode, which then holds the spec, debian/control and workflows to its floors-only rule alone (name a checkout of
+# that repository: make deps-check DOTGITHUB=<dir>).
 DOTGITHUB ?=
-.PHONY: deps deps-check
-deps:
-	@test -n "$(DOTGITHUB)" || { echo "$@: name a checkout of Open-Mixer/.github: make $@ DOTGITHUB=<dir>" >&2; exit 2; }
-	$(DOTGITHUB)/.github/actions/deps-render/render.sh --write .
+.PHONY: deps-check
 deps-check:
 	@test -n "$(DOTGITHUB)" || { echo "$@: name a checkout of Open-Mixer/.github: make $@ DOTGITHUB=<dir>" >&2; exit 2; }
 	$(DOTGITHUB)/.github/actions/deps-render/render.sh --check .

@@ -80,10 +80,10 @@ jobs:
     uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
     with:
       commit-identity: true
-  # the dependency floors: the spec and debian/control state the floors packaging/deps.txt declares, and no ceiling. The
-  # engine is Open-Mixer/.github's deps-render, at the same openmixer-v1 ref every shared action of this repository uses
+  # no hand-kept floors (owner ruling 2026-11-24): there is no packaging/deps.txt, so Open-Mixer/.github's deps-render renders nothing and
+  # holds the spec, debian/control and workflows to its no-ceiling rule; tests/no_floors_check.py (make test) refuses a floor
   deps-render:
-    name: the floors are packaging/deps.txt's
+    name: no ceilings (deps-render, no deps.txt)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -866,10 +866,9 @@ jobs:
             diff -u expected.txt files.txt
             rpm -qp --requires "$rpm" | tee requires.txt
             grep -q 'libplugin-hostd-protocol.so.0' requires.txt
-            # the floor is the one packaging/deps.txt declares, read back from the spec generated from it; no ceiling
-            floor=$(sed -n 's/^Requires: plugin-hostd-protocol >= //p' packaging/omx-clap-host.spec)
-            grep -qx "plugin-hostd-protocol >= $floor" requires.txt
-            ! grep -qE '^plugin-hostd-protocol.* < ' requires.txt
+            # the protocol by name and by its soname, generated: no typed floor, no ceiling (owner ruling 2026-11-24)
+            grep -qx 'plugin-hostd-protocol(x86-64)' requires.txt || grep -qx 'plugin-hostd-protocol' requires.txt
+            ! grep -qE '^plugin-hostd-protocol[^ ]* [<>]' requires.txt
             grep -q 'libomx-clap.so.1' requires.txt
             grep -q 'omx-clap-libs.* = ' requires.txt
             # the window links libxcb, so the package requires it (#180)
@@ -989,7 +988,7 @@ jobs:
           }
           dnf_retry --setopt=install_weak_deps=False pipewire iproute util-linux python3 \
             rpms/omx-clap-host-[0-9]*.${{ matrix.cell.arch }}.rpm \
-            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm 'plugin-hostd-protocol-contract >= 0.8.0' omx-contract
+            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm plugin-hostd-protocol-contract omx-contract
           rpm -qf /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json | grep -q '^omx-clap-contract-'
           # the domain plugin-hostd-protocol names this host too (chain: required), and the check reads it
           # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)
@@ -1266,7 +1265,8 @@ jobs:
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap1_*.deb ./debs/omx-clap-contract_*_all.deb \
             ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
-          dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0 \(>= [0-9.]+~?\)'
+          # the protocol's version relation is the one ${shlibs:Depends} generates from its library, none typed (owner ruling 2026-11-24)
+          dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0( \(>= [0-9.]+~?\))?(,|$)'
           ! dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qF 'libplugin-hostd-protocol0 (<<'
           dpkg -s libomx-clap1 | grep '^Status: install ok installed'
           dpkg -s libomx-domain0 | grep '^Status: install ok installed'

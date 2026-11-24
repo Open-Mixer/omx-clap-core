@@ -13,25 +13,24 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-# The floors of the requirements below are GENERATED from packaging/deps.txt by Open-Mixer/.github deps-render
-# (render.sh --write); edit that file, not these lines.
-BuildRequires: plugin-hostd-protocol-devel >= 0.8.0
+# No version floor on any requirement (owner ruling 2026-11-24): the build installs the lower level's published packages, and what the
+# binaries need of them at run time rpm generates (soname dependencies, = %%{version} of this build's own packages).
+BuildRequires: plugin-hostd-protocol-devel
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: plugin-db-devel >= 0.5.0
-# the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
-# distribution's own is older)
-BuildRequires: clap-devel >= 1.2.10
+BuildRequires: plugin-db-devel
+# the CLAP headers (the channel serves them where the distribution's own are older)
+BuildRequires: clap-devel
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: omx-dsp-devel >= 0.34.0
+BuildRequires: omx-dsp-devel
 # omx_clap_ext.h's panel words (families, widgets, display sources, placements) are omx-panel's: its domain's codes header,
 # omxdomain/panel_codes.h, which omx-panel-contract installs (data only; omx-panel does not build against this package)
-BuildRequires: omx-panel-contract >= 0.16.0
+BuildRequires: omx-panel-contract
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
-# the codes under contract.d/3 (3.0.0, the hosting codes moved here); the verbs are items of the omx-clap domain; preset_file.c and scan.c include omx_json_write.h (3.9.0)
-BuildRequires: omx-contract-devel >= 3.22.0
-# the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (3.20.0 the first
-# release that ships it, with the installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
-BuildRequires: libomx-domain-devel >= 3.22.0
+# the codes under contract.d; the verbs are items of the omx-clap domain; preset_file.c and scan.c include omx_json_write.h
+BuildRequires: omx-contract-devel
+# the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (with the
+# installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
+BuildRequires: libomx-domain-devel
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
@@ -44,10 +43,9 @@ BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
 Requires: plugin-hostd-protocol%{?_isa}
-Requires: plugin-hostd-protocol >= 0.8.0
 # omx-clap-scan reads the scan domain at start-up through the loader, and refuses (status 78) on an install without it: the loader, and
 # the data package that holds the domain (noarch data, so this package's own requirement of it is no cycle)
-Requires: libomx-domain >= 3.22.0
+Requires: libomx-domain
 Requires: omx-clap-contract = %{version}-%{release}
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
@@ -99,13 +97,13 @@ License: GPL-3.0-or-later
 # the name this package had before 0.34.0 (packaging/renamed.txt)
 Obsoletes: omx-clap-core-devel < 0.34.0
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
-Requires: clap-devel >= 1.2.10
+Requires: clap-devel
 # hosted_stage.h includes omx-dsp's headers
-Requires: omx-dsp-devel >= 0.34.0
-# omxcontract/omx_resource_hints.h, which clap_host.h includes (3.9.0)
-Requires: omx-contract-devel >= 3.22.0
+Requires: omx-dsp-devel
+# omxcontract/omx_resource_hints.h, which clap_host.h includes
+Requires: omx-contract-devel
 # omxdomain/panel_codes.h, which omx_clap_ext.h includes
-Requires: omx-panel-contract >= 0.16.0
+Requires: omx-panel-contract
 Requires: omx-clap-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -122,8 +120,7 @@ License: GPL-3.0-or-later
 Obsoletes: omx-clap-core-contract < 0.34.0
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: omx-contract-data >= 3.22.0
-
+Requires: omx-contract-data
 %description -n omx-clap-contract
 omx-clap's definitions as files in omx-contract's contract directory,
 for any program that reads them at run time: the hosting limits and refusal
@@ -135,7 +132,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-devel%{?_isa} = %{version}-%{release}
-Requires: clap-devel >= 1.2.10
+Requires: clap-devel
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig

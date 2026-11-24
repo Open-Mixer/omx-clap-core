@@ -6,7 +6,8 @@
 #   3. a fixture directory with one word changed (param -> parameter) through OMX_CONTRACT_PATH: the dump writes the new word;
 #   5. OMX_CONTRACT_PATH is a ':' list standing where the contract directory stands, the first directory holding the domain wins;
 #      only a command line reads it (this scanner is one), the library never does;
-#   6. a missing, invalid or too-old domain is refused by name at start-up: exit 78, naming the domain and the code.
+#   6. a missing or invalid domain is refused by name at start-up: exit 78, naming the domain and the code; a domain of
+#      any version is read (no floor: the build installed the contract it was made with; the owner ruling of 2026-11-24).
 #      the meter scope too: the dump of a plugin that publishes meters writes the domain's word for it, not a literal.
 #   (the recipe's test 5, the library entry ignoring OMX_CONTRACT_PATH, is n/a here: only this command line opens the domain.)
 # usage: scan-domain-check.py <omx-clap-scan> <fake.clap> <contract.d of this tree> <fake_compressor.clap>
@@ -90,7 +91,8 @@ refused('an invalid document', d, 'contract.file.not-json')
 d = fixture('wrongid', lambda doc: doc.update({'$id': 'https://openmixer.org/contract/elsewhere'}))
 refused('a document of another id', d, 'contract.manifest.invalid')
 d = fixture('old', lambda doc: doc['info'].update({'version': '0.0.1'}))
-refused('a too-old domain', d, 'contract.package.too-old')
+r = dump(d)
+if r.returncode != 0 or 'param' not in scopes(r): bad.append(f'a domain at a lower version: no floor is asked, it must be read (exit {r.returncode}, {r.stderr.strip()[:160]})')
 def drop_word(doc, word):
     # the loader holds a word's x-code to its place in the list: the words that stay are renumbered, so the refusal is the missing word's
     words = [w for w in doc['components']['schemas']['SCAN_FIELD_SCOPES']['oneOf'] if w['const'] != word]

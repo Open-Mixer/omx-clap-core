@@ -4,6 +4,12 @@
 
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
+- No hand-kept version floor (owner ruling 2026-11-24): packaging/deps.txt is gone, the
+  spec, debian/control and omx-clap.pc name every dependency without a version; what a package needs at run time is
+  generated (sonames, ${shlibs:Depends}, = its own version). The data files state no `requires` (their only entry was the
+  omx-contract-schema floor) and the omx-clap domain's info.x-requires is the list of names ["host"]. omx-clap-scan opens
+  the scan domain with no floor (omx_domain_open without a version, omx-contract's wave). tests/build-floors.sh and the
+  schema floor of code-text-check are gone; tests/no_floors_check.py (make test-no-floors) refuses a floor coming back.
 - OMX_PARAM_CONTRACT_UNIT_IDS maps dbPerOct to dBPerOct and dbPerS to dBPerS, omx-contract's renamed PARAM_UNITS ids
   (a unit id is camelCase, "/" reads "Per"; omx-contract#198, ruling 2026-11-23), no alias. param_info answers the
   standard id through the new omx_clap_param_unit_id (plugin-hostd#215 D1).

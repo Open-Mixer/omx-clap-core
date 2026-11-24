@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 /** A domain document's codes items as the data form's: code, text and args by title. */
 export function fromDomain(doc) {
-  const out = { requires: { 'omx-contract-schema': '>= 3.12.0' } };
+  const out = {};
   for (const [name, it] of Object.entries(doc.components.schemas)) {
     if ((it['x-kind'] ?? 'codes') !== 'codes' || !it.oneOf) continue;
     out[name] = { kind: 'codes', codes: Object.fromEntries(it.oneOf.map((w) => [w.title, { code: w.const, text: { en: w['x-text'] }, args: w['x-args'] }])) };

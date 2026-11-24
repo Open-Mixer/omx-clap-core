@@ -47,11 +47,11 @@
 #include "protocol.h"
 // hello, request tags and error words are the protocol library's from 0.3.0: protocol_add_hello() registers them
 #ifndef PROTOCOL_HELLO
-#error "plugin-hostd-protocol's hello (protocol_add_hello) not found: install plugin-hostd-protocol-devel >= 0.5.0 and < 0.6"
+#error "plugin-hostd-protocol's hello (protocol_add_hello) not found: install plugin-hostd-protocol-devel"
 #endif
 // curve_bind and curve_points are the protocol library's from 0.5.0: host_dispatch_register_curve() answers them
 #ifndef HOST_DISPATCH_HAS_CURVE
-#error "plugin-hostd-protocol's curve verbs (host_dispatch_register_curve) not found: install plugin-hostd-protocol-devel >= 0.5.0 and < 0.6"
+#error "plugin-hostd-protocol's curve verbs (host_dispatch_register_curve) not found: install plugin-hostd-protocol-devel"
 #endif
 #include "effects.h"
 #include "meter_reader.h"

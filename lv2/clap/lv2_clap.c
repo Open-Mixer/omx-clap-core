@@ -180,6 +180,9 @@ struct shim
     uint32_t n_contract;
     char fingerprint[65];
     int contracted;
+
+    // every channel of every audio and CV port has an lv2:symbol a host can name its port by (port_symbols_usable)
+    int port_symbols;
 };
 
 
@@ -647,6 +650,68 @@ static const struct lv2_audio_port *audio_port_at(const struct lv2_plugin *l, bo
     if (index == 0)
         return l->passthrough ? NULL : (is_input ? &l->main_in : &l->main_out);
     return index - 1 < n_aux ? (is_input ? &l->aux_in[index - 1] : &l->aux_out[index - 1]) : NULL;
+}
+
+/* the lv2:symbol behind `channel` of CLAP audio port `index` of a side, as ports_get counts them: an audio port's
+ * channel is one LV2 port and a CV port is its own; NULL for a pass-through main pair (the host's placement, no port of
+ * the plugin's), a channel past the port's width or an index past the ports */
+static const char *port_symbol_at(const struct lv2_plugin *l, bool is_input, uint32_t index, uint32_t channel)
+{
+    const struct lv2_audio_port *a = audio_port_at(l, is_input, index);
+    const uint32_t n_aux = is_input ? l->n_aux_in : l->n_aux_out, n_cv = is_input ? l->n_cv_in : l->n_cv_out;
+
+    if (a)
+        return channel < a->n ? l->port_symbol[a->port[channel]] : NULL;
+    if (is_input)
+        index += 1u - main_inputs(l);
+    if (index < 1u + n_aux || index - 1u - n_aux >= n_cv || channel)
+        return NULL;
+    return l->port_symbol[(is_input ? l->cv_in : l->cv_out)[index - 1u - n_aux]];
+}
+
+/* a symbol a host can give a port of its own as it is: an LV2 symbol's letters, digits and underscores, shorter than
+ * OMX_CLAP_LV2_PORT_SYMBOL_SIZE, and neither of the names the host's own note ports take */
+static int port_symbol_ok(const char *symbol)
+{
+    const size_t n = symbol ? strlen(symbol) : 0;
+
+    if (!n || n >= OMX_CLAP_LV2_PORT_SYMBOL_SIZE || strspn(symbol, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != n)
+        return 0;
+    return strcmp(symbol, "midi_in") != 0 && strcmp(symbol, "midi_out") != 0;
+}
+
+/* whether the plugin's ports can be named by their symbols: all of them or none, so that a symbol never meets the
+ * positional name of a port that has none. Every channel of every audio and CV port, both sides, has a symbol
+ * port_symbol_ok takes and no two share one. A pass-through plugin's main pair is the host's, so it has none. */
+static int port_symbols_usable(const struct lv2_plugin *l)
+{
+    const uint32_t n_in = main_inputs(l) + l->n_aux_in + l->n_cv_in, n_out = 1u + l->n_aux_out + l->n_cv_out;
+    const char **seen;
+    uint32_t n = 0, i, k, j;
+    int ok = !l->passthrough;
+
+    seen = ok ? calloc(l->n_ports ? l->n_ports : 1u, sizeof(*seen)) : NULL;
+    if (!seen)
+        return 0;
+    for (i = 0; ok && i < n_in + n_out; i++)
+    {
+        const bool is_input = i < n_in;
+        const uint32_t index = is_input ? i : i - n_in;
+        const struct lv2_audio_port *a = audio_port_at(l, is_input, index);
+
+        for (k = 0; ok && k < (a ? a->n : 1u); k++)
+        {
+            const char *symbol = port_symbol_at(l, is_input, index, k);
+
+            ok = port_symbol_ok(symbol) && n < l->n_ports;
+            for (j = 0; ok && j < n; j++)
+                ok = strcmp(seen[j], symbol) != 0;
+            if (ok)
+                seen[n++] = symbol;
+        }
+    }
+    free(seen);
+    return ok;
 }
 
 /* whether any audio port, main or auxiliary, either side, is of `kind` */
@@ -1710,6 +1775,7 @@ static const clap_plugin_t *factory_create(const clap_plugin_factory_t *factory,
         return NULL;
     }
     s->lv2 = lv2;
+    s->port_symbols = port_symbols_usable(lv2);
     s->host = host;
     descriptor_fill(&s->desc, lv2->uri, lv2->uri);
     for (uint32_t i = 0; i < lv2_bundle_count(slot->bundle); i++)
@@ -2008,6 +2074,13 @@ const char *omx_clap_lv2_param_symbol(const clap_plugin_t *plugin, clap_id id)
     const int32_t k = s && s->control_of_port ? control_of_id(s, id) : -1;
 
     return k >= 0 ? s->lv2->controls[k].symbol : NULL;
+}
+
+const char *omx_clap_lv2_port_symbol(const clap_plugin_t *plugin, bool is_input, clap_id port, uint32_t channel)
+{
+    const struct shim *s = plugin && plugin->process == plugin_process && plugin->plugin_data ? SHIM_OF(plugin) : NULL;
+
+    return s && s->port_symbols ? port_symbol_at(s->lv2, is_input, port, channel) : NULL;
 }
 
 const char *omx_clap_lv2_resource_hints_why(const clap_plugin_t *plugin)

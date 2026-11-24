@@ -4,7 +4,9 @@
 #
 # An LV2 plugin through omx-clap-host over jack, end to end, in a PipeWire of
 # its own: the host finds the fixture bundle on LV2_PATH, runs it through the
-# LV2 adapter on the port layout of a CLAP plugin, answers each refusal of the
+# LV2 adapter on the port layout of a CLAP plugin, names its audio ports by
+# their lv2:symbols as mod-host does (a pass-through plugin's strip pair, the
+# host's own, keeps in_1/in_2 and out_1/out_2; #47), answers each refusal of the
 # adapter with its hosting code, addresses the control ports by their LV2
 # symbols, maps lv2:enabled onto its bypass, saves, loads and takes a preset
 # by its URI, makes the path fixture's state files in its state root
@@ -135,22 +137,22 @@ ports() { pw-link "-$2" 2>/dev/null | grep "^$1:" | sort | tr '\n' ' '; }
 
 # ---- the add: lv2:<uri> and the bare URI, the layout of a CLAP plugin ----
 expect "add lv2:$fixture 0" "resp 0"
-[ "$(ports effect_0 i)" = "effect_0:in_1 " ]; step $? "effect_0's inputs: $(ports effect_0 i)(in_1 alone: a mono plugin with no MIDI input has no midi_in)"
-[ "$(ports effect_0 o)" = "effect_0:out_1 " ]; step $? "effect_0's outputs: $(ports effect_0 o)"
+[ "$(ports effect_0 i)" = "effect_0:in " ]; step $? "effect_0's inputs: $(ports effect_0 i)(in alone: a mono plugin with no MIDI input has no midi_in)"
+[ "$(ports effect_0 o)" = "effect_0:out " ]; step $? "effect_0's outputs: $(ports effect_0 o)"
 expect "add $fixture 1" "resp 1"
-[ "$(ports effect_1 i)" = "effect_1:in_1 " ]; step $? "the bare URI, as mod-host takes it, is the same plugin: $(ports effect_1 i)"
+[ "$(ports effect_1 i)" = "effect_1:in " ]; step $? "the bare URI, as mod-host takes it, is the same plugin: $(ports effect_1 i)"
 expect "add lv2:$fixture 3" "resp 3"
 
 # ---- refusals: the adapter's code after the error code, and on stderr ----
 # a mono input and a stereo output are two main ports of different widths (#92): a JACK port per channel each side
 expect "add lv2:$fixture#wide 2" "resp 2"
-[ "$(ports effect_2 i)" = "effect_2:in_1 " ]; step $? "the mono-in stereo-out twin's inputs: $(ports effect_2 i)"
-[ "$(ports effect_2 o)" = "effect_2:out_1 effect_2:out_2 " ]; step $? "the mono-in stereo-out twin's outputs: $(ports effect_2 o)"
+[ "$(ports effect_2 i)" = "effect_2:in " ]; step $? "the mono-in stereo-out twin's inputs: $(ports effect_2 i)"
+[ "$(ports effect_2 o)" = "effect_2:out_l effect_2:out_r " ]; step $? "the mono-in stereo-out twin's outputs: $(ports effect_2 o)"
 expect "remove 2" "resp 0"
 expect "add lv2:$fixture#atom 2" "resp -102 hosting.features.atom-in-unfed"
 # a second MIDI input is admitted, fed empty (#199): the client carries one midi_in, the first port's
 expect "add lv2:$fixture#midi-two 2" "resp 2"
-[ "$(ports effect_2 i)" = "effect_2:in_1 effect_2:midi_in " ]; step $? "the two-MIDI-input twin's inputs: $(ports effect_2 i)(one midi_in: the first port's)"
+[ "$(ports effect_2 i)" = "effect_2:in effect_2:midi_in " ]; step $? "the two-MIDI-input twin's inputs: $(ports effect_2 i)(one midi_in: the first port's)"
 expect "remove 2" "resp 0"
 # bufsz:fixedBlockLength is declared by omx-clap-host (JACK's cycle is the buffer size), so the twin requiring it is admitted;
 # state:mapPath is offered since #94, so the host fixture's #mappath twin passes the feature check and is refused later, no
@@ -183,8 +185,8 @@ expect "remove 2" "resp 0"
 # (a MIDI output alone) hosted with the strip's pair passing through ----
 expect "add lv2:$fixture#gen 2" "resp 2"
 [ -z "$(ports effect_2 i)" ]; step $? "the generator's inputs: none at all ($(ports effect_2 i))"
-[ "$(ports effect_2 o)" = "effect_2:out_1 effect_2:out_2 " ]; step $? "and its outputs: $(ports effect_2 o)"
-line=$(echo listen | timeout 10 "$probe" - effect_2:out_1 effect_2:out_2 2>"$runtime/probe.log")
+[ "$(ports effect_2 o)" = "effect_2:out_l effect_2:out_r " ]; step $? "and its outputs: $(ports effect_2 o)"
+line=$(echo listen | timeout 10 "$probe" - effect_2:out_l effect_2:out_r 2>"$runtime/probe.log")
 step $? "the probe listened to the generator: $line"
 set -- $line
 # 0.5 left and 0.25 right over both ports: sqrt((0.25 + 0.0625) / 2) = 0.3953 RMS, 0.5 peak
@@ -213,8 +215,8 @@ expect "remove 2" "resp 0"
 # through its midi_in ----
 expect "add lv2:urn:openmixer:test:midi-echo#synth 2" "resp 2"
 [ "$(ports effect_2 i)" = "effect_2:midi_in " ]; step $? "the instrument's inputs: $(ports effect_2 i)(midi_in alone, no audio input)"
-[ "$(ports effect_2 o)" = "effect_2:out_1 effect_2:out_2 " ]; step $? "and its outputs: $(ports effect_2 o)"
-line=$(timeout 10 "$probe" effect_2:midi_in effect_2:out_1 effect_2:out_2 2>"$runtime/probe.log")
+[ "$(ports effect_2 o)" = "effect_2:out_l effect_2:out_r " ]; step $? "and its outputs: $(ports effect_2 o)"
+line=$(timeout 10 "$probe" effect_2:midi_in effect_2:out_l effect_2:out_r 2>"$runtime/probe.log")
 step $? "the probe played the instrument through midi_in: $line"
 set -- $line
 near "${1:-1}" 0 0.000001; step $? "silence before a note (${1:-})"
@@ -227,33 +229,33 @@ expect "remove 2" "resp 0"
 [ -z "$(ports effect_2 i)$(ports effect_2 o)" ]; step $? "remove leaves no effect_2 port"
 
 # ---- the signal: 0.5 into effect_0, effect_0 into the probe effect_1, 0.25 into effect_3 ----
-"$source" effect_0:in_1 effect_3:in_1 >"$runtime/source.log" 2>&1 &
+"$source" effect_0:in effect_3:in >"$runtime/source.log" 2>&1 &
 pids+=($!)
 for _ in $(seq 50); do grep -q playing "$runtime/source.log" && break; sleep 0.1; done
 grep -q playing "$runtime/source.log"; step $? "the source plays 0.5 into effect_0 and 0.25 into effect_3"
-pw-link effect_0:out_1 effect_1:in_1; step $? "effect_0:out_1 -> effect_1:in_1"
+pw-link effect_0:out effect_1:in; step $? "effect_0:out -> effect_1:in"
 
 # ---- auxiliary ports (#92): an LV2 plugin's auxiliary groups, a JACK port per channel, bound to the plugin ----
 layout=urn:openmixer:test:layout-fixture
 level() { echo | timeout 10 "$probe" - "$@" 2>>"$runtime/probe.log"; }
 expect "add lv2:$layout#main-aux 6" "resp 6"
-[ "$(ports effect_6 i)" = "effect_6:aux_in_1_1 effect_6:aux_in_1_2 effect_6:aux_in_2_1 effect_6:aux_in_2_2 effect_6:in_1 effect_6:in_2 " ]
+[ "$(ports effect_6 i)" = "effect_6:a1_l effect_6:a1_r effect_6:a2_l effect_6:a2_r effect_6:in_l effect_6:in_r " ]
 step $? "the main group and two stereo aux groups: $(ports effect_6 i)"
-pw-link jack_meter_source:out_l effect_6:aux_in_2_1; step $? "the source's 0.5 into effect_6:aux_in_2_1, nothing on the mains"
+pw-link jack_meter_source:out_l effect_6:a2_l; step $? "the source's 0.5 into effect_6:a2_l, nothing on the mains"
 expect "add lv2:$layout#bands 7" "resp 7"
-[ "$(ports effect_7 o)" = "effect_7:aux_out_1_1 effect_7:aux_out_1_2 effect_7:aux_out_2_1 effect_7:aux_out_2_2 effect_7:aux_out_3_1 effect_7:aux_out_3_2 effect_7:out_1 effect_7:out_2 " ]
+[ "$(ports effect_7 o)" = "effect_7:b1_l effect_7:b1_r effect_7:b2_l effect_7:b2_r effect_7:b3_l effect_7:b3_r effect_7:out_l effect_7:out_r " ]
 step $? "the main pair and three stereo band outputs: $(ports effect_7 o)"
-pw-link jack_meter_source:out_l effect_7:in_1; step $? "the source's 0.5 into effect_7:in_1"
+pw-link jack_meter_source:out_l effect_7:in_l; step $? "the source's 0.5 into effect_7:in_l"
 sleep 0.3
-# main-aux sums its main and both aux pairs: out_1 is the second aux group's left, a dry pass reads silence
+# main-aux sums its main and both aux pairs: out_l is the second aux group's left, a dry pass reads silence
 aux_reads() {
     local w
-    w=$(level effect_6:out_1); near "${w%% *}" 0.5 0.0001; step $? "$1effect_6:out_1 carries aux_in_2_1, 0.5 ($w)"
-    w=$(level effect_6:out_2); near "${w%% *}" 0 0.000001; step $? "$1effect_6:out_2 is silent ($w)"
+    w=$(level effect_6:out_l); near "${w%% *}" 0.5 0.0001; step $? "$1effect_6:out_l carries a2_l, 0.5 ($w)"
+    w=$(level effect_6:out_r); near "${w%% *}" 0 0.000001; step $? "$1effect_6:out_r is silent ($w)"
     # band k writes in * k/4
-    w=$(level effect_7:aux_out_2_1); near "${w%% *}" 0.25 0.0001; step $? "$1effect_7:aux_out_2_1 is in * 2/4, 0.25 ($w)"
-    w=$(level effect_7:aux_out_3_1); near "${w%% *}" 0.375 0.0001; step $? "$1effect_7:aux_out_3_1 is in * 3/4, 0.375 ($w)"
-    w=$(level effect_7:aux_out_2_2); near "${w%% *}" 0 0.000001; step $? "$1effect_7:aux_out_2_2 is the silent right ($w)"
+    w=$(level effect_7:b2_l); near "${w%% *}" 0.25 0.0001; step $? "$1effect_7:b2_l is in * 2/4, 0.25 ($w)"
+    w=$(level effect_7:b3_l); near "${w%% *}" 0.375 0.0001; step $? "$1effect_7:b3_l is in * 3/4, 0.375 ($w)"
+    w=$(level effect_7:b2_r); near "${w%% *}" 0 0.000001; step $? "$1effect_7:b2_r is the silent right ($w)"
 }
 aux_reads ""
 
@@ -334,8 +336,8 @@ expect "add lv2:$pathfix 4" "resp 4"
 [ -d "$sroot" ]; step $? "the state root $sroot is made at start"
 expect "add lv2:$fixture 5" "resp 5"
 expect "param_set 5 gain_db 0" "resp 0"
-pw-link effect_3:out_1 effect_4:in_1; step $? "effect_3:out_1 -> effect_4:in_1"
-pw-link effect_4:out_1 effect_5:in_1; step $? "effect_4:out_1 -> effect_5:in_1"
+pw-link effect_3:out effect_4:in; step $? "effect_3:out -> effect_4:in"
+pw-link effect_4:out effect_5:in; step $? "effect_4:out -> effect_5:in"
 reads 5 meter "$(db 0.25 -32)" 0.00006 "the path fixture passes at gain 1, the probe after it at -6 dB"
 expect "param_set 4 level 0.5" "resp 0"
 expect "state_save $runtime/state2" "resp 0"
@@ -369,7 +371,7 @@ patch_reads() {
     step $? "patch_get $instance $uri reads $want ($reply)"
 }
 expect "add lv2:$atomfix 6" "resp 6"
-pw-link effect_3:out_1 effect_6:in_1; step $? "effect_3:out_1 -> effect_6:in_1: the fixture runs its blocks"
+pw-link effect_3:out effect_6:in; step $? "effect_3:out -> effect_6:in: the fixture runs its blocks"
 expect "patch_set 6 ${fxp}file $runtime/take.wav" "resp 0"
 patch_reads 6 "${fxp}file" "$runtime/take.wav"
 expect "patch_set 6 ${fxp}file \"$runtime/two words/take one.wav\"" "resp 0"

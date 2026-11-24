@@ -156,6 +156,18 @@ const char *omx_clap_lv2_last_refusal(void);
  * plugin the adapter did not create. */
 const char *omx_clap_lv2_param_symbol(const clap_plugin_t *plugin, clap_id id);
 
+/* the bytes of a port symbol omx_clap_lv2_port_symbol answers, its NUL included */
+#define OMX_CLAP_LV2_PORT_SYMBOL_SIZE 32
+
+/* [main-thread] The lv2:symbol of the LV2 port behind `channel` of the audio port `port` (clap_audio_port_info.id) of a
+ * side of a plugin this adapter created: what mod-host names that port, so a host that names its own port by it shows
+ * the plugin's names. An audio port's channel is one LV2 audio port; a CV port is its own, channel 0. The plugin's ports
+ * are named all or none: NULL for every port unless each channel of each audio and CV port has a symbol of letters,
+ * digits and underscores shorter than OMX_CLAP_LV2_PORT_SYMBOL_SIZE that no other shares and that is neither midi_in
+ * nor midi_out; NULL too for a pass-through plugin (its main pair is the host's placement), a channel or a port past
+ * the plugin's, and a plugin the adapter did not create. The text is the plugin's, good until it is destroyed. */
+const char *omx_clap_lv2_port_symbol(const clap_plugin_t *plugin, bool is_input, clap_id port, uint32_t channel);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,10 +1,11 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
-# One home per word: the HOSTING_*_CODES items live in the hosting domain alone (contract.d/hosting/hosting.json), the
-# stage's numbers in data/hosting.json and the verb hosts in data/hosting/verb-hosts.json. A hosting code item put back
-# into data/ is a second home, and the read refuses it by name (contract.item.duplicate); the verb hosts declared again in
-# the domain make one data file with two sources (contract.manifest.mismatch). Each arm is planted in a scratch copy of the
+# One home per word: the HOSTING_*_CODES items live in the hosting domain alone (contract.d/hosting/hosting.json) and the
+# stage's numbers in data/hosting.json. A hosting code item put back into data/ is a second home, and the read refuses it
+# by name (contract.item.duplicate). The verb hosts (HOSTING_VERB_HOSTS) are plugin-hostd-protocol's domain hosting-verb
+# since ruling R5: a copy back here is refused by tests/no_protocol_copy.py, and by the read of both packages' contract
+# directories in make host-verbs-contract (contract.item.duplicate). Each arm is planted in a scratch copy of the
 # committed tree, installed with make install-contract and read back with tests/contract-dir-check.sh; the clean copy reads
 # back green first.
 #   usage: tests/hosting-one-home.sh <omx-contract checkout or /usr/lib/omx-contract> <install-contract-dir.sh>
@@ -51,14 +52,6 @@ it = json.load(open("contract.d/hosting/hosting.json"))["components"]["schemas"]
 d["HOSTING_IDLE_CODES"] = {"kind": "codes", "doc": it["description"], "codes": {w["title"]: {"code": w["const"], "text": {"en": w["x-text"]}} for w in it["oneOf"]}}
 open("data/hosting.json", "w").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
 ' "a hosting code item put back into data/hosting.json" contract.item.duplicate
-
-arm domain-copy '
-import json
-p = "contract.d/hosting/hosting.json"
-d = json.load(open(p))
-d["components"]["schemas"]["HOSTING_VERB_HOSTS"] = dict(d["components"]["schemas"]["HOSTING_IDLE_CODES"], **{"x-file": "hosting/verb-hosts.json"})
-open(p, "w").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
-' "the verb hosts declared again in the hosting domain" contract.manifest.mismatch
 
 [ $fail = 0 ] && echo "hosting-one-home: ok"
 exit $fail

@@ -187,7 +187,7 @@ jobs:
           base: omx-clap-contract
           owner: omx-clap
           spec: packaging/omx-clap-host.spec
-          # data/ and the host domain's codes (contract.d/host), whose translations catalogs/ holds
+          # data/ and the codes whose translations catalogs/ holds (reply.host.* are plugin-hostd-protocol's since ruling R5)
           gate: make --no-print-directory catalog-gate
 
   docs:
@@ -934,8 +934,8 @@ jobs:
             rpm -qlp "$rpm"
             files "$rpm" > files.txt
             printf '%s\n' /usr/share/omx-contract/contract.d/3/omx-clap/MANIFEST.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting.json /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json \
-              /usr/share/omx-contract/contract.d/3/omx-clap/hosting/clap.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/cost.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/features.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/latency.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/memory.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/output.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/override.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/patch.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/preset.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/provenance.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/realised.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/resource-hints.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/rt-safety.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/stability.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/state.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/topology.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/verb-hosts.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/worker.json \
-              /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json /usr/share/omx-contract/contract.d/omx-clap-scale/omx-clap-scale.json /usr/share/omx-contract/contract.d/clap/clap.json /usr/share/omx-contract/contract.d/host/host.json /usr/share/omx-contract/contract.d/hosting/hosting.json /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
+              /usr/share/omx-contract/contract.d/3/omx-clap/hosting/clap.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/cost.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/features.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/latency.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/memory.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/output.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/override.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/patch.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/preset.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/provenance.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/realised.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/resource-hints.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/rt-safety.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/stability.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/state.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/topology.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/worker.json \
+              /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json /usr/share/omx-contract/contract.d/omx-clap-scale/omx-clap-scale.json /usr/share/omx-contract/contract.d/clap/clap.json /usr/share/omx-contract/contract.d/hosting/hosting.json /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
               /usr/share/licenses/omx-clap-contract/COPYING /usr/share/doc/omx-clap-contract/README.md | sort > expected.txt
             diff -u expected.txt files.txt
           done
@@ -1026,10 +1026,13 @@ jobs:
           # the domain plugin-hostd-protocol names this host too (chain: required), and the check reads it
           # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)
           rpm -qf /usr/share/omx-contract/contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json | grep -q '^plugin-hostd-protocol-contract-'
-          dnf install -y --setopt=install_weak_deps=False plugin-db-devel
+          # plugin-hostd-protocol-devel: the render of the verbs this host answers, which the registration table names (ruling R5)
+          dnf install -y --setopt=install_weak_deps=False plugin-db-devel plugin-hostd-protocol-devel
           scheme=$(printf '#include <plugin-db/pin.h>\nPHD_PIN_LAYOUT_SCHEME\n' | gcc $(pkg-config --cflags plugin-db) -E -P - | tail -n 1 | tr -d '"')
+          header=$(pkg-config --variable=includedir plugin-hostd-protocol)/plugin-hostd-protocol/plugin-hostd/plugin_hostd_protocol_host_verbs.h
+          test -f "$header"
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib OMX_CONTRACT_PATH=/usr/share/omx-contract/contract.d OMX_CLAP_HOST=/usr/bin/omx-clap-host PHD_PIN_LAYOUT_SCHEME=$scheme \
+            PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib OMX_CONTRACT_PATH=/usr/share/omx-contract/contract.d OMX_CLAP_HOST=/usr/bin/omx-clap-host PHD_PIN_LAYOUT_SCHEME=$scheme HOST_VERBS_HEADER=$header \
               ./tests/host_verbs_e2e.sh
           else
             echo "::warning::the installed verbs SKIPPED: this runner refuses a private user and pid namespace with its own /proc"

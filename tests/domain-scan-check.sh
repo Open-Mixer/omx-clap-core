@@ -4,8 +4,8 @@
 # The scan domain (contract.d/scan/scan.json) held to the consumer-move recipe (omx-contract docs/consumer-move.md, steps 1 to 4):
 #   1. the document conforms and is in the one formatting: $schema, the exact $id, info.x-owner omx-clap, info.x-stability
 #      experimental, every item prefixed SCAN_, SCAN_FIELD_SCOPES ending in the meter word (x-code 13, appended, never moved), and it
-#      validates with its six catalogs by omx-contract's reader, over the package as make install-contract installs it
-#      (with its sabotage: a verb host gone from HOSTING_VERB_HOSTS, and the item gone, refused by name), and holds fmt --check;
+#      validates with its six catalogs by omx-contract's reader, over the package as make install-contract installs it,
+#      and holds fmt --check;
 #   2. no scan_vocabulary.h exists or is included, anywhere in the tree;
 #   3. the codes header src/scan_codes.h is the render (--check), and holds only the items marked x-c-codes (SCAN_FIELD_SCOPES,
 #      the scopes the field dump indexes by), never SCAN_DOCUMENTS.
@@ -34,10 +34,9 @@ node -e '
   if (bad.length) { console.error(bad.join("\n")); process.exit(1); }
 ' "$doc" || fail "the scan document breaks the recipe (step 1)"
 # The read is this package as it installs: make install-contract into a scratch contract directory (data/ as the package
-# omx-clap, hosting/verb-hosts.json among it, and every domain of contract.d). contract.d alone holds verbs (the domain
-# omx-clap) and not HOSTING_VERB_HOSTS, the hosts they name, so a reader refuses it (contract.verb.host-unknown). A domain
-# named as an installed package is read only through --with-domain, so the domain omx-clap is named: without it its verbs
-# are never read and no verb check runs.
+# omx-clap, and every domain of contract.d). A domain named as an installed package is read only through --with-domain,
+# so the domain omx-clap is named. This package declares no verb and not the hosts a verb names: those are
+# plugin-hostd-protocol's (its domains plugin-hostd-protocol and hosting-verb, ruling R5), whose own checks hold them.
 stage() {
   ${MAKE:-make} --no-print-directory -C "$1" -f "$root/Makefile" install-contract DESTDIR= OMX_CONTRACT_DIR="$oc" \
     ${OMX_CONTRACT_SCRIPT:+INSTALL_CONTRACT_DIR="$OMX_CONTRACT_SCRIPT"} CONTRACTDIR="$2" DATADIR="$2-share" >/dev/null \
@@ -48,24 +47,6 @@ root=$(pwd)
 stage "$root" "$work/dir"
 out=$(validate "$work/dir") || fail "the installed read does not validate: $out"
 printf '%s\n' "$out" | grep -q ", valid, 6 catalogs" || fail "the scan domain and its 6 catalogs do not validate: $out"
-# sabotage, each in a scratch tree staged the same way: a host a verb names gone from HOSTING_VERB_HOSTS, and the item
-# gone, must each be refused by name
-arm() {
-  t="$work/arm-$1"; mkdir -p "$t"
-  for f in catalogs VERSION schema; do ln -s "$root/$f" "$t/$f"; done
-  cp -r "$root/data" "$root/contract.d" "$t/"
-  vh="$t/data/hosting/verb-hosts.json"
-  case $1 in
-    host) sed -i 's/"word": "omx-clap-host"/"word": "omx-clap-hostx"/' "$vh"; ! cmp -s "$root/data/hosting/verb-hosts.json" "$vh" || fail "sabotage $1: the sed changed nothing" ;;
-    item) rm "$vh" ;;
-  esac
-  stage "$t" "$t/dir"
-  if out=$(validate "$t/dir"); then fail "sabotage $1: the read validated: $out"; fi
-  printf '%s\n' "$out" | grep -q "contract.verb.host-unknown.*HOSTING_VERB_HOSTS" || fail "sabotage $1: refused, and not by contract.verb.host-unknown naming HOSTING_VERB_HOSTS: $out"
-  echo "ok   sabotage $1: refused, $(printf '%s\n' "$out" | head -1 | cut -c1-120)"
-}
-arm host
-arm item
 # the formatting of the scan document, read alone (a read of contract.d alone is refused, above)
 mkdir "$work/fmt" && cp -r contract.d/scan "$work/fmt/"
 $tool fmt --check --contract-dir "$work/fmt" >/dev/null || fail "the scan document is not in the one formatting: omx-contract fmt --contract-dir contract.d"

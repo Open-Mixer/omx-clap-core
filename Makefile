@@ -345,8 +345,9 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# CLAP's own particulars (the flag for the stepped scale), the same way: <contractdir>/clap/clap.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/clap $(DESTDIR)$(CONTRACTDIR) $(CORE)
-	# the host's reply codes and events (host) and its verbs (omx-clap), the same way: <contractdir>/host/host.json, <contractdir>/omx-clap/omx-clap.json
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/host $(DESTDIR)$(CONTRACTDIR) $(CORE)
+	# the typed replies of the host's verbs (omx-clap), the same way: <contractdir>/omx-clap/omx-clap.json. The host's reply
+	# codes and events (the domain host), the hosts a verb names (hosting-verb) and the verbs themselves are
+	# plugin-hostd-protocol's, installed by plugin-hostd-protocol-contract (ruling R5)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
@@ -437,10 +438,11 @@ test-contract:
 	$(CC) $(shell $(PKG_CONFIG) --cflags libomx-domain) tests/domain_installed_test.c -o build/contract/domain_installed_test $(shell $(PKG_CONFIG) --libs libomx-domain)
 	build/contract/domain_installed_test $(abspath build/contract/dir)
 	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
-	# one home per word: a hosting code put back into data/, or the verb hosts declared again in the domain, is refused by name
+	# one home per word: a hosting code put back into data/ is refused by name
 	sh tests/hosting-one-home.sh $(OMX_CONTRACT_DIR) $(OMX_CONTRACT_SCRIPT)
-	# sabotage: the verbs' format changed in the installed omx-clap domain must turn the byte-for-byte read-back red, and so must a reply code of the host domain
-	@for arm in 's/"x-format": "remote_page_get %i %i"/"x-format": "remote_page_get %i"/|omx-clap/omx-clap.json' 's/"x-resp": -510/"x-resp": -519/|host/host.json'; do \
+	# sabotage: a code of the installed hosting domain renamed must turn the byte-for-byte read-back red, and so must a number of
+	# the installed data/hosting.json (the verbs' and the host domain's arms went with them to plugin-hostd-protocol, ruling R5)
+	@for arm in 's/"const": "hosting.idle.hold-refused"/"const": "hosting.idle.hold-refusal"/|hosting/hosting.json' 's/"workerPollUs": 1000,/"workerPollUs": 1001,/|3/omx-clap/hosting.json'; do \
 	  expr=$${arm%%|*}; file=$${arm#*|}; rm -rf build/contract/sabotage && cp -r build/contract/dir build/contract/sabotage && sed -i -e "$$expr" build/contract/sabotage/$$file \
 	    && ! cmp -s build/contract/dir/$$file build/contract/sabotage/$$file || { echo "FAIL sabotage: the sed changed nothing in $$file"; exit 1; }; \
 	  if OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/sabotage $(VERSION) >/dev/null 2>&1; then echo "FAIL sabotage: the read-back stayed green over $$file"; exit 1; else echo "ok   sabotage: the read-back is red over a changed $$file"; fi; done
@@ -448,9 +450,6 @@ test-contract:
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --with-domain build/contract/dir/hosting --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
-	# V29: the hosts a verb names, HOSTING_VERB_HOSTS of data/hosting/verb-hosts.json, with its sabotage arms
-	node tests/hosting-verb-hosts-check.mjs
-	node tests/hosting-verb-hosts-check.mjs --self-test
 	# F2: the scale codes and the CLAP flag mapped to omx-contract's standard scales (PARAM_SCALES), with its sabotage
 	python3 -I tests/scale-maps-check.py contract.d build/contract/json/omx-contract.json
 	python3 -I tests/scale-maps-check.py --self-test contract.d build/contract/json/omx-contract.json
@@ -460,15 +459,17 @@ test-contract:
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 
-# the language packs' gate (ci.yml, the langpacks action's gate): omx-contract translate --check over data/ and the host
-# domain's codes, whose translations catalogs/ holds (V15 moved reply.host.* into contract.d/host, which --owner does not read)
+# the language packs' gate (ci.yml, the langpacks action's gate): omx-contract translate --check over data/ and the codes
+# whose translations catalogs/ holds (reply.host.* and their translations are plugin-hostd-protocol's domain host, ruling R5)
 OMX_CONTRACT ?= omx-contract
 .PHONY: catalog-gate
 catalog-gate:
 	rm -rf build/catalog-gate
 	mkdir -p build/catalog-gate
 	cp -r data catalogs build/catalog-gate/
-	node tests/domain-data.mjs contract.d/host/host.json build/catalog-gate/data/host-domain.json
+	@# the hosting codes' one home is the domain hosting (contract.d/hosting): staged beside data/ in the data form, so
+	@# --owner reads every hosting.* key the catalogs hold
+	node tests/domain-data.mjs contract.d/hosting/hosting.json build/catalog-gate/data/hosting-domain.json
 	$(OMX_CONTRACT) translate --check --owner build/catalog-gate
 
 install: install-lib install-rt-gate-graphs install-lv2 install-tests install_man install-contract
@@ -710,10 +711,11 @@ test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_tes
 
 # every hosting code src/ and lv2/ write is an OMX_HOSTING_ macro of src/omx_clap_vocabulary.h, the render of
 # data/hosting/: no hand-typed "hosting." literal, no name that header lacks (tests/hosting-codes-check.sh, with its sabotage arms); and
-# every verb the omx-clap domain declares is an OMX_VERB_ macro of src/omx_clap_host_verbs.h, every reply number of
-# src/host_verbs.h the declared one (tests/host-verbs-check.sh, with its sabotage arms); and every reply this package
-# owns typed in OMX_CLAP_REPLIES, word for word its x-reply, and written by the fields it declares (tests/host-replies-check.py,
-# with its sabotage arms)
+# every verb omx-clap-host answers (plugin-hostd-protocol's PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS and
+# PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS, read from its domain in PROTOCOL_DOMAINS) is an OMX_VERB_ macro of
+# <plugin-hostd/plugin_hostd_protocol_host_verbs.h>, no source defines a reply number (tests/host-verbs-check.sh, with its
+# sabotage arms); and every reply this package owns typed in OMX_CLAP_REPLIES, word for word its verb's x-reply, and written
+# by the fields it declares (tests/host-replies-check.py, with its sabotage arms)
 .PHONY: test-codes test-verbs-source
 # every number the host answers has a code (#34): it reads plugin-hostd-protocol's host-errors.h, so it runs where the
 # protocol's headers are, the build's jobs, never test-contract's (which has omx-contract alone)
@@ -721,12 +723,14 @@ test-codes: test-verbs-source
 	bash tests/hosting-codes-check.sh
 	bash tests/hosting-codes-check.sh --self-test
 	@test -n "$(HOST_ERRORS_H)" || { echo "test-codes: no host-errors.h in PROTOCOL_CFLAGS ($(PROTOCOL_CFLAGS)): install plugin-hostd-protocol-devel" >&2; exit 1; }
-	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H)
-	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H) --self-test
+	@test -f $(PROTOCOL_DOMAINS)/host/host.json || { echo "test-codes: no domain host at $(PROTOCOL_DOMAINS)/host (plugin-hostd-protocol's: a checkout named by PROTOCOL_CONTRACT_DIR, or plugin-hostd-protocol-contract installed)" >&2; exit 1; }
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H) --domain $(PROTOCOL_DOMAINS)/host/host.json
+	python3 tests/host-reply-codes-check.py --header $(HOST_ERRORS_H) --domain $(PROTOCOL_DOMAINS)/host/host.json --self-test
 test-verbs-source:
-	bash tests/host-verbs-check.sh
-	bash tests/host-verbs-check.sh --self-test
-	python3 -I tests/host-replies-check.py --table $(PROTOCOL_TABLE) --self-test
+	@test -f $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json || { echo "test-verbs-source: no domain plugin-hostd-protocol at $(PROTOCOL_DOMAIN) (a checkout named by PROTOCOL_CONTRACT_DIR, or plugin-hostd-protocol-contract installed)" >&2; exit 1; }
+	bash tests/host-verbs-check.sh --protocol-domain $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json
+	bash tests/host-verbs-check.sh --protocol-domain $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json --self-test
+	python3 -I tests/host-replies-check.py --table $(PROTOCOL_TABLE) --verbs $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json --self-test
 
 # the stage against fake plugins at six rates, and the core over the fault fixtures and fakes: the witness, the guard
 # page, the audio role on a split, the whole roster and the tempo. clap_core_test also opens tests/fake.clap (its
@@ -1348,8 +1352,8 @@ test-no-contract-copy:
 	python3 tests/no_contract_copy.py .
 
 # the protocol is plugin-hostd-protocol's: none of its tables or headers is back here under any name, nothing declares
-# what protocol.h declares, and the one rendered verb table is src/omx_clap_host_verbs.h (tests/no_protocol_copy.py,
-# with its self test)
+# what protocol.h declares, no rendered verb table, no verbs item and no item of its domains host and hosting-verb is
+# here (ruling R5; tests/no_protocol_copy.py, with its self test)
 .PHONY: check-no-protocol-copy
 check-no-protocol-copy:
 	python3 tests/no_protocol_copy.py --self-test
@@ -1505,9 +1509,13 @@ HOST_VERBS_CONTRACT = $(abspath build/verbs-contract)
 OMX_CONTRACT_CLIDIR ?= $(or $(shell $(PKG_CONFIG) --variable=clidir omx-contract 2>/dev/null),$(abspath $(OMX_CONTRACT_DIR)))
 export OMX_CONTRACT_CLIDIR
 PROTOCOL_CONTRACT_DIR ?= $(PROTOCOL_DIR)
-# the domain itself: the checkout's contract.d/plugin-hostd-protocol, or, with no checkout named (plugin-hostd-protocol-devel
-# installed, so PROTOCOL_DIR is unset), the one plugin-hostd-protocol-contract installed in omx-contract's contract directory
-PROTOCOL_DOMAIN ?= $(if $(PROTOCOL_CONTRACT_DIR),$(PROTOCOL_CONTRACT_DIR)/contract.d/plugin-hostd-protocol,$(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null)/plugin-hostd-protocol)
+# where plugin-hostd-protocol's domains are (plugin-hostd-protocol, and host and hosting-verb, the host words and the hosts
+# a verb names, which it owns since ruling R5): the checkout's contract.d, or, with no checkout named
+# (plugin-hostd-protocol-devel installed, so PROTOCOL_DIR is unset), omx-contract's contract directory, where
+# plugin-hostd-protocol-contract installs them
+PROTOCOL_DOMAINS ?= $(if $(PROTOCOL_CONTRACT_DIR),$(PROTOCOL_CONTRACT_DIR)/contract.d,$(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null))
+# the domain plugin-hostd-protocol itself
+PROTOCOL_DOMAIN ?= $(PROTOCOL_DOMAINS)/plugin-hostd-protocol
 .PHONY: test-host-verbs test-host-verbs-sabotage test-host-verbs-domains host-verbs-contract
 host-verbs-contract:
 	rm -rf $(HOST_VERBS_CONTRACT)
@@ -1516,8 +1524,15 @@ host-verbs-contract:
 	@# every other package that names omx-clap-host in its words (the domain plugin-hostd-protocol: chain,
 	@# preset_list, ...) is read too, installed as its package installs it: the domain alone, named after its package,
 	@# with no owner manifest beside it (omx-contract's reader reads a domain as the package of its name)
-	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json || { echo "host-verbs-contract: no domain plugin-hostd-protocol at $(PROTOCOL_DOMAIN) (a checkout named by PROTOCOL_CONTRACT_DIR, or plugin-hostd-protocol-contract installed), whose words declare chain of omx-clap-host" >&2; exit 1; }
-	sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_DOMAIN) $(HOST_VERBS_CONTRACT) plugin-hostd-protocol
+	@# since ruling R5 the verbs omx-clap-host answers are that domain's too, and the host words their codes name (host)
+	@# and the hosts a verb names (hosting-verb) are plugin-hostd-protocol's domains beside it, installed the same way
+	@test -n "$(INSTALL_CONTRACT_DIR)" && test -f $(PROTOCOL_DOMAIN)/plugin-hostd-protocol.json || { echo "host-verbs-contract: no domain plugin-hostd-protocol at $(PROTOCOL_DOMAIN) (a checkout named by PROTOCOL_CONTRACT_DIR, or plugin-hostd-protocol-contract installed), whose words declare the verbs of omx-clap-host" >&2; exit 1; }
+	@for d in host hosting-verb; do test -f $(PROTOCOL_DOMAINS)/$$d/$$d.json || { echo "host-verbs-contract: no domain $$d at $(PROTOCOL_DOMAINS)/$$d (plugin-hostd-protocol's, ruling R5)" >&2; exit 1; }; done
+	for d in plugin-hostd-protocol host hosting-verb; do sh $(INSTALL_CONTRACT_DIR) --domain $(PROTOCOL_DOMAINS)/$$d $(HOST_VERBS_CONTRACT) plugin-hostd-protocol || exit 1; done
+	@# the two packages' contract directories read as one, this package's data and the domains of the words that moved
+	@# (omx-clap, hosting) beside plugin-hostd-protocol's (plugin-hostd-protocol, host, hosting-verb): a word both declare
+	@# is refused by name (contract.item.duplicate)
+	node $(OMX_CONTRACT_CLIDIR)/bin/omx-contract.mjs validate --contract-dir $(HOST_VERBS_CONTRACT) $(foreach d,omx-clap hosting plugin-hostd-protocol host hosting-verb,--with-domain $(HOST_VERBS_CONTRACT)/$(d))
 test-host-verbs: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_e2e.sh
 
@@ -1531,13 +1546,16 @@ test-host-verbs-domains: host-verbs-contract
 test-host-verbs-sabotage: $(PROG) tests/fake.clap tests/fake_synth.clap $(if $(OMX_CONTRACT_PATH),,host-verbs-contract)
 	OMX_CONTRACT_PATH=$(or $(OMX_CONTRACT_PATH),$(HOST_VERBS_CONTRACT)) $(HOST_VERBS_DECLARED) ./tests/host_verbs_sabotage.sh
 
-# what the tests read of the verbs the omx-clap domain declares, from the header over its renders (src/host_verbs.h) and
-# the layout scheme from plugin-db's pin.h: a test names no code or verb of its own
+# what the tests read of the verbs omx-clap-host answers, from the header over plugin-hostd-protocol's renders
+# (src/host_verbs.h, which includes <plugin-hostd/plugin_hostd_protocol_host_verbs.h> and its vocabulary) and the layout
+# scheme from plugin-db's pin.h: a test names no code or verb of its own
 HASH := \#
-host_declared = $(shell printf '$(HASH)include "host_verbs.h"\n$(HASH)include <plugin-db/pin.h>\n%s\n' $(1) | $(CC) -Isrc $(CLAP_CFLAGS) $(PIN_CFLAGS) -E -P - | tail -n 1 | sed -e 's/^[("]//' -e 's/[)"]$$//')
+host_declared = $(shell printf '$(HASH)include "host_verbs.h"\n$(HASH)include <plugin-db/pin.h>\n%s\n' $(1) | $(CC) -Isrc $(CLAP_CFLAGS) $(PROTOCOL_CFLAGS) $(PIN_CFLAGS) -E -P - | tail -n 1 | sed -e 's/^[("]//' -e 's/[)"]$$//')
 HOST_PIN_DECLARED = $(foreach n,OMX_REPLY_HOST_PIN_ABSENT_RESP OMX_REPLY_HOST_PIN_LAYOUT_MISMATCH_RESP OMX_VERB_PIN_EXPECT PHD_PIN_LAYOUT_SCHEME,$(n)='$(call host_declared,$(n))')
 HOST_INFO_DECLARED = $(foreach n,OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP OMX_HOST_EVENTS_REMOTE_PAGES_CHANGED,$(n)='$(call host_declared,$(n))')
-HOST_VERBS_DECLARED = PHD_PIN_LAYOUT_SCHEME='$(call host_declared,PHD_PIN_LAYOUT_SCHEME)'
+# plugin-hostd-protocol's render of the verbs this host answers (ruling R5), on the protocol's include path
+PROTOCOL_HOST_VERBS_H = $(firstword $(wildcard $(patsubst -I%,%/plugin-hostd/plugin_hostd_protocol_host_verbs.h,$(filter -I%,$(PROTOCOL_CFLAGS)))))
+HOST_VERBS_DECLARED = PHD_PIN_LAYOUT_SCHEME='$(call host_declared,PHD_PIN_LAYOUT_SCHEME)' HOST_VERBS_HEADER='$(PROTOCOL_HOST_VERBS_H)'
 # what the tests behind plugin-hostd read of the daemon's protocol, from the header of the checkout they run
 phd_declared = $(shell printf '$(HASH)include <plugin-hostd/protocol.h>\n$(HASH)include <plugin-db/pin.h>\n%s\n' $(1) | $(CC) $(PROTOCOL_CFLAGS) $(PIN_CFLAGS) -E -P - | tail -n 1 | sed -e 's/^[("]//' -e 's/[)"]$$//')
 PHD_CHAIN_DECLARED = $(foreach n,PHD_READY_LINE OMX_VERB_CHAIN PHD_EVENT_CHAIN_FORMED PHD_EVENT_INSTANCE_QUARANTINED OMX_VERB_WORKER_LIST PHD_PLACE_CHAIN_PREFIX,$(n)='$(call phd_declared,$(n))')
@@ -2057,7 +2075,7 @@ test-protocol-client:
 # the LV2 fixture bundle through the adapter, in a private PipeWire (tests/jack_presets_e2e.sh)
 .PHONY: test-jack-presets
 test-jack-presets: $(PROG) $(SCAN_PROG) tests/fake_synth.clap tests/fake_mover.clap tests/fake_ext.clap build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
-	bash tests/jack_presets_e2e.sh
+	OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP='$(call host_declared,OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP)' bash tests/jack_presets_e2e.sh
 
 .PHONY: test-state-busy
 test-state-busy: tests/clap_state_busy_test tests/fake_state.clap

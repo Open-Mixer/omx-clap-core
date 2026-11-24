@@ -3,7 +3,8 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """
 The verbs omx-clap-host owes, read from the installed declarations, against the host's socket and its registration
-table (contract.d/omx-clap/omx-clap.json, docs/verbs.md).
+table (plugin-hostd-protocol's domain plugin-hostd-protocol, whose items OWN_ITEMS hold the verbs this host answers by its own
+handlers since ruling R5; docs/verbs.md).
 
     host_verbs_check.py --port <n> --contract-path <dir>[:<dir>...] --registration <main.c> --header <verbs header>
                         --fake <fake.clap> --synth <fake_synth.clap> --layout-scheme <scheme>
@@ -21,9 +22,8 @@ with a line built for its declared format from this file's EXAMPLES:
   unsupported  a well-formed line is answered with the verb's invalidOperation code (-902).
 
 And the reverse: every protocol_add_command of the registration table names its line by an OMX_VERB_<VERB>_FMT of the
-header, by an OMX_VERB_<VERB>_FMT of another package's header for a verb that package declares, by a mod-host macro,
-or by the word of a verb another package declares (or AWAITING names until a package
-declares it); the declared verbs this table registers equal the verbs this package declares for omx-clap-host. A
+header (plugin-hostd-protocol's), by a mod-host macro, or by the word of a verb another package declares (or AWAITING
+names until a package declares it); the verbs of OWN_ITEMS this table registers equal the verbs of OWN_ITEMS. A
 registered verb with no declaration, a declared one with no handler, a verb whose answer is not its declaration's, and
 a declared verb with no example are each a failure. Exit 0 held; 1 a failure; 2 usage or no declaration.
 """
@@ -42,7 +42,10 @@ if os.environ.get('PROTOCOL_DIR'):  # a build against a plugin-hostd-protocol ch
 import plugin_hostd_client  # noqa: E402  plugin-hostd-protocol's python3-plugin-hostd-client
 
 HOST = 'omx-clap-host'
-OWNER = 'omx-clap'
+# the verbs this host answers by its own handlers: the items of plugin-hostd-protocol's domain that ruling R5 moved there,
+# word for word, from omx-clap's domain; every other verb that names this host is another package's (or another item's)
+OWNER = 'plugin-hostd-protocol'
+OWN_ITEMS = ('PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS', 'PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS')
 # a verb this host answers whose declaration belongs to another package's lane, and the package (FreeMixer/plugin-hostd#131);
 # once any installed package declares it, the socket checks it as declared
 # (preset_save is registered in mod-host's four-word form, <N> <dir> <file name> <label>, plugin-hostd#38)
@@ -240,7 +243,7 @@ def declarations(path):
                 ref_item, ref_code = c['ref'].split('.', 1)
                 codes[ref_code] = items[ref_item][1]['codes'][ref_code]['resp']
             verbs.append({'verb': v['verb'], 'format': v['format'], 'reply': v['reply'],
-                          'level': v['implementedBy'][HOST], 'codes': codes, 'package': pkg})
+                          'level': v['implementedBy'][HOST], 'codes': codes, 'package': pkg, 'item': name})
     return verbs
 
 
@@ -337,20 +340,27 @@ def main():
     except Refused as e:
         print('FAIL %s' % e)
         return 1
-    mine = {v['verb'] for v in verbs if v['package'] == OWNER}
-    if not mine:
-        print('host_verbs_check: no verb of %s for %s under %s' % (OWNER, HOST, o.contract_path), file=sys.stderr)
-        return 2
-    # a package the host's registrations lean on must be installed, else its verbs are never driven (#361)
+    mine = {v['verb'] for v in verbs if v['package'] == OWNER and v['item'] in OWN_ITEMS}
+    # a package the host's registrations lean on must be installed, else its verbs are never driven (#361); since ruling
+    # R5 it also declares this host's own verbs
     step(protocol_installed(o.contract_path), "plugin-hostd-protocol's package is installed under %s: its domain %s declares chain of %s"
          % (o.contract_path, PROTOCOL_DOMAIN, HOST))
-    print('host_verbs_check: %d verbs name %s, %d of them %s\'s, from %s' % (len(verbs), HOST, len(mine), OWNER, o.contract_path))
+    if not mine:
+        print('host_verbs_check: no verb of %s (%s) for %s under %s' % (OWNER, ', '.join(OWN_ITEMS), HOST, o.contract_path),
+              file=sys.stderr)
+        return 2
+    print('host_verbs_check: %d verbs name %s, %d of them its own (%s), from %s'
+          % (len(verbs), HOST, len(mine), ', '.join(OWN_ITEMS), o.contract_path))
 
     # the reverse: what the host registers is what is declared for it
     table = registrations(o.registration, o.header)
-    declared_elsewhere = {v['verb'] for v in verbs if v['package'] != OWNER}
+    declared_elsewhere = {v['verb'] for v in verbs if v['verb'] not in mine}
     registered = set()
     for kind, word, text in table:
+        # the header is plugin-hostd-protocol's and defines every verb of its domain: a macro of a verb that is not one of
+        # OWN_ITEMS is another item's declaration, held as one of another package's
+        if kind == 'declared' and word not in mine:
+            kind = 'elsewhere'
         if kind == 'declared':
             registered.add(word)
             step(word in mine, 'registered %s is a verb %s declares for %s' % (text, OWNER, HOST))

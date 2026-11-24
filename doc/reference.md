@@ -1034,8 +1034,8 @@ Strip and controls
 ------------------
 
 `track_info`, `remote_pages`, `remote_page_get` and `param_info` are verbs
-omx-clap-host shares with plugin-hostd, declared in `contract.d/omx-clap/omx-clap.json` (rendered
-as `omx_clap_host_verbs.h`), answered from the plugin:
+omx-clap-host shares with plugin-hostd, declared by plugin-hostd-protocol's domain
+`plugin-hostd-protocol` (rendered as `plugin_hostd_protocol_host_verbs.h`), answered from the plugin:
 
 - `track_info <N> <name> <color> [kind]` stores the strip's name (`""` for none),
   colour (`#RRGGBB`, or `-` for none) and kind, then calls the plugin's

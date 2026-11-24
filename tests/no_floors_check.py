@@ -224,15 +224,15 @@ def self_test():
         ("pkg-config --atleast-version", lambda t: open(os.path.join(t, "Makefile"), "a").write("\ncheck-omxdsp:\n\tpkg-config --atleast-version=0.34.0 omxdsp\n"), "pkg-config asked for a version of omxdsp"),
         ("pkg-config --exact-version, spaced", lambda t: open(os.path.join(t, "Makefile"), "a").write("\ncheck-omxdsp:\n\tpkg-config --exact-version 0.34.0 omx-contract\n"), "pkg-config asked for a version of omx-contract"),
         ("a dnf install pinned by name", lambda t: edit(os.path.join(t, ".github", "workflows", "ci.yml"), "plugin-hostd-protocol-contract omx-contract", "plugin-hostd-protocol-contract omx-contract-devel-3.22.0"), "an install pinned to a version of omx-contract-devel"),
-        ("an empty x-requires", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-requires": [\n      "host"\n    ]', '"x-requires": []'), "info.x-requires is []"),
-        ("an unsorted requires", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-requires": [\n      "host"\n    ]', '"x-requires": ["omx-clap", "host"]'), "not sorted and unique"),
-        ("a repeated requires", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-requires": [\n      "host"\n    ]', '"x-requires": ["host", "host"]'), "not sorted and unique"),
-        ("a requires that is no name", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-requires": [\n      "host"\n    ]', '"x-requires": ["Host Words"]'), "no package or domain name"),
+        ("an empty x-requires", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-stability": "experimental"\n  },', '"x-stability": "experimental",\n    "x-requires": []\n  },'), "info.x-requires is []"),
+        ("an unsorted requires", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-stability": "experimental"\n  },', '"x-stability": "experimental",\n    "x-requires": ["omx-clap", "host"]\n  },'), "not sorted and unique"),
+        ("a repeated requires", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-stability": "experimental"\n  },', '"x-stability": "experimental",\n    "x-requires": ["host", "host"]\n  },'), "not sorted and unique"),
+        ("a requires that is no name", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-stability": "experimental"\n  },', '"x-stability": "experimental",\n    "x-requires": ["Host Words"]\n  },'), "no package or domain name"),
         ("a .pc floor", lambda t: edit(os.path.join(t, "omx-clap.pc.in"), "omx-contract, ", "omx-contract >= 3.22.0, "), "requirement on omx-contract (>= 3.22.0)"),
         ("a data floor map", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": {\n    "omx-contract-schema": ">= 3.12.0"\n  },\n'), "floor map"),
         ("a schema name", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": ["omx-contract-schema"],\n'), "omx-contract-schema"),
         ("an empty requires", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": [],\n'), "requires is []"),
-        ("an x-requires floor", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-requires": [\n      "host"\n    ]', '"x-requires": {\n      "host": ">= 1.0.0"\n    }'), "info.x-requires"),
+        ("an x-requires floor", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-stability": "experimental"\n  },', '"x-stability": "experimental",\n    "x-requires": {\n      "host": ">= 1.0.0"\n    }\n  },'), "info.x-requires"),
     ]
     with tempfile.TemporaryDirectory() as tmp:
         found = check(copy(tmp))

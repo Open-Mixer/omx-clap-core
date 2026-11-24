@@ -283,7 +283,7 @@ static void note_input_cb(proto_t *proto)
         protocol_response_int(resp, proto);
 }
 
-/* note_on, note_off and all_notes_off as contract.d/omx-clap/omx-clap.json declares them: each word in its range, else -902 */
+/* note_on, note_off and all_notes_off as plugin-hostd-protocol's domain plugin-hostd-protocol declares them: each word in its range, else -902 */
 static void note_cb(proto_t *proto)
 {
     uint8_t messages[16][3];

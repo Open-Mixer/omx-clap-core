@@ -70,6 +70,7 @@
 #include "host_verbs.h"
 #include "layout_pin.h"
 #include "omx_clap_vocabulary.h"
+#include <plugin-hostd/plugin_hostd_protocol_vocabulary.h>
 #include "lv2_locate.h"
 #include "window.h"
 #include "xrun_report.h"

@@ -2,10 +2,9 @@
 // Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 //
 // domain-data.mjs — a domain document's codes items in the data form (data/*.json): code, text and args by title.
-// The host domain (contract.d/host/host.json, reply.host.*) is a domain since V15, and its Catalan and the other
-// languages stay in this tree's catalogs/; code-text-check.mjs reads its codes through this, and the language packs'
-// gate (make catalog-gate) stages them beside data/ so `omx-contract translate --check --owner` reads every key the
-// catalogs hold.
+// The hosting domain (contract.d/hosting/hosting.json, hosting.*) is a domain, and its Catalan and the other languages
+// stay in this tree's catalogs/; code-text-check.mjs reads its codes through this, and the language packs' gate (make
+// catalog-gate) stages them beside data/ so `omx-contract translate --check --owner` reads every key the catalogs hold.
 //
 //   node tests/domain-data.mjs <domain.json> <out.json>   writes the domain's codes items as one data file
 //

@@ -14,7 +14,7 @@
 #
 # OMX_CLAP_HOST:    the binary (default ./omx-clap-host)
 # JACK_E2E_PORT:    the socket port (default 5576); the feedback port is the next one
-# OMX_HOST_EVENTS_XRUNS: the word contract.d/omx-clap/omx-clap.json declares, read from src/omx_clap_vocabulary.h by make test-jack-xruns
+# OMX_HOST_EVENTS_XRUNS: the word plugin-hostd-protocol's domain host declares, read from its plugin_hostd_protocol_vocabulary.h by make test-jack-xruns
 
 set -u
 

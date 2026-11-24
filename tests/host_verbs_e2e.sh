@@ -16,6 +16,9 @@
 # HOST_VERBS_FIXTURES:    the directory of fake.clap and fake_synth.clap (default tests/)
 # HOST_VERBS_REGISTRATION: the registration table (default src/main.c)
 # PHD_PIN_LAYOUT_SCHEME:  the layout scheme plugin-db's pin.h declares, read from it by make test-host-verbs
+# HOST_VERBS_HEADER:      plugin-hostd-protocol's plugin-hostd/plugin_hostd_protocol_host_verbs.h, whose OMX_VERB_*_FMT the
+#                         registration table names (the render of the verbs this host answers since ruling R5; make
+#                         test-host-verbs finds it on the protocol's include path)
 
 set -u
 
@@ -28,9 +31,10 @@ fixtures=${HOST_VERBS_FIXTURES:-$here}
 registration=${HOST_VERBS_REGISTRATION:-$root/src/main.c}
 
 : "${OMX_CONTRACT_PATH:?the contract directories to read the declarations from}" "${PHD_PIN_LAYOUT_SCHEME:?}"
+: "${HOST_VERBS_HEADER:?plugin-hostd-protocol's plugin_hostd_protocol_host_verbs.h}"
 
 if [ -z "${HOST_VERBS_INSIDE:-}" ]; then
-    for f in "$host" "$fixtures/fake.clap" "$fixtures/fake_synth.clap" "$registration"; do
+    for f in "$host" "$fixtures/fake.clap" "$fixtures/fake_synth.clap" "$registration" "$HOST_VERBS_HEADER"; do
         [ -e "$f" ] || { echo "missing $f" >&2; exit 2; }
     done
     HOST_VERBS_INSIDE=1 OMX_CLAP_HOST=$host HOST_VERBS_PORT=$port \
@@ -62,7 +66,7 @@ mkdir -p "$runtime/a dir with spaces"
 cp "$fixtures/fake.clap" "$runtime/a dir with spaces/fake.clap"
 
 python3 -I "$here/host_verbs_check.py" --port "$port" --contract-path "$OMX_CONTRACT_PATH" \
-    --registration "$registration" --header "$(dirname "$registration")/omx_clap_host_verbs.h" \
+    --registration "$registration" --header "$HOST_VERBS_HEADER" \
     --fake "$fixtures/fake.clap" --spaced-fake "$runtime/a dir with spaces/fake.clap" --synth "$fixtures/fake_synth.clap" --layout-scheme "$PHD_PIN_LAYOUT_SCHEME"
 status=$?
 kill -0 "$pid" 2>/dev/null || { echo "FAIL omx-clap-host is gone:"; tail -5 "$runtime/host.log"; status=1; }

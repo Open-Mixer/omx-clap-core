@@ -5,9 +5,10 @@
 # The protocol is plugin-hostd-protocol's, and this tree keeps no copy of it: none of its tables (protocol/*.json), its
 # domain plugin-hostd-protocol or its headers (protocol.h, search_paths.h, the host verb and vocabulary renders) is here under
 # any name, no file of this tree declares what protocol.h declares (its guard, the macros of its tables, the search
-# lists), and the one rendered verb table is src/omx_clap_host_verbs.h, the render of the omx-clap domain, which
-# tests/contract-dir-check.sh holds to its declaration. A copy that comes back drifts from the protocol the host is
-# built against.
+# lists), and no rendered verb table, no verbs item and no item of its domains host and hosting-verb is here: since
+# ruling R5 the verbs omx-clap-host answers, the host words (HOST_REPLY_CODES, HOST_TRACK_KINDS, HOST_EVENTS) and the
+# hosts a verb names (HOSTING_VERB_HOSTS) are plugin-hostd-protocol's, read from its contract and its headers. A copy that
+# comes back drifts from the protocol the host is built against.
 #
 #   python3 tests/no_protocol_copy.py [<tree>]     red on any copy in the tree (default: this one)
 #   python3 tests/no_protocol_copy.py --self-test  each kind of copy, planted in a scratch copy of the tree, must be red
@@ -36,9 +37,11 @@ MARKS = [
     (re.compile(r"^#\s*define\s+PHD_(VERBS|EVENTS|ERRORS|HOST_VERBS|INSTANCE_VERBS|CONF_STRINGS)\(X\)", re.M),
      "a table of protocol.h", None),
     (re.compile(r"^#\s*define\s+PHD_DEFAULT_(LV2|CLAP)_PATH\b", re.M), "a search list of search_paths.h", None),
-    (re.compile(r"^#\s*define\s+OMX_VERB_[A-Z0-9_]+_FMT\b", re.M), "a rendered verb table",
-     "src/omx_clap_host_verbs.h"),
+    (re.compile(r"^#\s*define\s+OMX_VERB_[A-Z0-9_]+_FMT\b", re.M), "a rendered verb table", None),
     (re.compile(r'"kind":\s*"verbs"'), "a verbs item of the contract", None),
+    (re.compile(r'"x-kind":\s*"verbs"'), "a verbs item of a domain", None),
+    (re.compile(r'^\s*"(HOST_REPLY_CODES|HOST_TRACK_KINDS|HOST_EVENTS|HOSTING_VERB_HOSTS)":\s*\{', re.M),
+     "an item of plugin-hostd-protocol's domains host or hosting-verb", None),
     (re.compile(r'"x-owner":\s*"plugin-hostd-protocol"'), "a copy of the domain plugin-hostd-protocol",
      None),
     (re.compile(r'^\s*"protocol":\s*"(plugin-hostd|mod-host|plugin-hostd-protocol)",?\s*$', re.M),
@@ -96,6 +99,10 @@ def self_test():
         ("tests/search_paths.h", "/* empty: the name alone is the copy */\n"),
         ("src/mod-host.json", '{\n  "protocol": "mod-host"\n}\n'),
         ("contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json", '{\n  "info": {\n    "x-owner": "plugin-hostd-protocol"\n  }\n}\n'),
+        ("src/omx_clap_host_verbs.h", '#define OMX_VERB_TRACK_INFO_FMT "track_info %i %s %s ..."\n'),
+        ("contract.d/verbs/verbs.json", '{\n  "components": {\n    "schemas": {\n      "V": {\n        "x-kind": "verbs"\n      }\n    }\n  }\n}\n'),
+        ("contract.d/host/host.json", '{\n  "components": {\n    "schemas": {\n      "HOST_REPLY_CODES": {\n        "x-kind": "codes"\n      }\n    }\n  }\n}\n'),
+        ("data/hosting/verb-hosts.json", '{\n  "HOSTING_VERB_HOSTS": {\n    "kind": "words"\n  }\n}\n'),
     ]
     failed = 0
     work = tempfile.mkdtemp(prefix="no-protocol-copy.")

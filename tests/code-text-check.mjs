@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 //
-// code-text-check.mjs — every refusal and verdict code this tree declares (data/*.json, data/hosting/*.json, and the
-// hosting and host domains: hosting.* and reply.host.*, the dimensions and the verbs this repo owns) carries `text.en`, its English source sentence and
+// code-text-check.mjs — every refusal and verdict code this tree declares (data/*.json and the hosting domain: hosting.*,
+// the dimensions this repo owns; reply.host.* is plugin-hostd-protocol's domain host since ruling R5) carries `text.en`, its English source sentence and
 // nothing else, and its Catalan in catalogs/ca.json under the code, with the same `{name}` placeholders, each one of
 // `args` (omx-contract 3.12.0, spec 7.11, omx-contract#90). The catalog holds no key that is not a code of ours. No
 // file states a schema floor: the installed omx-contract reads it (tests/no_floors_check.py).
@@ -18,10 +18,7 @@ import { fromDomain } from './domain-data.mjs';
 
 function dataFiles(root) {
   const files = readdirSync(join(root, 'data')).filter((f) => f.endsWith('.json')).map((f) => join(root, 'data', f));
-  for (const f of readdirSync(join(root, 'data', 'hosting'))) {
-    if (f.endsWith('.json')) files.push(join(root, 'data', 'hosting', f));
-  }
-  files.push(join(root, 'contract.d', 'hosting', 'hosting.json'), join(root, 'contract.d', 'host', 'host.json'));
+  files.push(join(root, 'contract.d', 'hosting', 'hosting.json'));
   return files;
 }
 

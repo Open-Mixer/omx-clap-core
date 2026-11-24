@@ -20,12 +20,19 @@ grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contr
 contract_files=$(awk '/^%files -n omx-clap-contract/{f=1;next} /^%files|^%package|^%changelog/{f=0} f' "$spec")
 printf '%s\n' "$contract_files" | grep -qx '%{omx_contract_domain_dir}/scan/' || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/scan/"
 grep -qx 'usr/share/omx-contract/contract.d/scan' debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/scan"
-# the code sheet's domains, omx-param-contract, omx-clap-scale, clap, host, omx-clap and hosting, the same way
-for dom in omx-param-contract omx-clap-scale clap host omx-clap hosting; do
+# the code sheet's domains, omx-param-contract, omx-clap-scale, clap, omx-clap and hosting, the same way
+for dom in omx-param-contract omx-clap-scale clap omx-clap hosting; do
 grep -Eq "(install-contract-dir\\.sh|\\\$\\(INSTALL_CONTRACT_DIR\\)) +--domain +contract\\.d/$dom +[^ ]+ +(\\\$\\(CORE\\)|omx-clap)\$" Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/$dom as omx-clap"
 ! grep -En "^[[:space:]]*install .*contract\\.d/$dom" Makefile || fail "Makefile: a hand-written install line for contract.d/$dom"
 printf '%s\n' "$contract_files" | grep -qx "%{omx_contract_domain_dir}/$dom/" || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/$dom/"
 grep -qx "usr/share/omx-contract/contract.d/$dom" debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/$dom"
+done
+# plugin-hostd-protocol's domains (host and hosting-verb, ruling R5) are installed and listed by plugin-hostd-protocol-contract
+# alone: none here
+for dom in host hosting-verb plugin-hostd-protocol; do
+! grep -En -- "--domain +contract\\.d/$dom( |\$)" Makefile || fail "Makefile: installs plugin-hostd-protocol's domain $dom"
+! printf '%s\n' "$contract_files" | grep -q "/$dom/" || fail "$spec: omx-clap-contract lists plugin-hostd-protocol's domain $dom"
+! grep -q "contract.d/$dom\$" debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install lists plugin-hostd-protocol's domain $dom"
 done
 # the reader requires the loader and the data package, by name (no floor: tests/no_floors_check.py)
 grep -qx 'BuildRequires: libomx-domain-devel' "$spec" || fail "$spec: no BuildRequires: libomx-domain-devel"

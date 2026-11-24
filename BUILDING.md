@@ -405,16 +405,19 @@ release that bumps `VERSION` bumps every domain's `info.version` with it.
 `x-since` above `info.version` are refused, and its `--self-test` plants each
 in every domain.
 
-The verbs omx-clap-host answers past mod-host's are declared in
-`contract.d/omx-clap/omx-clap.json`, a `verbs` item of omx-contract's schema (3.3.0): the ones it
+The verbs omx-clap-host answers past mod-host's are plugin-hostd-protocol's
+(ruling R5): `PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS` and
+`PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS`, `verbs` items of its domain
+`plugin-hostd-protocol`, installed by plugin-hostd-protocol-contract: the ones it
 shares with plugin-hostd (`track_info`, `remote_pages`, `remote_page_get`,
 `param_info`, `pin_expect`, `chain_expect`, `note_input`, `note_on`, `note_off`,
 `all_notes_off`) and its own (`audio_ports`, `hide_external_ui`, `idle_hold`,
 `note_drops`, `note_out_drops`), each with its format, its reply, the refusal
-codes it answers (`HOST_REPLY_CODES`) and what each host owes it. Their render,
-`src/omx_clap_host_verbs.h`, names a verb `OMX_VERB_<VERB>` and
-`OMX_VERB_<VERB>_FMT`, its refusals' numbers `OMX_VERB_<VERB>_CODES_INIT`, and
-`omx_clap_host_verbs()` is the table of what each host owes each verb;
+codes it answers (`HOST_REPLY_CODES` of its domain `host`) and what each host
+owes it. Their render, `<plugin-hostd/plugin_hostd_protocol_host_verbs.h>`,
+names a verb `OMX_VERB_<VERB>` and `OMX_VERB_<VERB>_FMT`, its refusals' numbers
+`OMX_VERB_<VERB>_CODES_INIT`, and `plugin_hostd_protocol_host_verbs()` is the
+table of what each host owes each verb;
 another host renders the same macros from the installed contract directory
 (`omx-contract render --target c --installed`, `omxcontract/omx_host_verbs.h`).
 `src/host_verbs.h` holds the grammar over it.

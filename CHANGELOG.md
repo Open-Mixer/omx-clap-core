@@ -4,6 +4,20 @@
 
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
+- What omx-clap-host shares with plugin-hostd-protocol is that package's (ruling R5, plugin-hostd-protocol#67): the domain
+  host (HOST_REPLY_CODES, HOST_TRACK_KINDS, HOST_EVENTS, with their catalogs), HOSTING_VERB_HOSTS (now its domain
+  hosting-verb) and the verbs this host answers (now PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS and
+  PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS of its domain plugin-hostd-protocol) leave this tree word for word:
+  contract.d/host, data/hosting/verb-hosts.json, the two verbs items of the omx-clap domain, the reply.host.* entries of
+  catalogs/ and the render src/omx_clap_host_verbs.h are gone, and omx_clap_vocabulary.h and omx-clap-vocabulary.{js,d.ts}
+  no longer carry the host words or the verb hosts. The omx-clap domain keeps OMX_CLAP_REPLIES and OMX_CLAP_REPLY_TYPES and
+  states no x-requires. The sources include <plugin-hostd/plugin_hostd_protocol_host_verbs.h> and
+  <plugin-hostd/plugin_hostd_protocol_vocabulary.h>, every macro as it was; the tests read the verbs and the host words
+  from plugin-hostd-protocol's installed contract (PROTOCOL_DOMAINS: a checkout's contract.d, or omx-contract's contract
+  directory), which the build requires by name (plugin-hostd-protocol-contract), as omx-clap-contract does. make
+  host-verbs-contract reads both packages' contract directories as one, so a word declared by both is refused
+  (contract.item.duplicate), and tests/no_protocol_copy.py refuses a verbs item, a rendered verb table or an item of the
+  domains host and hosting-verb coming back. No alias, no second read.
 - No hand-kept version floor (owner ruling 2026-11-24): packaging/deps.txt is gone, the
   spec, debian/control and omx-clap.pc name every dependency without a version; what a package needs at run time is
   generated (sonames, ${shlibs:Depends}, = its own version). The data files state no `requires` (their only entry was the

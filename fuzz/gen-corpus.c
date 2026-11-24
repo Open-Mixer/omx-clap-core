@@ -242,26 +242,13 @@ static void docs_example(void)
 
 static void data_documents(void)
 {
-    char **names, *text, name[512];
+    char *text;
     size_t len;
-    int n, i;
 
+    // data/ is this one file since the hosts a verb names moved to plugin-hostd-protocol's domain hosting-verb (ruling R5)
     text = slurp("data/hosting.json", &len);
     seed("preset", "data-hosting", text, len);
     free(text);
-    n = list("data/hosting", ".json", &names);
-    for (i = 0; i < n; i++)
-    {
-        char path[512];
-
-        snprintf(path, sizeof(path), "data/hosting/%s", names[i]);
-        snprintf(name, sizeof(name), "data-hosting-%.*s", (int)(strlen(names[i]) - 5), names[i]);
-        text = slurp(path, &len);
-        seed("preset", name, text, len);
-        free(text);
-        free(names[i]);
-    }
-    free(names);
     // the hosting codes' one home, the hosting domain (the codes data/hosting/ held before the move, #156)
     text = slurp("contract.d/hosting/hosting.json", &len);
     seed("preset", "domain-hosting", text, len);

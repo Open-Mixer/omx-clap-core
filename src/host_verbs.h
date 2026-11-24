@@ -21,8 +21,10 @@
 /*
 ************************************************************************************************************************
 *
-* The grammar of the verbs contract.d/omx-clap/omx-clap.json declares, over its renders: a verb's word and format are the OMX_VERB_
-* macros of omx_clap_host_verbs.h, a strip kind and a feedback event the words of omx_clap_vocabulary.h. What
+* The grammar of the verbs omx-clap-host answers, declared by plugin-hostd-protocol's domain plugin-hostd-protocol (its shared
+* and clap-host verbs), over that package's renders: a verb's word and format are the OMX_VERB_ macros of
+* <plugin-hostd/plugin_hostd_protocol_host_verbs.h>, a strip kind and a feedback event the words of its domain host in
+* <plugin-hostd/plugin_hostd_protocol_vocabulary.h>. What
 * the declaration states in prose (a string word's bytes, a note's ranges) is checked here, and the refusal numbers the
 * host answers past mod-host's are named here, each the resp of the HOST_REPLY_CODES code its name spells
 * (tests/host-verbs-check.sh holds them to the declaration).
@@ -44,8 +46,8 @@
 #include <clap/string-sizes.h>
 #include <clap/ext/remote-controls.h>
 
-#include "omx_clap_host_verbs.h"
-#include "omx_clap_vocabulary.h"
+#include <plugin-hostd/plugin_hostd_protocol_host_verbs.h>
+#include <plugin-hostd/plugin_hostd_protocol_vocabulary.h>
 
 
 /*

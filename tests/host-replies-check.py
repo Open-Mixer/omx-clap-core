@@ -2,18 +2,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """The replies this package declares, typed and named (omx-clap-core#49): OMX_CLAP_REPLIES of the omx-clap domain
-(contract.d/omx-clap/omx-clap.json) types each reply whose verb this package owns, in plugin-hostd-protocol's reply form
+(contract.d/omx-clap/omx-clap.json) types each reply whose verb omx-clap-host answers, in plugin-hostd-protocol's reply form
 (plugin-hostd-protocol#19): resp 0 or resp count, then name:type for each field, each type one of the protocol table's
 arg_types or one OMX_CLAP_REPLY_TYPES declares, once. And the code that writes each reply names the same fields: the
 X(name, conversion) rows of its HOST_FIELDS_<VERB> in src/host_verbs.h, whose HOST_FIELDS_FMT is the builder's format.
+The verbs are plugin-hostd-protocol's since ruling R5: the items VERB_ITEMS of its domain plugin-hostd-protocol (--verbs).
 
-  tests/host-replies-check.py --table <plugin-hostd-protocol.json> [--root <dir>] [--self-test]
+  tests/host-replies-check.py --table <plugin-hostd-protocol.json> --verbs <domain plugin-hostd-protocol.json> [--root <dir>] [--self-test]
 
 Held, one failure line each:
-  - every verb of the domain whose reply has a field (a <placeholder>) is typed in OMX_CLAP_REPLIES, or by the protocol
+  - every verb of VERB_ITEMS whose reply has a field (a <placeholder>) is typed in OMX_CLAP_REPLIES, or by the protocol
     (its table's reply_forms, or PROTOCOL_OWNED below until the table types it), or is PENDING; a verb typed here and by
     the protocol is a reply with two homes;
-  - every key of OMX_CLAP_REPLIES is a verb of the domain, and its typed reply, each name:type written <name> and resp
+  - every key of OMX_CLAP_REPLIES is a verb of VERB_ITEMS, and its typed reply, each name:type written <name> and resp
     count written resp <count>, is word for word the verb's x-reply;
   - every type is an arg_type of the table or an own type; an own type the table also declares has two homes, an own
     type no reply names is dead, and an own type's pattern compiles and has its spelling (x-docs);
@@ -34,6 +35,9 @@ DOMAIN = 'contract.d/omx-clap/omx-clap.json'
 HEADER = 'src/host_verbs.h'
 REPLIES = 'OMX_CLAP_REPLIES'
 TYPES = 'OMX_CLAP_REPLY_TYPES'
+# the verbs omx-clap-host answers by its own handlers, in plugin-hostd-protocol's domain plugin-hostd-protocol (ruling R5
+# moved them there, word for word, from this tree's domain omx-clap)
+VERB_ITEMS = ('PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS', 'PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS')
 # the replies whose shape plugin-hostd-protocol declares, by verb title, and the file that holds it: the verbs of
 # mod-host.h whose reply its host-dispatch writes from a struct it declares, and property_list, whose family the
 # protocol's PHD_REPLY_ARGS types; their typed form is the protocol's to give
@@ -58,9 +62,11 @@ def snake(title):
     return re.sub(r'([A-Z])', r'_\1', title).upper()
 
 
-def load(root, table_path):
+def load(root, table_path, verbs_path):
     with open(os.path.join(root, DOMAIN)) as f:
         domain = json.load(f)
+    with open(verbs_path) as f:
+        verbs = json.load(f)
     with open(table_path) as f:
         table = json.load(f)
     with open(os.path.join(root, HEADER)) as f:
@@ -69,7 +75,7 @@ def load(root, table_path):
     for path in sorted(glob.glob(os.path.join(root, 'src', '*.c'))):
         with open(path, encoding='utf-8', errors='replace') as f:
             sources[os.path.relpath(path, root)] = f.read()
-    return {'domain': domain, 'table': table, 'header': header, 'sources': sources}
+    return {'domain': domain, 'verbs': verbs, 'table': table, 'header': header, 'sources': sources}
 
 
 def parse(line):
@@ -98,10 +104,13 @@ def problems(inp):
     out = []
     schemas = inp['domain']['components']['schemas']
     verbs = {}
-    for item in schemas.values():
-        if item.get('x-kind') == 'verbs':
-            for v in item['oneOf']:
-                verbs[v['title']] = v
+    for name in VERB_ITEMS:
+        item = inp['verbs']['components']['schemas'].get(name)
+        if item is None or item.get('x-kind') != 'verbs':
+            out.append('%s: no verbs item in plugin-hostd-protocol\'s domain plugin-hostd-protocol' % name)
+            continue
+        for v in item['oneOf']:
+            verbs[v['title']] = v
     replies = schemas.get(REPLIES, {}).get('x-value', {})
     own = schemas.get(TYPES, {}).get('x-value', {})
     spellings = schemas.get(TYPES, {}).get('x-docs', {})
@@ -124,7 +133,7 @@ def problems(inp):
     forms = {}
     for title, line in replies.items():
         if title not in verbs:
-            out.append('%s.%s: no verb of the domain is titled %s' % (REPLIES, title, title))
+            out.append('%s.%s: no verb omx-clap-host answers is titled %s' % (REPLIES, title, title))
             continue
         word = verbs[title]['const']
         form = parse(line)
@@ -193,6 +202,11 @@ def self_test(inp):
             fn(i['domain']['components']['schemas'])
         return arm
 
+    def protocol(fn):
+        def arm(i):
+            fn(i['verbs']['components']['schemas'])
+        return arm
+
     def header(old, new):
         def arm(i):
             assert old in i['header'], old
@@ -222,7 +236,7 @@ def self_test(inp):
          sources('HOST_FIELDS_FMT(HOST_FIELDS_NOTE_OUT_DROPS)', '"resp 0 %u %u %u"'),
          'HOST_FIELDS_FMT(HOST_FIELDS_NOTE_OUT_DROPS)'),
         ('the words disagree with the form (x-reply renamed)',
-         domain(lambda s: s['OMX_CLAP_HOST_VERBS']['oneOf'][3].update(
+         protocol(lambda s: s['PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS']['oneOf'][3].update(
              {'x-reply': 'resp 0 <notes> <releases> <sysex> <lost>'})),
          'the words disagree with the form'),
         ('a type declared nowhere', domain(lambda s: typed(s, 'noteInput', 'resp 0 port:jack-port')),
@@ -245,7 +259,7 @@ def self_test(inp):
         ('a pending reply typed (audio_ports)', domain(lambda s: typed(s, 'audioPorts', 'resp 0 port:word')),
          'still PENDING'),
         ('a key that is no verb', domain(lambda s: typed(s, 'noteDropz', 'resp 0 notes:uint')),
-         'no verb of the domain is titled noteDropz'),
+         'no verb omx-clap-host answers is titled noteDropz'),
         ('a typed reply that is not resp 0 or resp count', domain(lambda s: typed(s, 'noteInput', 'resp 1 port:word')),
          'it is not resp 0 or resp count'),
         ('fields of a reply typed nowhere in the code',
@@ -272,8 +286,10 @@ def self_test(inp):
 
 def main():
     ap = argparse.ArgumentParser(
-        usage='host-replies-check.py --table <plugin-hostd-protocol.json> [--root <dir>] [--self-test]')
+        usage='host-replies-check.py --table <plugin-hostd-protocol.json> --verbs <domain plugin-hostd-protocol.json> '
+              '[--root <dir>] [--self-test]')
     ap.add_argument('--table', required=True)
+    ap.add_argument('--verbs', required=True)
     ap.add_argument('--root', default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap.add_argument('--self-test', action='store_true')
     args = ap.parse_args()
@@ -281,7 +297,11 @@ def main():
         print('host-replies-check: no protocol table at %r (plugin-hostd-protocol.pc\'s table)' % args.table,
               file=sys.stderr)
         return 2
-    inp = load(args.root, args.table)
+    if not os.path.isfile(args.verbs):
+        print('host-replies-check: no domain plugin-hostd-protocol at %r (the verbs omx-clap-host answers, ruling R5)'
+              % args.verbs, file=sys.stderr)
+        return 2
+    inp = load(args.root, args.table, args.verbs)
     found = problems(inp)
     for p in found:
         print('host-replies-check: %s' % p, file=sys.stderr)

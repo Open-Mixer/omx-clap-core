@@ -263,6 +263,9 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # the daemon's own build requirements (the qualification store's reader, sqlite, cjson), from its spec with its
+          # check stage off, so no package this tree builds comes from the channel under it
+          dnf builddep -y --setopt=install_weak_deps=False --without=check /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
@@ -713,6 +716,9 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # the daemon's own build requirements (the qualification store's reader, sqlite, cjson), from its spec with its
+          # check stage off, so no package this tree builds comes from the channel under it
+          dnf builddep -y --setopt=install_weak_deps=False --without=check /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)

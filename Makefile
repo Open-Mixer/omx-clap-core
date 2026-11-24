@@ -651,8 +651,9 @@ test-verbs-source:
 	bash tests/host-verbs-check.sh --self-test
 
 # the stage against fake plugins at six rates, and the core over the fault fixtures and fakes: the witness, the guard
-# page, the audio role on a split, the whole roster and the tempo
-test-stage: tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test fixtures
+# page, the audio role on a split, the whole roster and the tempo. clap_core_test also opens tests/fake.clap (its
+# configs), so test-stage depends on it
+test-stage: tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test fixtures tests/fake.clap
 	bash tests/dialect_doc_check.sh
 	bash tests/dialect_doc_check.sh --self-test
 	bash tests/ext_table_check.sh
@@ -914,9 +915,13 @@ test-live-list-sabotage: tests/live_list_test.c src/live_list.h tests/live_list_
 	done
 
 # the state root a host enters at start (src/state_root.h, #2): made at 0700 (an existing, looser one brought to it as
-# well), a dead instance's lv2-<pid>-<n> directories and .saved copies pruned, the process's cwd moved into it
-test-state-root: tests/state_root_test
+# well), a dead instance's lv2-<pid>-<n> directories and .saved copies pruned, the process's cwd moved into it. The
+# test makes its roots under build/ (mkdtemp), so build/ is an order-only prerequisite: made, never a reason to rerun
+test-state-root: tests/state_root_test | build
 	./tests/state_root_test
+
+build:
+	mkdir -p $@
 
 tests/state_root_test: tests/state_root_test.c src/state_root.h
 	$(CC) -Isrc $(CFLAGS) -Werror -o $@ $<

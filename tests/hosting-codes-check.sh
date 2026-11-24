@@ -3,8 +3,8 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
 # hosting-codes-check.sh — every hosting code the C sources write is declared: an OMX_HOSTING_* macro of
-# src/omx_clap_vocabulary.h, which data/hosting/ renders, or a CLAP_HOST_CODE_* define of src/clap_host_limits.h,
-# which data/hosting.json renders for the idle dimension (hosting.idle.*, #296); contract-dir-check.sh holds both files
+# src/omx_clap_vocabulary.h, which the hosting domain (contract.d/hosting/hosting.json) renders, or a CLAP_HOST_CODE_* define of src/clap_host_limits.h,
+# which the same domain renders for the idle and window dimensions (hosting.idle.*, #296); contract-dir-check.sh holds both files
 # to the data. Never a literal of their own.
 #
 #   hosting-codes-check.sh [--self-test] [--root <dir>] [<omx_clap_vocabulary.h>]
@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ -n "$header" ] || header=$root/src/omx_clap_vocabulary.h
-[ -f "$header" ] || { echo "hosting-codes-check: no $header (the render of data/hosting/)" >&2; exit 2; }
+[ -f "$header" ] || { echo "hosting-codes-check: no $header (the render of the hosting domain)" >&2; exit 2; }
 
 # the check proper, over the sources under $1: one line per failure on stderr, the count of codes used on stdout
 check() {
@@ -59,7 +59,7 @@ check() {
         } elsif (defined $id && $id =~ /^OMX_HOSTING_/) {
           $used{$id} = 1;
           unless ($declared{$id}) {
-            print STDERR "hosting-codes-check: $f:$line: $id is no code data/hosting/ declares ($header)\n";
+            print STDERR "hosting-codes-check: $f:$line: $id is no code the hosting domain declares ($header)\n";
             $bad = 1;
           }
         }
@@ -73,7 +73,7 @@ check() {
 
 if [ "$self" -eq 0 ]; then
   n=$(check "$root")
-  echo "hosting-codes-check: src/ and lv2/ write no hosting code by hand; the $n they name are data/hosting/'s ($header)"
+  echo "hosting-codes-check: src/ and lv2/ write no hosting code by hand; the $n they name are the hosting domain's ($header)"
   exit 0
 fi
 

@@ -9,8 +9,9 @@
 // <whole-read json> is `omx-contract render --target json` of the contract directory that holds omx-clap's
 // package: HOSTED_STAGE_LIMITS as the reader parsed it, not as a render spelled it. Each field of HOSTED_STAGE_LIMITS
 // must stand in <src dir>/hosted_stage_limits.h as OMX_HOSTED_STAGE_<FIELD> with its value, its one spelling; each code
-// of the package's codes items (HOSTING_IDLE_CODES, the dimension this tree owns) in clap_host_limits.h as
-// CLAP_HOST_CODE_<NAME> with its string; a define the declaration lacks, or one it names that is missing or differs, is
+// of the codes items the hosting domain rebuilds into its root x-file, the file its x-render renders as clap_host_limits.h
+// (HOSTING_IDLE_CODES and HOSTING_WINDOW_CODES; the json read takes --with-domain <dir>/hosting, omx-contract#215), in
+// clap_host_limits.h as CLAP_HOST_CODE_<NAME> with its string; a define the declaration lacks, or one it names that is missing or differs, is
 // a failure. A define of a field under another name anywhere in <src dir> or the lv2/ beside it (CLAP_HOST_<FIELD>,
 // say) is a second spelling of a declared number and a failure too: the fields are read from the declaration. Every other refusal code is omx-contract's
 // (tests/hosting-codes-check.sh holds them). The self test changes every value of both files in turn, drops it, and
@@ -19,6 +20,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 
 const snake = (s) => s.replace(/([A-Z])/g, '_$1').toUpperCase();
+
+// the data path the hosting domain's codes header renders from: its root x-file, as the json read names it
+const CODES_REL = `data/${JSON.parse(readFileSync(new URL('../contract.d/hosting/hosting.json', import.meta.url), 'utf8'))['x-file']}`;
 
 function expected(read) {
   const items = JSON.parse(read).items;
@@ -29,14 +33,15 @@ function expected(read) {
     stage.set(`OMX_HOSTED_STAGE_${snake(k)}`, v);
   }
   for (const [name, item] of Object.entries(items)) {
-    // this tree's codes items are the ones of the sheet's own file: omx-contract's hosting/*.json are not rendered here
-    if (!name.endsWith('_CODES') || item.kind !== 'codes' || item.rel !== items.HOSTED_STAGE_LIMITS.rel) continue;
+    // the codes header's items are the ones of the domain's root x-file: the vocabulary's (data/hosting/) are not rendered here
+    if (!name.endsWith('_CODES') || item.kind !== 'codes' || item.rel !== CODES_REL) continue;
     for (const [k, c] of Object.entries(item.value)) {
       host.set(`CLAP_HOST_CODE_${snake(k)}`, c.code);
       // a code's sentence, one define per language beside the code (omx-contract 3.11.0's text)
       for (const [lang, t] of Object.entries(c.text ?? {})) host.set(`CLAP_HOST_CODE_${snake(k)}_TEXT_${lang.toUpperCase()}`, t);
     }
   }
+  if (host.size === 0) { console.error(`hosting-values-check: no codes item of the read is in ${CODES_REL}: clap_host_limits.h would be held to nothing`); process.exit(1); }
   return { 'clap_host_limits.h': host, 'hosted_stage_limits.h': stage, fields: Object.keys(limits).map(snake) };
 }
 

@@ -4,29 +4,33 @@
 
 /**
  * The hosting codes of the clap dimension: hosting.clap.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/clap.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_CLAP_CODES: {
   readonly clapExtensionsNotCovered: {
     readonly code: "hosting.clap.extensions-not-covered";
+    readonly doc: "unknown: the plugin passed headless with OMX_CLAP_HOST_EXTENSIONS offered, and this host offers fewer of them, so that pass is not this host's; the record names the extensions it lacks";
     readonly text: {
       readonly en: "Not every extension this plugin declares is covered by what was checked. Check the plugin against the extensions this host covers, or accept the gap.";
     };
   };
   readonly clapFormatNotHosted: {
     readonly code: "hosting.clap.format-not-hosted";
+    readonly doc: "unsuitable: the host profile has no CLAP path (its clapExtensions is null), so no CLAP runs on it whatever was measured";
     readonly text: {
       readonly en: "This host does not host the CLAP format. Use a host that does.";
     };
   };
   readonly clapHeadlessFailed: {
     readonly code: "hosting.clap.headless-failed";
+    readonly doc: "unsuitable: init() or activate() failed with no window and only OMX_CLAP_HOST_EXTENSIONS offered (a plugin that requires the gui extension, or whose init returns false)";
     readonly text: {
       readonly en: "The plugin failed while being checked headless, with no window. Fix what failed and check it again.";
     };
   };
   readonly clapLatencyMismatch: {
     readonly code: "hosting.clap.latency-mismatch";
+    readonly doc: "unsuitable: at one declared rate the latency the plugin declares is not the frame the qualifier's impulse arrives at (for an instrument, its note sounds before the declared latency); the record names the rate, declared and measured frames";
     readonly text: {
       readonly en: "The plugin’s reported latency does not match what was measured. Trust the measured figure, not the plugin’s own report.";
     };
@@ -40,18 +44,21 @@ export declare const HOSTING_CLAP_CODES: {
   };
   readonly clapProcessError: {
     readonly code: "hosting.clap.process-error";
+    readonly doc: "unsuitable: process() returned CLAP_PROCESS_ERROR during the parameter or note sweep; the record counts the errors";
     readonly text: {
       readonly en: "The plugin’s processing call returned an error. Treat the plugin as faulty for this block.";
     };
   };
   readonly clapThreadViolation: {
     readonly code: "hosting.clap.thread-violation";
+    readonly doc: "conditional: the strict thread-check caught a [main-thread] host call from the audio thread, or process() on another thread; the plugin runs isolated in a worker of its own";
     readonly text: {
       readonly en: "The plugin called back from the wrong thread. Treat the plugin as not thread-safe.";
     };
   };
   readonly clapUnqualified: {
     readonly code: "hosting.clap.unqualified";
+    readonly doc: "unknown: no CLAP qualification is on record for the plugin (or its sweep made no process() call), so its topology, features and real-time safety are not judged";
     readonly text: {
       readonly en: "This plugin has not been qualified for hosting. Qualify it before relying on it.";
     };
@@ -60,35 +67,40 @@ export declare const HOSTING_CLAP_CODES: {
 
 /**
  * The hosting codes of the cost dimension: hosting.cost.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/cost.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_COST_CODES: {
   readonly costAboveCeiling: {
     readonly code: "hosting.cost.above-ceiling";
+    readonly doc: "unsuitable: the plugin's P95 core fraction at the judged rate and quantum is above the host profile's per-instance ceiling";
     readonly text: {
       readonly en: "The plugin’s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less.";
     };
   };
   readonly costFieldsMissing: {
     readonly code: "hosting.cost.fields-missing";
+    readonly doc: "unknown: the cost record at the judged rate and quantum lacks a figure the comparison needs (refused before comparing, so an absent figure never passes); the record names them";
     readonly text: {
       readonly en: "The cost measurement is missing fields it needs. Measure the plugin’s cost again, completely.";
     };
   };
   readonly costSpiky: {
     readonly code: "hosting.cost.spiky-tail";
+    readonly doc: "conditional: the P95 cost per sample is more than the policy's tail ratio above the median at the judged rate and quantum";
     readonly text: {
       readonly en: "The plugin’s CPU cost has a spiky tail: occasional blocks cost much more than the rest. Treat it as unreliable at this rate and quantum.";
     };
   };
   readonly costUnmeasured: {
     readonly code: "hosting.cost.unmeasured-at-rate-and-quantum";
+    readonly doc: "unknown: no cost was measured at the rate and quantum being judged";
     readonly text: {
       readonly en: "The plugin’s CPU cost has not been measured at this rate and quantum. Measure it before relying on a ceiling.";
     };
   };
   readonly costWithinCeiling: {
     readonly code: "hosting.cost.within-ceiling";
+    readonly doc: "suitable: the P95 core fraction is within the host's per-instance ceiling and the tail is within the policy's ratio";
     readonly text: {
       readonly en: "The plugin’s measured CPU cost is within the ceiling for this rate and quantum.";
     };
@@ -97,7 +109,7 @@ export declare const HOSTING_COST_CODES: {
 
 /**
  * The hosting codes of the features dimension: hosting.features.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/features.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_FEATURES_CODES: {
   readonly featuresAtomInUnfed: {
@@ -109,18 +121,21 @@ export declare const HOSTING_FEATURES_CODES: {
   };
   readonly featuresDisqualifying: {
     readonly code: "hosting.features.host-not-provided";
+    readonly doc: "unsuitable: the plugin requires a feature the host refuses to provide on the audio thread (a disqualifying one, or one that pins the quantum where the quantum is not pinned); the record names them";
     readonly text: {
       readonly en: "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature.";
     };
   };
   readonly featuresMidiIn: {
     readonly code: "hosting.features.midi-in-fed-empty";
+    readonly doc: "conditional: the plugin has a MIDI input, which an insert on a host that plays no notes never feeds; on the LV2 path an input the host cannot feed is refused at add";
     readonly text: {
       readonly en: "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none.";
     };
   };
   readonly featuresMissing: {
     readonly code: "hosting.features.missing";
+    readonly doc: "unsuitable: the plugin requires a feature the host does not provide; the LV2 adapter refuses it at add from its TTL, before its binary is opened";
     readonly text: {
       readonly en: "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere.";
     };
@@ -134,12 +149,14 @@ export declare const HOSTING_FEATURES_CODES: {
   };
   readonly featuresProvided: {
     readonly code: "hosting.features.all-provided";
+    readonly doc: "suitable: every feature the plugin requires is provided, and nothing in its descriptor is a caution";
     readonly text: {
       readonly en: "This plugin has every feature it needs.";
     };
   };
   readonly featuresUnscanned: {
     readonly code: "hosting.features.scan-predates-field";
+    readonly doc: "unknown: the plugin's scan record has no feature list, because it was taken before the scan read one";
     readonly text: {
       readonly en: "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check.";
     };
@@ -148,29 +165,33 @@ export declare const HOSTING_FEATURES_CODES: {
 
 /**
  * The hosting codes of the latency dimension: hosting.latency.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/latency.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_LATENCY_CODES: {
   readonly latencyNonconforming: {
     readonly code: "hosting.latency.nonconforming";
+    readonly doc: "unknown: the measured latency does not scale with rate as a conforming plugin's does (its scaling class is nonconforming), so its figure is not used";
     readonly text: {
       readonly en: "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency.";
     };
   };
   readonly latencyParameterDependent: {
     readonly code: "hosting.latency.parameter-dependent";
+    readonly doc: "conditional: the parameter sweep moved the plugin's latency; allowed where the host compensates, as it reads the live figure each cycle";
     readonly text: {
       readonly en: "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it.";
     };
   };
   readonly latencyResolved: {
     readonly code: "hosting.latency.resolved";
+    readonly doc: "suitable: the plugin's latency is measured and fixed (for a CLAP, the declared figure is what was measured at every declared rate)";
     readonly text: {
       readonly en: "This plugin’s latency has been resolved to a fixed figure.";
     };
   };
   readonly latencyUnmeasured: {
     readonly code: "hosting.latency.unmeasured";
+    readonly doc: "unknown: there is no latency figure, or the benchmark declared it unmeasurable; fails closed, never passed by default";
     readonly text: {
       readonly en: "This plugin’s latency has not been measured. Measure it before relying on it.";
     };
@@ -179,7 +200,7 @@ export declare const HOSTING_LATENCY_CODES: {
 
 /**
  * The hosting codes of the memory dimension: hosting.memory.*, what a qualifier, a host or the console read of a plugin's measured memory against a host's budget, by code, never by prose.
- * @see data/hosting/memory.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_MEMORY_CODES: {
   readonly memoryAboveCeiling: {
@@ -214,7 +235,7 @@ export declare const HOSTING_MEMORY_CODES: {
 
 /**
  * The hosting codes of the output dimension: hosting.output.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/output.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_OUTPUT_CODES: {
   readonly outputNonFinite: {
@@ -228,11 +249,12 @@ export declare const HOSTING_OUTPUT_CODES: {
 
 /**
  * The hosting codes of the override dimension: hosting.override.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/override.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_OVERRIDE_CODES: {
   readonly overrideIsolated: {
     readonly code: "hosting.override.curator-isolated";
+    readonly doc: "unsuitable: the curator's override holds the plugin isolated, whatever its measurements say";
     readonly text: {
       readonly en: "The curator’s override is isolated from this run. Apply the override where the curator’s run can see it.";
     };
@@ -241,23 +263,26 @@ export declare const HOSTING_OVERRIDE_CODES: {
 
 /**
  * The hosting codes of the patch dimension: hosting.patch.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/patch.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_PATCH_CODES: {
   readonly patchBusy: {
     readonly code: "hosting.patch.busy";
+    readonly doc: "a patch write found the previous one not yet taken by the plugin's thread; the host retries it for a while before answering this";
     readonly text: {
       readonly en: "The plugin’s patch is busy right now. Try again once it’s free.";
     };
   };
   readonly patchNotWritable: {
     readonly code: "hosting.patch.not-writable";
+    readonly doc: "the plugin lists no such writable property, or the adapter did not create it: a patch write is refused";
     readonly text: {
       readonly en: "This plugin’s patch cannot be written. Treat it as read-only.";
     };
   };
   readonly patchTooLarge: {
     readonly code: "hosting.patch.too-large";
+    readonly doc: "the value of a patch write is longer than the property's max_bytes";
     readonly text: {
       readonly en: "This patch is too large for the plugin to accept. Use a smaller patch.";
     };
@@ -266,11 +291,12 @@ export declare const HOSTING_PATCH_CODES: {
 
 /**
  * The hosting codes of the preset dimension: hosting.preset.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/preset.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_PRESET_CODES: {
   readonly presetNotFound: {
     readonly code: "hosting.preset.not-found";
+    readonly doc: "the bundle holds no preset of that name for this plugin";
     readonly text: {
       readonly en: "This preset could not be found. Check its name and location and try again.";
     };
@@ -279,17 +305,19 @@ export declare const HOSTING_PRESET_CODES: {
 
 /**
  * The hosting codes of the provenance dimension: hosting.provenance.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/provenance.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_PROVENANCE_CODES: {
   readonly hostProvenanceDiffers: {
     readonly code: "hosting.provenance.host-differs";
+    readonly doc: "unknown: the figures were measured on a host other than the one the console runs on, so no verdict is carried over from them";
     readonly text: {
       readonly en: "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference.";
     };
   };
   readonly sweepControlDidNotFire: {
     readonly code: "hosting.provenance.sweep-control-did-not-fire";
+    readonly doc: "unknown: the sweep's positive control did not fire, so nothing the sweep measured counts";
     readonly text: {
       readonly en: "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again.";
     };
@@ -298,35 +326,40 @@ export declare const HOSTING_PROVENANCE_CODES: {
 
 /**
  * What the console did with a plugin's verdict: hosting.realised.* and the outcomes with no dimension (hosting.disabled, hosting.unjudged, hosting.no-realisation, hosting.linked), read by code, never by prose.
- * @see data/hosting/realised.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_REALISED_CODES: {
   readonly disabled: {
     readonly code: "hosting.disabled";
+    readonly doc: "the console's in-process switch is off: an LV2 runs isolated, and a third-party CLAP, which has no other path, is refused";
     readonly text: {
       readonly en: "This plugin is disabled. Enable it before using it.";
     };
   };
   readonly linked: {
     readonly code: "hosting.linked";
+    readonly doc: "the plugin is one of the engine's statically linked CLAPs and runs in-process on the node that carries the CLAP bank";
     readonly text: {
       readonly en: "This plugin is realised linked into the host’s own process.";
     };
   };
   readonly noRealisation: {
     readonly code: "hosting.no-realisation";
+    readonly doc: "the plugin earned a path that has no body here: no LV2 adapter or CLAP bank to run it, or a port class the stage cannot bind";
     readonly text: {
       readonly en: "This plugin has no realisation: nothing runs it. Give it a way to run before using it.";
     };
   };
   readonly realisedInProcess: {
     readonly code: "hosting.realised.in-process";
+    readonly doc: "the plugin runs in-process: it earned it and the console's switch allows it";
     readonly text: {
       readonly en: "This plugin is realised in its own process, isolated from the host’s.";
     };
   };
   readonly unjudged: {
     readonly code: "hosting.unjudged";
+    readonly doc: "the plugin has no verdict on record for this build (a linked CLAP without a row measured on the pinned build): it is refused at load";
     readonly text: {
       readonly en: "This plugin has not been judged yet. Judge it before trusting any verdict about it.";
     };
@@ -335,7 +368,7 @@ export declare const HOSTING_REALISED_CODES: {
 
 /**
  * The hosting codes of the resource-hints dimension: hosting.resource-hints.*, why the host refuses the hints a plugin declares about itself (omx-contract's RESOURCE_HINTS, through the CLAP draft org.openmixer.resource-hints.draft/0 or the omxres LV2 properties). A refused declaration is trusted for none of its hints: every hint reads as unknown.
- * @see data/hosting/resource-hints.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_RESOURCE_HINTS_CODES: {
   readonly resourceHintsOutOfRange: {
@@ -363,53 +396,61 @@ export declare const HOSTING_RESOURCE_HINTS_CODES: {
 
 /**
  * The hosting codes of the rt-safety dimension: hosting.rt-safety.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/rt-safety.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_RT_SAFETY_CODES: {
   readonly rtSafetyClean: {
     readonly code: "hosting.rt-safety.clean-under-sweep";
+    readonly doc: "suitable: the interposer counted no allocation, lock or system call on the audio thread over the armed blocks with every parameter swept";
     readonly text: {
       readonly en: "The plugin showed no real-time safety violation under the sweep. It passed clean.";
     };
   };
   readonly rtSafetyNotReproducible: {
     readonly code: "hosting.rt-safety.not-reproducible";
+    readonly doc: "unknown: the interposer's counts varied between runs of the same plugin";
     readonly text: {
       readonly en: "The real-time safety measurement could not be reproduced. Measure it again before trusting it.";
     };
   };
   readonly rtSafetyNotesClean: {
     readonly code: "hosting.rt-safety.clean-under-notes";
+    readonly doc: "suitable: played under the interposer, the plugin made no allocation, lock or system call";
     readonly text: {
       readonly en: "The plugin showed no real-time safety violation while playing notes. It passed clean.";
     };
   };
   readonly rtSafetyNotesUnmeasured: {
     readonly code: "hosting.rt-safety.notes-unmeasured";
+    readonly doc: "unknown: the plugin takes notes and was not played under the interposer; the parameter sweep alone says nothing about a voice";
     readonly text: {
       readonly en: "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it.";
     };
   };
   readonly rtSafetyNotesViolations: {
     readonly code: "hosting.rt-safety.violations-under-notes";
+    readonly doc: "conditional: played under the interposer, the plugin allocated, locked or made a system call; it runs in a worker of its own";
     readonly text: {
       readonly en: "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes.";
     };
   };
   readonly rtSafetyOwnThreads: {
     readonly code: "hosting.rt-safety.own-threads";
+    readonly doc: "conditional: the plugin started threads of its own at instantiate (counted from /proc/self/task); a worker thread is not RT-unsafe, so the plugin still shares a worker (D20)";
     readonly text: {
       readonly en: "The plugin starts threads of its own beside its audio. It is real-time safe, and it can share a worker; its threads share the cores with the audio.";
     };
   };
   readonly rtSafetyUnmeasured: {
     readonly code: "hosting.rt-safety.unmeasured";
+    readonly doc: "unknown: no interposer count was taken with every parameter swept (or the plugin has none to sweep), so the audio thread was never traced";
     readonly text: {
       readonly en: "The plugin’s real-time safety has not been measured. Measure it before relying on it.";
     };
   };
   readonly rtSafetyViolations: {
     readonly code: "hosting.rt-safety.violations-in-run";
+    readonly doc: "conditional: the interposer counted allocations, locks or system calls on the audio thread over the armed blocks; the plugin runs in a worker of its own, never grouped with RT-safe plugins";
     readonly text: {
       readonly en: "The plugin violated real-time safety during the run. Treat it as not real-time safe.";
     };
@@ -418,23 +459,26 @@ export declare const HOSTING_RT_SAFETY_CODES: {
 
 /**
  * The hosting codes of the stability dimension: hosting.stability.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/stability.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_STABILITY_CODES: {
   readonly stabilityBelowFloor: {
     readonly code: "hosting.stability.cycles-below-floor";
+    readonly doc: "unknown: the plugin was instantiated fewer times than the policy's cycle floor";
     readonly text: {
       readonly en: "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result.";
     };
   };
   readonly stabilityCrashUnattributed: {
     readonly code: "hosting.stability.crash-unattributed";
+    readonly doc: "unknown: a crash was recorded that no signature attributes to the plugin";
     readonly text: {
       readonly en: "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them.";
     };
   };
   readonly stabilityCrashedAttributed: {
     readonly code: "hosting.stability.crashed-attributed-plugin";
+    readonly doc: "unsuitable: a recorded crash is attributed to the plugin's own binary";
     readonly text: {
       readonly en: "This plugin crashed during the run. Don’t host it until it’s fixed.";
     };
@@ -455,36 +499,42 @@ export declare const HOSTING_STABILITY_CODES: {
   };
   readonly stabilityLinksGuiToolkit: {
     readonly code: "hosting.stability.links-gui-toolkit";
+    readonly doc: "conditional: the plugin links a GUI toolkit, a caution only where it shares a process";
     readonly text: {
       readonly en: "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one.";
     };
   };
   readonly stabilitySoakFailedAtRate: {
     readonly code: "hosting.stability.soak-failed-at-rate";
+    readonly doc: "unsuitable: the soak failed at the very rate being judged (a supervisor timeout aside, which is the harness's)";
     readonly text: {
       readonly en: "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed.";
     };
   };
   readonly stabilitySoaked: {
     readonly code: "hosting.stability.soaked";
+    readonly doc: "suitable: the plugin cleared the cycle floor and the soak, with no crash and no caution";
     readonly text: {
       readonly en: "The plugin completed its soak test. It held up over the run.";
     };
   };
   readonly stabilitySpawnsThreads: {
     readonly code: "hosting.stability.spawns-threads";
+    readonly doc: "conditional: the plugin spawns threads, a caution only where it shares a process";
     readonly text: {
       readonly en: "This plugin spawns its own threads. Watch it for behaviour a host does not control.";
     };
   };
   readonly stabilityUnmeasured: {
     readonly code: "hosting.stability.unmeasured";
+    readonly doc: "unknown: no lifecycle measurement is on record";
     readonly text: {
       readonly en: "This plugin’s stability has not been measured. Measure it before relying on it.";
     };
   };
   readonly stabilityUnsoaked: {
     readonly code: "hosting.stability.unsoaked";
+    readonly doc: "unknown: the soak ran for less than the policy's time, did not sweep the parameters, or failed at some rate";
     readonly text: {
       readonly en: "This plugin has not been soaked. Soak it before trusting it over a long run.";
     };
@@ -493,7 +543,7 @@ export declare const HOSTING_STABILITY_CODES: {
 
 /**
  * The hosting codes of the state dimension: hosting.state.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/state.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_STATE_CODES: {
   readonly stateNotACopy: {
@@ -540,6 +590,7 @@ export declare const HOSTING_STATE_CODES: {
   };
   readonly stateUnreadable: {
     readonly code: "hosting.state.unreadable";
+    readonly doc: "the plugin does not declare the state feature, has no state interface, or its restore failed";
     readonly text: {
       readonly en: "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy.";
     };
@@ -548,7 +599,7 @@ export declare const HOSTING_STATE_CODES: {
 
 /**
  * The hosting codes of the topology dimension: hosting.topology.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/topology.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_TOPOLOGY_CODES: {
   readonly topologyAmbisonicConfig: {
@@ -567,12 +618,14 @@ export declare const HOSTING_TOPOLOGY_CODES: {
   };
   readonly topologyInstrument: {
     readonly code: "hosting.topology.instrument";
+    readonly doc: "suitable: on a host that plays notes, the plugin has no audio input, a note or MIDI input and an audio output (one or two channels for a CLAP)";
     readonly text: {
       readonly en: "This plugin is hosted as an instrument: it has no audio input of its own.";
     };
   };
   readonly topologyMatched: {
     readonly code: "hosting.topology.matched";
+    readonly doc: "suitable: the plugin's main audio ports are mono to mono or stereo to stereo, with no sidechain input";
     readonly text: {
       readonly en: "This plugin’s ports match the topology it is hosted on.";
     };
@@ -653,11 +706,12 @@ export declare const HOSTING_VERB_HOSTS: {
 
 /**
  * The hosting codes of the worker dimension: hosting.worker.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).
- * @see data/hosting/worker.json
+ * @see contract.d/hosting/hosting.json
  */
 export declare const HOSTING_WORKER_CODES: {
   readonly workerNonconforming: {
     readonly code: "hosting.worker.nonconforming";
+    readonly doc: "unsuitable: the plugin's worker interface was refused while its latency was measured, so it is not hostable";
     readonly text: {
       readonly en: "This plugin’s worker does not conform to what a worker must do. Don’t rely on its worker.";
     };
@@ -902,12 +956,15 @@ export declare const HOST_REPLY_CODES: {
 export declare const HOST_TRACK_KINDS: {
   readonly bus: {
     readonly word: "bus";
+    readonly doc: "a mix bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_BUS in its track info";
   };
   readonly return: {
     readonly word: "return";
+    readonly doc: "an effects return: the plugin sees CLAP_TRACK_INFO_IS_FOR_RETURN_TRACK in its track info";
   };
   readonly master: {
     readonly word: "master";
+    readonly doc: "the master bus: the plugin sees CLAP_TRACK_INFO_IS_FOR_MASTER in its track info";
   };
 };
 

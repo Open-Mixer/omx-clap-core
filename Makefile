@@ -22,8 +22,9 @@ CORE_SONAME = $(CORE_SO).$(CORE_MAJOR)
 CORE_FILE = $(CORE_SO).$(CORE_VERSION)
 CORE_HEADERS = src/clap_host.h src/clap_host_extensions.h src/omx_msgring.h src/clap_stage.h src/hosted_stage.h src/clap_host_limits.h src/omx_clap_vocabulary.h src/hosted_stage_limits.h src/omx_clap_ext.h src/omx_param_units.h src/omx_param_unit_ids.h src/omx_param_scales.h src/clap_meters.h src/omx_clap_raw.h src/omx_clap_midi.h src/clap_chain.h src/abi_guard.h
 CORE_MAP = src/omx-clap.map
-# the hosting items as a TypeScript module (data/hosting.json's render word), installed for a TypeScript build to import
-CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
+# the hosting items as TypeScript modules, installed for a TypeScript build to import: the stage's numbers (data/hosting.json's
+# render word), the idle and window codes (the hosting domain's x-render) and the vocabulary
+CORE_TS = ts/omx-clap-hosting.js ts/omx-clap-hosting.d.ts ts/omx-clap-hosting-codes.js ts/omx-clap-hosting-codes.d.ts ts/omx-clap-vocabulary.js ts/omx-clap-vocabulary.d.ts
 
 # The installed omx-clap.pc names the libraries it takes headers from in Requires.private, by name: no version floor
 # anywhere (owner ruling 2026-11-24). tests/pc_range_parity.py holds the installed .pc to that.
@@ -325,7 +326,7 @@ install-tests: $(TEST_FIXTURES)
 CONTRACT_SCHEMA_MAJOR = 3
 CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null),$(DATADIR)/omx-contract/contract.d)
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
-.PHONY: install-contract test-contract
+.PHONY: install-contract test-contract test-domain check-domain
 install-contract:
 	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel (its --domain mode installs contract.d/scan as the package that owns it), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
 	@# the installer is probed for the mode used below, never by version (no floor): one without --domain is older than this tree (#214)
@@ -333,6 +334,8 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR) $(CORE)
+	# the hosting domain, by the installer's domain mode: <contractdir>/hosting/hosting.json, as it is (no schema major)
+	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/hosting $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# the parameter contract's code sheet and its mapping to standard units, the same way: <contractdir>/omx-param-contract/omx-param-contract.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# the scale codes, the same way: <contractdir>/omx-clap-scale/omx-clap-scale.json
@@ -344,6 +347,33 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
+
+# contract.d/hosting/hosting.json is the one home of the HOSTING_*_CODES items (omx-contract#215): data/ holds none of them,
+# and the reader refuses a second copy (contract.item.duplicate). Each item keeps the data path it rebuilds into (x-file),
+# and the codes header's render block is the domain's x-render, so `render --with-domain` gives clap_host_limits.h and the
+# vocabulary as data/ did (test-contract holds them byte for byte). check-domain: omx-contract's `domain check` of the document
+# against DOMAIN_BASE (a word added or removed under an unchanged version, an x-code moved, a version going
+# down): by default the document of the newest release tag that carries it; then fmt --check and validate of the domain
+# alone, and every code with its doc (render --target md refuses one with none). OMX_CONTRACT_DIR a checkout or the installed
+# /usr/lib/omx-contract (one whose reader has #215's x-source and doc reads).
+OMX_CONTRACT_CLI = node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs
+DOMAIN_BASE ?=
+check-domain:
+	@test -f contract.d/hosting/hosting.json || { echo "check-domain: no contract.d/hosting/hosting.json" >&2; exit 1; }
+	@rm -rf build/domain && mkdir -p build/domain/only && cp -r contract.d/hosting build/domain/only/
+	@base='$(DOMAIN_BASE)'; \
+	if [ -z "$$base" ]; then \
+	  for t in $$(git tag --list 'v*' --sort=-v:refname 2>/dev/null); do \
+	    if git show "$$t:contract.d/hosting/hosting.json" > build/domain/base.json 2>/dev/null; then base=build/domain/base.json; echo "check-domain: the base is $$t's document"; break; fi; done; fi; \
+	if [ -z "$$base" ]; then echo "check-domain: no release tag carries contract.d/hosting/hosting.json: domain check has no earlier document to hold it to"; \
+	else $(OMX_CONTRACT_CLI) domain check contract.d/hosting/hosting.json "$$base"; fi
+	$(OMX_CONTRACT_CLI) fmt --check --contract-dir build/domain/only
+	$(OMX_CONTRACT_CLI) validate --contract-dir build/domain/only
+	$(OMX_CONTRACT_CLI) render --target md --contract-dir build/domain/only --package hosting --out build/domain/md
+
+# the hosting domain: installed, opened by the loader (omx-domain) with every code it declares, data/ without them, check-domain's arms
+test-domain:
+	INSTALL_CONTRACT_DIR='$(OMX_CONTRACT_SCRIPT)' OMX_CONTRACT_DIR='$(abspath $(OMX_CONTRACT_DIR))' MAKE='$(MAKE)' sh tests/domain-hosting.sh
 
 # data/ installed into a contract directory of its own, read back through omx-contract's reader beside omx-contract's
 # own package, and every file this tree commits as a render of it held to `render --package omx-clap`, byte for
@@ -409,7 +439,8 @@ test-contract:
 	  expr=$${arm%%|*}; file=$${arm#*|}; rm -rf build/contract/sabotage && cp -r build/contract/dir build/contract/sabotage && sed -i -e "$$expr" build/contract/sabotage/$$file \
 	    && ! cmp -s build/contract/dir/$$file build/contract/sabotage/$$file || { echo "FAIL sabotage: the sed changed nothing in $$file"; exit 1; }; \
 	  if OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/sabotage $(VERSION) >/dev/null 2>&1; then echo "FAIL sabotage: the read-back stayed green over $$file"; exit 1; else echo "ok   sabotage: the read-back is red over a changed $$file"; fi; done
-	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --out build/contract/json
+	# the whole read as json, the hosting codes read through their domain (their one home, omx-contract#215)
+	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --with-domain build/contract/dir/hosting --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
 	# V29: the hosts a verb names, HOSTING_VERB_HOSTS of data/hosting/verb-hosts.json, with its sabotage arms

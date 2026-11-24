@@ -207,6 +207,7 @@ make test-package
 %doc README.md
 %{_datadir}/omx-contract/contract.d/3/omx-clap/
 %{omx_contract_domain_dir}/scan/
+%{omx_contract_domain_dir}/hosting/
 %{omx_contract_domain_dir}/omx-param-contract/
 %{omx_contract_domain_dir}/omx-clap-scale/
 %{omx_contract_domain_dir}/clap/

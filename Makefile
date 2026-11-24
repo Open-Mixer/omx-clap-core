@@ -327,7 +327,9 @@ CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
 .PHONY: install-contract test-contract
 install-contract:
-	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel 3.22.0 or later (its --domain mode installs contract.d/scan as the package that owns it), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
+	@test -n "$(INSTALL_CONTRACT_DIR)" || { echo "install-contract: no install-contract-dir.sh: install omx-contract-devel (its --domain mode installs contract.d/scan as the package that owns it), or set OMX_CONTRACT_DIR to a checkout" >&2; exit 1; }
+	@# the installer is probed for the mode used below, never by version (no floor): one without --domain is older than this tree (#214)
+	@grep -q -e '--domain' $(INSTALL_CONTRACT_DIR) || { echo "install-contract: $(INSTALL_CONTRACT_DIR) has no --domain mode: the omx-contract installer found is older than the contract tree" >&2; exit 1; }
 	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
 	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR) $(CORE)
@@ -651,10 +653,15 @@ test-no-floors:
 	python3 tests/no_floors_check.py --self-test
 	python3 tests/no_floors_check.py .
 
+# make install-contract refuses an omx-contract installer with no --domain mode by name, before any call (#214)
+.PHONY: test-install-contract-probe
+test-install-contract-probe:
+	sh tests/install-contract-probe.sh
+
 test: test-no-backcompat
-test: test-no-upward-deps test-no-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test: test-no-upward-deps test-no-floors test-install-contract-probe test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-clap-inventory test-plugin-hostd-ref
-test-fake: test-no-upward-deps test-no-floors test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
+test-fake: test-no-upward-deps test-no-floors test-install-contract-probe test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-no-backcompat
 test-fake: test-hosted-clamp test-codes test-scan-json tests/clap_state_busy_test tests/fake_state.clap tests/clap_host_test tests/idle_hold_test tests/fake.clap tests/fake_synth.clap tests/fake_mover.clap tests/fault-17.clap test-scan-fake test-core test-stage test-msgring test-transport test-raw test-quiet-death test-xrun-report test-lv2-locate test-param-contract test-preset-file test-host-transport test-chain tests/clap_ext_test tests/fake_ext.clap tests/clap_unoffered_test tests/resource_hints_test tests/fake_panel.clap test-thread-pool test-panel-words
 	./tests/clap_ext_test $(abspath tests/fake_ext.clap)
@@ -1105,7 +1112,7 @@ test-thread-pool: tests/thread_pool_test tests/fake_pool.clap
 # in_events.size and get, request_exec, tail.changed, request_flush, schedule_work and log.printf are audio, the respond
 # LV2 work is handed is worker. It binds its own embedding API too (--abi omx-clap-core, omx-dsp's omx-clap-core.abi):
 # the audio-role predicates and the log sink its embedder hands it are called through their fields, as audio. omx-dsp's
-# package omx-rt-gate installs the gate (a BuildRequires, packaging/deps.txt); OMX_RT_GATE=<path> names one built from
+# package omx-rt-gate installs the gate (a BuildRequires); OMX_RT_GATE=<path> names one built from
 # an omx-dsp checkout.
 #   rt-gate-graphs           the call graph of every compiled unit of the core and the LV2 adapter, the graphs this tree
 #                            ships (make install-rt-gate-graphs, part of make install: $(DATADIR)/omx-clap/rt-gate/graphs,

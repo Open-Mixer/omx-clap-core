@@ -11,6 +11,8 @@
 #   - a data file's `requires`, or a domain's `info.x-requires`, that is not a list of package/domain names: a floor map
 #     (`{"omx-contract-schema": ">= 3.12.0"}`) is refused by name, and so is the `omx-contract-schema` entry.
 # Breaks/Replaces/Obsoletes of a renamed package (packaging/renamed.txt) are an upgrade path, no floor, and are not read.
+# THIRD-PARTY floors stay (the ruling covers our own levels): the CLAP headers (clap-devel, clap-headers 1.2.10) and nodejs
+# keep theirs; every other floor is refused.
 #
 #   no_floors_check.py <tree>       0 clean, 1 a floor found
 #   no_floors_check.py --self-test  each kind planted in a scratch copy is found; the clean copy passes
@@ -23,6 +25,14 @@ import sys
 import tempfile
 
 NAME = re.compile(r"^[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*$")
+# third-party packages whose floor stays: the CLAP headers and node
+THIRD_PARTY = ("clap-devel", "clap-headers", "nodejs")
+SPEC_FLOOR = re.compile(r"([A-Za-z0-9_.+()-]+)\s*>=\s*[0-9]")
+CTL_FLOOR = re.compile(r"([a-z0-9.+-]+)\s*\(>=\s*[0-9]")
+
+
+def own(names):
+    return [n for n in names if n not in THIRD_PARTY and not n.startswith("nodejs")]
 
 
 def spec_floors(root):
@@ -32,7 +42,7 @@ def spec_floors(root):
             for n, line in enumerate(f, 1):
                 if line.startswith("%changelog"):
                     break
-                if re.match(r"^(Build)?(Requires|Recommends|Suggests)(\([^)]*\))?:.*>=\s*[0-9]", line):
+                if re.match(r"^(Build)?(Requires|Recommends|Suggests)(\([^)]*\))?:", line) and own(SPEC_FLOOR.findall(line)):
                     out.append("%s:%d: a version floor: %s" % (os.path.relpath(path, root), n, line.strip()))
     return out
 
@@ -43,7 +53,7 @@ def control_floors(root):
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             for n, line in enumerate(f, 1):
-                if not line.startswith("#") and re.search(r"\(>=\s*[0-9]", line):
+                if not line.startswith("#") and own(CTL_FLOOR.findall(line)):
                     out.append("debian/control:%d: a version floor: %s" % (n, line.strip()[:160]))
     return out
 
@@ -123,6 +133,7 @@ def self_test():
         ("deps.txt back", lambda t: open(os.path.join(t, "packaging", "deps.txt"), "w").write("omx-dsp-devel libomxdsp-dev 0.34.0\n"), "packaging/deps.txt"),
         ("a spec floor", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: omx-dsp-devel\n", "BuildRequires: omx-dsp-devel >= 0.34.0\n"), "a version floor"),
         ("a control floor", lambda t: edit(os.path.join(t, "debian", "control"), "libomxdsp-dev,", "libomxdsp-dev (>= 0.34.0~),"), "debian/control"),
+        ("a third-party floor is no finding, an own one is", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: plugin-db-devel\n", "BuildRequires: plugin-db-devel >= 0.5.0\n"), "plugin-db-devel >= 0.5.0"),
         ("a .pc floor", lambda t: edit(os.path.join(t, "omx-clap.pc.in"), "omx-contract, ", "omx-contract >= 3.22.0, "), "pkg-config"),
         ("a data floor map", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": {\n    "omx-contract-schema": ">= 3.12.0"\n  },\n'), "floor map"),
         ("a schema name", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": ["omx-contract-schema"],\n'), "omx-contract-schema"),

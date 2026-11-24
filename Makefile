@@ -434,6 +434,8 @@ test-contract:
 	$(CC) $(shell $(PKG_CONFIG) --cflags libomx-domain) tests/domain_installed_test.c -o build/contract/domain_installed_test $(shell $(PKG_CONFIG) --libs libomx-domain)
 	build/contract/domain_installed_test $(abspath build/contract/dir)
 	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/dir $(VERSION)
+	# one home per word: a hosting code put back into data/, or the verb hosts declared again in the domain, is refused by name
+	sh tests/hosting-one-home.sh $(OMX_CONTRACT_DIR) $(OMX_CONTRACT_SCRIPT)
 	# sabotage: the verbs' format changed in the installed omx-clap domain must turn the byte-for-byte read-back red, and so must a reply code of the host domain
 	@for arm in 's/"x-format": "remote_page_get %i %i"/"x-format": "remote_page_get %i"/|omx-clap/omx-clap.json' 's/"x-resp": -510/"x-resp": -519/|host/host.json'; do \
 	  expr=$${arm%%|*}; file=$${arm#*|}; rm -rf build/contract/sabotage && cp -r build/contract/dir build/contract/sabotage && sed -i -e "$$expr" build/contract/sabotage/$$file \

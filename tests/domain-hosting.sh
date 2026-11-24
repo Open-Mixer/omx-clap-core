@@ -39,6 +39,30 @@ while read -r item codes; do
   [ "$got" = "$want" ] || { echo "FAIL $item: the loader lists [$got], data/ defines [$want]"; exit 1; }
 done < "$tmp/items"
 
+# the move loses nothing (omx-contract#215): each code's doc is its description and its English text its x-text, never one
+# for the other, and each item's source is its x-source
+python3 - data "$D" <<'P' || exit 1
+import glob, json, sys
+items = json.load(open(sys.argv[2]))["components"]["schemas"]
+bad = []
+for f in [sys.argv[1] + "/hosting.json"] + sorted(glob.glob(sys.argv[1] + "/hosting/*.json")):
+    for name, body in json.load(open(f)).items():
+        if not (name.startswith("HOSTING_") and isinstance(body, dict) and body.get("kind") == "codes"):
+            continue
+        it = items.get(name, {})
+        if it.get("x-source") != body.get("source"):
+            bad.append(f"{name}: x-source {it.get('x-source')!r}, data/ source {body.get('source')!r}")
+        words = {w["title"]: w for w in it.get("oneOf", [])}
+        for key, c in body["codes"].items():
+            w = words.get(key, {})
+            if w.get("description") != c.get("doc"):
+                bad.append(f"{name}.{key}: description {w.get('description')!r}, data/ doc {c.get('doc')!r}")
+            if w.get("x-text") != c["text"]["en"]:
+                bad.append(f"{name}.{key}: x-text {w.get('x-text')!r}, data/ text.en {c['text']['en']!r}")
+if bad:
+    sys.exit(f"FAIL the domain drops what data/ holds ({len(bad)}):\n  " + "\n  ".join(bad[:8]))
+P
+
 # the gate: green on a clean tree, red on a missing file, a hand edit and an un-rendered data change
 fresh
 $MAKE --no-print-directory -C "$tmp/t" check-domain >/dev/null || { echo "FAIL check-domain is red on a clean tree"; exit 1; }

@@ -22,6 +22,8 @@ BuildRequires: plugin-db-devel
 BuildRequires: clap-devel
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: omx-dsp-devel
+# make install ships the core's call graphs (make install-rt-gate-graphs) for a plugin's omx-rt-gate run to join
+BuildRequires: omx-rt-gate
 # omx_clap_ext.h's panel words (families, widgets, display sources, placements) are omx-panel's: its domain's codes header,
 # omxdomain/panel_codes.h, which omx-panel-contract installs (data only; omx-panel does not build against this package)
 BuildRequires: omx-panel-contract
@@ -198,6 +200,7 @@ make test-package
 %{_libdir}/pkgconfig/omx-clap.pc
 %{_includedir}/omx-clap-host/
 %{_datadir}/omx-clap/omx-clap.map
+%{_datadir}/omx-clap/rt-gate/
 
 %files -n omx-clap-contract
 %license COPYING

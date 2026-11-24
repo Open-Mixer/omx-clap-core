@@ -372,21 +372,28 @@ static struct omx_clap_instance *instance_of(const clap_host_t *host)
     return (struct omx_clap_instance *)host->host_data;
 }
 
-/* The predicate and its context as one pair: retried while a write is under way or one landed between the reads. */
-static int named_by_role(const struct omx_clap_instance *in, pthread_t self)
+/* the embedder's audio-role predicate and its context, read as one pair: the predicate is called through its field,
+   which omx-rt-gate's omx-clap-core.abi declares audio (ruled 2026-11-15) */
+struct omx_clap_audio_role
 {
     omx_clap_audio_role_fn is_audio;
     void *ctx;
+};
+
+/* The predicate and its context as one pair: retried while a write is under way or one landed between the reads. */
+static int named_by_role(const struct omx_clap_instance *in, pthread_t self)
+{
+    struct omx_clap_audio_role role;
     uint32_t seq;
 
     do
     {
         seq = atomic_load_explicit(&in->audio_role_seq, memory_order_acquire);
-        is_audio = atomic_load_explicit(&in->audio_role_is, memory_order_relaxed);
-        ctx = atomic_load_explicit(&in->audio_role_ctx, memory_order_relaxed);
+        role.is_audio = atomic_load_explicit(&in->audio_role_is, memory_order_relaxed);
+        role.ctx = atomic_load_explicit(&in->audio_role_ctx, memory_order_relaxed);
         atomic_thread_fence(memory_order_acquire);
     } while ((seq & 1u) || seq != atomic_load_explicit(&in->audio_role_seq, memory_order_relaxed));
-    return is_audio && is_audio(ctx, self);
+    return role.is_audio && role.is_audio(role.ctx, self);
 }
 
 /* The thread the carrier's slot holds, read whole: the slot and the thread are atomics, no write ever half seen. */
@@ -753,7 +760,11 @@ static bool host_request_exec(const clap_host_t *host, uint32_t num_tasks)
     if (!in->pool_held ||
         thread_pool_run(in, num_tasks, (uint64_t)((double)in->max_block * 1e9 / in->rate), &late) != 0)
         for (uint32_t i = 0; i < num_tasks; i++)
+#ifdef OMX_RT_GATE_VIEW
+            in->thread_pool->exec(in->plugin, i);   // the gate's view (src/thread_pool.c, run_task's note)
+#else
             OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "thread_pool.exec", in->thread_pool->exec, in->plugin, i);
+#endif
     if (late)
         atomic_fetch_add_explicit(&in->pool_late, 1u, memory_order_relaxed);
     in->in_exec = 0;

@@ -30,6 +30,7 @@
  *   strict    a requirement not offered refuses under strict and is admitted, named, without it.
  *   block     the declarations the plugin sees (bounded, fixed, power of two), and the lengths the options report.
  *   log       silent, routed to a sink, captured into a buffer: the line the plugin wrote, where the option sends it.
+ *   format    the log's own printf (no allocation, for the audio thread) against the C library's, conversion by conversion.
  *   build     what refuses to build, never a shorter array.
  *   urid      the one table, and the kinds through their URIs.
  *   open      the door's refusals, each with its step.
@@ -48,6 +49,10 @@
 #include <pthread.h>
 #include <stdint.h>
 #include "lv2_rtmempool.h"
+#include "lv2_core_internal.h"
+#include <limits.h>
+#include <math.h>
+#include <stdarg.h>
 #include "lv2_core.h"
 #include "fixtures/lv2_feature_probe.h"
 #include "lv2_test_util.h"
@@ -310,6 +315,56 @@ static void t_log(void)
     CHECK(omx_lv2_feature_options_check(&o) == -1, "log: a mode that is none of the three refuses");
 }
 
+/* the log's formatter against the C library's snprintf: the same text and the same answer, and a buffer too small
+   cut short, still terminated, answering the whole length */
+static int fmt_ours(char *buf, size_t size, const char *fmt, ...)
+{
+    va_list ap;
+    int n;
+
+    va_start(ap, fmt);
+    n = omx_lv2_log_vformat(buf, size, fmt, ap);
+    va_end(ap);
+    return n;
+}
+
+#define SAME(fmt, ...)                                                                                                  \
+    do {                                                                                                                \
+        char a[128], b[128];                                                                                            \
+        int na = fmt_ours(a, sizeof(a), fmt, __VA_ARGS__), nb = snprintf(b, sizeof(b), fmt, __VA_ARGS__);              \
+        CHECK(na == nb && !strcmp(a, b), "format: %-12s -> '%s' (%d), the C library '%s' (%d)", fmt, a, na, b, nb);   \
+    } while (0)
+
+static void t_log_format(void)
+{
+    const char *volatile nul = NULL;   // through a volatile, so no compiler judges the null %s before the run
+    char small[6];
+    int x = 0;
+
+    SAME("%d|%i|%d", 0, -5, INT_MIN);
+    SAME("[%5d][%-5d][%05d][%+d][% d][%.3d][%.0d]", 42, 42, -42, 7, 7, 7, 0);
+    SAME("%x %#x %X %#o %o %u", 255u, 255u, 0xabcu, 8u, 0u, 4000000000u);
+    SAME("%lu %ld %lld %llu", ULONG_MAX, LONG_MIN, LLONG_MIN, ULLONG_MAX);
+    SAME("%hhd %hd %hhu %zu %jd %td", 300, 70000, 511, (size_t)12, (intmax_t)-3, (ptrdiff_t)-9);
+    SAME("%c%c [%s] [%.2s] [%10s] [%-10s] [%5.1s]", 'O', 'K', "abc", "abc", "right", "left", "cut");
+    SAME("[%s]", nul);
+    SAME("%p %p", (void *)&x, (void *)NULL);
+    SAME("100%% [%*d] [%-*d] [%.*f]", 6, 1, 4, 2, 2, 3.14159);
+    SAME("%f %.2f %.0f %.0f %.0f %5.1f %#.0f", 3.5, 3.14159, 2.5, 3.5, 0.5, 2.25, 7.0);
+    SAME("%f %f %f %F %.3f", -0.0, NAN, -INFINITY, INFINITY, 1e-7);
+    SAME("%e %.3e %E %.0e %e", 12345.678, 0.000123, 1.5e-300, 5.0, 0.0);
+    SAME("%g %g %g %g %g %G %#g %.3g %g", 0.0001, 123456.0, 1234567.0, 100.0, 0.5, 1e-10, 1.0, 3.14159, 0.0);
+    SAME("%10.3f|%-10.2e|%+g", -1.5, 1234.5, 2.0);
+    SAME("%Lf %Lg", (long double)1.25, (long double)0.125);
+
+    CHECK(fmt_ours(small, sizeof(small), "%s-%d", "abcdef", 12345) == 12 && !strcmp(small, "abcde"),
+          "format: a short buffer is cut short and terminated, answering the whole length ('%s')", small);
+    CHECK(fmt_ours(NULL, 0, "%d", 123) == 3, "format: no buffer answers the length");
+    x = 5;
+    CHECK(fmt_ours(small, sizeof(small), "a%nb", &x) == 2 && !strcmp(small, "ab") && x == 5,
+          "format: %%n writes nothing (a plugin's pointer is never written through)");
+}
+
 static void t_build(void)
 {
     struct omx_lv2_feature_options o;
@@ -546,6 +601,7 @@ int main(int argc, char **argv)
     t_strict();
     t_block();
     t_log();
+    t_log_format();
     t_build();
     t_urid();
     t_rtmempool();

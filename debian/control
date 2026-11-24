@@ -7,7 +7,7 @@ Section: sound
 Priority: optional
 Maintainer: Pau Aliagas <linuxnow@gmail.com>
 # clap-headers, served by the channel (Debian has none)
-Build-Depends: debhelper-compat (= 13), clap-headers, liblilv-dev, lv2-dev, libjack-jackd2-dev | libjack-dev, libxcb1-dev, libssl-dev, libplugin-hostd-protocol-dev, libomxdsp-dev, libomx-contract-dev, libomx-domain-dev, plugin-db-dev, omx-panel-contract, pkgconf, python3
+Build-Depends: debhelper-compat (= 13), clap-headers, liblilv-dev, lv2-dev, libjack-jackd2-dev | libjack-dev, libxcb1-dev, libssl-dev, libplugin-hostd-protocol-dev, libomxdsp-dev, omx-rt-gate, libomx-contract-dev, libomx-domain-dev, plugin-db-dev, omx-panel-contract, pkgconf, python3
 Standards-Version: 4.6.2
 Homepage: https://github.com/Open-Mixer/omx-clap-core
 Rules-Requires-Root: no

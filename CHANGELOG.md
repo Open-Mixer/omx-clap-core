@@ -26,3 +26,11 @@ Lines for the next release; the release moves them into debian/changelog and the
   declared fields by name, and tests/host-replies-check.py holds the two together and to each verb's x-reply. The
   replies of param_info, remote_pages and remote_page_get are plugin-hostd-protocol's to type (host-dispatch.h writes
   them), and so is property_list's beside property_info and property_get; audio_ports' follows.
+- The real-time gate is omx-dsp's omx-rt-gate (spec 7.13): make test-rt-gate judges the core's and the LV2 adapter's
+  units from the host roots they derive (eight audio fields, and respond handed to work() as the worker root), each
+  declared root required among them; test-rt-gate-control and test-rt-gate-sabotage hold the gate's own arms; all three
+  run in CI with make test's plain group. tests/rt_reach.py and the Makefile's four grep scans are gone. make install
+  ships the core's call graphs in the -devel package ($(datadir)/omx-clap/rt-gate/graphs) for a plugin's run to join.
+  Audio-path fixes the gate found: the LV2 log formats with its own printf (never
+  vsnprintf), the URID lookup never allocates, the thread pool reads its thread id without a system call and no helper
+  claims on the requesting thread's CPU.

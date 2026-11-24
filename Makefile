@@ -681,7 +681,8 @@ test-dev-so-runtime-dep:
 	python3 tests/dev_so_runtime_dep.py --self-test
 	python3 tests/dev_so_runtime_dep.py .
 
-# no hand-kept version floor (owner ruling 2026-11-24): no packaging/deps.txt, no `>= X` in the spec, debian/control or a .pc template, and a
+# no hand-kept version floor (owner ruling 2026-11-24): no packaging/deps.txt, no relation on a number or a hand-kept macro/variable in
+# the spec, debian/control, a .pc template, a workflow or this Makefile, no pkg-config --atleast-version, no install pinned by name, and a
 # data file's requires / a domain's info.x-requires is a list of names (tests/no_floors_check.py). The build installs the lower
 # level's published packages; the relations a package needs are generated (sonames, = its own version).
 .PHONY: test-no-floors

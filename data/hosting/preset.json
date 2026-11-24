@@ -10,6 +10,7 @@
     "codes": {
       "presetNotFound": {
         "code": "hosting.preset.not-found",
+        "doc": "the bundle holds no preset of that name for this plugin",
         "text": {
           "en": "This preset could not be found. Check its name and location and try again."
         }

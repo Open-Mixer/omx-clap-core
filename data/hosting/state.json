@@ -52,6 +52,7 @@
       },
       "stateUnreadable": {
         "code": "hosting.state.unreadable",
+        "doc": "the plugin does not declare the state feature, has no state interface, or its restore failed",
         "text": {
           "en": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy."
         }

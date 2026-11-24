@@ -10,12 +10,14 @@
     "codes": {
       "hostProvenanceDiffers": {
         "code": "hosting.provenance.host-differs",
+        "doc": "unknown: the figures were measured on a host other than the one the console runs on, so no verdict is carried over from them",
         "text": {
           "en": "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference."
         }
       },
       "sweepControlDidNotFire": {
         "code": "hosting.provenance.sweep-control-did-not-fire",
+        "doc": "unknown: the sweep's positive control did not fire, so nothing the sweep measured counts",
         "text": {
           "en": "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again."
         }

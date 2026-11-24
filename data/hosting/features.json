@@ -17,18 +17,21 @@
       },
       "featuresDisqualifying": {
         "code": "hosting.features.host-not-provided",
+        "doc": "unsuitable: the plugin requires a feature the host refuses to provide on the audio thread (a disqualifying one, or one that pins the quantum where the quantum is not pinned); the record names them",
         "text": {
           "en": "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature."
         }
       },
       "featuresMidiIn": {
         "code": "hosting.features.midi-in-fed-empty",
+        "doc": "conditional: the plugin has a MIDI input, which an insert on a host that plays no notes never feeds; on the LV2 path an input the host cannot feed is refused at add",
         "text": {
           "en": "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none."
         }
       },
       "featuresMissing": {
         "code": "hosting.features.missing",
+        "doc": "unsuitable: the plugin requires a feature the host does not provide; the LV2 adapter refuses it at add from its TTL, before its binary is opened",
         "text": {
           "en": "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere."
         }
@@ -42,12 +45,14 @@
       },
       "featuresProvided": {
         "code": "hosting.features.all-provided",
+        "doc": "suitable: every feature the plugin requires is provided, and nothing in its descriptor is a caution",
         "text": {
           "en": "This plugin has every feature it needs."
         }
       },
       "featuresUnscanned": {
         "code": "hosting.features.scan-predates-field",
+        "doc": "unknown: the plugin's scan record has no feature list, because it was taken before the scan read one",
         "text": {
           "en": "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check."
         }

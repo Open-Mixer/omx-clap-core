@@ -9,24 +9,28 @@
 export const HOSTING_CLAP_CODES = {
   "clapExtensionsNotCovered": {
     "code": "hosting.clap.extensions-not-covered",
+    "doc": "unknown: the plugin passed headless with OMX_CLAP_HOST_EXTENSIONS offered, and this host offers fewer of them, so that pass is not this host's; the record names the extensions it lacks",
     "text": {
       "en": "Not every extension this plugin declares is covered by what was checked. Check the plugin against the extensions this host covers, or accept the gap."
     }
   },
   "clapFormatNotHosted": {
     "code": "hosting.clap.format-not-hosted",
+    "doc": "unsuitable: the host profile has no CLAP path (its clapExtensions is null), so no CLAP runs on it whatever was measured",
     "text": {
       "en": "This host does not host the CLAP format. Use a host that does."
     }
   },
   "clapHeadlessFailed": {
     "code": "hosting.clap.headless-failed",
+    "doc": "unsuitable: init() or activate() failed with no window and only OMX_CLAP_HOST_EXTENSIONS offered (a plugin that requires the gui extension, or whose init returns false)",
     "text": {
       "en": "The plugin failed while being checked headless, with no window. Fix what failed and check it again."
     }
   },
   "clapLatencyMismatch": {
     "code": "hosting.clap.latency-mismatch",
+    "doc": "unsuitable: at one declared rate the latency the plugin declares is not the frame the qualifier's impulse arrives at (for an instrument, its note sounds before the declared latency); the record names the rate, declared and measured frames",
     "text": {
       "en": "The plugin’s reported latency does not match what was measured. Trust the measured figure, not the plugin’s own report."
     }
@@ -40,18 +44,21 @@ export const HOSTING_CLAP_CODES = {
   },
   "clapProcessError": {
     "code": "hosting.clap.process-error",
+    "doc": "unsuitable: process() returned CLAP_PROCESS_ERROR during the parameter or note sweep; the record counts the errors",
     "text": {
       "en": "The plugin’s processing call returned an error. Treat the plugin as faulty for this block."
     }
   },
   "clapThreadViolation": {
     "code": "hosting.clap.thread-violation",
+    "doc": "conditional: the strict thread-check caught a [main-thread] host call from the audio thread, or process() on another thread; the plugin runs isolated in a worker of its own",
     "text": {
       "en": "The plugin called back from the wrong thread. Treat the plugin as not thread-safe."
     }
   },
   "clapUnqualified": {
     "code": "hosting.clap.unqualified",
+    "doc": "unknown: no CLAP qualification is on record for the plugin (or its sweep made no process() call), so its topology, features and real-time safety are not judged",
     "text": {
       "en": "This plugin has not been qualified for hosting. Qualify it before relying on it."
     }
@@ -65,30 +72,35 @@ export const HOSTING_CLAP_CODES = {
 export const HOSTING_COST_CODES = {
   "costAboveCeiling": {
     "code": "hosting.cost.above-ceiling",
+    "doc": "unsuitable: the plugin's P95 core fraction at the judged rate and quantum is above the host profile's per-instance ceiling",
     "text": {
       "en": "The plugin’s measured CPU cost is above the ceiling for this rate and quantum. Raise the ceiling, or use a plugin that costs less."
     }
   },
   "costFieldsMissing": {
     "code": "hosting.cost.fields-missing",
+    "doc": "unknown: the cost record at the judged rate and quantum lacks a figure the comparison needs (refused before comparing, so an absent figure never passes); the record names them",
     "text": {
       "en": "The cost measurement is missing fields it needs. Measure the plugin’s cost again, completely."
     }
   },
   "costSpiky": {
     "code": "hosting.cost.spiky-tail",
+    "doc": "conditional: the P95 cost per sample is more than the policy's tail ratio above the median at the judged rate and quantum",
     "text": {
       "en": "The plugin’s CPU cost has a spiky tail: occasional blocks cost much more than the rest. Treat it as unreliable at this rate and quantum."
     }
   },
   "costUnmeasured": {
     "code": "hosting.cost.unmeasured-at-rate-and-quantum",
+    "doc": "unknown: no cost was measured at the rate and quantum being judged",
     "text": {
       "en": "The plugin’s CPU cost has not been measured at this rate and quantum. Measure it before relying on a ceiling."
     }
   },
   "costWithinCeiling": {
     "code": "hosting.cost.within-ceiling",
+    "doc": "suitable: the P95 core fraction is within the host's per-instance ceiling and the tail is within the policy's ratio",
     "text": {
       "en": "The plugin’s measured CPU cost is within the ceiling for this rate and quantum."
     }
@@ -109,18 +121,21 @@ export const HOSTING_FEATURES_CODES = {
   },
   "featuresDisqualifying": {
     "code": "hosting.features.host-not-provided",
+    "doc": "unsuitable: the plugin requires a feature the host refuses to provide on the audio thread (a disqualifying one, or one that pins the quantum where the quantum is not pinned); the record names them",
     "text": {
       "en": "This plugin needs a host feature this host does not provide. Run it on a host that provides that feature."
     }
   },
   "featuresMidiIn": {
     "code": "hosting.features.midi-in-fed-empty",
+    "doc": "conditional: the plugin has a MIDI input, which an insert on a host that plays no notes never feeds; on the LV2 path an input the host cannot feed is refused at add",
     "text": {
       "en": "This plugin’s MIDI input is fed nothing. Connect a source of MIDI, or accept it runs with none."
     }
   },
   "featuresMissing": {
     "code": "hosting.features.missing",
+    "doc": "unsuitable: the plugin requires a feature the host does not provide; the LV2 adapter refuses it at add from its TTL, before its binary is opened",
     "text": {
       "en": "This plugin is missing a feature it needs to run here. Provide that feature, or run it elsewhere."
     }
@@ -134,12 +149,14 @@ export const HOSTING_FEATURES_CODES = {
   },
   "featuresProvided": {
     "code": "hosting.features.all-provided",
+    "doc": "suitable: every feature the plugin requires is provided, and nothing in its descriptor is a caution",
     "text": {
       "en": "This plugin has every feature it needs."
     }
   },
   "featuresUnscanned": {
     "code": "hosting.features.scan-predates-field",
+    "doc": "unknown: the plugin's scan record has no feature list, because it was taken before the scan read one",
     "text": {
       "en": "This plugin was scanned before this field existed, so it was never checked for it. Scan it again to check."
     }
@@ -153,24 +170,28 @@ export const HOSTING_FEATURES_CODES = {
 export const HOSTING_LATENCY_CODES = {
   "latencyNonconforming": {
     "code": "hosting.latency.nonconforming",
+    "doc": "unknown: the measured latency does not scale with rate as a conforming plugin's does (its scaling class is nonconforming), so its figure is not used",
     "text": {
       "en": "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency."
     }
   },
   "latencyParameterDependent": {
     "code": "hosting.latency.parameter-dependent",
+    "doc": "conditional: the parameter sweep moved the plugin's latency; allowed where the host compensates, as it reads the live figure each cycle",
     "text": {
       "en": "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it."
     }
   },
   "latencyResolved": {
     "code": "hosting.latency.resolved",
+    "doc": "suitable: the plugin's latency is measured and fixed (for a CLAP, the declared figure is what was measured at every declared rate)",
     "text": {
       "en": "This plugin’s latency has been resolved to a fixed figure."
     }
   },
   "latencyUnmeasured": {
     "code": "hosting.latency.unmeasured",
+    "doc": "unknown: there is no latency figure, or the benchmark declared it unmeasurable; fails closed, never passed by default",
     "text": {
       "en": "This plugin’s latency has not been measured. Measure it before relying on it."
     }
@@ -233,6 +254,7 @@ export const HOSTING_OUTPUT_CODES = {
 export const HOSTING_OVERRIDE_CODES = {
   "overrideIsolated": {
     "code": "hosting.override.curator-isolated",
+    "doc": "unsuitable: the curator's override holds the plugin isolated, whatever its measurements say",
     "text": {
       "en": "The curator’s override is isolated from this run. Apply the override where the curator’s run can see it."
     }
@@ -246,18 +268,21 @@ export const HOSTING_OVERRIDE_CODES = {
 export const HOSTING_PATCH_CODES = {
   "patchBusy": {
     "code": "hosting.patch.busy",
+    "doc": "a patch write found the previous one not yet taken by the plugin's thread; the host retries it for a while before answering this",
     "text": {
       "en": "The plugin’s patch is busy right now. Try again once it’s free."
     }
   },
   "patchNotWritable": {
     "code": "hosting.patch.not-writable",
+    "doc": "the plugin lists no such writable property, or the adapter did not create it: a patch write is refused",
     "text": {
       "en": "This plugin’s patch cannot be written. Treat it as read-only."
     }
   },
   "patchTooLarge": {
     "code": "hosting.patch.too-large",
+    "doc": "the value of a patch write is longer than the property's max_bytes",
     "text": {
       "en": "This patch is too large for the plugin to accept. Use a smaller patch."
     }
@@ -271,6 +296,7 @@ export const HOSTING_PATCH_CODES = {
 export const HOSTING_PRESET_CODES = {
   "presetNotFound": {
     "code": "hosting.preset.not-found",
+    "doc": "the bundle holds no preset of that name for this plugin",
     "text": {
       "en": "This preset could not be found. Check its name and location and try again."
     }
@@ -284,12 +310,14 @@ export const HOSTING_PRESET_CODES = {
 export const HOSTING_PROVENANCE_CODES = {
   "hostProvenanceDiffers": {
     "code": "hosting.provenance.host-differs",
+    "doc": "unknown: the figures were measured on a host other than the one the console runs on, so no verdict is carried over from them",
     "text": {
       "en": "The host that measured this plugin differs from the one running it now. Measure it again on this host, or accept the difference."
     }
   },
   "sweepControlDidNotFire": {
     "code": "hosting.provenance.sweep-control-did-not-fire",
+    "doc": "unknown: the sweep's positive control did not fire, so nothing the sweep measured counts",
     "text": {
       "en": "The sweep’s control plugin did not fire during the measurement. Check the control plugin and measure again."
     }
@@ -303,30 +331,35 @@ export const HOSTING_PROVENANCE_CODES = {
 export const HOSTING_REALISED_CODES = {
   "disabled": {
     "code": "hosting.disabled",
+    "doc": "the console's in-process switch is off: an LV2 runs isolated, and a third-party CLAP, which has no other path, is refused",
     "text": {
       "en": "This plugin is disabled. Enable it before using it."
     }
   },
   "linked": {
     "code": "hosting.linked",
+    "doc": "the plugin is one of the engine's statically linked CLAPs and runs in-process on the node that carries the CLAP bank",
     "text": {
       "en": "This plugin is realised linked into the host’s own process."
     }
   },
   "noRealisation": {
     "code": "hosting.no-realisation",
+    "doc": "the plugin earned a path that has no body here: no LV2 adapter or CLAP bank to run it, or a port class the stage cannot bind",
     "text": {
       "en": "This plugin has no realisation: nothing runs it. Give it a way to run before using it."
     }
   },
   "realisedInProcess": {
     "code": "hosting.realised.in-process",
+    "doc": "the plugin runs in-process: it earned it and the console's switch allows it",
     "text": {
       "en": "This plugin is realised in its own process, isolated from the host’s."
     }
   },
   "unjudged": {
     "code": "hosting.unjudged",
+    "doc": "the plugin has no verdict on record for this build (a linked CLAP without a row measured on the pinned build): it is refused at load",
     "text": {
       "en": "This plugin has not been judged yet. Judge it before trusting any verdict about it."
     }
@@ -368,48 +401,56 @@ export const HOSTING_RESOURCE_HINTS_CODES = {
 export const HOSTING_RT_SAFETY_CODES = {
   "rtSafetyClean": {
     "code": "hosting.rt-safety.clean-under-sweep",
+    "doc": "suitable: the interposer counted no allocation, lock or system call on the audio thread over the armed blocks with every parameter swept",
     "text": {
       "en": "The plugin showed no real-time safety violation under the sweep. It passed clean."
     }
   },
   "rtSafetyNotReproducible": {
     "code": "hosting.rt-safety.not-reproducible",
+    "doc": "unknown: the interposer's counts varied between runs of the same plugin",
     "text": {
       "en": "The real-time safety measurement could not be reproduced. Measure it again before trusting it."
     }
   },
   "rtSafetyNotesClean": {
     "code": "hosting.rt-safety.clean-under-notes",
+    "doc": "suitable: played under the interposer, the plugin made no allocation, lock or system call",
     "text": {
       "en": "The plugin showed no real-time safety violation while playing notes. It passed clean."
     }
   },
   "rtSafetyNotesUnmeasured": {
     "code": "hosting.rt-safety.notes-unmeasured",
+    "doc": "unknown: the plugin takes notes and was not played under the interposer; the parameter sweep alone says nothing about a voice",
     "text": {
       "en": "The plugin’s real-time safety while playing notes has not been measured. Measure it before relying on it."
     }
   },
   "rtSafetyNotesViolations": {
     "code": "hosting.rt-safety.violations-under-notes",
+    "doc": "conditional: played under the interposer, the plugin allocated, locked or made a system call; it runs in a worker of its own",
     "text": {
       "en": "The plugin violated real-time safety while playing notes. Treat it as not real-time safe with notes."
     }
   },
   "rtSafetyOwnThreads": {
     "code": "hosting.rt-safety.own-threads",
+    "doc": "conditional: the plugin started threads of its own at instantiate (counted from /proc/self/task); a worker thread is not RT-unsafe, so the plugin still shares a worker (D20)",
     "text": {
       "en": "The plugin starts threads of its own beside its audio. It is real-time safe, and it can share a worker; its threads share the cores with the audio."
     }
   },
   "rtSafetyUnmeasured": {
     "code": "hosting.rt-safety.unmeasured",
+    "doc": "unknown: no interposer count was taken with every parameter swept (or the plugin has none to sweep), so the audio thread was never traced",
     "text": {
       "en": "The plugin’s real-time safety has not been measured. Measure it before relying on it."
     }
   },
   "rtSafetyViolations": {
     "code": "hosting.rt-safety.violations-in-run",
+    "doc": "conditional: the interposer counted allocations, locks or system calls on the audio thread over the armed blocks; the plugin runs in a worker of its own, never grouped with RT-safe plugins",
     "text": {
       "en": "The plugin violated real-time safety during the run. Treat it as not real-time safe."
     }
@@ -423,18 +464,21 @@ export const HOSTING_RT_SAFETY_CODES = {
 export const HOSTING_STABILITY_CODES = {
   "stabilityBelowFloor": {
     "code": "hosting.stability.cycles-below-floor",
+    "doc": "unknown: the plugin was instantiated fewer times than the policy's cycle floor",
     "text": {
       "en": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result."
     }
   },
   "stabilityCrashUnattributed": {
     "code": "hosting.stability.crash-unattributed",
+    "doc": "unknown: a crash was recorded that no signature attributes to the plugin",
     "text": {
       "en": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them."
     }
   },
   "stabilityCrashedAttributed": {
     "code": "hosting.stability.crashed-attributed-plugin",
+    "doc": "unsuitable: a recorded crash is attributed to the plugin's own binary",
     "text": {
       "en": "This plugin crashed during the run. Don’t host it until it’s fixed."
     }
@@ -455,36 +499,42 @@ export const HOSTING_STABILITY_CODES = {
   },
   "stabilityLinksGuiToolkit": {
     "code": "hosting.stability.links-gui-toolkit",
+    "doc": "conditional: the plugin links a GUI toolkit, a caution only where it shares a process",
     "text": {
       "en": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one."
     }
   },
   "stabilitySoakFailedAtRate": {
     "code": "hosting.stability.soak-failed-at-rate",
+    "doc": "unsuitable: the soak failed at the very rate being judged (a supervisor timeout aside, which is the harness's)",
     "text": {
       "en": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed."
     }
   },
   "stabilitySoaked": {
     "code": "hosting.stability.soaked",
+    "doc": "suitable: the plugin cleared the cycle floor and the soak, with no crash and no caution",
     "text": {
       "en": "The plugin completed its soak test. It held up over the run."
     }
   },
   "stabilitySpawnsThreads": {
     "code": "hosting.stability.spawns-threads",
+    "doc": "conditional: the plugin spawns threads, a caution only where it shares a process",
     "text": {
       "en": "This plugin spawns its own threads. Watch it for behaviour a host does not control."
     }
   },
   "stabilityUnmeasured": {
     "code": "hosting.stability.unmeasured",
+    "doc": "unknown: no lifecycle measurement is on record",
     "text": {
       "en": "This plugin’s stability has not been measured. Measure it before relying on it."
     }
   },
   "stabilityUnsoaked": {
     "code": "hosting.stability.unsoaked",
+    "doc": "unknown: the soak ran for less than the policy's time, did not sweep the parameters, or failed at some rate",
     "text": {
       "en": "This plugin has not been soaked. Soak it before trusting it over a long run."
     }
@@ -540,6 +590,7 @@ export const HOSTING_STATE_CODES = {
   },
   "stateUnreadable": {
     "code": "hosting.state.unreadable",
+    "doc": "the plugin does not declare the state feature, has no state interface, or its restore failed",
     "text": {
       "en": "This plugin’s saved state could not be read. Treat it as lost, or restore it from a working copy."
     }
@@ -567,12 +618,14 @@ export const HOSTING_TOPOLOGY_CODES = {
   },
   "topologyInstrument": {
     "code": "hosting.topology.instrument",
+    "doc": "suitable: on a host that plays notes, the plugin has no audio input, a note or MIDI input and an audio output (one or two channels for a CLAP)",
     "text": {
       "en": "This plugin is hosted as an instrument: it has no audio input of its own."
     }
   },
   "topologyMatched": {
     "code": "hosting.topology.matched",
+    "doc": "suitable: the plugin's main audio ports are mono to mono or stereo to stereo, with no sidechain input",
     "text": {
       "en": "This plugin’s ports match the topology it is hosted on."
     }
@@ -658,6 +711,7 @@ export const HOSTING_VERB_HOSTS = {
 export const HOSTING_WORKER_CODES = {
   "workerNonconforming": {
     "code": "hosting.worker.nonconforming",
+    "doc": "unsuitable: the plugin's worker interface was refused while its latency was measured, so it is not hostable",
     "text": {
       "en": "This plugin’s worker does not conform to what a worker must do. Don’t rely on its worker."
     }

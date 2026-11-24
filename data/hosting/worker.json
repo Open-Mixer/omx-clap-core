@@ -10,6 +10,7 @@
     "codes": {
       "workerNonconforming": {
         "code": "hosting.worker.nonconforming",
+        "doc": "unsuitable: the plugin's worker interface was refused while its latency was measured, so it is not hostable",
         "text": {
           "en": "This plugin’s worker does not conform to what a worker must do. Don’t rely on its worker."
         }

@@ -10,24 +10,28 @@
     "codes": {
       "latencyNonconforming": {
         "code": "hosting.latency.nonconforming",
+        "doc": "unknown: the measured latency does not scale with rate as a conforming plugin's does (its scaling class is nonconforming), so its figure is not used",
         "text": {
           "en": "This plugin’s reported latency does not conform to what a host can use. Don’t trust its reported latency."
         }
       },
       "latencyParameterDependent": {
         "code": "hosting.latency.parameter-dependent",
+        "doc": "conditional: the parameter sweep moved the plugin's latency; allowed where the host compensates, as it reads the live figure each cycle",
         "text": {
           "en": "This plugin’s latency changes with its parameters. Re-read its latency after a parameter change that could affect it."
         }
       },
       "latencyResolved": {
         "code": "hosting.latency.resolved",
+        "doc": "suitable: the plugin's latency is measured and fixed (for a CLAP, the declared figure is what was measured at every declared rate)",
         "text": {
           "en": "This plugin’s latency has been resolved to a fixed figure."
         }
       },
       "latencyUnmeasured": {
         "code": "hosting.latency.unmeasured",
+        "doc": "unknown: there is no latency figure, or the benchmark declared it unmeasurable; fails closed, never passed by default",
         "text": {
           "en": "This plugin’s latency has not been measured. Measure it before relying on it."
         }

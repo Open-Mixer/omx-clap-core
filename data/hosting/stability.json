@@ -10,18 +10,21 @@
     "codes": {
       "stabilityBelowFloor": {
         "code": "hosting.stability.cycles-below-floor",
+        "doc": "unknown: the plugin was instantiated fewer times than the policy's cycle floor",
         "text": {
           "en": "The plugin was soaked for fewer cycles than the floor needs. Soak it for enough cycles before trusting the result."
         }
       },
       "stabilityCrashUnattributed": {
         "code": "hosting.stability.crash-unattributed",
+        "doc": "unknown: a crash was recorded that no signature attributes to the plugin",
         "text": {
           "en": "Something crashed during the run, but not a plugin that could be identified. Narrow down which plugin crashed before trusting any of them."
         }
       },
       "stabilityCrashedAttributed": {
         "code": "hosting.stability.crashed-attributed-plugin",
+        "doc": "unsuitable: a recorded crash is attributed to the plugin's own binary",
         "text": {
           "en": "This plugin crashed during the run. Don’t host it until it’s fixed."
         }
@@ -42,36 +45,42 @@
       },
       "stabilityLinksGuiToolkit": {
         "code": "hosting.stability.links-gui-toolkit",
+        "doc": "conditional: the plugin links a GUI toolkit, a caution only where it shares a process",
         "text": {
           "en": "This plugin links a GUI toolkit, which this host does not run headless. Run it where a GUI toolkit is safe, or use a plugin without one."
         }
       },
       "stabilitySoakFailedAtRate": {
         "code": "hosting.stability.soak-failed-at-rate",
+        "doc": "unsuitable: the soak failed at the very rate being judged (a supervisor timeout aside, which is the harness's)",
         "text": {
           "en": "The plugin failed its soak test at this sample rate. Don’t trust it at this rate until it’s fixed."
         }
       },
       "stabilitySoaked": {
         "code": "hosting.stability.soaked",
+        "doc": "suitable: the plugin cleared the cycle floor and the soak, with no crash and no caution",
         "text": {
           "en": "The plugin completed its soak test. It held up over the run."
         }
       },
       "stabilitySpawnsThreads": {
         "code": "hosting.stability.spawns-threads",
+        "doc": "conditional: the plugin spawns threads, a caution only where it shares a process",
         "text": {
           "en": "This plugin spawns its own threads. Watch it for behaviour a host does not control."
         }
       },
       "stabilityUnmeasured": {
         "code": "hosting.stability.unmeasured",
+        "doc": "unknown: no lifecycle measurement is on record",
         "text": {
           "en": "This plugin’s stability has not been measured. Measure it before relying on it."
         }
       },
       "stabilityUnsoaked": {
         "code": "hosting.stability.unsoaked",
+        "doc": "unknown: the soak ran for less than the policy's time, did not sweep the parameters, or failed at some rate",
         "text": {
           "en": "This plugin has not been soaked. Soak it before trusting it over a long run."
         }

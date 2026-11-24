@@ -10,6 +10,7 @@
     "codes": {
       "overrideIsolated": {
         "code": "hosting.override.curator-isolated",
+        "doc": "unsuitable: the curator's override holds the plugin isolated, whatever its measurements say",
         "text": {
           "en": "The curator’s override is isolated from this run. Apply the override where the curator’s run can see it."
         }

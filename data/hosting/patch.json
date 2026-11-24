@@ -10,18 +10,21 @@
     "codes": {
       "patchBusy": {
         "code": "hosting.patch.busy",
+        "doc": "a patch write found the previous one not yet taken by the plugin's thread; the host retries it for a while before answering this",
         "text": {
           "en": "The plugin’s patch is busy right now. Try again once it’s free."
         }
       },
       "patchNotWritable": {
         "code": "hosting.patch.not-writable",
+        "doc": "the plugin lists no such writable property, or the adapter did not create it: a patch write is refused",
         "text": {
           "en": "This plugin’s patch cannot be written. Treat it as read-only."
         }
       },
       "patchTooLarge": {
         "code": "hosting.patch.too-large",
+        "doc": "the value of a patch write is longer than the property's max_bytes",
         "text": {
           "en": "This patch is too large for the plugin to accept. Use a smaller patch."
         }

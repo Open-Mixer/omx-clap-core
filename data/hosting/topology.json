@@ -24,12 +24,14 @@
       },
       "topologyInstrument": {
         "code": "hosting.topology.instrument",
+        "doc": "suitable: on a host that plays notes, the plugin has no audio input, a note or MIDI input and an audio output (one or two channels for a CLAP)",
         "text": {
           "en": "This plugin is hosted as an instrument: it has no audio input of its own."
         }
       },
       "topologyMatched": {
         "code": "hosting.topology.matched",
+        "doc": "suitable: the plugin's main audio ports are mono to mono or stereo to stereo, with no sidechain input",
         "text": {
           "en": "This plugin’s ports match the topology it is hosted on."
         }

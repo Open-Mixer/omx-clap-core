@@ -59,8 +59,9 @@ PIN_LIBS = $(shell $(PKG_CONFIG) --libs plugin-db)
 # built from it (make test-no-hostd-build-dep)
 PLUGIN_HOSTD_DIR ?= ../plugin-hostd
 
-# plugin-hostd-tests' protocol clients (lib/protocol.sh, lib/plugin_hostd_client.py), which every e2e test and bench
-# sources: the checkout's, else the installed package's
+# plugin-hostd-tests' shell client of the protocol (lib/protocol.sh), which every e2e test and bench sources: the
+# checkout's, else the installed package's. The Python client is the protocol's own, python3-plugin-hostd-client, or the
+# clients/python of the PROTOCOL_DIR checkout (tests/protocol_client_check.sh)
 PLUGIN_HOSTD_TESTS_LIB ?= $(firstword $(wildcard $(PLUGIN_HOSTD_DIR)/tests/lib) /usr/libexec/plugin-hostd/tests/lib)
 export PLUGIN_HOSTD_TESTS_LIB
 
@@ -1925,8 +1926,8 @@ fuzz-corpus-check: $(FUZZ_BUILD)/gen-corpus
 
 .PHONY: fuzz fuzz-run fuzz-sabotage fuzz-records fuzz-coverage fuzz-coverage-self fuzz-static fuzz-corpus fuzz-corpus-check
 
-# no test or bench writes its own NUL-framed send: the clients above are the one (tests/protocol_client_check.sh, which
-# proves it can see a copy before it looks)
+# no test or bench writes its own NUL-framed send, and none reads the Python client from plugin-hostd's tree: the clients
+# above are the one (tests/protocol_client_check.sh, which proves it can see each before it looks)
 .PHONY: test-protocol-client
 test-protocol-client:
 	sh tests/protocol_client_check.sh

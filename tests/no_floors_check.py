@@ -83,12 +83,14 @@ def names_problem(value, key):
 
 def data_floors(root):
     out = []
-    files = sorted(glob.glob(os.path.join(root, "data", "*.json")) + glob.glob(os.path.join(root, "data", "*", "*.json")))
+    files = sorted(glob.glob(os.path.join(root, "data", "*.json")) + glob.glob(os.path.join(root, "data", "*", "*.json"))
+                   + glob.glob(os.path.join(root, "fuzz", "corpus", "preset", "data-*")))
     for path in files:
         with open(path, encoding="utf-8") as f:
             doc = json.load(f)
         if "requires" in doc:
-            p = names_problem(doc["requires"], "requires")
+            # a file that names no package but omx-contract-schema states no requires at all (absent, never [])
+            p = names_problem(doc["requires"], "requires") or ("requires is [] (a file that names nothing states no requires)" if doc["requires"] == [] else None)
             if p:
                 out.append("%s: %s" % (os.path.relpath(path, root), p))
     for path in sorted(glob.glob(os.path.join(root, "contract.d", "*", "*.json"))):
@@ -115,7 +117,7 @@ def self_test():
 
     def copy(tmp):
         tree = os.path.join(tmp, "tree")
-        for sub in ("packaging", "debian", "data", "contract.d"):
+        for sub in ("packaging", "debian", "data", "contract.d", os.path.join("fuzz", "corpus", "preset")):
             shutil.copytree(os.path.join(here, sub), os.path.join(tree, sub))
         for pc in glob.glob(os.path.join(here, "*.pc.in")):
             shutil.copy(pc, tree)
@@ -137,6 +139,7 @@ def self_test():
         ("a .pc floor", lambda t: edit(os.path.join(t, "omx-clap.pc.in"), "omx-contract, ", "omx-contract >= 3.22.0, "), "pkg-config"),
         ("a data floor map", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": {\n    "omx-contract-schema": ">= 3.12.0"\n  },\n'), "floor map"),
         ("a schema name", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": ["omx-contract-schema"],\n'), "omx-contract-schema"),
+        ("an empty requires", lambda t: edit(os.path.join(t, "data", "hosting.json"), "{\n", '{\n  "requires": [],\n'), "requires is []"),
         ("an x-requires floor", lambda t: edit(os.path.join(t, "contract.d", "omx-clap", "omx-clap.json"), '"x-requires": [\n      "host"\n    ]', '"x-requires": {\n      "host": ">= 1.0.0"\n    }'), "info.x-requires"),
     ]
     with tempfile.TemporaryDirectory() as tmp:

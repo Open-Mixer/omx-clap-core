@@ -169,6 +169,8 @@ jobs:
           base: omx-clap-contract
           owner: omx-clap
           spec: packaging/omx-clap-host.spec
+          # data/ and the host domain's codes (contract.d/host), whose translations catalogs/ holds
+          gate: make --no-print-directory catalog-gate
 
   docs:
     name: make docs (the public headers are fully documented)
@@ -263,6 +265,9 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # the daemon's own build requirements (the qualification store's reader, sqlite, cjson), from its spec with its
+          # check stage off, so no package this tree builds comes from the channel under it
+          dnf builddep -y --setopt=install_weak_deps=False --without=check /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
@@ -713,6 +718,9 @@ jobs:
         run: |
           set -euo pipefail
           .github/plugin-hostd.sh /tmp/plugin-hostd
+          # the daemon's own build requirements (the qualification store's reader, sqlite, cjson), from its spec with its
+          # check stage off, so no package this tree builds comes from the channel under it
+          dnf builddep -y --setopt=install_weak_deps=False --without=check /tmp/plugin-hostd/packaging/plugin-hostd.spec
           make -C /tmp/plugin-hostd install_protocol PREFIX=/opt/plugin-hostd
           make -C /tmp/plugin-hostd plugin-hostd
           # the daemon reads its machine domain from the installed contract directory only (plugin-hostd #166, #167)
@@ -901,7 +909,7 @@ jobs:
             echo /usr/share/omx-clap/catalogs/$lang.json > expected.txt
             diff -u expected.txt files.txt
           done
-          for pkg in omx-clap omx-clap-devel; do
+          for pkg in omx-clap-libs omx-clap-devel; do
             rpm -qp --requires rpms/$pkg-[0-9]*.${{ matrix.cell.arch }}.rpm | tee requires.txt
             grep -qx "omx-clap-contract = $(cat VERSION)-.*" requires.txt
           done

@@ -14,6 +14,7 @@
 import { readFileSync, readdirSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fromDomain } from './domain-data.mjs';
 
 const FLOOR = [3, 12, 0];
 
@@ -24,16 +25,6 @@ function dataFiles(root) {
   }
   files.push(join(root, 'contract.d', 'host', 'host.json'));
   return files;
-}
-
-/** A domain document's codes items as the data form's (the host domain: reply.host.*): code, text and args by title. */
-function fromDomain(doc) {
-  const out = { requires: { 'omx-contract-schema': '>= 3.12.0' } };
-  for (const [name, it] of Object.entries(doc.components.schemas)) {
-    if ((it['x-kind'] ?? 'codes') !== 'codes' || !it.oneOf) continue;
-    out[name] = { kind: 'codes', codes: Object.fromEntries(it.oneOf.map((w) => [w.title, { code: w.const, text: { en: w['x-text'] }, args: w['x-args'] }])) };
-  }
-  return out;
 }
 
 function placeholders(s) {

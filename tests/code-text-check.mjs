@@ -5,7 +5,7 @@
 // and reply.host.*, the dimensions and the verbs this repo owns) carries `text.en`, its English source sentence and
 // nothing else, and its Catalan in catalogs/ca.json under the code, with the same `{name}` placeholders, each one of
 // `args` (omx-contract 3.12.0, spec 7.11, omx-contract#90). The catalog holds no key that is not a code of ours. No
-// file states a schema floor: the installed omx-contract reads it (tests/no_floors_check.py).
+// file states a schema floor: the installed omx-contract reads it (tests/requires-names-check.py).
 //
 //   node tests/code-text-check.mjs              every code of every data file this tree owns
 //   node tests/code-text-check.mjs --self-test  drops one code's Catalan from a scratch catalog and requires red

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.34.1
+Version:        0.34.2
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -308,6 +308,12 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Wed Nov 25 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.2-1
+- The installed omx-clap domain and data/ are read by omx-contract 3.22.0:
+  info.x-requires is the name list ["host"], no data file carries a requires
+  floor map, and HOSTING_VERB_HOSTS (data/hosting/verb-hosts.json) holds the
+  hosts a verb names.
+
 * Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.1-1
 - The packages 0.34.0 renamed obsolete their old names: omx-clap-libs
   obsoletes omx-clap-core, omx-clap-devel omx-clap-core-devel and

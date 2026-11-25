@@ -15,7 +15,7 @@ scale-maps-check.py.
   (a) golden: the sheet holds the 29 tokens of omx-contract's sheet at 3.20.2 with their codes, and the four codes of
       260 to 263 (dB/oct, dB/s, dBTP, LU), and every token maps to its golden standard id;
   (c) the mapped ids are exactly omx-contract's PARAM_UNITS_CLAP_ENCODED (the ids the extension encodes, param domain;
-      a words item whose words copy PARAM_UNITS by x-from, each id its word's const; any other kind is refused), and every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dB-oct;
+      a words item whose words copy PARAM_UNITS by x-from, each id its word's const; any other kind is refused), and every mapped id is a standard id of omx-contract's PARAM_UNITS, a word's const as released (dB, Hz, deg, dBPerOct;
       never the lowercase key the word is filed under, which is this level's spelling), and no two codes map to one id;
   (r) the renders are omx-clap's (project omx-clap, guards OMX_CLAP_*), the ids item has its own x-file and renders
       src/omx_param_unit_ids.h (OMX_PARAM_UNIT_IDS(X), X(OMX_CLAP_UNIT_<TOKEN>, "<token>", "<id>")), and the committed
@@ -42,8 +42,8 @@ GOLDEN_IDS = {
     "none": "none", "s": "s", "ms": "ms", "min": "min", "bar": "bar", "beat": "beat", "frame": "frames", "m": "m", "cm": "cm",
     "mm": "mm", "km": "km", "inch": "inch", "mile": "mile", "db": "dB", "pc": "percent", "coef": "coef", "hz": "Hz",
     "khz": "kHz", "mhz": "MHz", "bpm": "bpm", "oct": "oct", "cent": "cents", "semitone12TET": "st", "degree": "deg",
-    "midiNote": "midiNote", "dbfs": "dBFS", "dbu": "dBu", "ratio": "ratio", "lufs": "LUFS", "dbPerOct": "dB-oct",
-    "dbPerS": "dB-s", "dbtp": "dBTP", "lu": "LU",
+    "midiNote": "midiNote", "dbfs": "dBFS", "dbu": "dBu", "ratio": "ratio", "lufs": "LUFS", "dbPerOct": "dBPerOct",
+    "dbPerS": "dBPerS", "dbtp": "dBTP", "lu": "LU",
 }
 
 
@@ -281,7 +281,7 @@ def main(argv):
     r2 = copy.deepcopy(domain)
     r2["x-render"]["c"][0]["guard"] = "OMX_PARAM_UNITS_H"
     must_be_red_render("the units header under omx-contract's guard", r2, ids_header)
-    must_be_red_render("an ids header whose dB-oct row says dbPerOct", domain, (ids_header or "").replace('"dbPerOct", "dB-oct"', '"dbPerOct", "dbPerOct"'))
+    must_be_red_render("an ids header whose dBPerOct row says dbPerOct", domain, (ids_header or "").replace('"dbPerOct", "dBPerOct"', '"dbPerOct", "dbPerOct"'))
     r3 = copy.deepcopy(domain)
     r3["components"]["schemas"]["OMX_PARAM_CONTRACT_UNIT_IDS"]["x-file"] = domain.get("x-file")
     must_be_red_render("the ids item in the units sheet's x-file", r3, ids_header)

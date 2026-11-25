@@ -86,7 +86,7 @@
         }
       },
       "OMX_PARAM_CONTRACT_UNIT_IDS": {
-        "description": "The standard unit each code of OMX_PARAM_CONTRACT_UNITS stands for, by token: the const of a word of omx-contract's PARAM_UNITS as released (dB, Hz, deg, dB-oct), never the lowercase key it is filed under. A descriptor and a reply carry the standard id, never the code; the code is this level's own and is read only by the encoder and decoder of the extension (the F2 mapping).",
+        "description": "The standard unit each code of OMX_PARAM_CONTRACT_UNITS stands for, by token: the const of a word of omx-contract's PARAM_UNITS as released (dB, Hz, deg, dBPerOct), never the lowercase key it is filed under. A descriptor and a reply carry the standard id, never the code; the code is this level's own and is read only by the encoder and decoder of the extension (the F2 mapping).",
         "x-since": "1.0.0",
         "x-kind": "sheet",
         "x-file": "param-unit-ids.json",
@@ -120,8 +120,8 @@
           "dbu": "dBu",
           "ratio": "ratio",
           "lufs": "LUFS",
-          "dbPerOct": "dB-oct",
-          "dbPerS": "dB-s",
+          "dbPerOct": "dBPerOct",
+          "dbPerS": "dBPerS",
           "dbtp": "dBTP",
           "lu": "LU"
         }

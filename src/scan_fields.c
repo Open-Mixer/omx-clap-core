@@ -59,10 +59,9 @@
  * libomx-domain, never literals here (omx-contract docs/consumer-move.md, step 4). Only the codes, which index the words, are compiled in
  * (scan_codes.h, the one item C indexes by). This is a command line: it reads OMX_CONTRACT_PATH, a ':' list of directories standing where
  * the contract directory stands (the first that holds the domain wins), and passes each to omx_domain_open_at; without it, the installed
- * directory. The library code of omx-clap never reads it. A missing, invalid or too-old domain is refused by name, exit 78. The floor is
- * the release that shipped the items read here, 0.33.0: the domain is versioned with the package (BUILDING.md, #123). */
+ * directory. The library code of omx-clap never reads it. A missing, invalid or too-old domain is refused by name, exit 78. */
 #define SCAN_DOMAIN "scan"
-#define SCAN_DOMAIN_FLOOR "0.33.0"
+#define SCAN_DOMAIN_FLOOR "1.0.0"
 #define SCAN_SCOPES_ITEM "SCAN_FIELD_SCOPES"
 #define SCOPE(NAME) (g_scope[OMX_SCAN_FIELD_SCOPES_##NAME])
 #define SCAN_EX_CONFIG 78

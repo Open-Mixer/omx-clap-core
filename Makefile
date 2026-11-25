@@ -394,7 +394,7 @@ test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.c
 	@d=$$(mktemp -d) && python3 -c "import json,sys; d=json.load(open(sys.argv[2])); w=[(v,k) for v in d['components']['schemas'].values() if v.get('x-kind')=='terms' for k in v['oneOf'] if k['x-term'].get('kind')=='property' and k['x-term'].get('uri','').startswith('http://lv2plug.in/ns/lv2core#')][0]; w[0]['oneOf'].remove(w[1]); json.dump(d,open(sys.argv[1],'w'))" $$d/lv2.json $(LV2_DOMAIN_DOC) \
 	  && if python3 tests/scan-fields-check.py ./$(SCAN_PROG) $$d/lv2.json $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) >/dev/null 2>&1; then echo "FAIL sabotage: the scan list passed over an lv2 domain without a property term"; rm -rf $$d; exit 1; else echo "ok   sabotage: the scan list is red over an lv2 domain without a property term"; rm -rf $$d; fi
 	python3 tests/scan-domain-check.py ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath contract.d) $(abspath tests/fake_compressor.clap)
-	python3 -I tests/domain-x-since-check.py --self-test $(VERSION) $(abspath contract.d)
+	python3 -I tests/domain-x-since-check.py --self-test $(abspath contract.d)
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 	python3 tests/resource-hints-check.py --self-test ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 

@@ -315,7 +315,9 @@ the English source sentence.
   floor map, and HOSTING_VERB_HOSTS (data/hosting/verb-hosts.json) holds the
   hosts a verb names.
 - Built on the 0.35.0 line (chain 3, V23d): omx_clap_ext.h includes this
-  tree's omx_param_units.h, which omx-contract 3.22.0 no longer ships.
+  tree's omx_param_units.h, which omx-contract 3.22.0 no longer ships. No
+  domain goes back: 0.35.0's renumber to the package version is reverted,
+  so scan, host, omx-clap and omx-clap-scale stay 1.0.0 and clap 2.18.0.
 
 * Mon Nov 23 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
 - Chain 3: the host verbs check reads plugin-hostd-protocol's words from the

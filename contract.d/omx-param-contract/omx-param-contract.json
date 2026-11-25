@@ -3,7 +3,7 @@
   "$id": "https://openmixer.org/contract/omx-param-contract",
   "info": {
     "title": "The code sheet of org.openmixer.param-contract/1: the codes a plugin's get() reports for a parameter's unit, and the standard unit each stands for",
-    "version": "0.35.0",
+    "version": "1.0.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental"
   },
@@ -11,7 +11,7 @@
     "schemas": {
       "OMX_PARAM_CONTRACT_UNITS": {
         "description": "The units of org.openmixer.param-contract/1, the code its get() reports for a parameter's plain value, by token: the LV2 unit a face writes for a descriptor unit (units:db is db), 0..24 the LV2 units one to one, 0x100 and up the vendor block of units LV2 has none for (256..259 and 260..263), append-only. A token is served when it has a code here; none is 0.",
-        "x-since": "0.35.0",
+        "x-since": "1.0.0",
         "x-kind": "sheet",
         "x-file": "param-contract.json",
         "x-value": {
@@ -87,7 +87,7 @@
       },
       "OMX_PARAM_CONTRACT_UNIT_IDS": {
         "description": "The standard unit each code of OMX_PARAM_CONTRACT_UNITS stands for, by token: the const of a word of omx-contract's PARAM_UNITS as released (dB, Hz, deg, dBPerOct), never the lowercase key it is filed under. A descriptor and a reply carry the standard id, never the code; the code is this level's own and is read only by the encoder and decoder of the extension (the F2 mapping).",
-        "x-since": "0.35.0",
+        "x-since": "1.0.0",
         "x-kind": "sheet",
         "x-file": "param-unit-ids.json",
         "x-value": {

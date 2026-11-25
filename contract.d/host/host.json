@@ -3,7 +3,7 @@
   "$id": "https://openmixer.org/contract/host",
   "info": {
     "title": "The host words of omx-clap-host",
-    "version": "0.35.0",
+    "version": "1.0.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental"
   },

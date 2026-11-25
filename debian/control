@@ -13,7 +13,7 @@ Rules-Requires-Root: no
 
 Package: omx-clap-host
 Architecture: any
-Depends: libplugin-hostd-protocol0 (>= 0.8.0~), libomx-domain0 (>= 3.20.0~), omx-clap-contract (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}
+Depends: libplugin-hostd-protocol0 (>= 0.8.0~), libomx-domain0 (>= 3.22.0~), omx-clap-contract (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}
 Recommends: liblilv-0-0
 Description: use CLAP and LV2 plugins on a JACK rig, driven like mod-host
  omx-clap-host hosts CLAP and LV2 plugins in a live JACK or PipeWire rig.
@@ -67,7 +67,7 @@ Package: libomx-clap-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends: libomx-clap1 (= ${binary:Version}), libomx-contract-dev (>= 3.21.0~), libomxdsp-dev (>= 0.34.0~), omx-panel-contract (>= 0.16.0~), omx-clap-contract (= ${source:Version}), clap-headers (>= 1.2.10~), ${misc:Depends}
+Depends: libomx-clap1 (= ${binary:Version}), libomx-contract-dev (>= 3.22.0~), libomxdsp-dev (>= 0.34.0~), omx-panel-contract (>= 0.16.0~), omx-clap-contract (= ${source:Version}), clap-headers (>= 1.2.10~), ${misc:Depends}
 Breaks: libomx-clap-core-dev (<< 0.34.0~)
 Replaces: libomx-clap-core-dev (<< 0.34.0~)
 Description: build a program that hosts CLAP plugins on libomx-clap
@@ -80,7 +80,7 @@ Description: build a program that hosts CLAP plugins on libomx-clap
 Package: omx-clap-contract
 Architecture: all
 Multi-Arch: foreign
-Depends: omx-contract-data (>= 3.21.0~), ${misc:Depends}
+Depends: omx-contract-data (>= 3.22.0~), ${misc:Depends}
 Breaks: omx-clap-core-contract (<< 0.34.0~)
 Replaces: omx-clap-core-contract (<< 0.34.0~)
 Description: omx-clap's definitions in omx-contract's contract directory

@@ -665,6 +665,11 @@ test-pc-range-parity: $(CORE_SO)
 	python3 tests/pc_range_parity.py --self-test
 	python3 tests/pc_range_parity.py .
 
+# a jalv the bench starts, killed, leaves no jalvXXXXXX state directory where the bench was started (bench/lib.sh)
+.PHONY: test-bench-jalv-cwd
+test-bench-jalv-cwd:
+	bash tests/bench_jalv_cwd.sh
+
 # no backward-compatibility machinery: the current ABI only, no recorded-baseline ABI gate, no Breaks/Replaces/Conflicts/
 # Obsoletes but a rename's as packaging/renamed.txt declares it, no ignored release input (tests/no_backcompat.py; the
 # self-test plants each old thing in a copy and finds it, and takes each rename relation away and misses it)
@@ -699,7 +704,7 @@ test-no-floors:
 test-install-contract-probe:
 	sh tests/install-contract-probe.sh
 
-test: test-no-backcompat
+test: test-no-backcompat test-bench-jalv-cwd
 test: test-no-upward-deps test-no-floors test-install-contract-probe test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align
 test-fake: test-clap-inventory test-plugin-hostd-ref
 test-fake: test-no-upward-deps test-no-floors test-install-contract-probe test-no-hostd-build-dep test-dev-so-runtime-dep test-pc-range-parity test-identity-align

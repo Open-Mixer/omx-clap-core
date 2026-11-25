@@ -42,6 +42,8 @@ pad_clap_id=org.openmixer.fault.0
 pad_lv2=urn:omx:test:pad:stereo#0
 port=5570
 
+# the run directory: the runtime directories of the private graph, and the working directory of every jalv the run
+# starts; cleanup removes it, on SIGINT, SIGTERM and SIGHUP too (bash runs the EXIT trap, then ends by the signal)
 runtime=$(mktemp -d /tmp/omx-bench.XXXXXX)
 export XDG_RUNTIME_DIR=$runtime PIPEWIRE_RUNTIME_DIR=$runtime PULSE_RUNTIME_PATH=$runtime/pulse
 unset DBUS_SESSION_BUS_ADDRESS
@@ -254,8 +256,11 @@ send() {
             case $1 in
                 add\ *)
                     uri=$(echo "$1" | awk '{ print $2 }'); k=$(echo "$1" | awk '{ print $3 }')
+                    # in the run directory, which cleanup removes: jalv makes its state directory with a relative
+                    # mkdtemp("jalvXXXXXX") and removes it only at a clean exit, which a jalv the run kills never gets
+                    mkdir -p "$runtime/jalv"
                     # shellcheck disable=SC2046
-                    LV2_PATH=$(dirname "$fakes"):/usr/lib64/lv2:/usr/lib/lv2 "$jalv" -i $([ "$jalv_ui" = 0 ] || echo -s) -n "effect_$k" "$uri" </dev/null >"$raw/jalv-$k.log" 2>&1 &
+                    (cd "$runtime/jalv" && LV2_PATH=$(dirname "$fakes"):/usr/lib64/lv2:/usr/lib/lv2 exec "$jalv" -i $([ "$jalv_ui" = 0 ] || echo -s) -n "effect_$k" "$uri") </dev/null >"$raw/jalv-$k.log" 2>&1 &
                     p=$!
                     echo "$p" >>"$runtime/jalv.pids"
                     reply="resp -102"

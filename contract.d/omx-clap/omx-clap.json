@@ -3,7 +3,7 @@
   "$id": "https://openmixer.org/contract/omx-clap",
   "info": {
     "title": "The omx-clap words of omx-clap-host",
-    "version": "2.0.0",
+    "version": "1.0.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental"
   },
@@ -11,7 +11,7 @@
     "schemas": {
       "OMX_CLAP_REPLIES": {
         "description": "The replies of the verbs omx-clap-host answers whose shape this package owns, typed, by the verb's title (the verbs are plugin-hostd-protocol's, PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS and PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS of its domain plugin-hostd-protocol): resp 0 or resp count, then name:type for each field, in the form of plugin-hostd-protocol's reply_forms (plugin-hostd-protocol#19), each type an arg_type of the protocol's table or one of OMX_CLAP_REPLY_TYPES. Each is the verb's x-reply with every <name> typed; a client decodes the reply by it as it decodes the protocol's own. The replies the protocol's table types (note_input, note_drops and note_out_drops among them, its reply_forms) are its, never typed here. Read at run time; tests/host-replies-check.py holds it to the x-replies and to the fields the code writes.",
-        "x-since": "2.0.0",
+        "x-since": "1.0.0",
         "x-kind": "sheet",
         "x-value": {
           "idleHold": "resp 0 target:hold held:hold aggregate:microseconds active:uint code:word"
@@ -19,7 +19,7 @@
       },
       "OMX_CLAP_REPLY_TYPES": {
         "description": "The types of OMX_CLAP_REPLIES that plugin-hostd-protocol's table does not declare, each declared once: its pattern, which a field of the type matches whole, and its spelling in x-docs.",
-        "x-since": "2.0.0",
+        "x-since": "1.0.0",
         "x-kind": "sheet",
         "x-value": {
           "hold": "off|[0-9]+",

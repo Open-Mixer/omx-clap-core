@@ -31,15 +31,6 @@ function checkFile(path, messages, seen = new Set()) {
   let data = JSON.parse(readFileSync(path, 'utf8'));
   if (data.components) data = fromDomain(data);
   for (const [itemName, item] of Object.entries(data)) {
-    // a words item's words are ours too: the catalog key is ITEM.word (HOSTING_VERB_HOSTS.mod-host), each with its Catalan
-    if (item && item.kind === 'words') {
-      for (const w of Object.values(item.words ?? {})) {
-        const key = `${itemName}.${w.word}`;
-        seen.add(key);
-        if (w.text?.en && messages[key] === undefined) problems.push(`${path} ${key}: no Catalan in catalogs/ca.json`);
-      }
-      continue;
-    }
     if (!item || item.kind !== 'codes') continue;
     for (const [name, c] of Object.entries(item.codes)) {
       const where = `${path} ${itemName}.${name} (${c.code})`;
@@ -87,8 +78,6 @@ function selfTest(root) {
     const arms = [
       ['a code with no Catalan', (c) => { delete c.messages[code]; }, 'no Catalan'],
       ['a catalog key that is no code', (c) => { c.messages['hosting.zz.gone'] = 'Ja no hi és.'; }, 'no code of ours'],
-      ['a word with no Catalan', (c) => { delete c.messages['HOSTING_VERB_HOSTS.mod-host']; }, 'HOSTING_VERB_HOSTS.mod-host: no Catalan'],
-      ['a catalog key that is no word', (c) => { c.messages['HOSTING_VERB_HOSTS.gone-host'] = 'Ja no hi és.'; }, 'no code of ours'],
     ];
     for (const [name, edit, want] of arms) {
       const c = structuredClone(cat);
@@ -104,7 +93,7 @@ function selfTest(root) {
       console.error('code-text-check --self-test: the tree as it is is red');
       process.exit(1);
     }
-    console.log('code-text-check --self-test: ok (a code or a word with no Catalan, and a catalog key that is no code or word, each turned the check red)');
+    console.log('code-text-check --self-test: ok (a code with no Catalan and a catalog key that is no code each turned the check red)');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

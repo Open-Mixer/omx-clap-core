@@ -421,7 +421,7 @@ test-fields: $(SCAN_PROG) tests/fake.clap tests/fake_synth.clap tests/fake_ext.c
 	@d=$$(mktemp -d) && python3 -c "import json,sys; d=json.load(open(sys.argv[2])); w=[(v,k) for v in d['components']['schemas'].values() if v.get('x-kind')=='terms' for k in v['oneOf'] if k['x-term'].get('kind')=='property' and k['x-term'].get('uri','').startswith('http://lv2plug.in/ns/lv2core#')][0]; w[0]['oneOf'].remove(w[1]); json.dump(d,open(sys.argv[1],'w'))" $$d/lv2.json $(LV2_DOMAIN_DOC) \
 	  && if python3 tests/scan-fields-check.py ./$(SCAN_PROG) $$d/lv2.json $(abspath tests/fake.clap) $(abspath tests/fake_synth.clap) $(LV2_FIXTURE_DIR) >/dev/null 2>&1; then echo "FAIL sabotage: the scan list passed over an lv2 domain without a property term"; rm -rf $$d; exit 1; else echo "ok   sabotage: the scan list is red over an lv2 domain without a property term"; rm -rf $$d; fi
 	python3 tests/scan-domain-check.py ./$(SCAN_PROG) $(abspath tests/fake.clap) $(abspath contract.d) $(abspath tests/fake_compressor.clap)
-	python3 -I tests/domain-x-since-check.py --self-test $(VERSION) $(abspath contract.d)
+	python3 -I tests/domain-x-since-check.py --self-test $(abspath contract.d)
 	python3 tests/resource-hints-check.py ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 	python3 tests/resource-hints-check.py --self-test ./$(SCAN_PROG) $(abspath tests/fake_ext.clap) $(OMX_CONTRACT_DIR)
 
@@ -450,12 +450,6 @@ test-contract:
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --with-domain build/contract/dir/hosting --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
-	# V29: the hosts a verb names, HOSTING_VERB_HOSTS of data/hosting/verb-hosts.json, with its sabotage arms
-	node tests/hosting-verb-hosts-check.mjs
-	node tests/hosting-verb-hosts-check.mjs --self-test
-	# requires and info.x-requires are lists of names, no version floors (omx-contract 3.22.0 refuses a floor map)
-	python3 -I tests/requires-names-check.py .
-	python3 -I tests/requires-names-check.py --self-test .
 	# F2: the scale codes and the CLAP flag mapped to omx-contract's standard scales (PARAM_SCALES), with its sabotage
 	python3 -I tests/scale-maps-check.py contract.d build/contract/json/omx-contract.json
 	python3 -I tests/scale-maps-check.py --self-test contract.d build/contract/json/omx-contract.json

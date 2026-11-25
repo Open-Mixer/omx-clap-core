@@ -4,24 +4,6 @@
   "lang": "fr",
   "owner": "omx-clap",
   "messages": {
-    "HOSTING_VERB_HOSTS.plugin-hostd": {
-      "text": "Le démon qui place les plugins dans des workers et répond aux verbes qu’il ajoute lui-même.",
-      "by": "machine",
-      "model": "draft-prose",
-      "source": "0493bc3f63941f477be62985435b85ef31880db59edb614d5106e14883fdec17"
-    },
-    "HOSTING_VERB_HOSTS.omx-clap-host": {
-      "text": "Le worker d’omx-clap-core : l’hôte d’un plugin CLAP, et celui d’un plugin LV2 par son adaptateur.",
-      "by": "machine",
-      "model": "draft-prose",
-      "source": "10a8f2fb1f743371634c55c144ef88342347ab981e7b157fbbfc20cbe9b8d474"
-    },
-    "HOSTING_VERB_HOSTS.mod-host": {
-      "text": "mod-host, l’hôte LV2 dont les autres parlent le protocole.",
-      "by": "machine",
-      "model": "draft-prose",
-      "source": "4e56109462279217eadda38642a18903cd5f4de2298004d386b5b7f8eb80489b"
-    },
     "hosting.clap.extensions-not-covered": { "text": "Toutes les extensions que ce plugin déclare ne sont pas couvertes par ce qui a été vérifié. Vérifiez le plugin par rapport aux extensions que cet hôte couvre, ou acceptez l’écart.", "by": "machine", "model": "draft-prose", "source": "1fd5fd584d2562a18082303ace687aa8f278fabe79538da4e20cd3c1f69d41c4" },
     "hosting.clap.format-not-hosted": { "text": "Cet hôte n’héberge pas le format CLAP. Utilisez un hôte qui le fait.", "by": "machine", "model": "draft-prose", "source": "edce1fed93265f99147b03a231ad672fd694628347d406756f2c8c4bb1d73e24" },
     "hosting.clap.headless-failed": { "text": "Le plugin a échoué lors de la vérification sans tête, sans fenêtre. Corrigez ce qui a échoué et vérifiez-le à nouveau.", "by": "machine", "model": "draft-prose", "source": "f8d2256706bd555565ebedc711b395360b6c1e96bf41e04fa63d3db245638a28" },

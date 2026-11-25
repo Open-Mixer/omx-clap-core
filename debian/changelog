@@ -8,6 +8,10 @@ omx-clap-host (0.35.1) unstable; urgency=medium
     tree's omx_param_units.h, which omx-contract 3.22.0 no longer ships. No
     domain goes back: 0.35.0's renumber to the package version is reverted,
     so scan, host, omx-clap and omx-clap-scale stay 1.0.0 and clap 2.18.0.
+  * omx-clap-contract no longer ships contract.d/host and depends on
+    plugin-hostd-protocol-contract, which owns the domain host (ruling R5):
+    the two packages shipped the same file and refused to install side by
+    side.
 
  -- Pau Aliagas <linuxnow@gmail.com>  Wed, 25 Nov 2026 12:00:00 +0000
 

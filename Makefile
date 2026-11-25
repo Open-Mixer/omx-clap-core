@@ -346,8 +346,8 @@ install-contract:
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap-scale $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# CLAP's own particulars (the flag for the stepped scale), the same way: <contractdir>/clap/clap.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/clap $(DESTDIR)$(CONTRACTDIR) $(CORE)
-	# the host's reply codes and events (host) and its verbs (omx-clap), the same way: <contractdir>/host/host.json, <contractdir>/omx-clap/omx-clap.json
-	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/host $(DESTDIR)$(CONTRACTDIR) $(CORE)
+	# its verbs (omx-clap), the same way: <contractdir>/omx-clap/omx-clap.json. The domain host is not installed here: it is
+	# plugin-hostd-protocol's (ruling R5, plugin-hostd-protocol#67), shipped in plugin-hostd-protocol-contract
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-clap $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	install -d $(DESTDIR)$(DATADIR)/$(CORE)/catalogs
 	install -m 644 catalogs/*.json $(DESTDIR)$(DATADIR)/$(CORE)/catalogs/
@@ -406,6 +406,9 @@ OMX_CONTRACT_SCRIPT = $(firstword $(wildcard $(OMX_CONTRACT_DIR)/tools/install-c
 test-contract:
 	rm -rf build/contract
 	$(MAKE) --no-print-directory install-contract DESTDIR= DATADIR=$(abspath build/contract/share) CONTRACTDIR=$(abspath build/contract/dir) INSTALL_CONTRACT_DIR=$(OMX_CONTRACT_SCRIPT)
+	# the domain host the omx-clap domain requires, beside it as plugin-hostd-protocol-contract installs it; this tree's copy
+	# is the renders' input only and no package ships it (the devel line reads plugin-hostd-protocol's instead)
+	sh $(OMX_CONTRACT_SCRIPT) --domain contract.d/host $(abspath build/contract/dir) $(CORE)
 	OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/domain-scan-check.sh $(OMX_CONTRACT_DIR)
 	sh tests/domain-packaging-check.sh
 	$(CC) $(shell $(PKG_CONFIG) --cflags libomx-domain) tests/domain_installed_test.c -o build/contract/domain_installed_test $(shell $(PKG_CONFIG) --libs libomx-domain)

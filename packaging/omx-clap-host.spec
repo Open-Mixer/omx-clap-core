@@ -123,6 +123,8 @@ Obsoletes: omx-clap-core-contract < 0.34.0
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
 Requires: omx-contract-data >= 3.22.0
+# the domain host, which the omx-clap domain requires: plugin-hostd-protocol's (ruling R5)
+Requires: plugin-hostd-protocol-contract
 
 %description -n omx-clap-contract
 omx-clap's definitions as files in omx-contract's contract directory,
@@ -210,7 +212,6 @@ make test-package
 %{omx_contract_domain_dir}/omx-param-contract/
 %{omx_contract_domain_dir}/omx-clap-scale/
 %{omx_contract_domain_dir}/clap/
-%{omx_contract_domain_dir}/host/
 %{omx_contract_domain_dir}/omx-clap/
 %dir %{_datadir}/omx-clap
 %dir %{_datadir}/omx-clap/catalogs
@@ -318,6 +319,9 @@ the English source sentence.
   tree's omx_param_units.h, which omx-contract 3.22.0 no longer ships. No
   domain goes back: 0.35.0's renumber to the package version is reverted,
   so scan, host, omx-clap and omx-clap-scale stay 1.0.0 and clap 2.18.0.
+- omx-clap-contract no longer ships contract.d/host and requires
+  plugin-hostd-protocol-contract, which owns the domain host (ruling R5): the
+  two packages shipped the same file and refused to install side by side.
 
 * Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.1-1
 - The packages 0.34.0 renamed obsolete their old names: omx-clap-libs

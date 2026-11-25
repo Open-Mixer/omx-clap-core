@@ -336,10 +336,9 @@ install-tests: $(TEST_FIXTURES)
 	install -m 755 $(TEST_FIXTURES) $(DESTDIR)$(TESTDIR)/
 
 # the definitions this tree owns (data/: the hosting limits and refusal codes), installed as the package omx-clap
-# into omx-contract's contract directory, <contractdir>/<schema major>/omx-clap/, with a MANIFEST.json naming
+# into omx-contract's contract directory, <contractdir>/omx-clap/ (beside the domain of that name; the directory has no schema-major level), with a MANIFEST.json naming
 # this version and the tree they came from. contractdir and the install script are omx-contract-devel's (3.0.0 or
 # later); a checkout of omx-contract (OMX_CONTRACT_DIR) stands in for the script when it is not installed.
-CONTRACT_SCHEMA_MAJOR = 3
 CONTRACTDIR = $(or $(shell $(PKG_CONFIG) --variable=contractdir omx-contract 2>/dev/null),$(DATADIR)/omx-contract/contract.d)
 INSTALL_CONTRACT_DIR = $(firstword $(wildcard $(shell $(PKG_CONFIG) --variable=datadir omx-contract 2>/dev/null)/install-contract-dir.sh) $(wildcard $(OMX_CONTRACT_DIR)/tools/install-contract-dir.sh))
 .PHONY: install-contract test-contract test-domain check-domain
@@ -350,10 +349,10 @@ install-contract:
 	@# installs nothing. One whose usage has no `--domain <path>/contract.d/<domain> <contractdir> <package>` (no --domain mode,
 	@# or the three-argument one) is older than this tree (#214)
 	@sh $(INSTALL_CONTRACT_DIR) --domain 2>&1 | grep -qF -e '--domain <path>/contract.d/<domain> <contractdir> <package>' || { echo "install-contract: $(INSTALL_CONTRACT_DIR) has no --domain mode: the omx-contract installer found is older than the contract tree" >&2; exit 1; }
-	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) $(CONTRACT_SCHEMA_MAJOR) data $(DESTDIR)$(CONTRACTDIR) data
-	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are (no schema major)
+	sh $(INSTALL_CONTRACT_DIR) $(CORE) $(VERSION) data $(DESTDIR)$(CONTRACTDIR) data
+	# the scan domain, by the installer's domain mode: <contractdir>/scan/scan.json and its catalogs, as they are
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/scan $(DESTDIR)$(CONTRACTDIR) $(CORE)
-	# the hosting domain, by the installer's domain mode: <contractdir>/hosting/hosting.json, as it is (no schema major)
+	# the hosting domain, by the installer's domain mode: <contractdir>/hosting/hosting.json, as it is
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/hosting $(DESTDIR)$(CONTRACTDIR) $(CORE)
 	# the parameter contract's code sheet and its mapping to standard units, the same way: <contractdir>/omx-param-contract/omx-param-contract.json
 	sh $(INSTALL_CONTRACT_DIR) --domain contract.d/omx-param-contract $(DESTDIR)$(CONTRACTDIR) $(CORE)

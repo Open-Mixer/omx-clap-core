@@ -46,14 +46,14 @@ def main():
     path = ap.parse_args().contract_path
 
     doc = os.path.join(path, DOMAIN, DOMAIN + '.json')
-    owner = os.path.join(path, '3', PACKAGE)
+    owner = os.path.join(path, PACKAGE, 'MANIFEST.json')
     check(os.path.isfile(doc), '(a) the domain %s is staged at %s' % (DOMAIN, doc))
     owner_of = None
     if os.path.isfile(doc):
         with open(doc) as f:
             owner_of = json.load(f)['info'].get('x-owner')
     check(owner_of == PACKAGE, '(a) %s owns the domain %s: %s' % (PACKAGE, DOMAIN, owner_of))
-    check(not os.path.exists(owner), '(a) no owner directory %s is staged beside the domain' % owner)
+    check(not os.path.exists(owner), '(a) no owner manifest %s is staged beside the domain' % owner)
 
     read = []
     rebuild = getattr(h, 'rebuild', None)
@@ -82,8 +82,8 @@ def main():
               '(c) the check\'s step finds %s\'s domain staged' % PACKAGE)
         stale = os.path.join(work, 'stale')
         shutil.copytree(path, stale)
-        owner_dir = os.path.join(stale, '3', PACKAGE)
-        os.makedirs(owner_dir)
+        owner_dir = os.path.join(stale, PACKAGE)
+        os.makedirs(owner_dir, exist_ok=True)
         with open(os.path.join(owner_dir, 'verbs.json'), 'w') as f:
             json.dump({'PLUGIN_HOSTD_STALE_VERBS': {'kind': 'verbs', 'verbs': {'staleVerb': {
                 'verb': 'stale_verb', 'format': 'stale_verb %i', 'reply': 'resp 0', 'codes': [],
@@ -96,7 +96,7 @@ def main():
             read = [v['verb'] for v in h.declarations(stale)]
         except Exception as e:  # the refusal, whatever its class: its words name the file
             refused = str(e)
-        check(refused is not None and os.path.join('3', PACKAGE, 'verbs.json') in refused,
+        check(refused is not None and os.path.join(PACKAGE, 'verbs.json') in refused,
               '(d) a stale verbs.json of %s is refused by name: %s' % (PACKAGE, refused))
         check('stale_verb' not in read, '(d) no verb of the stale verbs.json is read: %s' % sorted(read))
     finally:

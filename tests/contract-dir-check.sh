@@ -19,7 +19,7 @@ set -eu
 [ "$#" -eq 3 ] || { sed -n '8p' "$0" >&2; exit 2; }
 oc=$1 dir=$2 version=$3
 [ -f "$oc/bin/omx-contract.mjs" ] || { echo "contract-dir-check: no omx-contract checkout at $oc" >&2; exit 2; }
-[ -f "$dir/3/omx-clap/MANIFEST.json" ] || { echo "contract-dir-check: no omx-clap package under $dir/3" >&2; exit 2; }
+[ -f "$dir/omx-clap/MANIFEST.json" ] || { echo "contract-dir-check: no omx-clap package under $dir" >&2; exit 2; }
 tool="node $oc/bin/omx-contract.mjs"
 work=$(dirname "$dir")
 

@@ -9,7 +9,7 @@ handlers since ruling R5; docs/verbs.md).
     host_verbs_check.py --port <n> --contract-path <dir>[:<dir>...] --registration <main.c> --header <verbs header>
                         --fake <fake.clap> --synth <fake_synth.clap> --layout-scheme <scheme>
 
-The declarations are every verbs item of every package installed under <dir>/3/ (the first directory of the list that
+The declarations are every verbs item of every package installed under <dir>/ (a directory holding a MANIFEST.json; the first directory of the list that
 holds a package wins, as OMX_CONTRACT_PATH reads), each file the package's MANIFEST.json lists, and every verbs item of
 every domain installed under <dir>/<domain>/<domain>.json (the domain plugin-hostd-protocol among them),
 rebuilt by omx-contract's own reader (OMX_CONTRACT_CLIDIR, else omx-contract.pc's clidir); a code reference resolved to
@@ -127,7 +127,7 @@ def packages(path):
     """Every package of the contract path: {package: directory}, the first directory that holds one winning."""
     found = {}
     for top in [d for d in path.split(':') if d]:
-        base = os.path.join(top, '3')
+        base = top
         if not os.path.isdir(base):
             continue
         for pkg in sorted(os.listdir(base)):
@@ -172,7 +172,7 @@ def domains(path):
             continue
         for dom in sorted(os.listdir(top)):
             doc = os.path.join(top, dom, dom + '.json')
-            if dom != '3' and dom not in found and os.path.isfile(doc):
+            if dom not in found and os.path.isfile(doc):
                 found[dom] = doc
     return found
 
@@ -214,7 +214,7 @@ def declarations(path):
     """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}.
 
     plugin-hostd-protocol's words are the domain plugin-hostd-protocol's only: an item in a data file of its package (a stale
-    3/plugin-hostd-protocol/verbs.json, the home before 0.8.0) is refused by name, never read beside the domain.
+    plugin-hostd-protocol/verbs.json listed by an owner manifest, the home before 0.8.0) is refused by name, never read beside the domain.
     """
     items, verbs = {}, []
     for pkg, d in packages(path).items():
@@ -228,7 +228,7 @@ def declarations(path):
                     continue
                 if pkg == PROTOCOL:
                     raise Refused('%s declares %s: the words of %s are its domain %s, and a data file of the package '
-                                  'is a stale copy of them (3/%s/%s)' % (os.path.join(d, rel), name, PROTOCOL,
+                                  'is a stale copy of them (%s/%s)' % (os.path.join(d, rel), name, PROTOCOL,
                                                                          PROTOCOL_DOMAIN, PROTOCOL, rel))
                 items[name] = (pkg, item)
     items.update(domain_items(path))

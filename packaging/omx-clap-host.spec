@@ -35,7 +35,7 @@ BuildRequires: omx-panel-contract
 # the codes under contract.d; preset_file.c and scan.c include omx_json_write.h
 BuildRequires: omx-contract-devel
 # the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (with the
-# installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
+# installer's domain mode and the %%{omx_contract_dir} macro this spec names the domain by)
 BuildRequires: libomx-domain-devel
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
@@ -213,13 +213,12 @@ make test-package
 %files -n omx-clap-contract
 %license COPYING
 %doc README.md
-%{_datadir}/omx-contract/contract.d/3/omx-clap/
-%{omx_contract_domain_dir}/scan/
-%{omx_contract_domain_dir}/hosting/
-%{omx_contract_domain_dir}/omx-param-contract/
-%{omx_contract_domain_dir}/omx-clap-scale/
-%{omx_contract_domain_dir}/clap/
-%{omx_contract_domain_dir}/omx-clap/
+%{omx_contract_dir}/scan/
+%{omx_contract_dir}/hosting/
+%{omx_contract_dir}/omx-param-contract/
+%{omx_contract_dir}/omx-clap-scale/
+%{omx_contract_dir}/clap/
+%{omx_contract_dir}/omx-clap/
 %dir %{_datadir}/omx-clap
 %dir %{_datadir}/omx-clap/catalogs
 

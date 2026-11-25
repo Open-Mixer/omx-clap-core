@@ -6,6 +6,8 @@ includedir=@INCLUDEDIR@
 datadir=@DATADIR@
 # the hosting items as TypeScript modules, omx-clap-hosting.js and omx-clap-vocabulary.js and their .d.ts
 tsdir=${datadir}/omx-clap/ts
+# the sources of the test fixtures (fault_clap.c, the worker-gain LV2 bundle) and fixtures.mk, which builds them into a caller's directory
+fixturesdir=${datadir}/omx-clap/fixtures
 
 Name: omx-clap
 Description: The CLAP hosting core of omx-clap-host: a plugin's process() on the caller's RT thread and the control thread that owns the plugin

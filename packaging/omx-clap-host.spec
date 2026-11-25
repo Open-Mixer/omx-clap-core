@@ -208,6 +208,7 @@ make test-package
 %{_includedir}/omx-clap-host/
 %{_datadir}/omx-clap/omx-clap.map
 %{_datadir}/omx-clap/rt-gate/
+%{_datadir}/omx-clap/fixtures/
 
 %files -n omx-clap-contract
 %license COPYING

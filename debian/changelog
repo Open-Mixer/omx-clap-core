@@ -11,17 +11,6 @@ omx-clap-host (0.35.1) unstable; urgency=medium
 
  -- Pau Aliagas <linuxnow@gmail.com>  Wed, 25 Nov 2026 12:00:00 +0000
 
-omx-clap-host (0.35.0) unstable; urgency=medium
-
-  * Chain 3: the host verbs check reads plugin-hostd-protocol's words from
-    the domain plugin-hostd-protocol (V16) and the verb hosts are
-    HOSTING_VERB_HOSTS (V29); the param-contract unit code sheet is the
-    domain omx-param-contract, its renders are omx_param_units.h and
-    omx_param_unit_ids.h, mapped onto omx-contract's PARAM_UNITS_CLAP_ENCODED
-    (V23d, omx-contract 3.22.0).
-
- -- Pau Aliagas <linuxnow@gmail.com>  Mon, 23 Nov 2026 22:00:00 +0100
-
 omx-clap-host (0.34.1) unstable; urgency=medium
 
   * The packages 0.34.0 renamed Break and Replace their old names below
@@ -34,6 +23,17 @@ omx-clap-host (0.34.1) unstable; urgency=medium
     debian/control to it (#186).
 
  -- Pau Aliagas <linuxnow@gmail.com>  Tue, 24 Nov 2026 21:00:00 +0100
+
+omx-clap-host (0.35.0) unstable; urgency=medium
+
+  * Chain 3: the host verbs check reads plugin-hostd-protocol's words from
+    the domain plugin-hostd-protocol (V16) and the verb hosts are
+    HOSTING_VERB_HOSTS (V29); the param-contract unit code sheet is the
+    domain omx-param-contract, its renders are omx_param_units.h and
+    omx_param_unit_ids.h, mapped onto omx-contract's PARAM_UNITS_CLAP_ENCODED
+    (V23d, omx-contract 3.22.0).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Mon, 23 Nov 2026 22:00:00 +0100
 
 omx-clap-host (0.34.0) unstable; urgency=medium
 

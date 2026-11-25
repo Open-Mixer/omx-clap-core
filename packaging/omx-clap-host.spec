@@ -319,13 +319,6 @@ the English source sentence.
   domain goes back: 0.35.0's renumber to the package version is reverted,
   so scan, host, omx-clap and omx-clap-scale stay 1.0.0 and clap 2.18.0.
 
-* Mon Nov 23 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
-- Chain 3: the host verbs check reads plugin-hostd-protocol's words from the
-  domain plugin-hostd-protocol (V16) and the verb hosts are HOSTING_VERB_HOSTS
-  (V29); the param-contract unit code sheet is the domain omx-param-contract,
-  its renders are omx_param_units.h and omx_param_unit_ids.h, mapped onto
-  omx-contract's PARAM_UNITS_CLAP_ENCODED (V23d, omx-contract 3.22.0).
-
 * Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.1-1
 - The packages 0.34.0 renamed obsolete their old names: omx-clap-libs
   obsoletes omx-clap-core, omx-clap-devel omx-clap-core-devel and
@@ -335,6 +328,13 @@ the English source sentence.
   deb packages Break and Replace theirs the same way. The renames are
   declared in packaging/renamed.txt, and no_backcompat holds the spec and
   debian/control to it (#186).
+
+* Mon Nov 23 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
+- Chain 3: the host verbs check reads plugin-hostd-protocol's words from the
+  domain plugin-hostd-protocol (V16) and the verb hosts are HOSTING_VERB_HOSTS
+  (V29); the param-contract unit code sheet is the domain omx-param-contract,
+  its renders are omx_param_units.h and omx_param_unit_ids.h, mapped onto
+  omx-contract's PARAM_UNITS_CLAP_ENCODED (V23d, omx-contract 3.22.0).
 
 * Sun Nov 22 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.0-1
 - Sorting pass: the panel words (V1), the host reply codes and track kinds (V15), the CLAP

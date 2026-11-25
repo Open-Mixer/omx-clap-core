@@ -3,7 +3,7 @@
   "$id": "https://openmixer.org/contract/scan",
   "info": {
     "title": "The documents a plugin scan writes and the scopes of its field dump",
-    "version": "0.35.0",
+    "version": "0.1.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental"
   },
@@ -11,7 +11,7 @@
     "schemas": {
       "SCAN_DOCUMENTS": {
         "description": "The documents a plugin scan writes, named here and owned elsewhere: the contract names them so the writers and readers cite one word, and keeps no shape of its own for them.",
-        "x-since": "0.33.0",
+        "x-since": "0.1.0",
         "x-why": "omx-clap and plugin-qualify write one scan document (FreeMixer/omx-contract#157).",
         "oneOf": [
           {
@@ -32,7 +32,7 @@
       },
       "SCAN_FIELD_SCOPES": {
         "description": "The scopes of a field dump record, as written before the first TAB; an indexed scope is followed by `:<index>`. Named here, owned by their writers: omx-clap's scan (docs/scan.md there) and plugin-hostd's field dump (docs/formats.md there) keep the code that writes them.",
-        "x-since": "0.33.0",
+        "x-since": "0.1.0",
         "x-c-codes": true,
         "oneOf": [
           {

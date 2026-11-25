@@ -139,9 +139,9 @@ since_red() { # <label> <sed script over the domain file>
 }
 since_red "an item without x-since" '0,/"x-since": "[0-9.]*",/{/"x-since": "[0-9.]*",/d}'
 since_red "an x-since above info.version" '0,/"x-since": "[0-9.]*"/s//"x-since": "99.0.0"/'
-# every item of the document says the version that first carried it: 0.35.0, the first release that ships the domain, or
-# a later one; never an earlier one (a version that shipped without the domain cannot have carried an item)
-FIRST=0.35.0
+# every item of the document says the version of the domain that first carried it: 0.1.0, the domain's first version
+# (its vocabulary's own, never the package's), or a later one; never an earlier one
+FIRST=0.1.0
 python3 - "$D" "$FIRST" <<'P' || exit 1
 import json, sys
 items = json.load(open(sys.argv[1]))["components"]["schemas"]

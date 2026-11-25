@@ -1,11 +1,24 @@
-omx-clap-host (0.34.2) unstable; urgency=medium
+omx-clap-host (0.35.1) unstable; urgency=medium
 
   * The installed omx-clap domain and data/ are read by omx-contract 3.22.0:
     info.x-requires is the name list ["host"], no data file carries a
     requires floor map, and HOSTING_VERB_HOSTS (data/hosting/verb-hosts.json)
     holds the hosts a verb names.
+  * Built on the 0.35.0 line (chain 3, V23d): omx_clap_ext.h includes this
+    tree's omx_param_units.h, which omx-contract 3.22.0 no longer ships.
 
  -- Pau Aliagas <linuxnow@gmail.com>  Wed, 25 Nov 2026 12:00:00 +0000
+
+omx-clap-host (0.35.0) unstable; urgency=medium
+
+  * Chain 3: the host verbs check reads plugin-hostd-protocol's words from
+    the domain plugin-hostd-protocol (V16) and the verb hosts are
+    HOSTING_VERB_HOSTS (V29); the param-contract unit code sheet is the
+    domain omx-param-contract, its renders are omx_param_units.h and
+    omx_param_unit_ids.h, mapped onto omx-contract's PARAM_UNITS_CLAP_ENCODED
+    (V23d, omx-contract 3.22.0).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Mon, 23 Nov 2026 22:00:00 +0100
 
 omx-clap-host (0.34.1) unstable; urgency=medium
 

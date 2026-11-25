@@ -5223,7 +5223,7 @@ int effects_param_info(int effect_id, const char *symbol, char *reply, size_t si
         || omx_clap_param_number(m.min, min, sizeof(min)) < 0 || omx_clap_param_number(m.max, max, sizeof(max)) < 0
         || omx_clap_param_number(m.def, def, sizeof(def)) < 0 || omx_clap_param_number(m.step, step, sizeof(step)) < 0)
         return OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP;
-    used = snprintf(reply, size, "resp 0 %s %s %s %s %s %s %s", omx_clap_param_unit_name(m.unit),
+    used = snprintf(reply, size, "resp 0 %s %s %s %s %s %s %s", omx_clap_param_unit_id(m.unit),
                     omx_clap_param_scale_name(m.scale), min, max, def, step, m.symbol);
     return used > 0 && (size_t)used < size ? SUCCESS : ERR_INVALID_OPERATION;
 }

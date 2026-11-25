@@ -450,6 +450,12 @@ test-contract:
 	node $(OMX_CONTRACT_DIR)/bin/omx-contract.mjs render --target json --contract-dir build/contract/dir --with-domain build/contract/dir/hosting --out build/contract/json
 	node tests/hosting-values-check.mjs build/contract/json/omx-contract.json src
 	node tests/hosting-values-check.mjs --self-test build/contract/json/omx-contract.json src
+	# V29: the hosts a verb names, HOSTING_VERB_HOSTS of data/hosting/verb-hosts.json, with its sabotage arms
+	node tests/hosting-verb-hosts-check.mjs
+	node tests/hosting-verb-hosts-check.mjs --self-test
+	# requires and info.x-requires are lists of names, no version floors (omx-contract 3.22.0 refuses a floor map)
+	python3 -I tests/requires-names-check.py .
+	python3 -I tests/requires-names-check.py --self-test .
 	# F2: the scale codes and the CLAP flag mapped to omx-contract's standard scales (PARAM_SCALES), with its sabotage
 	python3 -I tests/scale-maps-check.py contract.d build/contract/json/omx-contract.json
 	python3 -I tests/scale-maps-check.py --self-test contract.d build/contract/json/omx-contract.json

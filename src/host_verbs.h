@@ -77,8 +77,9 @@
 #define HOST_EVENT_ABI_CLOBBER_FMT OMX_HOST_EVENTS_ABI_CLOBBER " %d %#x %s %s %llu"
 
 /* the fields of a reply as its builder writes them, typed where the reply is: OMX_CLAP_REPLIES of
- * contract.d/omx-clap/omx-clap.json (idle_hold), or plugin-hostd-protocol's table, its reply_forms (note_input, note_drops,
- * note_out_drops): HOST_FIELDS_<VERB>(X) is a row X(name, conversion) per field, the declared name in the declared order,
+ * contract.d/omx-clap/omx-clap.json (idle_hold), or plugin-hostd-protocol's table, its reply_forms (every other verb
+ * registered here whose reply has fields): HOST_FIELDS_<VERB>(X) is a row X(name, conversion) per field, the declared
+ * name in the declared order,
  * and HOST_FIELDS_FMT(HOST_FIELDS_<VERB>) the reply's format, resp 0 and one conversion per field
  * (tests/host-replies-check.py holds the names and conversions to the declaration) */
 #define HOST_FIELDS_FMT_ONE(name, conversion) " " conversion
@@ -87,6 +88,11 @@
 #define HOST_FIELDS_IDLE_HOLD(X) X(target, "%s") X(held, "%s") X(aggregate, "%s") X(active, "%u") X(code, "%s")
 #define HOST_FIELDS_NOTE_DROPS(X) X(notes, "%u") X(releases, "%u") X(sysex, "%u") X(unmappable, "%u")
 #define HOST_FIELDS_NOTE_OUT_DROPS(X) X(dropped, "%u") X(unmapped, "%u") X(midi_out_full, "%u")
+#define HOST_FIELDS_PROPERTY_INFO(X) X(symbol, "%s") X(kind, "%s") X(access, "%s") X(name, "%s")
+#define HOST_FIELDS_PROPERTY_GET(X) X(value, "%s")
+#define HOST_FIELDS_PIN_LAYOUT(X) X(layout, "%s")
+#define HOST_FIELDS_PRESET_GET(X) X(load_key, "%s") X(name, "%s")
+#define HOST_FIELDS_PRESET_SHOW(X) X(json, "%s")
 
 
 /*

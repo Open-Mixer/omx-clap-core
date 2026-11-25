@@ -475,6 +475,19 @@ test-contract:
 	node tests/code-text-check.mjs
 	node tests/code-text-check.mjs --self-test
 
+# the language packs' gate (ci.yml, the langpacks action's gate): omx-contract translate --check over data/ and the codes
+# whose translations catalogs/ holds (reply.host.* and their translations are plugin-hostd-protocol's domain host, ruling R5)
+OMX_CONTRACT ?= omx-contract
+.PHONY: catalog-gate
+catalog-gate:
+	rm -rf build/catalog-gate
+	mkdir -p build/catalog-gate
+	cp -r data catalogs build/catalog-gate/
+	@# the hosting codes' one home is the domain hosting (contract.d/hosting): staged beside data/ in the data form, so
+	@# --owner reads every hosting.* key the catalogs hold
+	node tests/domain-data.mjs contract.d/hosting/hosting.json build/catalog-gate/data/hosting-domain.json
+	$(OMX_CONTRACT) translate --check --owner build/catalog-gate
+
 install: install-lib install-rt-gate-graphs install-lv2 install-tests install-fixtures install_man install-contract
 	install -d $(DESTDIR)$(BINDIR) $(DESTDIR)$(UDEVDIR)
 	install -m 755 $(PROG) $(SCAN_PROG) $(DESTDIR)$(BINDIR)
@@ -586,7 +599,8 @@ TEST_PLAIN = test-ci-runs-test-list \
     test-rt-gate-control \
     test-rt-gate \
     test-rt-gate-sabotage \
-    test-package
+    test-package \
+    test-bench-jalv-cwd
 # the sabotage arms that rebuild copies of the sources: CI runs them on a push to main and a tag, not on a pull request
 TEST_MAIN_ONLY = test-layouts-sabotage \
     test-cycle-gate-sabotage \

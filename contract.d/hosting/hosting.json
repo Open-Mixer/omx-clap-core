@@ -3,7 +3,7 @@
   "$id": "https://openmixer.org/contract/hosting",
   "info": {
     "title": "The hosting codes of omx-clap",
-    "version": "1.0.0",
+    "version": "0.35.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental"
   },
@@ -11,7 +11,7 @@
     "schemas": {
       "HOSTING_IDLE_CODES": {
         "description": "The hosting codes of the idle dimension, hosting.idle.*: what libomx-clap answers about its hold of the CPU idle states (/dev/cpu_dma_latency) while a plugin is active. The dimension is this library's: the hold lives in it, for every host that links it (#296).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.idle.hold-refused",
@@ -32,7 +32,7 @@
       },
       "HOSTING_WINDOW_CODES": {
         "description": "The hosting codes of the window dimension, hosting.window.*: why omx-clap-host refuses to show a plugin's own window (clap.gui) when show_external_ui asks for it (#180). The dimension is the standalone host's: the console never shows a plugin's native window.",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.window.no-display",
@@ -70,7 +70,7 @@
       },
       "HOSTING_CLAP_CODES": {
         "description": "The hosting codes of the clap dimension: hosting.clap.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.clap.extensions-not-covered",
@@ -142,7 +142,7 @@
       },
       "HOSTING_COST_CODES": {
         "description": "The hosting codes of the cost dimension: hosting.cost.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.cost.above-ceiling",
@@ -190,7 +190,7 @@
       },
       "HOSTING_FEATURES_CODES": {
         "description": "The hosting codes of the features dimension: hosting.features.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.features.atom-in-unfed",
@@ -254,7 +254,7 @@
       },
       "HOSTING_LATENCY_CODES": {
         "description": "The hosting codes of the latency dimension: hosting.latency.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.latency.nonconforming",
@@ -294,7 +294,7 @@
       },
       "HOSTING_MEMORY_CODES": {
         "description": "The hosting codes of the memory dimension: hosting.memory.*, what a qualifier, a host or the console read of a plugin's measured memory against a host's budget, by code, never by prose.",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.memory.above-ceiling",
@@ -334,7 +334,7 @@
       },
       "HOSTING_OUTPUT_CODES": {
         "description": "The hosting codes of the output dimension: hosting.output.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.output.non-finite",
@@ -350,7 +350,7 @@
       },
       "HOSTING_OVERRIDE_CODES": {
         "description": "The hosting codes of the override dimension: hosting.override.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.override.curator-isolated",
@@ -366,7 +366,7 @@
       },
       "HOSTING_PATCH_CODES": {
         "description": "The hosting codes of the patch dimension: hosting.patch.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.patch.busy",
@@ -398,7 +398,7 @@
       },
       "HOSTING_PRESET_CODES": {
         "description": "The hosting codes of the preset dimension: hosting.preset.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.preset.not-found",
@@ -414,7 +414,7 @@
       },
       "HOSTING_PROVENANCE_CODES": {
         "description": "The hosting codes of the provenance dimension: hosting.provenance.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.provenance.host-differs",
@@ -438,7 +438,7 @@
       },
       "HOSTING_REALISED_CODES": {
         "description": "What the console did with a plugin's verdict: hosting.realised.* and the outcomes with no dimension (hosting.disabled, hosting.unjudged, hosting.no-realisation, hosting.linked), read by code, never by prose.",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.disabled",
@@ -486,7 +486,7 @@
       },
       "HOSTING_RESOURCE_HINTS_CODES": {
         "description": "The hosting codes of the resource-hints dimension: hosting.resource-hints.*, why the host refuses the hints a plugin declares about itself (omx-contract's RESOURCE_HINTS, through the CLAP draft org.openmixer.resource-hints.draft/0 or the omxres LV2 properties). A refused declaration is trusted for none of its hints: every hint reads as unknown.",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.resource-hints.out-of-range",
@@ -524,7 +524,7 @@
       },
       "HOSTING_RT_SAFETY_CODES": {
         "description": "The hosting codes of the rt-safety dimension: hosting.rt-safety.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.rt-safety.clean-under-sweep",
@@ -596,7 +596,7 @@
       },
       "HOSTING_STABILITY_CODES": {
         "description": "The hosting codes of the stability dimension: hosting.stability.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.stability.cycles-below-floor",
@@ -692,7 +692,7 @@
       },
       "HOSTING_STATE_CODES": {
         "description": "The hosting codes of the state dimension: hosting.state.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.state.not-a-copy",
@@ -756,7 +756,7 @@
       },
       "HOSTING_TOPOLOGY_CODES": {
         "description": "The hosting codes of the topology dimension: hosting.topology.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.topology.ambisonic-config",
@@ -844,7 +844,7 @@
       },
       "HOSTING_WORKER_CODES": {
         "description": "The hosting codes of the worker dimension: hosting.worker.*, the verdict and refusal codes a qualifier, a host or the console write and read by code, never by prose (docs/data-layout.md).",
-        "x-since": "1.0.0",
+        "x-since": "0.35.0",
         "oneOf": [
           {
             "const": "hosting.worker.nonconforming",

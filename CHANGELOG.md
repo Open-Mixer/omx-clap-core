@@ -5,8 +5,8 @@
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
 - The vocabulary pass: omx-clap 0.35.1 (#221) and V23d on devel (#223) merged into the wave, nothing of the 0.35 line
-  dropped. No domain is renumbered: scan, omx-clap-scale and omx-clap 1.0.0, clap 2.18.0, omx-param-contract 1.0.0, as
-  devel has them; the domain hosting, new, starts at 1.0.0. <omx-clap-host/omx_clap_host_verbs.h> left with the verbs (R5).
+  dropped. Every domain stays at the package version, 0.M.m until 1.0 (owner 2026-11-25), so #221's return to 1.0.0
+  and 2.18.0 is not taken. <omx-clap-host/omx_clap_host_verbs.h> left with the verbs (R5).
 - What omx-clap-host shares with plugin-hostd-protocol is that package's (ruling R5, plugin-hostd-protocol#67): the domain
   host (HOST_REPLY_CODES, HOST_TRACK_KINDS, HOST_EVENTS, with their catalogs), HOSTING_VERB_HOSTS (now its domain
   hosting-verb) and the verbs this host answers (now PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS and

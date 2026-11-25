@@ -37,6 +37,16 @@ env:
 # tier and one package arm (fc45 x86_64, trixie arm64). The sanitizer tiers (address, thread), every sabotage of a guard,
 # the full package matrix and the release dry run run on push to main, on tags and on dispatch, before a release.
 jobs:
+  trigger-gate:
+    name: only this workflow runs on a pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Open-Mixer/.github/.github/actions/trigger-gate@openmixer-v1
+        with:
+          lint-workflow: ci.yml
+
   # no Fedora release written into a job: the cells come from check-matrix (rule 11-10, ruling D25)
   fedora-cells:
     runs-on: ubuntu-latest

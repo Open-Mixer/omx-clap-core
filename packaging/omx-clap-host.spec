@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.35.0
+Version:        0.35.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -316,6 +316,13 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.1-1
+- The RPMs are built for Fedora aarch64 as well as x86_64: the release
+  matrix is Open-Mixer/.github's shared releases and architectures, with no
+  list of this repository's own.
+- Published by the devel release of the full matrix, with every change
+  merged to devel since 0.35.0.
+
 * Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
 - Chain 3: the host verbs check reads plugin-hostd-protocol's words from the
   domain plugin-hostd-protocol (V16) and the verb hosts are HOSTING_VERB_HOSTS

@@ -247,6 +247,9 @@
         "panel": {
           "$ref": "#/$defs/panel"
         },
+        "curves": {
+          "$ref": "#/$defs/curves"
+        },
         "meters": {
           "type": "array",
           "items": {
@@ -548,6 +551,44 @@
       "type": [
         "string",
         "integer"
+      ]
+    },
+    "curves": {
+      "description": "The curves the plugin draws through clap.mini-curve-display/3, each with its axis names (null when the plugin gives none), or the count refused past the maximum.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "index",
+              "xName",
+              "yName"
+            ],
+            "properties": {
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "xName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "yName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/tooMany"
+        }
       ]
     },
     "tooMany": {

@@ -879,11 +879,57 @@ static void put_panel_count(FILE *out, const struct scan_panel *p, uint32_t tabl
 /* the panel description the plugin publishes (org.openmixer.panel-description/1), in the extension's shape: its family,
  * its fingerprint and its five tables, each entry as its get filled it; null when the plugin serves none. The listing for
  * a person counts the tables. */
+/* the curves the plugin draws (clap.mini-curve-display/3): JSON ,"curves":[{index, xName, yName}...], a name null when
+ * the plugin gives none, or {refused:"too-many", count, max}; absent when the plugin serves no curve */
+static void put_curves(FILE *out, const struct scan_curves *c)
+{
+    uint32_t i;
+
+    if (!c->served)
+        return;
+    if (c->refused)
+    {
+        fprintf(out, ",\"curves\":{\"refused\":\"too-many\",\"count\":%u,\"max\":%u}", c->refused,
+                (unsigned)OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES);
+        return;
+    }
+    fputs(",\"curves\":[", out);
+    for (i = 0; i < c->n; i++)
+    {
+        fprintf(out, "%s{\"index\":%u,\"xName\":", i ? "," : "", i);
+        if (c->curve[i].named)
+            put_string(out, c->curve[i].x_name);
+        else
+            fputs("null", out);
+        fputs(",\"yName\":", out);
+        if (c->curve[i].named)
+            put_string(out, c->curve[i].y_name);
+        else
+            fputs("null", out);
+        fputc('}', out);
+    }
+    fputc(']', out);
+}
+
 static void put_panel(FILE *out, const struct omx_clap_instance *instance)
 {
     struct scan_panel p;
-    const int rc = scan_panel_read(instance->plugin, &p);
+    struct scan_curves curves;
+    int rc;
     uint32_t i;
+
+    if (g_json)
+    {
+        if (scan_curves_read(instance->plugin, &curves) < 0)
+        {
+            fputs(",\"panel\":{\"error\":\"out of memory\"}", out);
+            return;
+        }
+        put_curves(out, &curves);
+    }
+    else
+        memset(&curves, 0, sizeof(curves));
+    rc = scan_panel_read(instance->plugin, &p);
 
     if (!g_json)
     {
@@ -903,6 +949,7 @@ static void put_panel(FILE *out, const struct omx_clap_instance *instance)
     if (rc != 1)
     {
         fputs(rc == 0 ? ",\"panel\":null" : ",\"panel\":{\"error\":\"out of memory\"}", out);
+        scan_curves_free(&curves);
         return;
     }
     fputs(",\"panel\":{\"family\":", out);
@@ -974,6 +1021,11 @@ static void put_panel(FILE *out, const struct omx_clap_instance *instance)
         put_number(out, d->floor_db);
         put_panel_text(out, "labelKey", d->label_key);
         put_panel_text(out, "label", d->label);
+        // a curve display: the curve it reads, or refused when the plugin draws no such curve
+        if (scan_panel_curve_missing(d, &curves))
+            fprintf(out, ",\"curve\":{\"refused\":\"no-such-curve\",\"count\":%u}", curves.n);
+        else if (d->source == OMX_PANEL_DISPLAY_SOURCES_CURVE)
+            fprintf(out, ",\"curve\":{\"index\":%u}", d->curve_index);
         fputc('}', out);
     }
     put_panel_close(out, &p, SCAN_PANEL_DISPLAYS);
@@ -993,6 +1045,7 @@ static void put_panel(FILE *out, const struct omx_clap_instance *instance)
     put_panel_close(out, &p, SCAN_PANEL_PLACEMENT_DEFAULTS);
     fputc('}', out);
     scan_panel_free(&p);
+    scan_curves_free(&curves);
 }
 
 /* what a plugin that is only initialised answers; a plugin not yet activated may say 0, so 0 is left out as unknown */

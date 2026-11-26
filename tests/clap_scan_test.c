@@ -470,8 +470,22 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
     CHECK(has(out, ",\"roles\":[{\"role\":\"threshold\",\"index\":0,\"paramId\":0}],"), "its one role: threshold, parameter 0");
     CHECK(has(out, ",\"displays\":[{\"kind\":0,\"section\":0,\"source\":\"meters\",\"meterIds\":[7,null],"
                    "\"curveIndex\":0,\"floorParamId\":null,\"floorDb\":-24,\"labelKey\":\"panel.display.gain_reduction\","
-                   "\"label\":\"Gain reduction\"}],"),
-          "its one display: a gain reduction bar over main from meter 7, a -24 dB floor no parameter sets");
+                   "\"label\":\"Gain reduction\"},"),
+          "display 0: a gain reduction bar over main from meter 7, a -24 dB floor no parameter sets, no curve stated");
+    CHECK(plugin_has(out, "panel", "{\"kind\":0,\"section\":1,\"source\":\"curve\",\"meterIds\":[null,null],\"curveIndex\":1,"
+                                     "\"floorParamId\":null,\"floorDb\":0,\"labelKey\":\"panel.display.transfer\",\"label\":\"Transfer\","
+                                     "\"curve\":{\"index\":1}},"),
+          "display 1 reads curve 1, which the plugin draws");
+    CHECK(plugin_has(out, "panel", "\"labelKey\":\"panel.display.phase\",\"label\":\"Phase\","
+                                     "\"curve\":{\"refused\":\"no-such-curve\",\"count\":2}}],"),
+          "display 2 names curve 2 of a plugin that draws 2: refused, the count named");
+    CHECK(plugin_has(out, "panel", ",\"curves\":[{\"index\":0,\"xName\":\"Hz\",\"yName\":\"dB\"},"
+                                     "{\"index\":1,\"xName\":\"input dB\",\"yName\":\"output dB\"}],\"panel\":{"),
+          "the plugin's clap.mini-curve-display/3 curves, each with its axis names");
+    CHECK(plugin_has(out, "panel-hostile", ",\"curves\":{\"refused\":\"too-many\",\"count\":4294967295,\"max\":4096},")
+          && plugin_has(out, "panel-hostile", "\"label\":\"Transfer\",\"curve\":{\"refused\":\"no-such-curve\",\"count\":0}}"),
+          "panel-hostile's UINT32_MAX curves are refused whole, and its curve displays then read none");
+    CHECK(!plugin_has(out, "panel-none", "\"curves\""), "a plugin that serves no curve has no curves key");
     CHECK(plugin_has(out, "panel", "{\"id\":1,\"name\":\"mode\",\"module\":\"\",\"min\":0,\"max\":2,\"default\":0,"
                                      "\"flags\":[\"stepped\",\"automatable\",\"enum\"],"
                                      "\"labels\":[{\"value\":0,\"label\":\"Off\"},{\"value\":1,\"label\":\"Soft \\\"2\\\"\"}]}"),
@@ -494,11 +508,11 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
     status = run(out, "%s --json %s", scan, fake);
     CHECK(status == 0 && count(out, "\"panel\":null") == 24, "and none of fake.clap's 24 plugins does (%i null)", count(out, "\"panel\":null"));
     status = run(out, "%s %s", scan, panel);
-    CHECK(status == 0 && has(out, "\n    panel dynamics, 2 sections, 3 controls, 1 roles, 1 displays, 0 placement defaults\n")
+    CHECK(status == 0 && has(out, "\n    panel dynamics, 2 sections, 3 controls, 1 roles, 3 displays, 0 placement defaults\n")
           && count(out, "    panel ") == 2,
           "the listing for a person counts the panel's tables, for the plugins that have one (%i)", status);
     CHECK(has(out, "\n    panel dynamics, 2 sections, controls refused (4294967295 past 4096), roles refused (4097 past 4096), "
-                   "1 displays, 0 placement defaults\n"),
+                   "3 displays, 0 placement defaults\n"),
           "and names the tables it refused");
 
     status = run(out, "%s --fields clap:%s#org.omx-clap-host.test.panel", scan, panel);
@@ -533,9 +547,15 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
                    "display:0\tomx_clap_panel_display.label_key\tpanel.display.gain_reduction\n"
                    "display:0\tomx_clap_panel_display.label\tGain reduction\n"),
           "the display under display:0, no second meter and no floor parameter stated");
+    CHECK(has(out, "\ndisplay:2\tomx_clap_panel_display.curve_index\t2\n"), "display 2 under display:2, its curve index as given");
+    CHECK(has(out, "\nplugin\tclap_plugin.get_extension\tCLAP_EXT_MINI_CURVE_DISPLAY\n")
+          && has(out, "\nplugin\tclap_plugin_mini_curve_display.get_curve_count\t2\n"
+                      "plugin\tclap_plugin_mini_curve_display.x_name[0]\tHz\nplugin\tclap_plugin_mini_curve_display.y_name[0]\tdB\n"
+                      "plugin\tclap_plugin_mini_curve_display.x_name[1]\tinput dB\nplugin\tclap_plugin_mini_curve_display.y_name[1]\toutput dB\n"),
+          "the curves under plugin: the count and each curve's axis names");
     CHECK(!has(out, "placement_default:"), "no placement default record: the plugin's table is empty");
-    CHECK(count(out, "\nsection:") == 6 && count(out, "\ncontrol:") == 17 && count(out, "\nrole:") == 3 && count(out, "\ndisplay:") == 8,
-          "and no record more: 6 section, 17 control, 3 role, 8 display (%i, %i, %i, %i)",
+    CHECK(count(out, "\nsection:") == 6 && count(out, "\ncontrol:") == 17 && count(out, "\nrole:") == 3 && count(out, "\ndisplay:") == 22,
+          "and no record more: 6 section, 17 control, 3 role, 22 display (%i, %i, %i, %i)",
           count(out, "\nsection:"), count(out, "\ncontrol:"), count(out, "\nrole:"), count(out, "\ndisplay:"));
     status = run(out, "%s --fields clap:%s#org.omx-clap-host.test.panel-none", scan, panel);
     CHECK(status == 0 && !has(out, "\npanel\t") && !has(out, "panel-description") && !has(out, "\nsection:") && !has(out, "\ncontrol:"),
@@ -545,7 +565,8 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
     CHECK(status == 0 && has(out, "\npanel\tomx_clap_plugin_panel_description.count\tcontrols 4294967295 refused, past 4096\n")
           && has(out, "\npanel\tomx_clap_plugin_panel_description.count\troles 4097 refused, past 4096\n"),
           "the dump records each refused table with its count and the maximum (%i)", status);
-    CHECK(!has(out, "\ncontrol:") && !has(out, "\nrole:") && count(out, "\nsection:") == 6 && count(out, "\ndisplay:") == 8,
+    CHECK(!has(out, "\ncontrol:") && !has(out, "\nrole:") && count(out, "\nsection:") == 6 && count(out, "\ndisplay:") == 22
+          && has(out, "\nplugin\tclap_plugin_mini_curve_display.get_curve_count\t4294967295 refused, past 4096\n"),
           "no entry of a refused table, the other tables whole (%i section, %i display)", count(out, "\nsection:"),
           count(out, "\ndisplay:"));
 }

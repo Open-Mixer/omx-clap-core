@@ -25,7 +25,8 @@
  * WAYLAND_DISPLAY names answers. X11 is one xcb connection, opened by the first show and closed with the last X window;
  * one top-level window per plugin that embeds, titled with the plugin's name, which the plugin's window is set into
  * (set_parent); none for a plugin that only floats, which opens its own. The X events are read on the idle tick: a
- * resize of the host's window is the plugin's set_size, its close button (WM_DELETE_WINDOW) hides the plugin. The
+ * resize of the host's window is the plugin's set_size, its close button (WM_DELETE_WINDOW) hides the plugin, a new
+ * RESOURCE_MANAGER on the root (another Xft.dpi) is an embedding plugin's set_scale again (#229). The
  * plugin's timers and descriptors, which a plugin's window lives on, are the library's tick (clap.timer-support,
  * clap.posix-fd-support).
  * Wayland needs no library of the host's, so it is always built; only the X11 entries and the xcb they speak are behind
@@ -61,6 +62,8 @@
 #define WINDOW_REQ_CLOSED       (1u << 4)
 #define WINDOW_REQ_DESTROYED    (1u << 5)
 
+struct window;
+
 /* a window API a show may take: the display it needs, found and let go */
 struct window_api
 {
@@ -69,6 +72,7 @@ struct window_api
     int (*connect)(void);           ///< 0 when the display this API shows on answers, -1 when there is none
     void (*release)(void);          ///< the display let go once no window of this API is left
     uint32_t *open;                 ///< the windows of this API made and not yet destroyed
+    double (*scale)(const struct window *w);    ///< the scale of the output w is on (2.0 is 200 %), NULL when unknown
 };
 
 struct window
@@ -82,6 +86,7 @@ struct window
     int resizable;                  ///< what gui->can_resize last answered
     uint32_t xid;                   ///< the host's window, 0 for a floating plugin
     uint32_t width, height;         ///< the size the host's window has, as the host last set it or the plugin agreed to
+    double scale;                   ///< the scale the plugin was last given (set_scale), 0 before any
     _Atomic uint32_t requests;      ///< WINDOW_REQ_*
     _Atomic uint64_t request_size;  ///< the last request_resize: width << 32 | height
 };
@@ -89,6 +94,15 @@ struct window
 /* a slot per plugin instance, never freed: a plugin's thread that calls the host reads a slot that stays */
 static struct window g_windows[OMX_HOSTED_STAGE_MAX_PLUGIN_INSTANCES];
 static _Atomic uint32_t g_high;     // the slots ever claimed: the calls look no further
+static int g_scale_moved;           // a display said since the last tick that the scale of an output may have changed
+
+/* a display's word that the scale of an output may have changed, or that a window may be on another output now: the
+ * next tick reads the scale of every embedded window again (window_scale). Only X11 says it, so a build without xcb
+ * has no caller */
+static __attribute__((unused)) void scale_moved(void)
+{
+    g_scale_moved = 1;
+}
 
 static struct window *window_of(const struct omx_clap_instance *in)
 {
@@ -238,6 +252,8 @@ static int x_connect(void)
     g_wm_delete = atom("WM_DELETE_WINDOW");
     g_net_wm_name = atom("_NET_WM_NAME");
     g_utf8_string = atom("UTF8_STRING");
+    // the root's property changes: a new RESOURCE_MANAGER may name another Xft.dpi, the scale (x_scale)
+    xcb_change_window_attributes(g_x, g_screen->root, XCB_CW_EVENT_MASK, (const uint32_t[]){ XCB_EVENT_MASK_PROPERTY_CHANGE });
     g_x_lost_said = 0;
     return 0;
 }
@@ -315,6 +331,38 @@ static void x_flush(void)
         xcb_flush(g_x);
 }
 
+/* the scale the X resources give the screen: Xft.dpi in the root's RESOURCE_MANAGER, 96 dpi a scale of 1.0, as the
+ * toolkits read it. X11 gives every output of a screen that one scale, so a window moved to another output keeps it
+ * and only a new RESOURCE_MANAGER changes it (x_events); 1.0 when no resource names a dpi */
+static double x_scale(const struct window *w)
+{
+    xcb_get_property_reply_t *r = xcb_get_property_reply(g_x, xcb_get_property(g_x, 0, g_screen->root, XCB_ATOM_RESOURCE_MANAGER,
+                                                                                XCB_ATOM_STRING, 0, 16384), NULL);
+    double scale = 1.0;
+
+    (void)w;
+    if (!r)
+        return scale;
+    for (const char *s = xcb_get_property_value(r), *end = s + xcb_get_property_value_length(r); s < end;)
+    {
+        const char *nl = memchr(s, '\n', (size_t)(end - s)), *eol = nl ? nl : end;
+        char value[32];
+        double dpi;
+
+        if (eol - s > 8 && !memcmp(s, "Xft.dpi:", 8) && (size_t)(eol - s - 8) < sizeof(value))
+        {
+            memcpy(value, s + 8, (size_t)(eol - s - 8));
+            value[eol - s - 8] = '\0';
+            dpi = strtod(value, NULL);
+            if (dpi > 0.0)
+                scale = dpi / 96.0;
+        }
+        s = eol + 1;
+    }
+    free(r);
+    return scale;
+}
+
 /* the host's window after the plugin's requests: its size hints read again, the size the plugin asked */
 static void x_requested(struct window *w, uint32_t req)
 {
@@ -347,10 +395,10 @@ static void x_requested(struct window *w, uint32_t req) { (void)w; (void)req; }
  * only for a plugin with none. A plugin that offers X11 embedded but has no set_parent falls to X11 floating when it
  * offers that. Built without xcb, Wayland is the one entry */
 static const struct window_api g_apis[] = {
-    { CLAP_WINDOW_API_WAYLAND, 1, wl_connect, wl_release, &g_wl_open },
+    { CLAP_WINDOW_API_WAYLAND, 1, wl_connect, wl_release, &g_wl_open, NULL },
 #ifdef OMX_CLAP_HOST_X11
-    { CLAP_WINDOW_API_X11, 0, x_connect, x_release, &g_open },
-    { CLAP_WINDOW_API_X11, 1, x_connect, x_release, &g_open },
+    { CLAP_WINDOW_API_X11, 0, x_connect, x_release, &g_open, x_scale },
+    { CLAP_WINDOW_API_X11, 1, x_connect, x_release, &g_open, NULL },
 #endif
 };
 
@@ -375,6 +423,25 @@ static void window_drop(struct window *w, int destroy_gui)
 static void refused_say(const struct omx_clap_instance *in, const char *call)
 {
     fprintf(stderr, "%s: clap.gui %s answered false; no window\n", in->desc->id, call);
+}
+
+/* the plugin given the scale of the output its window is on (set_scale), when it is not the scale it was last given:
+ * at the create, before the size is asked, and on the tick after a display said the scale may have changed (#229).
+ * An embedded window only: CLAP calls set_scale for no floating one (free-audio/clap#396, #408). A false answer is the
+ * plugin's choice to read the scale from the system itself, and the scale is not given again until it changes */
+static void window_scale(struct window *w, struct omx_abi_guard *g)
+{
+    struct omx_clap_instance *in = atomic_load_explicit(&w->in, memory_order_relaxed);
+    double scale;
+
+    if (w->floating || !w->api->scale || !w->gui->set_scale)
+        return;
+    scale = w->api->scale(w);
+    if (!(scale > 0.0) || scale == w->scale)
+        return;
+    w->scale = scale;
+    // the scale is a double: it reaches the plugin in its first floating-point register (omx_abi_gd)
+    (void)omx_abi_gd(g, "gui.set_scale", (const void *)w->gui->set_scale, OMX_ABI_A(in->plugin), 0, 0, 0, scale);
 }
 
 static int window_unhide(struct window *w, const char **code)
@@ -427,6 +494,7 @@ static struct window *window_claim(struct omx_clap_instance *in, const clap_plug
     w->floating = api->floating;
     w->created = w->visible = w->resizable = 0;
     w->xid = 0;
+    w->scale = 0.0;
     w->width = WINDOW_DEFAULT_WIDTH;
     w->height = WINDOW_DEFAULT_HEIGHT;
     atomic_store_explicit(&w->requests, 0u, memory_order_relaxed);
@@ -465,9 +533,7 @@ static int x_embed(struct window *w, struct omx_clap_instance *in, const char *t
     clap_window_t parent;
     uint32_t width = 0, height = 0;
 
-    if (gui->set_scale)
-        // the scale is a double: it reaches the plugin in its first floating-point register (omx_abi_gd)
-        (void)omx_abi_gd(NULL, "gui.set_scale", (const void *)gui->set_scale, OMX_ABI_A(plugin), 0, 0, 0, 1.0);
+    window_scale(w, NULL);
     w->resizable = gui->can_resize && OMX_ABI_CALL(NULL, "gui.can_resize", gui->can_resize, plugin);
     if (gui->get_size && OMX_ABI_CALL(NULL, "gui.get_size", gui->get_size, plugin, &width, &height) && width > 0 && height > 0)
     {
@@ -599,6 +665,13 @@ static void x_events(void)
             if (w && m->type == g_wm_protocols && m->data.data32[0] == g_wm_delete)
                 window_conceal(w);
         }
+        else if (type == XCB_PROPERTY_NOTIFY)
+        {
+            const xcb_property_notify_event_t *p = (const xcb_property_notify_event_t *)e;
+
+            if (p->window == g_screen->root && p->atom == XCB_ATOM_RESOURCE_MANAGER)
+                scale_moved();
+        }
         free(e);
     }
     if (xcb_connection_has_error(g_x) && !g_x_lost_said)
@@ -688,6 +761,18 @@ void window_idle(void)
     for (uint32_t i = 0; i < high; i++)
         if (atomic_load_explicit(&g_windows[i].in, memory_order_relaxed))
             window_requests(&g_windows[i]);
+    // a display said the scale may have changed: every embedded window's plugin given its output's scale, if it changed
+    if (g_scale_moved)
+    {
+        g_scale_moved = 0;
+        for (uint32_t i = 0; i < high; i++)
+        {
+            struct omx_clap_instance *in = atomic_load_explicit(&g_windows[i].in, memory_order_relaxed);
+
+            if (in && g_windows[i].created)
+                window_scale(&g_windows[i], OMX_ABI_GUARD_OF(in));
+        }
+    }
     x_flush();
 }
 

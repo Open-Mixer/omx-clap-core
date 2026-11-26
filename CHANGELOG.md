@@ -64,3 +64,4 @@ Lines for the next release; the release moves them into debian/changelog and the
   Audio-path fixes the gate found: the LV2 log formats with its own printf (never
   vsnprintf), the URID lookup never allocates, the thread pool reads its thread id without a system call and no helper
   claims on the requesting thread's CPU.
+- omx-clap-host gives an embedded window's plugin its scale again (clap.gui `set_scale`) while the window exists, when the screen's `Xft.dpi` resource changes; never a floating window's (#229). `request_show` before the plugin has a window answers false, now held by `tests/window_test.c` (#230).

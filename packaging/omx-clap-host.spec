@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.35.0
+Version:        0.35.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -316,6 +316,15 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.1-1
+- Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin its
+  scale again (clap.gui set_scale) when the screen's Xft.dpi changes (#229),
+  and request_show before a window is held by a test (#230); a chain joins
+  mono and stereo members, a width change between them matched, never
+  refused (#232, omx_clap_chain_process_ports); the CLAP headers are named
+  without a floor no channel meets; CI builds a pull request into devel, and
+  a dispatch off main, on plugin-hostd's devel and the staging channel (#234).
+
 * Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
 - Chain 3: the host verbs check reads plugin-hostd-protocol's words from the
   domain plugin-hostd-protocol (V16) and the verb hosts are HOSTING_VERB_HOSTS

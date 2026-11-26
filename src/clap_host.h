@@ -587,7 +587,7 @@ struct omx_clap_instance
     uint32_t idle_held;         ///< 1 while this instance counts in the process's idle hold: set by a completed activate, cleared
                                 ///< by deactivate, which releases its count
 
-    // ABI 17: the plugin's org.openmixer.resource-hints.draft/0 (#323), omx-contract's RESOURCE_HINTS: read once at create
+    // ABI 17: the plugin's resource hints (#323), omx-contract's RESOURCE_HINTS, from its entry's factory or its instance: read once at create
     // and fixed for the instance's life, so any thread reads them
     omx_resource_hints_t resource_hints;  ///< the hints as the plugin declared them, each member whose bit of `declared` is
                                           ///< clear 0 and unknown; declared 0 when it states none or they were refused
@@ -988,14 +988,28 @@ OMX_CLAP_EXPORT uint32_t omx_clap_host_meter_values(struct omx_clap_instance *in
  * Control thread. */
 OMX_CLAP_EXPORT int omx_clap_host_voice_info(const struct omx_clap_instance *in, uint32_t *count, uint32_t *capacity, uint64_t *flags);
 
-/** The resource hints the plugin declares about itself (org.openmixer.resource-hints.draft/0, omx-contract's
- * RESOURCE_HINTS), as its get_extension answered at create: whole or refused. 1 with `*hints` the declaration, its
+/** The resource hints the plugin declares about itself (omx-contract's RESOURCE_HINTS), as they were read at create:
+ * from its entry's org.openmixer.resource-hints-factory.draft/0 when the entry offers one, else from the instance's
+ * org.openmixer.resource-hints.draft/0; whole or refused. 1 with `*hints` the declaration, its
  * `declared` the OMX_RESOURCE_HINT_ bits of the hints it states; a member whose bit is clear is unknown, never zero,
  * and reads 0. 0 when it states none (no extension, a get that answers false, or no bit set): `declared` 0. -1 when the
  * declaration is refused: `declared` 0 and `*why` the code, OMX_HOSTING_RESOURCE_HINTS_UNKNOWN_HINT for a bit
  * RESOURCE_HINTS has no hint for, OMX_HOSTING_RESOURCE_HINTS_WRONG_UNIT for a declared flag that is neither 0 nor 1.
  * `*why` is NULL otherwise. Any pointer may be NULL. Any thread, while the instance is open. */
 OMX_CLAP_EXPORT int omx_clap_host_resource_hints(const struct omx_clap_instance *in, omx_resource_hints_t *hints, const char **why);
+
+/** The resource hints plugin `id` of the file at `path` declares, before any instance of it exists: what its entry's
+ * org.openmixer.resource-hints-factory.draft/0 answers for `id` at `sample_rate` (0 when the caller has none yet). The
+ * file is loaded and its entry initialised as an open does; create_plugin is never called. The answer is judged as
+ * omx_clap_host_resource_hints judges it: 1 with `*hints` the declaration, 0 when it states none (no factory, an id it
+ * does not know, a get that answers false, no bit set), -1 refused with `*why` the code. -2 when the file does not load
+ * (`*hints` all clear, `*why` NULL). Any pointer but `path` and `id` may be NULL. Control thread. */
+OMX_CLAP_EXPORT int omx_clap_host_file_resource_hints(const char *path, const char *id, double sample_rate, omx_resource_hints_t *hints,
+                                                      const char **why);
+
+/** The same for a linked entry, or an adapter's (omx_clap_lv2_entry), whose factory states what the plugin's TTL does. */
+OMX_CLAP_EXPORT int omx_clap_host_entry_resource_hints(const clap_plugin_entry_t *entry, const char *id, double sample_rate,
+                                                       omx_resource_hints_t *hints, const char **why);
 
 /** The word of hint `index` (bit 1u << index of `declared`), as RESOURCE_HINTS spells it ("footprint-at-rest"); NULL
  * from OMX_RESOURCE_HINT_COUNT on. */

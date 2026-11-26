@@ -666,16 +666,24 @@ by the next `omx_clap_host_tick` while it is active.
 Resource hints
 --------------
 
-A plugin may state its own footprint through
-`org.openmixer.resource-hints.draft/0`, omx-contract's `RESOURCE_HINTS`
+A plugin may state its own footprint, omx-contract's `RESOURCE_HINTS`
 (3.1.0, `omxcontract/omx_resource_hints.h`): footprint-at-rest,
 footprint-per-voice and shared-load in bytes, threads-spawned a count,
-streams-from-disk and opens-sockets flags, activate-time in ms. The
-extension is asked once, when the instance is created, and kept for its
-life. A program that hosts the plugin through the library reads it with
-`omx_clap_host_resource_hints`, which answers 1 with the declaration, 0
-when the plugin states none (no extension, a `get` that answers false, no
-bit set), or -1 when the declaration is refused, with the code: a bit of
+streams-from-disk and opens-sockets flags, activate-time in ms. Its entry
+states them by plugin id through the factory
+`org.openmixer.resource-hints-factory.draft/0`, so a host knows what a
+plugin will cost before it creates one:
+`omx_clap_host_file_resource_hints` (a file) and
+`omx_clap_host_entry_resource_hints` (a linked or an adapter's entry)
+load the entry and ask the factory, and never call `create_plugin`. A
+plugin built before the factory states them through the instance's
+extension `org.openmixer.resource-hints.draft/0`. When an instance is
+created the factory is asked once, or the extension when the entry offers
+no factory, and the answer kept for its life. A program that hosts the
+plugin through the library reads it with `omx_clap_host_resource_hints`.
+Every read answers 1 with the declaration, 0 when the plugin states none
+(no factory and no extension, a `get` that answers false, no bit set), or
+-1 when the declaration is refused, with the code: a bit of
 `declared` that names no hint is `hosting.resource-hints.unknown-hint`, a
 declared flag whose byte is neither 0 nor 1 is
 `hosting.resource-hints.wrong-unit`. A refused declaration is trusted for
@@ -693,7 +701,8 @@ camel case (`omxres:footprintAtRest`), typed as the contract's
 `omx-resource-hints.ttl` ranges them: `xsd:unsignedLong` for bytes,
 `xsd:unsignedInt` for a count or a time, `xsd:boolean` for a flag. The LV2
 adapter reads them from the bundle's data and offers them through the same
-extension, so the library reads them as it reads a CLAP plugin's. A figure
+factory and extension, so the library reads them as it reads a CLAP
+plugin's, before any instance too. A figure
 not in its unit (a flag that is not a boolean, a number that is not an
 integer) refuses them all with `hosting.resource-hints.wrong-unit`, one
 below zero or past its member with `hosting.resource-hints.out-of-range`;

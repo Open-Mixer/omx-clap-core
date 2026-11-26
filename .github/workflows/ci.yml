@@ -28,8 +28,9 @@ env:
   # omx-clap line's tests, while plugin-hostd still builds and installs after omx-clap. Its pin header and vocabulary
   # (pkg-config plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/protocol.sh all come from
   # this one tree; the protocol, and its Python client python3-plugin-hostd-client, are the plugin-hostd-protocol the job
-  # installs
-  PLUGIN_HOSTD_BRANCH: main
+  # installs. A pull request into devel, or a dispatch off main (devel, a devel-wave head), takes plugin-hostd's devel, the
+  # level it is built and staged with (#234); every other run its main
+  PLUGIN_HOSTD_BRANCH: ${{ (((startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')) && 'devel') || 'main' }}
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
   OMX_CONTRACT_REF: v3.20.0
 
@@ -158,23 +159,25 @@ jobs:
       # the channel, as consumers get it; its installed omx-contract tree is what test-contract reads
       - name: Add the OpenMixer channel
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
       - name: omx-contract
         run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec && dnf install -y --setopt=install_weak_deps=False omx-contract
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
       # (plugin-hostd-protocol#27: a stale staged contract package outranked the channel)
-      # a pull request into devel builds against the staging channel (devel -> staging -> prod, Open-Mixer/.github
-      # add-openmixer): there a package from staging is expected; anywhere else one is refused as before
+      # a pull request into devel, or a dispatch off main, builds against the staging channel (devel -> staging -> prod,
+      # Open-Mixer/.github add-openmixer): there a package from staging is expected; anywhere else one is refused as before
       - name: Every omx package comes from the channel
         env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.base_ref }}
+          DEVEL_PR: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
         run: |
           set -euo pipefail
           dnf repoquery --installed --qf '%{name} %{version} %{from_repo}\n' 'omx-*' | tee /tmp/from-repo
-          case $EVENT:$BASE in
-            pull_request*:devel) echo "a pull request into devel: a package from the staging channel is expected here" ;;
-            *) if grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi ;;
-          esac
+          # a pull request into devel, or a dispatch off main, builds against the staging channel: a staged package is
+          # what it tests, so only every other run refuses one
+          if [ "$DEVEL_PR" = true ]; then echo "a pull request into devel or a dispatch off main: a package from the staging channel is expected here"
+          elif grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi
 
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
@@ -278,6 +281,9 @@ jobs:
       # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - uses: actions/checkout@v4
 
@@ -752,6 +758,9 @@ jobs:
       # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - uses: actions/checkout@v4
 
@@ -826,6 +835,9 @@ jobs:
 
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - uses: actions/checkout@v4
 
@@ -868,6 +880,9 @@ jobs:
       # the spec's BuildRequires: omx-dsp-devel, and omx-contract-devel under it, come from the OpenMixer channel
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - name: Fetch plugin-hostd
         run: |
@@ -1161,6 +1176,9 @@ jobs:
       # the Build-Depends on libomxdsp-dev (and libomx-contract-dev under it) come from the OpenMixer channel
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - name: Fetch plugin-hostd
         run: .github/plugin-hostd.sh /tmp/plugin-hostd
@@ -1374,6 +1392,8 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       arm: false  # aarch64/arm64 build at release only
+      # a dispatch off main (devel, a devel-wave head) builds against the staging channel, as the jobs above do (#234)
+      staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
 
   pr-fixes-issue:

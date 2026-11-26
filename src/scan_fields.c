@@ -59,9 +59,9 @@
  * libomx-domain, never literals here (omx-contract docs/consumer-move.md, step 4). Only the codes, which index the words, are compiled in
  * (scan_codes.h, the one item C indexes by). This is a command line: it reads OMX_CONTRACT_PATH, a ':' list of directories standing where
  * the contract directory stands (the first that holds the domain wins), and passes each to omx_domain_open_at; without it, the installed
- * directory. The library code of omx-clap never reads it. A missing, invalid or too-old domain is refused by name, exit 78. */
+ * directory. The library code of omx-clap never reads it. A missing or invalid domain is refused by name, exit 78; no version
+ * floor is asked of it: the build installed the omx-clap-contract it was made with. */
 #define SCAN_DOMAIN "scan"
-#define SCAN_DOMAIN_FLOOR "1.0.0"
 #define SCAN_SCOPES_ITEM "SCAN_FIELD_SCOPES"
 #define SCOPE(NAME) (g_scope[OMX_SCAN_FIELD_SCOPES_##NAME])
 #define SCAN_EX_CONFIG 78
@@ -84,7 +84,7 @@ static int scan_domain_open(void)
 
     memset(&err, 0, sizeof(err));
     if (!list || !*list)
-        rc = omx_domain_open(SCAN_DOMAIN, SCAN_DOMAIN_FLOOR, &g_scan_domain, &err);
+        rc = omx_domain_open(SCAN_DOMAIN, NULL, &g_scan_domain, &err);
     else
     {
         char *copy = strdup(list), *save = NULL, *dir;
@@ -94,7 +94,7 @@ static int scan_domain_open(void)
         rc = OMX_CONTRACT_CODE_DIR_ABSENT;
         for (dir = strtok_r(copy, ":", &save); dir; dir = strtok_r(NULL, ":", &save))
         {
-            rc = omx_domain_open_at(dir, SCAN_DOMAIN, SCAN_DOMAIN_FLOOR, &g_scan_domain, &err);
+            rc = omx_domain_open_at(dir, SCAN_DOMAIN, NULL, &g_scan_domain, &err);
             if (rc != OMX_CONTRACT_CODE_DIR_ABSENT)
                 break; /* the first directory that holds the domain wins, opened or refused */
         }

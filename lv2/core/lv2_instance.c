@@ -452,12 +452,22 @@ static int event_append(LV2_Event_Buffer *buf, uint32_t capacity, uint32_t frame
     return lv2_event_write(&it, frame, 0, type, (uint16_t)size, data) ? 0 : -1;
 }
 
+/* the host's audio-role predicate and its context: called through its field, which omx-rt-gate's omx-clap-core.abi
+   declares audio (ruled 2026-11-15) */
+struct lv2_audio_role
+{
+    lv2_audio_role_fn is_audio;
+    void *ctx;
+};
+
 /* whether the calling thread holds the instance's audio role, by the host's predicate; -1 without one */
 static int on_audio(const struct lv2_instance *in)
 {
-    const lv2_audio_role_fn is_audio = atomic_load_explicit(&in->is_audio, memory_order_acquire);
+    struct lv2_audio_role role;
 
-    return is_audio ? is_audio(atomic_load_explicit(&in->role_ctx, memory_order_relaxed)) != 0 : -1;
+    role.is_audio = atomic_load_explicit(&in->is_audio, memory_order_acquire);
+    role.ctx = atomic_load_explicit(&in->role_ctx, memory_order_relaxed);
+    return role.is_audio ? role.is_audio(role.ctx) != 0 : -1;
 }
 
 /* urid:map and urid:unmap over the process's table; a map on the audio role is counted */
@@ -728,7 +738,10 @@ static LV2_Worker_Status respond(LV2_Worker_Respond_Handle h, uint32_t size, con
     return LV2_WORKER_SUCCESS;
 }
 
-/* [worker] every queued request through work(); how many */
+/* [worker] every queued request through work(); how many. omx-rt-gate's view (make test-rt-gate defines
+   OMX_RT_GATE_VIEW; never a build): work() called through its field, so the gate sees respond handed to it as
+   parameter 1 and judges respond as the worker root lv2.abi declares. The build calls it through omx_abi_g, whose
+   trampoline the gate cannot read (src/thread_pool.c, run_task's note) */
 static uint32_t worker_service(struct lv2_instance *in)
 {
     uint32_t done = 0, size;
@@ -737,8 +750,12 @@ static uint32_t worker_service(struct lv2_instance *in)
     while ((p = omx_msgring_peek(&in->requests, &size)) != NULL)
     {
         g_in_work = in;
+#ifdef OMX_RT_GATE_VIEW
+        in->worker->work(in->handle, respond, in, size, p);   // the gate's view: see the note above
+#else
         omx_abi_g(&in->abi, "work", (const void *)in->worker->work, OMX_ABI_A(in->handle), OMX_ABI_A(respond), OMX_ABI_A(in),
                   OMX_ABI_A(size), OMX_ABI_A(p), 0);
+#endif
         g_in_work = NULL;
         omx_msgring_pop(&in->requests);
         done++;

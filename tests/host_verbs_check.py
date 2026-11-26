@@ -3,14 +3,17 @@
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """
 The verbs omx-clap-host owes, read from the installed declarations, against the host's socket and its registration
-table (contract.d/omx-clap/omx-clap.json, docs/verbs.md).
+table (plugin-hostd-protocol's domain plugin-hostd-protocol, whose items OWN_ITEMS hold the verbs this host answers by its own
+handlers since ruling R5; docs/verbs.md).
 
     host_verbs_check.py --port <n> --contract-path <dir>[:<dir>...] --registration <main.c> --header <verbs header>
                         --fake <fake.clap> --synth <fake_synth.clap> --layout-scheme <scheme>
 
-The declarations are every verbs item of every package installed under <dir>/3/ (the first directory of the list that
-holds a package wins, as OMX_CONTRACT_PATH reads), each file the package's MANIFEST.json lists, a code reference
-resolved to the codes item that declares it. A verb whose implementedBy names omx-clap-host is driven on the socket
+The declarations are every verbs item of every package installed under <dir>/ (a directory holding a MANIFEST.json; the first directory of the list that
+holds a package wins, as OMX_CONTRACT_PATH reads), each file the package's MANIFEST.json lists, and every verbs item of
+every domain installed under <dir>/<domain>/<domain>.json (the domain plugin-hostd-protocol among them),
+rebuilt by omx-contract's own reader (OMX_CONTRACT_CLIDIR, else omx-contract.pc's clidir); a code reference resolved to
+the codes item that declares it. A verb whose implementedBy names omx-clap-host is driven on the socket
 with a line built for its declared format from this file's EXAMPLES:
 
   required     a well-formed line is answered with the declared reply's shape, and each malformed line with the resp of
@@ -19,9 +22,8 @@ with a line built for its declared format from this file's EXAMPLES:
   unsupported  a well-formed line is answered with the verb's invalidOperation code (-902).
 
 And the reverse: every protocol_add_command of the registration table names its line by an OMX_VERB_<VERB>_FMT of the
-header, by an OMX_VERB_<VERB>_FMT of another package's header for a verb that package declares, by a mod-host macro,
-or by the word of a verb another package declares (or AWAITING names until a package
-declares it); the declared verbs this table registers equal the verbs this package declares for omx-clap-host. A
+header (plugin-hostd-protocol's), by a mod-host macro, or by the word of a verb another package declares (or AWAITING
+names until a package declares it); the verbs of OWN_ITEMS this table registers equal the verbs of OWN_ITEMS. A
 registered verb with no declaration, a declared one with no handler, a verb whose answer is not its declaration's, and
 a declared verb with no example are each a failure. Exit 0 held; 1 a failure; 2 usage or no declaration.
 """
@@ -30,15 +32,20 @@ import json
 import os
 import re
 import socket
+import subprocess
 import sys
 import tempfile
 
-sys.dont_write_bytecode = True  # plugin-hostd's tree is read, never written: no __pycache__ in its tests/lib
-sys.path.insert(0, os.environ.get('PLUGIN_HOSTD_TESTS_LIB') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'plugin-hostd', 'tests', 'lib'))
-import plugin_hostd_client  # noqa: E402  plugin-hostd-tests' lib/plugin_hostd_client.py
+sys.dont_write_bytecode = True  # a plugin-hostd-protocol checkout is read, never written: no __pycache__ in it
+if os.environ.get('PROTOCOL_DIR'):  # a build against a plugin-hostd-protocol checkout (the Makefile exports it)
+    sys.path.insert(0, os.path.join(os.environ['PROTOCOL_DIR'], 'clients', 'python'))
+import plugin_hostd_client  # noqa: E402  plugin-hostd-protocol's python3-plugin-hostd-client
 
 HOST = 'omx-clap-host'
-OWNER = 'omx-clap'
+# the verbs this host answers by its own handlers: the items of plugin-hostd-protocol's domain that ruling R5 moved there,
+# word for word, from omx-clap's domain; every other verb that names this host is another package's (or another item's)
+OWNER = 'plugin-hostd-protocol'
+OWN_ITEMS = ('PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS', 'PLUGIN_HOSTD_PROTOCOL_CLAP_HOST_VERBS')
 # a verb this host answers whose declaration belongs to another package's lane, and the package (FreeMixer/plugin-hostd#131);
 # once any installed package declares it, the socket checks it as declared
 # (preset_save is registered in mod-host's four-word form, <N> <dir> <file name> <label>, plugin-hostd#38)
@@ -120,7 +127,7 @@ def packages(path):
     """Every package of the contract path: {package: directory}, the first directory that holds one winning."""
     found = {}
     for top in [d for d in path.split(':') if d]:
-        base = os.path.join(top, '3')
+        base = top
         if not os.path.isdir(base):
             continue
         for pkg in sorted(os.listdir(base)):
@@ -129,34 +136,86 @@ def packages(path):
     return found
 
 
-def domain_items(path):
-    """The verbs and codes items of every installed domain of the contract path, as the data form's items:
-    {name: (owner, item)}. A domain's word is a verb (x-format, x-reply, x-implemented-by, x-codes) or a reply code
-    (x-resp), keyed by its title."""
-    out = {}
+# the data form of a domain's items, rebuilt by omx-contract's own reader (domainDataFiles of the command's lib/domain.mjs,
+# the rebuild render --with-domain runs): the file of each x-file, as a package's own data file would be
+REBUILD = """
+import { readFileSync } from 'node:fs';
+const [clidir, name, path] = process.argv.slice(1);
+const { domainDataFiles } = await import('file://' + clidir + '/lib/domain.mjs');
+process.stdout.write(JSON.stringify(domainDataFiles(name, JSON.parse(readFileSync(path, 'utf8')))));
+"""
+
+
+def clidir():
+    """the omx-contract command's own files: OMX_CONTRACT_CLIDIR (a checkout), else what omx-contract.pc names, else the
+    packaged /usr/lib/omx-contract"""
+    if os.environ.get('OMX_CONTRACT_CLIDIR'):
+        return os.environ['OMX_CONTRACT_CLIDIR']
+    p = subprocess.run(['pkg-config', '--variable=clidir', 'omx-contract'], capture_output=True, text=True)
+    return p.stdout.strip() if p.returncode == 0 and p.stdout.strip() else '/usr/lib/omx-contract'
+
+
+def rebuild(name, path):
+    """the data files omx-contract's reader rebuilds from the domain <name> at <path>: {x-file: text}; the reader's
+    refusal is raised with its words"""
+    r = subprocess.run(['node', '--input-type=module', '-e', REBUILD, clidir(), name, path], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError("omx-contract's reader refuses the domain %s at %s: %s" % (name, path, r.stderr.strip()[-300:]))
+    return json.loads(r.stdout)
+
+
+def domains(path):
+    """Every installed domain of the contract path: {domain: document}, the first directory that holds one winning."""
+    found = {}
     for top in [d for d in path.split(':') if d]:
         if not os.path.isdir(top):
             continue
         for dom in sorted(os.listdir(top)):
             doc = os.path.join(top, dom, dom + '.json')
-            if dom == '3' or not os.path.isfile(doc):
-                continue
-            with open(doc) as f:
-                d = json.load(f)
-            owner = d['info']['x-owner']
-            for name, it in d['components']['schemas'].items():
-                if it.get('x-kind') == 'verbs':
-                    out[name] = (owner, {'kind': 'verbs', 'verbs': {w['title']: {
-                        'verb': w['const'], 'format': w['x-format'], 'reply': w['x-reply'],
-                        'implementedBy': w['x-implemented-by'], 'codes': w.get('x-codes', [])} for w in it['oneOf']}})
-                elif it.get('x-kind', 'codes') == 'codes' and it.get('oneOf') and 'x-resp' in it['oneOf'][0]:
-                    out[name] = (owner, {'kind': 'codes', 'codes': {w['title']: {'code': w['const'], 'resp': w['x-resp']}
-                                                                    for w in it['oneOf']}})
+            if dom not in found and os.path.isfile(doc):
+                found[dom] = doc
+    return found
+
+
+def domain_items(path):
+    """The items of every installed domain of the contract path, in their data form as omx-contract's reader rebuilds
+    them: {name: (owner, item)}, the owner the document's x-owner."""
+    out = {}
+    for dom, doc in domains(path).items():
+        with open(doc) as f:
+            owner = json.load(f)['info']['x-owner']
+        for text in rebuild(dom, doc).values():
+            for name, item in json.loads(text).items():
+                if isinstance(item, dict) and 'kind' in item:
+                    out[name] = (owner, item)
     return out
 
 
+PROTOCOL = 'plugin-hostd-protocol'
+PROTOCOL_DOMAIN = 'plugin-hostd-protocol'
+
+
+def protocol_installed(path):
+    """plugin-hostd-protocol's words are installed: the domain plugin-hostd-protocol, named after the package that owns it
+    (its info.x-owner); the package installs no owner manifest beside it, since omx-contract's reader reads a domain as
+    the package of its name"""
+    doc = domains(path).get(PROTOCOL_DOMAIN)
+    if doc is None:
+        return False
+    with open(doc) as f:
+        return json.load(f)['info'].get('x-owner') == PROTOCOL
+
+
+class Refused(Exception):
+    """A declaration the check will not read, named by its file."""
+
+
 def declarations(path):
-    """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}."""
+    """The verbs of every installed package that name this host, each {verb, format, reply, level, codes, package}.
+
+    plugin-hostd-protocol's words are the domain plugin-hostd-protocol's only: an item in a data file of its package (a stale
+    plugin-hostd-protocol/verbs.json listed by an owner manifest, the home before 0.8.0) is refused by name, never read beside the domain.
+    """
     items, verbs = {}, []
     for pkg, d in packages(path).items():
         with open(os.path.join(d, 'MANIFEST.json')) as f:
@@ -165,8 +224,13 @@ def declarations(path):
             with open(os.path.join(d, rel)) as f:
                 doc = json.load(f)
             for name, item in doc.items():
-                if isinstance(item, dict) and 'kind' in item:
-                    items[name] = (pkg, item)
+                if not (isinstance(item, dict) and 'kind' in item):
+                    continue
+                if pkg == PROTOCOL:
+                    raise Refused('%s declares %s: the words of %s are its domain %s, and a data file of the package '
+                                  'is a stale copy of them (%s/%s)' % (os.path.join(d, rel), name, PROTOCOL,
+                                                                         PROTOCOL_DOMAIN, PROTOCOL, rel))
+                items[name] = (pkg, item)
     items.update(domain_items(path))
     for name, (pkg, item) in items.items():
         if item['kind'] != 'verbs':
@@ -179,7 +243,7 @@ def declarations(path):
                 ref_item, ref_code = c['ref'].split('.', 1)
                 codes[ref_code] = items[ref_item][1]['codes'][ref_code]['resp']
             verbs.append({'verb': v['verb'], 'format': v['format'], 'reply': v['reply'],
-                          'level': v['implementedBy'][HOST], 'codes': codes, 'package': pkg})
+                          'level': v['implementedBy'][HOST], 'codes': codes, 'package': pkg, 'item': name})
     return verbs
 
 
@@ -271,21 +335,32 @@ def main():
     ap.add_argument('--spaced-fake', help='a copy of the fake plugin under a directory whose name holds spaces')
     o = ap.parse_args()
 
-    verbs = declarations(o.contract_path)
-    mine = {v['verb'] for v in verbs if v['package'] == OWNER}
+    try:
+        verbs = declarations(o.contract_path)
+    except Refused as e:
+        print('FAIL %s' % e)
+        return 1
+    mine = {v['verb'] for v in verbs if v['package'] == OWNER and v['item'] in OWN_ITEMS}
+    # a package the host's registrations lean on must be installed, else its verbs are never driven (#361); since ruling
+    # R5 it also declares this host's own verbs
+    step(protocol_installed(o.contract_path), "plugin-hostd-protocol's package is installed under %s: its domain %s declares chain of %s"
+         % (o.contract_path, PROTOCOL_DOMAIN, HOST))
     if not mine:
-        print('host_verbs_check: no verb of %s for %s under %s' % (OWNER, HOST, o.contract_path), file=sys.stderr)
+        print('host_verbs_check: no verb of %s (%s) for %s under %s' % (OWNER, ', '.join(OWN_ITEMS), HOST, o.contract_path),
+              file=sys.stderr)
         return 2
-    # a package the host's registrations lean on must be installed, else its verbs are never driven (#361)
-    step('plugin-hostd-protocol' in packages(o.contract_path), "plugin-hostd-protocol's package is installed under %s: its verbs file declares chain of %s"
-         % (o.contract_path, HOST))
-    print('host_verbs_check: %d verbs name %s, %d of them %s\'s, from %s' % (len(verbs), HOST, len(mine), OWNER, o.contract_path))
+    print('host_verbs_check: %d verbs name %s, %d of them its own (%s), from %s'
+          % (len(verbs), HOST, len(mine), ', '.join(OWN_ITEMS), o.contract_path))
 
     # the reverse: what the host registers is what is declared for it
     table = registrations(o.registration, o.header)
-    declared_elsewhere = {v['verb'] for v in verbs if v['package'] != OWNER}
+    declared_elsewhere = {v['verb'] for v in verbs if v['verb'] not in mine}
     registered = set()
     for kind, word, text in table:
+        # the header is plugin-hostd-protocol's and defines every verb of its domain: a macro of a verb that is not one of
+        # OWN_ITEMS is another item's declaration, held as one of another package's
+        if kind == 'declared' and word not in mine:
+            kind = 'elsewhere'
         if kind == 'declared':
             registered.add(word)
             step(word in mine, 'registered %s is a verb %s declares for %s' % (text, OWNER, HOST))
@@ -321,7 +396,7 @@ def main():
     preset = os.path.join(tempfile.mkdtemp(prefix='host-verbs-'), 'preset.json')
     with open(preset, 'w') as f:
         json.dump({'format': 'org.openmixer.preset/1', 'plugin': {'id': 'org.omx-clap-host.test.passthrough'},
-                   'id': 'p', 'name': 'P', 'params': [{'symbol': '0', 'unit': '', 'value': 0.5}]}, f)
+                   'id': 'p', 'name': 'P', 'params': [{'symbol': '0', 'unit': 'none', 'value': 0.5}]}, f)
     subst = {'fx': fx, 'fx2': fx2, 'synth': synth, 'scheme': o.layout_scheme, 'pin': o.layout_scheme + ':' + '0' * 64,
              'preset': preset, 'missing': os.path.join(os.path.dirname(preset), 'missing.json')}
 

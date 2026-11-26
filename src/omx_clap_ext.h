@@ -50,7 +50,7 @@
 #include <clap/plugin.h>
 #include <clap/string-sizes.h>
 #include "omx_param_scales.h"
-#include <omxcontract/omx_param_units.h>
+#include "omx_param_units.h"
 #include <omxdomain/panel_codes.h>
 
 #ifdef __cplusplus
@@ -113,7 +113,7 @@ static const char OMX_CLAP_EXT_PARAM_CONTRACT[] = "org.openmixer.param-contract/
 
 /** The units, X(code, name): 1..24 are LV2's units one to one, named by their local name in units.ttl; 0x100 on is the
  * vendor block, append only. The name is the word the canonical serialisation and plugin-hostd's param_info write. The
- * table is omx-contract's OMX_PARAM_UNITS (<omxcontract/omx_param_units.h>, the render of its PARAM_CONTRACT_UNITS
+ * table is OMX_PARAM_UNITS ("omx_param_units.h", the render of the OMX_PARAM_CONTRACT_UNITS
  * sheet, the codes unsigned); this header names it and spells no row of its own. */
 #define OMX_CLAP_PARAM_UNITS(X) OMX_PARAM_UNITS(X)
 

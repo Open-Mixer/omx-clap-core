@@ -29,6 +29,9 @@
  *    mask but one, and ends with the last deactivate;
  *  - a request from inside a task, on a helper or on the audio thread, is refused;
  *  - a helper's task that runs past the block is waited for and counted late;
+ *  - a helper never claims a task while it runs on the requesting thread's CPU (ruling A): the requesting
+ *    thread, pinned here to a helper's core, takes that helper's share itself and spins only on tasks other helpers
+ *    hold, so a same-priority helper queued behind it on its own core can never hold a task it waits for;
  *  - an affinity mask of one core gives no pool, with the log line that says so;
  *  - SCHED_FIFO: where this process may set it, the helpers run at the priority given; where it may not, the instance
  *    runs serial with the log line that names the refusal;
@@ -253,6 +256,34 @@ int main(int argc, char **argv)
             CHECK(info.late >= late + 3u && omx_clap_host_thread_pool_late(in) >= late_in + 3u,
                   "and each of the 3 waits past the block is counted late (%llu in the pool, %u for the instance)",
                   (unsigned long long)(info.late - late), omx_clap_host_thread_pool_late(in) - late_in);
+        }
+        /* the requesting thread on a helper's core: that helper claims nothing (ruling A) */
+        if (helpers >= 2u)
+        {
+            cpu_set_t all, mine;
+            uint64_t before[OMX_CLAP_THREAD_POOL_HELPERS_MAX], shared = 0, others = 0;
+
+            omx_clap_host_thread_pool(&info);
+            for (uint32_t h = 0; h < info.helpers; h++)
+                before[h] = info.helper_tasks[h];
+            CPU_ZERO(&all);
+            pthread_getaffinity_np(pthread_self(), sizeof(all), &all);
+            CPU_ZERO(&mine);
+            CPU_SET(info.helper_core[0], &mine);
+            CHECK(pthread_setaffinity_np(pthread_self(), sizeof(mine), &mine) == 0,
+                  "the requesting thread pinned to helper 0's core %d", info.helper_core[0]);
+            blocks(in, 60, 32, 200);
+            pthread_setaffinity_np(pthread_self(), sizeof(all), &all);
+            omx_clap_host_thread_pool(&info);
+            shared = info.helper_tasks[0] - before[0];
+            for (uint32_t h = 1; h < info.helpers; h++)
+                others += info.helper_tasks[h] - before[h];
+            CHECK(g_st->incomplete == 0 && g_st->tasks_audio + g_st->tasks_other == 60u * 32u,
+                  "every task ran once and was done before request_exec returned (%llu)",
+                  (unsigned long long)(g_st->tasks_audio + g_st->tasks_other));
+            CHECK(shared == 0, "the helper on the requesting thread's CPU claimed no task (%llu claimed)",
+                  (unsigned long long)shared);
+            CHECK(others > 0, "the other helpers still took tasks (%llu)", (unsigned long long)others);
         }
     }
     else

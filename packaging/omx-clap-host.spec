@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.34.1
+Version:        0.35.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -13,25 +13,30 @@ BuildRequires: gcc
 BuildRequires: make
 BuildRequires: pkgconfig
 # the protocol library at the release whose ports listen on 127.0.0.1 unless told otherwise
-# The floors of the requirements below are GENERATED from packaging/deps.txt by Open-Mixer/.github deps-render
-# (render.sh --write); edit that file, not these lines.
-BuildRequires: plugin-hostd-protocol-devel >= 0.8.0
+# No version floor on any requirement (owner ruling 2026-11-24): the build installs the lower level's published packages, and what the
+# binaries need of them at run time rpm generates (soname dependencies, = %%{version} of this build's own packages).
+BuildRequires: plugin-hostd-protocol-devel
+# the verbs omx-clap-host answers, the host words (reply codes, track kinds, events) and the hosts a verb names are
+# plugin-hostd-protocol's domains since ruling R5: make test-fake reads them from its installed contract directory
+# (tests/host-verbs-check.sh, tests/host-replies-check.py, tests/host-reply-codes-check.py), the sources their renders
+BuildRequires: plugin-hostd-protocol-contract
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
-BuildRequires: plugin-db-devel >= 0.5.0
-# the CLAP headers: 1.2.10, the channel's one floor for every distribution (the channel serves it where the
-# distribution's own is older)
+BuildRequires: plugin-db-devel
+# the CLAP headers: 1.2.10, a third-party floor that stays (the channel serves it where the distribution's own is older)
 BuildRequires: clap-devel >= 1.2.10
 BuildRequires: pkgconfig(libcrypto)
-BuildRequires: omx-dsp-devel >= 0.34.0
+BuildRequires: omx-dsp-devel
+# make install ships the core's call graphs (make install-rt-gate-graphs) for a plugin's omx-rt-gate run to join
+BuildRequires: omx-rt-gate
 # omx_clap_ext.h's panel words (families, widgets, display sources, placements) are omx-panel's: its domain's codes header,
 # omxdomain/panel_codes.h, which omx-panel-contract installs (data only; omx-panel does not build against this package)
-BuildRequires: omx-panel-contract >= 0.16.0
+BuildRequires: omx-panel-contract
 # make install puts data/ into omx-contract's contract directory with omx-contract's install script, and the sources
-# the codes under contract.d/3 (3.0.0, the hosting codes moved here); the verbs are items of the omx-clap domain; omx_clap_ext.h, preset_file.c and scan.c include omx_param_units.h and omx_json_write.h (3.9.0)
-BuildRequires: omx-contract-devel >= 3.21.0
-# the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (3.20.0 the first
-# release that ships it, with the installer's domain mode and the %%{omx_contract_domain_dir} macro this spec names the domain by)
-BuildRequires: libomx-domain-devel >= 3.20.0
+# the codes under contract.d; preset_file.c and scan.c include omx_json_write.h
+BuildRequires: omx-contract-devel
+# the C loader of the contract's domains: omx-clap-scan reads the scan domain's scopes through it at start-up (with the
+# installer's domain mode and the %%{omx_contract_dir} macro this spec names the domain by)
+BuildRequires: libomx-domain-devel
 BuildRequires: lv2-devel
 BuildRequires: lilv-devel
 # make test-fake reads the sources for hand-typed hosting codes with perl (tests/hosting-codes-check.sh) and for
@@ -44,10 +49,9 @@ BuildRequires: pkgconfig(xcb)
 BuildRequires: systemd-rpm-macros
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
 Requires: plugin-hostd-protocol%{?_isa}
-Requires: plugin-hostd-protocol >= 0.8.0
 # omx-clap-scan reads the scan domain at start-up through the loader, and refuses (status 78) on an install without it: the loader, and
 # the data package that holds the domain (noarch data, so this package's own requirement of it is no cycle)
-Requires: libomx-domain >= 3.20.0
+Requires: libomx-domain
 Requires: omx-clap-contract = %{version}-%{release}
 # an LV2 plugin is a lilv instance, mapped by the adapter linked into the host, which loads lilv on the first LV2 add
 Recommends: lilv-libs
@@ -101,11 +105,11 @@ Obsoletes: omx-clap-core-devel < 0.34.0
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
 Requires: clap-devel >= 1.2.10
 # hosted_stage.h includes omx-dsp's headers
-Requires: omx-dsp-devel >= 0.34.0
-# omxcontract/omx_resource_hints.h, which clap_host.h includes, and omx_param_units.h, which omx_clap_ext.h includes (3.9.0)
-Requires: omx-contract-devel >= 3.21.0
+Requires: omx-dsp-devel
+# omxcontract/omx_resource_hints.h, which clap_host.h includes
+Requires: omx-contract-devel
 # omxdomain/panel_codes.h, which omx_clap_ext.h includes
-Requires: omx-panel-contract >= 0.16.0
+Requires: omx-panel-contract
 Requires: omx-clap-contract = %{version}-%{release}
 Requires: pkgconfig
 
@@ -122,13 +126,15 @@ License: GPL-3.0-or-later
 Obsoletes: omx-clap-core-contract < 0.34.0
 BuildArch: noarch
 # the contract directory, its schema and its reader's own package
-Requires: omx-contract-data >= 3.21.0
-
+Requires: omx-contract-data
+# the verbs whose replies OMX_CLAP_REPLIES types, and the host words, are plugin-hostd-protocol's domains (ruling R5)
+Requires: plugin-hostd-protocol-contract
 %description -n omx-clap-contract
 omx-clap's definitions as files in omx-contract's contract directory,
 for any program that reads them at run time: the hosting limits and refusal
-codes, and the verbs omx-clap-host and plugin-hostd answer, with their
-formats, replies, refusal codes and what each host owes each verb.
+codes, and the typed replies of the verbs omx-clap-host answers. The verbs
+themselves, the host's reply codes and events and the hosts a verb names
+are plugin-hostd-protocol's, in plugin-hostd-protocol-contract.
 Its documentation is on openmixer.org.
 
 %package -n omx-clap-lv2-devel
@@ -201,16 +207,18 @@ make test-package
 %{_libdir}/pkgconfig/omx-clap.pc
 %{_includedir}/omx-clap-host/
 %{_datadir}/omx-clap/omx-clap.map
+%{_datadir}/omx-clap/rt-gate/
+%{_datadir}/omx-clap/fixtures/
 
 %files -n omx-clap-contract
 %license COPYING
 %doc README.md
-%{_datadir}/omx-contract/contract.d/3/omx-clap/
-%{omx_contract_domain_dir}/scan/
-%{omx_contract_domain_dir}/omx-clap-scale/
-%{omx_contract_domain_dir}/clap/
-%{omx_contract_domain_dir}/host/
-%{omx_contract_domain_dir}/omx-clap/
+%{omx_contract_dir}/scan/
+%{omx_contract_dir}/hosting/
+%{omx_contract_dir}/omx-param-contract/
+%{omx_contract_dir}/omx-clap-scale/
+%{omx_contract_dir}/clap/
+%{omx_contract_dir}/omx-clap/
 %dir %{_datadir}/omx-clap
 %dir %{_datadir}/omx-clap/catalogs
 
@@ -308,6 +316,17 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
+- Chain 3: the host verbs check reads plugin-hostd-protocol's words from the
+  domain plugin-hostd-protocol (V16) and the verb hosts are HOSTING_VERB_HOSTS
+  (V29); the param-contract unit code sheet is the domain omx-param-contract,
+  its renders are omx_param_units.h and omx_param_unit_ids.h, mapped onto
+  omx-contract's PARAM_UNITS_CLAP_ENCODED (V23d, omx-contract 3.22.0).
+- Ruling R5: the domain host, HOSTING_VERB_HOSTS and the verbs omx-clap-host
+  answers are plugin-hostd-protocol's domains host, hosting-verb and
+  plugin-hostd-protocol; this package no longer installs them, and its build
+  and tests read them from plugin-hostd-protocol-contract and its headers.
+
 * Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.34.1-1
 - The packages 0.34.0 renamed obsolete their old names: omx-clap-libs
   obsoletes omx-clap-core, omx-clap-devel omx-clap-core-devel and

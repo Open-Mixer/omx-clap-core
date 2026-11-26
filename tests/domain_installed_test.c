@@ -21,7 +21,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: domain_installed_test <installed contract directory>\n");
         return 2;
     }
-    if (omx_domain_open_at(argv[1], "scan", "1.0.0", &d, &err) != 0)
+    if (omx_domain_open_at(argv[1], "scan", NULL, &d, &err) != 0)
     {
         fprintf(stderr, "domain_installed_test: the installed scan domain does not open at %s: %s: %s\n", argv[1], err.code, err.message);
         return 1;

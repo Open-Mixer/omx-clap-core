@@ -8,7 +8,10 @@
 # print-test-ns), and this check holds the workflow to them.
 #
 # In scope: every prerequisite of `test:` and every other test-* or check-* target of the Makefile, except those the
-# Makefile lists in DESK_ONLY (print-desk-only), which it runs on a desk with the reason beside the list.
+# Makefile lists in DESK_ONLY (print-desk-only), which run on a desk. Each desk-only target has its row in
+# tests/desk_only.tsv: the target, the narrowest piece of it a CI container can run (a Makefile target of its own), and
+# why the rest cannot run there. That piece must run in CI like any other target, and the desk-only target itself must
+# not (it would not be desk-only then).
 #
 # A target runs in CI when a `make ...` invocation in the `run:` value of an enabled step of an enabled job names it, or
 # names a target that has it as a prerequisite, directly or through other targets (the Makefile's own database,
@@ -18,7 +21,8 @@
 #
 #   ci_runs_test_list.py <tree>       0 when every in-scope target runs in CI, 1 naming each that does not
 #   ci_runs_test_list.py --self-test  a target left out of a scratch workflow, and one only a name, comment, echo, printf
-#                                     or disabled step or job spells, are found
+#                                     or disabled step or job spells, are found; a desk-only target with no row, no
+#                                     reason, or a CI piece no step runs is found
 import glob
 import os
 import re
@@ -184,10 +188,53 @@ def reached(rule_map, named):
     return seen
 
 
+DESK_TABLE = os.path.join("tests", "desk_only.tsv")
+
+
 def desk_only(root):
-    """The targets the Makefile names as run on a desk only (print-desk-only), each with its reason beside the list."""
+    """The targets the Makefile names as run on a desk only (print-desk-only)."""
     r = subprocess.run(["make", "-s", "-C", root, "print-desk-only"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     return set(r.stdout.split())
+
+
+def desk_rows(root):
+    """tests/desk_only.tsv: target -> (the piece of it CI runs, why the rest runs on a desk only); a malformed line is
+    kept under its first field with what it lacks, so check() names it."""
+    rows = {}
+    try:
+        with open(os.path.join(root, DESK_TABLE), encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except FileNotFoundError:
+        return rows
+    for line in lines:
+        if not line.strip() or line.startswith("#"):
+            continue
+        fields = [x.strip() for x in line.split("\t")]
+        fields += [""] * (3 - len(fields))
+        rows[fields[0]] = (fields[1], " ".join(fields[2:]).strip())
+    return rows
+
+
+def check_desk(rule_map, ran, root, rows=None):
+    """Every desk-only target has its row, a reason, and a CI piece that is a target of its own and runs in CI."""
+    rows = desk_rows(root) if rows is None else rows
+    out = []
+    for t in sorted(desk_only(root) | set(rows)):
+        if t not in rows:
+            out.append("%s is desk-only (print-desk-only) with no row in %s: the piece of it CI runs and why the rest cannot" % (t, DESK_TABLE))
+            continue
+        piece, reason = rows[t]
+        if t not in rule_map:
+            out.append("%s has a row in %s and is no Makefile target" % (t, DESK_TABLE))
+        if not reason:
+            out.append("%s is desk-only with no reason in %s" % (t, DESK_TABLE))
+        if not piece or piece == t or piece not in rule_map:
+            out.append("%s is desk-only and its CI piece in %s, '%s', is no Makefile target of its own" % (t, DESK_TABLE, piece))
+        elif piece not in ran:
+            out.append("%s is desk-only and its CI piece, %s, runs in no CI step" % (t, piece))
+        if t in ran:
+            out.append("%s is desk-only in %s but a CI step runs it" % (t, DESK_TABLE))
+    return out
 
 
 def wanted(rule_map, root="."):
@@ -197,10 +244,10 @@ def wanted(rule_map, root="."):
     return sorted(t for t in own | set(rule_map.get("test", ())) if "/" not in t and t not in desk)
 
 
-def check(rule_map, workflow_text, root="."):
+def check(rule_map, workflow_text, root=".", rows=None):
     want = wanted(rule_map, root)
     ran = reached(rule_map, expand_groups(root, named_in_workflow(workflow_text)))
-    return ["%s is a test target and runs in no CI step" % t for t in want if t not in ran]
+    return ["%s is a test target and runs in no CI step" % t for t in want if t not in ran] + check_desk(rule_map, ran, root, rows)
 
 
 def workflow_text(root):
@@ -225,7 +272,8 @@ def self_test(root):
         failed = 1
     else:
         print("ok   a workflow naming every prerequisite of `test` is met")
-    if check(rule_map, "      - run: make test\n" + others, root):
+    # `make test` also runs TEST_DESK, a desk-only target: that is found too (a CI step would run it), not counted here
+    if [line for line in check(rule_map, "      - run: make test\n" + others, root) if "runs in no CI step" in line]:
         print("FAIL `make test` and the targets outside it were not taken as running them")
         failed = 1
     else:
@@ -341,6 +389,37 @@ def self_test(root):
         failed = 1
     else:
         print("ok   a job with a real `if:` is a run")
+    # the desk-only rows: each needs its reason and a CI piece that runs; the table's rows are the control
+    rows = desk_rows(root)
+    if not rows:
+        print("FAIL the control: %s has no row" % DESK_TABLE)
+        return 1
+    if check(rule_map, full, root, rows):
+        print("FAIL the control: a workflow naming every target bar the desk-only ones was refused")
+        return 1
+    t, (piece, reason) = sorted(rows.items())[0]
+    for what, bad, needle in (
+            ("%s's row deleted" % t, {k: v for k, v in rows.items() if k != t}, "%s is desk-only (print-desk-only) with no row" % t),
+            ("%s's reason emptied" % t, dict(rows, **{t: (piece, "")}), "%s is desk-only with no reason" % t),
+            ("%s's CI piece emptied" % t, dict(rows, **{t: ("", reason)}), "%s is desk-only and its CI piece" % t),
+            ("%s's CI piece set to itself" % t, dict(rows, **{t: (t, reason)}), "%s is desk-only and its CI piece" % t)):
+        if any(needle in line for line in check(rule_map, full, root, bad)):
+            print("ok   %s is found" % what)
+        else:
+            print("FAIL %s is not found" % what)
+            failed = 1
+    no_piece = "".join("      - run: make %s\n" % u for u in want if u != piece)
+    if any("its CI piece, %s, runs in no CI step" % piece in line for line in check(rule_map, no_piece, root, rows)):
+        print("ok   %s's CI piece %s left out of the workflow is found" % (t, piece))
+    else:
+        print("FAIL %s's CI piece %s left out of the workflow is not found" % (t, piece))
+        failed = 1
+    if any("%s is desk-only in %s but a CI step runs it" % (t, DESK_TABLE) in line
+           for line in check(rule_map, full + "      - run: make %s\n" % t, root, rows)):
+        print("ok   a desk-only target a CI step runs is found")
+    else:
+        print("FAIL a desk-only target a CI step runs is not found")
+        failed = 1
     return failed
 
 

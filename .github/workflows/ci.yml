@@ -26,8 +26,9 @@ env:
   # printed and a branch that does not resolve is refused by name). The chain passes its own chain head through this same
   # variable: omx-clap's tests get plugin-hostd's tree at plugin-hostd's chain head, a test-only checkout before the
   # omx-clap line's tests, while plugin-hostd still builds and installs after omx-clap. Its pin header and vocabulary
-  # (pkg-config plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/ (protocol.sh,
-  # plugin_hostd_client.py) all come from this one tree; the protocol is the plugin-hostd-protocol the job installs
+  # (pkg-config plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/protocol.sh all come from
+  # this one tree; the protocol, and its Python client python3-plugin-hostd-client, are the plugin-hostd-protocol the job
+  # installs
   PLUGIN_HOSTD_BRANCH: main
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
   OMX_CONTRACT_REF: v3.20.0
@@ -36,6 +37,16 @@ env:
 # tier and one package arm (fc45 x86_64, trixie arm64). The sanitizer tiers (address, thread), every sabotage of a guard,
 # the full package matrix and the release dry run run on push to main, on tags and on dispatch, before a release.
 jobs:
+  trigger-gate:
+    name: only this workflow runs on a pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Open-Mixer/.github/.github/actions/trigger-gate@openmixer-v1
+        with:
+          lint-workflow: ci.yml
+
   # no Fedora release written into a job: the cells come from check-matrix (rule 11-10, ruling D25)
   fedora-cells:
     runs-on: ubuntu-latest
@@ -80,10 +91,10 @@ jobs:
     uses: Open-Mixer/.github/.github/workflows/public-sources-check.yml@openmixer-v1
     with:
       commit-identity: true
-  # the dependency floors: the spec and debian/control state the floors packaging/deps.txt declares, and no ceiling. The
-  # engine is Open-Mixer/.github's deps-render, at the same openmixer-v1 ref every shared action of this repository uses
+  # no hand-kept floors (owner ruling 2026-11-24): there is no packaging/deps.txt, so Open-Mixer/.github's deps-render renders nothing and
+  # holds the spec, debian/control and workflows to its no-ceiling rule; tests/no_floors_check.py (make test) refuses a floor
   deps-render:
-    name: the floors are packaging/deps.txt's
+    name: no ceilings (deps-render, no deps.txt)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -151,14 +162,31 @@ jobs:
         run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec && dnf install -y --setopt=install_weak_deps=False omx-contract
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
       # (plugin-hostd-protocol#27: a stale staged contract package outranked the channel)
+      # a pull request into devel builds against the staging channel (devel -> staging -> prod, Open-Mixer/.github
+      # add-openmixer): there a package from staging is expected; anywhere else one is refused as before
       - name: Every omx package comes from the channel
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
         run: |
           set -euo pipefail
           dnf repoquery --installed --qf '%{name} %{version} %{from_repo}\n' 'omx-*' | tee /tmp/from-repo
-          if grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi
+          case $EVENT:$BASE in
+            pull_request*:devel) echo "a pull request into devel: a package from the staging channel is expected here" ;;
+            *) if grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi ;;
+          esac
 
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
+
+      # libomx-domain ships omx-domain, the loader's command: make test-domain opens the installed hosting domain with it;
+      # check-domain holds contract.d/hosting/hosting.json, the one home of the hosting codes: domain check, fmt, validate, every code documented
+      - name: libomx-domain
+        run: dnf install -y --setopt=install_weak_deps=False libomx-domain
+      - name: make check-domain
+        run: make check-domain OMX_CONTRACT_DIR=/usr/lib/omx-contract
+      - name: make test-domain
+        run: make test-domain OMX_CONTRACT_DIR=/usr/lib/omx-contract
 
       # one pack per listed language from the spec and debian/control, and the catalogs through omx-contract's release
       # gate (translate --check): a listed language with no catalog, a missing key or a stale entry is red (#30)
@@ -169,7 +197,7 @@ jobs:
           base: omx-clap-contract
           owner: omx-clap
           spec: packaging/omx-clap-host.spec
-          # data/ and the host domain's codes (contract.d/host), whose translations catalogs/ holds
+          # data/ and the codes whose translations catalogs/ holds (reply.host.* are plugin-hostd-protocol's since ruling R5)
           gate: make --no-print-directory catalog-gate
 
   docs:
@@ -257,7 +285,10 @@ jobs:
         run: |
           set -euo pipefail
           dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
-          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
+          # omx-contract, the command: its reader rebuilds a domain's items for tests/host_verbs_check.py (node)
+          # python3-plugin-hostd-client: the protocol's Python client, which tests/host_verbs_check.py and the parity
+          # harness import
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host omx-contract python3-plugin-hostd-client
           pkg-config --exists plugin-hostd-protocol
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
@@ -300,6 +331,9 @@ jobs:
           git -C /tmp/omx-contract fetch -q --depth 1 https://github.com/Open-Mixer/omx-contract "refs/tags/$OMX_CONTRACT_REF"
           git -C /tmp/omx-contract checkout -q FETCH_HEAD
           make test-fields OMX_CONTRACT_DIR=/tmp/omx-contract
+
+      - name: The devel package's fixtures build out of tree
+        run: make test-fixtures-install
 
       # the relaxed-ordering copy of clap_stage.h compiles beside the headers it includes (#165)
       - name: The stage bench builds and runs
@@ -476,6 +510,16 @@ jobs:
             echo "::warning::test-jack-fake SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
+      # test-jack's every step but its omx-delay arm, on the fake plugins: commands over the socket, the ports, latency,
+      # the lane's width and relayouts, idle hold (tests/desk_only.tsv: test-jack's piece CI runs)
+      - name: Test the host over jack on the fake plugins
+        run: |
+          if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
+            make test-jack-fake-arms
+          else
+            echo "::warning::test-jack-fake-arms SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
+          fi
+
       # Layout pinning over jack: pin_expect before add, a layout that differs destroyed before activate.
       - name: Test layout pinning over jack
         run: |
@@ -539,7 +583,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            # plugin-hostd-protocol's verbs file (chain of omx-clap-host), from the build the headers come from: a staged
+            # the domain plugin-hostd-protocol (chain of omx-clap-host), from the build the headers come from: a staged
             # build names its commit in its release (.git[<time>.]<sha>), which may be a pull request's head and on no
             # branch: its full sha, from the API (a fetch takes no short one), fetched alone; a release is its tag
             version=$(rpm -q --qf '%{VERSION}' plugin-hostd-protocol-devel)
@@ -557,6 +601,7 @@ jobs:
               git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD
             fi
             echo "plugin-hostd-protocol's declarations: $version at $(git -C /tmp/plugin-hostd-protocol rev-parse --short HEAD)"
+            make test-host-verbs-domains PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
             make test-host-verbs PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
             make test-host-verbs-sabotage PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
           else
@@ -614,7 +659,8 @@ jobs:
             echo "::warning::test-identity-lv2 SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
 
-      # no test or bench writes its own send: they source plugin-hostd-tests' lib/protocol.sh (tests/protocol_client_check.sh)
+      # no test or bench writes its own send: they source plugin-hostd-tests' lib/protocol.sh or import the protocol's
+      # python3-plugin-hostd-client, never plugin-hostd's copy of it (tests/protocol_client_check.sh)
       - name: Test that no script carries its own protocol client
         run: make test-protocol-client
 
@@ -672,8 +718,8 @@ jobs:
 
       - name: Name what this job does not run
         run: |
-          echo "test-jack, test-identity and test-scan's omx-delay arm are NOT run here: they load omx-delay, a plugin of omx-plugins, and this repository's CI installs nothing of it (DESK_ONLY in the Makefile)."
-          echo "They stay in the Makefile for the desk: make test-jack CLAP_TEST_PLUGIN=<omx-delay.clap>; make test-identity; make test-scan."
+          echo "The desk-only targets are NOT run here, each for the reason tests/desk_only.tsv gives; the piece of each a CI container can run is a step of this job:"
+          awk -F'\t' '$1 ~ /^(test|check)-/ { print "  " $1 ": its CI piece, " $2 ", is a step of this job" }' tests/desk_only.tsv
 
   # each guard of the host's chain broken in a copy of the sources, the chain tests red on it (#104). About a quarter of an
   # hour of host runs, in a job of its own beside build and test, on the same container and the same setup.
@@ -713,7 +759,8 @@ jobs:
         run: |
           set -euo pipefail
           dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec
-          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host
+          # python3-plugin-hostd-client: the protocol's Python client, which the parity harness imports
+          dnf install -y --setopt=install_weak_deps=False cjson-devel mod-host python3-plugin-hostd-client
           pkg-config --exists plugin-hostd-protocol
           pkg-config --exists omxdsp
           pkg-config --exists omx-contract
@@ -864,10 +911,9 @@ jobs:
             diff -u expected.txt files.txt
             rpm -qp --requires "$rpm" | tee requires.txt
             grep -q 'libplugin-hostd-protocol.so.0' requires.txt
-            # the floor is the one packaging/deps.txt declares, read back from the spec generated from it; no ceiling
-            floor=$(sed -n 's/^Requires: plugin-hostd-protocol >= //p' packaging/omx-clap-host.spec)
-            grep -qx "plugin-hostd-protocol >= $floor" requires.txt
-            ! grep -qE '^plugin-hostd-protocol.* < ' requires.txt
+            # the protocol by name and by its soname, generated: no typed floor, no ceiling (owner ruling 2026-11-24)
+            grep -qx 'plugin-hostd-protocol(x86-64)' requires.txt || grep -qx 'plugin-hostd-protocol' requires.txt
+            ! grep -qE '^plugin-hostd-protocol[^ ]* [<>]' requires.txt
             grep -q 'libomx-clap.so.1' requires.txt
             grep -q 'omx-clap-libs.* = ' requires.txt
             # the window links libxcb, so the package requires it (#180)
@@ -878,6 +924,7 @@ jobs:
             files "$rpm" > files.txt
             printf '%s\n' '/usr/lib*/libomx-clap.so.1' "/usr/lib*/libomx-clap.so.$(cat VERSION)" /usr/share/licenses/omx-clap-libs/COPYING /usr/share/doc/omx-clap-libs/README.md \
               /usr/share/omx-clap/ts/omx-clap-hosting.js /usr/share/omx-clap/ts/omx-clap-hosting.d.ts \
+              /usr/share/omx-clap/ts/omx-clap-hosting-codes.js /usr/share/omx-clap/ts/omx-clap-hosting-codes.d.ts \
               /usr/share/omx-clap/ts/omx-clap-vocabulary.js /usr/share/omx-clap/ts/omx-clap-vocabulary.d.ts | sort > expected.txt
             diff -u <(sed 's,/usr/lib64/,/usr/lib*/,' files.txt) expected.txt
             # the library names no jack and no protocol library
@@ -888,7 +935,7 @@ jobs:
             rpm -qlp "$rpm"
             files "$rpm" > files.txt
             printf '%s\n' '/usr/lib*/libomx-clap.so' '/usr/lib*/pkgconfig/omx-clap.pc' /usr/include/omx-clap-host/clap_host.h \
-              /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_vocabulary.h /usr/include/omx-clap-host/omx_param_scales.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
+              /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_vocabulary.h /usr/include/omx-clap-host/omx_param_units.h /usr/include/omx-clap-host/omx_param_unit_ids.h /usr/include/omx-clap-host/omx_param_scales.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
               /usr/include/omx-clap-host/clap_host_extensions.h /usr/include/omx-clap-host/omx_clap_ext.h /usr/include/omx-clap-host/omx_msgring.h /usr/include/omx-clap-host/clap_meters.h /usr/include/omx-clap-host/omx_clap_raw.h /usr/include/omx-clap-host/omx_clap_midi.h /usr/include/omx-clap-host/clap_chain.h /usr/include/omx-clap-host/abi_guard.h \
               /usr/share/omx-clap/omx-clap.map \
               /usr/share/licenses/omx-clap-devel/COPYING /usr/share/doc/omx-clap-devel/README.md | sort > expected.txt
@@ -899,9 +946,9 @@ jobs:
           for rpm in rpms/omx-clap-contract-[0-9]*.noarch.rpm; do
             rpm -qlp "$rpm"
             files "$rpm" > files.txt
-            printf '%s\n' /usr/share/omx-contract/contract.d/3/omx-clap/MANIFEST.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting.json /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json \
-              /usr/share/omx-contract/contract.d/3/omx-clap/hosting/clap.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/cost.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/features.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/latency.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/memory.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/output.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/override.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/patch.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/preset.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/provenance.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/realised.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/resource-hints.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/rt-safety.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/stability.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/state.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/topology.json /usr/share/omx-contract/contract.d/3/omx-clap/hosting/worker.json \
-              /usr/share/omx-contract/contract.d/omx-clap-scale/omx-clap-scale.json /usr/share/omx-contract/contract.d/clap/clap.json /usr/share/omx-contract/contract.d/host/host.json /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
+            printf '%s\n' /usr/share/omx-contract/contract.d/omx-clap/MANIFEST.json /usr/share/omx-contract/contract.d/omx-clap/hosting.json /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json \
+              /usr/share/omx-contract/contract.d/omx-clap/hosting/clap.json /usr/share/omx-contract/contract.d/omx-clap/hosting/cost.json /usr/share/omx-contract/contract.d/omx-clap/hosting/features.json /usr/share/omx-contract/contract.d/omx-clap/hosting/latency.json /usr/share/omx-contract/contract.d/omx-clap/hosting/memory.json /usr/share/omx-contract/contract.d/omx-clap/hosting/output.json /usr/share/omx-contract/contract.d/omx-clap/hosting/override.json /usr/share/omx-contract/contract.d/omx-clap/hosting/patch.json /usr/share/omx-contract/contract.d/omx-clap/hosting/preset.json /usr/share/omx-contract/contract.d/omx-clap/hosting/provenance.json /usr/share/omx-contract/contract.d/omx-clap/hosting/realised.json /usr/share/omx-contract/contract.d/omx-clap/hosting/resource-hints.json /usr/share/omx-contract/contract.d/omx-clap/hosting/rt-safety.json /usr/share/omx-contract/contract.d/omx-clap/hosting/stability.json /usr/share/omx-contract/contract.d/omx-clap/hosting/state.json /usr/share/omx-contract/contract.d/omx-clap/hosting/topology.json /usr/share/omx-contract/contract.d/omx-clap/hosting/worker.json \
+              /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json /usr/share/omx-contract/contract.d/omx-clap-scale/omx-clap-scale.json /usr/share/omx-contract/contract.d/clap/clap.json /usr/share/omx-contract/contract.d/hosting/hosting.json /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
               /usr/share/licenses/omx-clap-contract/COPYING /usr/share/doc/omx-clap-contract/README.md | sort > expected.txt
             diff -u expected.txt files.txt
           done
@@ -987,14 +1034,18 @@ jobs:
           }
           dnf_retry --setopt=install_weak_deps=False pipewire iproute util-linux python3 \
             rpms/omx-clap-host-[0-9]*.${{ matrix.cell.arch }}.rpm \
-            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm plugin-hostd-protocol-contract
+            plugin-hostd-rpms/plugin-hostd-contract-[0-9]*.noarch.rpm plugin-hostd-protocol-contract omx-contract
           rpm -qf /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json | grep -q '^omx-clap-contract-'
-          # plugin-hostd-protocol's verbs file names this host too (chain: required), and the check reads it
-          rpm -qf /usr/share/omx-contract/contract.d/3/plugin-hostd-protocol/verbs.json | grep -q '^plugin-hostd-protocol-contract-'
-          dnf install -y --setopt=install_weak_deps=False plugin-db-devel
+          # the domain plugin-hostd-protocol names this host too (chain: required), and the check reads it
+          # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)
+          rpm -qf /usr/share/omx-contract/contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json | grep -q '^plugin-hostd-protocol-contract-'
+          # plugin-hostd-protocol-devel: the render of the verbs this host answers, which the registration table names (ruling R5)
+          dnf install -y --setopt=install_weak_deps=False plugin-db-devel plugin-hostd-protocol-devel
           scheme=$(printf '#include <plugin-db/pin.h>\nPHD_PIN_LAYOUT_SCHEME\n' | gcc $(pkg-config --cflags plugin-db) -E -P - | tail -n 1 | tr -d '"')
+          header=$(pkg-config --variable=includedir plugin-hostd-protocol)/plugin-hostd-protocol/plugin-hostd/plugin_hostd_protocol_host_verbs.h
+          test -f "$header"
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
-            PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib OMX_CONTRACT_PATH=/usr/share/omx-contract/contract.d OMX_CLAP_HOST=/usr/bin/omx-clap-host PHD_PIN_LAYOUT_SCHEME=$scheme \
+            PLUGIN_HOSTD_TESTS_LIB=/tmp/plugin-hostd/tests/lib OMX_CONTRACT_PATH=/usr/share/omx-contract/contract.d OMX_CLAP_HOST=/usr/bin/omx-clap-host PHD_PIN_LAYOUT_SCHEME=$scheme HOST_VERBS_HEADER=$header \
               ./tests/host_verbs_e2e.sh
           else
             echo "::warning::the installed verbs SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
@@ -1049,7 +1100,7 @@ jobs:
           ! grep -q 'liblilv' ldd.txt
           # the hosting codes' TypeScript modules are in the runtime package: omx-clap-devel is not installed
           # in this clean root, and plugin-qualify reads them at this path with no headers
-          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
+          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-hosting-codes.js omx-clap-hosting-codes.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
             test -s "/tmp/clean-root/usr/share/omx-clap/ts/$f"
           done
 
@@ -1164,21 +1215,26 @@ jobs:
           dpkg -L libomx-clap-dev | tee dev-files.txt
           # the contract directory's files are omx-clap-contract's, which both packages depend on at this version
           dpkg -L omx-clap-contract | tee contract-files.txt
-          grep -qx /usr/share/omx-contract/contract.d/3/omx-clap/MANIFEST.json contract-files.txt
-          grep -qx /usr/share/omx-contract/contract.d/3/omx-clap/hosting.json contract-files.txt
-          grep -qx /usr/share/omx-contract/contract.d/3/omx-clap/hosting/features.json contract-files.txt
+          grep -qx /usr/share/omx-contract/contract.d/omx-clap/MANIFEST.json contract-files.txt
+          grep -qx /usr/share/omx-contract/contract.d/omx-clap/hosting.json contract-files.txt
+          grep -qx /usr/share/omx-contract/contract.d/omx-clap/hosting/features.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json contract-files.txt
           # the scan domain, installed by the installer's domain mode, with its catalogs, in the same data package
+          grep -qx /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/omx-clap-scale/omx-clap-scale.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/clap/clap.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/scan/scan.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/scan/catalogs/ca.json contract-files.txt
+          # the hosting domain, the same way
+          grep -qx /usr/share/omx-contract/contract.d/hosting/hosting.json contract-files.txt
           ! grep -q '^/usr/share/omx-contract/' dev-files.txt
           dpkg -I debs/omx-clap-contract_*_all.deb | grep -E '^ Architecture: all$'
           for deb in debs/libomx-clap1_*.deb debs/libomx-clap-dev_*.deb; do
             dpkg -I "$deb" | grep -E '^ Depends:.*omx-clap-contract \(= '
           done
           grep -qx /usr/include/omx-clap-host/omx_clap_vocabulary.h dev-files.txt
+          grep -qx /usr/include/omx-clap-host/omx_param_units.h dev-files.txt
+          grep -qx /usr/include/omx-clap-host/omx_param_unit_ids.h dev-files.txt
           grep -qx /usr/include/omx-clap-host/omx_param_scales.h dev-files.txt
           grep -qx /usr/include/omx-clap-host/hosted_stage_limits.h dev-files.txt
           # the hosting codes' TypeScript modules ship in the runtime package: a plugin-qualify-like consumer
@@ -1187,6 +1243,8 @@ jobs:
           dpkg -L libomx-clap1 | sort > core1-files.txt
           grep -qx "$tsdir/omx-clap-hosting.js" core1-files.txt
           grep -qx "$tsdir/omx-clap-hosting.d.ts" core1-files.txt
+          grep -qx "$tsdir/omx-clap-hosting-codes.js" core1-files.txt
+          grep -qx "$tsdir/omx-clap-hosting-codes.d.ts" core1-files.txt
           grep -qx "$tsdir/omx-clap-vocabulary.js" core1-files.txt
           grep -qx "$tsdir/omx-clap-vocabulary.d.ts" core1-files.txt
           ! grep -qx "$tsdir/omx-clap-hosting.js" dev-files.txt
@@ -1260,7 +1318,8 @@ jobs:
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap1_*.deb ./debs/omx-clap-contract_*_all.deb \
             ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
-          dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0 \(>= [0-9.]+~?\)'
+          # the protocol's version relation is the one ${shlibs:Depends} generates from its library, none typed (owner ruling 2026-11-24)
+          dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0( \(>= [0-9.]+~?\))?(,|$)'
           ! dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qF 'libplugin-hostd-protocol0 (<<'
           dpkg -s libomx-clap1 | grep '^Status: install ok installed'
           dpkg -s libomx-domain0 | grep '^Status: install ok installed'
@@ -1287,7 +1346,7 @@ jobs:
       - name: The runtime package alone carries the hosting codes' TypeScript modules
         run: |
           set -euo pipefail
-          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
+          for f in omx-clap-hosting.js omx-clap-hosting.d.ts omx-clap-hosting-codes.js omx-clap-hosting-codes.d.ts omx-clap-vocabulary.js omx-clap-vocabulary.d.ts; do
             test -s "/usr/share/omx-clap/ts/$f"
           done
 
@@ -1314,7 +1373,6 @@ jobs:
       actions: read
     uses: ./.github/workflows/release.yml
     with:
-      publish: false
       arm: false  # aarch64/arm64 build at release only
 
 

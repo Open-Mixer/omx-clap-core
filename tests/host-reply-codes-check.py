@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 """Every number the host answers is named in the vocabulary (omx-clap-core#34): each ERR_* name src/ uses, resolved to
-its number by plugin-hostd-protocol's host-errors.h, has a code with an English sentence in data/ or in a domain of
-contract.d/ (HOST_REPLY_CODES is the host domain's, contract.d/host/host.json, since V15), so a table built from the vocabularies (plugin-hostd-protocol's reply_codes) names every refusal
-and a controller asks for none by number. -2, the instance number already taken, is reply.host.instance-already-exists.
+its number by plugin-hostd-protocol's host-errors.h, has a code with an English sentence in data/, in a domain of
+contract.d/ or in a domain document named by --domain (HOST_REPLY_CODES is plugin-hostd-protocol's domain host since ruling
+R5: its installed host/host.json, or a checkout's contract.d/host/host.json), so a table built from the vocabularies
+(plugin-hostd-protocol's reply_codes) names every refusal and a controller asks for none by number. -2, the instance
+number already taken, is reply.host.instance-already-exists.
 
-  tests/host-reply-codes-check.py --header <host-errors.h> [--self-test]
+  tests/host-reply-codes-check.py --header <host-errors.h> [--domain <domain.json>]... [--self-test]
 """
 import copy
 import glob
@@ -51,12 +53,14 @@ def from_domain(doc):
     return out
 
 
-def load_docs(root):
-    """data/*.json as written, and every contract.d/<domain>/<domain>.json in the data form"""
+def load_docs(root, domains=()):
+    """data/*.json as written, and every contract.d/<domain>/<domain>.json and every named domain document in the data form"""
     docs = [json.load(open(f)) for f in sorted(glob.glob(os.path.join(root, "data", "*.json")))]
     for f in sorted(glob.glob(os.path.join(root, "contract.d", "*", "*.json"))):
         if os.path.basename(f) == os.path.basename(os.path.dirname(f)) + ".json":
             docs.append(from_domain(json.load(open(f))))
+    for f in domains:
+        docs.append(from_domain(json.load(open(f))))
     return docs
 
 
@@ -96,11 +100,16 @@ def problems(sources, docs, numbers):
 def main():
     args = sys.argv[1:]
     if "--header" not in args:
-        print("usage: host-reply-codes-check.py --header <host-errors.h> [--self-test]", file=sys.stderr)
+        print("usage: host-reply-codes-check.py --header <host-errors.h> [--domain <domain.json>]... [--self-test]", file=sys.stderr)
         return 2
     numbers = host_numbers(args[args.index("--header") + 1])
     sources = [open(f).read() for f in sorted(glob.glob(os.path.join(ROOT, "src", "*.c")))]
-    docs = load_docs(ROOT)
+    domains = [args[i + 1] for i, a in enumerate(args) if a == "--domain" and i + 1 < len(args)]
+    for f in domains:
+        if not os.path.isfile(f):
+            print("host-reply-codes-check: no domain document at %s" % f, file=sys.stderr)
+            return 2
+    docs = load_docs(ROOT, domains)
     if "--self-test" in args:
         arms = []
         dropped = copy.deepcopy(docs)

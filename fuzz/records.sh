@@ -16,13 +16,15 @@
 # names on stderr in this build. So is each patch of fuzz/sabotage/, applied alone: the seed its header names aborts at
 # the check it names. The source is restored before each run and on every exit path.
 #
-# Usage: FUZZ_BUILD=build/fuzz FUZZ_CC=clang records.sh
+# Usage: FUZZ_BUILD=build/fuzz FUZZ_CC=clang PROTOCOL_CFLAGS=-I<dir> records.sh
+# PROTOCOL_CFLAGS: where <plugin-hostd/protocol.h> is, which src/preset_file.h includes; make fuzz-records passes it
 set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 B=${FUZZ_BUILD:-build/fuzz}/records
 CC=${FUZZ_CC:-clang}
-CFLAGS="-O0 -g -std=gnu99 -D_GNU_SOURCE -w"
+: "${PROTOCOL_CFLAGS:?records.sh: PROTOCOL_CFLAGS is unset; run it as make fuzz-records}"
+CFLAGS="-O0 -g -std=gnu99 -D_GNU_SOURCE -w $PROTOCOL_CFLAGS"
 SEP=$(printf '\037')
 mkdir -p "$B/base"
 # an aborting run leaves no core in the tree

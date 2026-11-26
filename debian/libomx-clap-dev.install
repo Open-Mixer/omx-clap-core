@@ -4,3 +4,5 @@ usr/include/omx-clap-host
 usr/lib/*/libomx-clap.so
 usr/lib/*/pkgconfig/omx-clap.pc
 usr/share/omx-clap/omx-clap.map
+usr/share/omx-clap/rt-gate
+usr/share/omx-clap/fixtures

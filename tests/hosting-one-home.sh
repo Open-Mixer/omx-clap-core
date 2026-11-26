@@ -20,7 +20,7 @@ fail=0
 
 # copy <name>: the committed tree, as git has it, under $tmp/<name>
 copy() {
-    mkdir -p "$tmp/$1" && git -C "$root" archive --format=tar HEAD | tar -x -C "$tmp/$1"
+    mkdir -p "$tmp/$1" && git -c safe.directory="$(cd "$root" && pwd)" -C "$root" archive --format=tar HEAD | tar -x -C "$tmp/$1"
 }
 # readback <name>: install the copy's contract tree and read it back; prints the read's output, returns its status
 readback() {

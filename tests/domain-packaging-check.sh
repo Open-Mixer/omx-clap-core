@@ -5,7 +5,7 @@
 #   - make install-contract installs the domain by the installer's domain mode, `install-contract-dir.sh --domain contract.d/scan
 #     <contractdir> omx-clap`, naming omx-clap, the package its info.x-owner names (omx-contract #88), and writes no `install`
 #     line of its own for it;
-#   - the data package omx-clap-contract lists it: the rpm as %{omx_contract_domain_dir}/scan/, the deb as
+#   - the data package omx-clap-contract lists it: the rpm as %{omx_contract_dir}/scan/, the deb as
 #     usr/share/omx-contract/contract.d/scan, and neither package lists the domain anywhere else;
 #   - the reader, omx-clap-host (it ships omx-clap-scan), requires the loader (libomx-domain, libomx-domain0) and the data package, and
 #     the source builds with the loader's headers (libomx-domain-devel, libomx-domain-dev), by name: no version floor (owner ruling 2026-11-24).
@@ -18,13 +18,13 @@ grep -Eq '(install-contract-dir\.sh|\$\(INSTALL_CONTRACT_DIR\)) +--domain +contr
 ! grep -En '^[[:space:]]*install .*contract\.d/scan' Makefile || fail "Makefile: a hand-written install line for contract.d/scan (the installer's domain mode installs it)"
 # the data package lists it
 contract_files=$(awk '/^%files -n omx-clap-contract/{f=1;next} /^%files|^%package|^%changelog/{f=0} f' "$spec")
-printf '%s\n' "$contract_files" | grep -qx '%{omx_contract_domain_dir}/scan/' || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/scan/"
+printf '%s\n' "$contract_files" | grep -qx '%{omx_contract_dir}/scan/' || fail "$spec: omx-clap-contract does not list %{omx_contract_dir}/scan/"
 grep -qx 'usr/share/omx-contract/contract.d/scan' debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/scan"
 # the code sheet's domains, omx-param-contract, omx-clap-scale, clap, omx-clap and hosting, the same way
 for dom in omx-param-contract omx-clap-scale clap omx-clap hosting; do
 grep -Eq "(install-contract-dir\\.sh|\\\$\\(INSTALL_CONTRACT_DIR\\)) +--domain +contract\\.d/$dom +[^ ]+ +(\\\$\\(CORE\\)|omx-clap)\$" Makefile || fail "Makefile: install-contract does not call the installer's --domain mode for contract.d/$dom as omx-clap"
 ! grep -En "^[[:space:]]*install .*contract\\.d/$dom" Makefile || fail "Makefile: a hand-written install line for contract.d/$dom"
-printf '%s\n' "$contract_files" | grep -qx "%{omx_contract_domain_dir}/$dom/" || fail "$spec: omx-clap-contract does not list %{omx_contract_domain_dir}/$dom/"
+printf '%s\n' "$contract_files" | grep -qx "%{omx_contract_dir}/$dom/" || fail "$spec: omx-clap-contract does not list %{omx_contract_dir}/$dom/"
 grep -qx "usr/share/omx-contract/contract.d/$dom" debian/omx-clap-contract.install || fail "debian/omx-clap-contract.install does not list usr/share/omx-contract/contract.d/$dom"
 done
 # plugin-hostd-protocol's domains (host and hosting-verb, ruling R5) are installed and listed by plugin-hostd-protocol-contract

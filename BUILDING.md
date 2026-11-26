@@ -401,21 +401,13 @@ with a `MANIFEST.json` naming this version, using the install script
 omx-contract-devel 3.3.0 ships (or `OMX_CONTRACT_DIR=<checkout>`'s); the
 packages ship them in `omx-clap-contract`.
 
-Every domain under `contract.d/` is versioned with the package: its
-`info.version` is `VERSION`, and an item's `x-since` is the omx-clap-core
-release that first shipped the item. That is omx-contract's x-since rule
-(`docs/contract-dir.md`, omx-contract#123) with the domain's version read as
-the package's (#123): plugin-hostd compares an `x-since` with its omx-clap-core
-floor, so a domain version of its own would answer another question. A verb
-that shipped before the domains existed keeps its release (the verbs of
-`data/verbs.json`, 0.22.0 and 0.26.0; the property verbs, 0.32.5, under the
-map node `OMX_CLAP_CORE_0.33`); the scan's items shipped in 0.33.0, the clap
-and scale domains' in 0.34.0, the param-contract code sheet in 0.35.0. A
-release that bumps `VERSION` bumps every domain's `info.version` with it.
+Every domain under `contract.d/` has a version of its own, like a protocol's
+(owner ruling 2026-11-25): its `info.version` starts at 0.1.0 and rises only
+when that domain's own words or items change, never with `VERSION`, and an
+item's `x-since` is the domain version that first carried it.
 `make test-fields` runs `tests/domain-x-since-check.py` over every domain: an
-`info.version` that is not `VERSION`, an `x-since` that is not a version and an
-`x-since` above `info.version` are refused, and its `--self-test` plants each
-in every domain.
+`info.version` or an `x-since` that is not a version and an `x-since` above
+`info.version` are refused, and its `--self-test` plants each in every domain.
 
 The verbs omx-clap-host answers past mod-host's are plugin-hostd-protocol's
 (ruling R5): `PLUGIN_HOSTD_PROTOCOL_SHARED_VERBS` and

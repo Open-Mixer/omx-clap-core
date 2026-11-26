@@ -22,8 +22,8 @@ BuildRequires: plugin-hostd-protocol-devel
 BuildRequires: plugin-hostd-protocol-contract
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
 BuildRequires: plugin-db-devel
-# the CLAP headers: 1.2.10, a third-party floor that stays (the channel serves it where the distribution's own is older)
-BuildRequires: clap-devel >= 1.2.10
+# the CLAP headers, by name: no floor, since no channel served the 1.2.10 one (Fedora 45 has 1.2.7)
+BuildRequires: clap-devel
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: omx-dsp-devel
 # make install ships the core's call graphs (make install-rt-gate-graphs) for a plugin's omx-rt-gate run to join
@@ -103,7 +103,7 @@ License: GPL-3.0-or-later
 # the name this package had before 0.34.0 (packaging/renamed.txt)
 Obsoletes: omx-clap-core-devel < 0.34.0
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
-Requires: clap-devel >= 1.2.10
+Requires: clap-devel
 # hosted_stage.h includes omx-dsp's headers
 Requires: omx-dsp-devel
 # omxcontract/omx_resource_hints.h, which clap_host.h includes
@@ -141,7 +141,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-devel%{?_isa} = %{version}-%{release}
-Requires: clap-devel >= 1.2.10
+Requires: clap-devel
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig

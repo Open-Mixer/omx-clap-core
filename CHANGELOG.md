@@ -4,6 +4,7 @@
 
 Lines for the next release; the release moves them into debian/changelog and the spec.
 
+- omx-clap-host gives an embedded window's plugin its scale again (clap.gui `set_scale`) while the window exists, when the screen's `Xft.dpi` resource changes; never a floating window's (#229). `request_show` before the plugin has a window answers false, now held by `tests/window_test.c` (#230).
 - The vocabulary pass: omx-clap 0.35.1 (#221) and V23d on devel (#223) merged into the wave, nothing of the 0.35 line
   dropped. Every domain stays at the package version, 0.M.m until 1.0 (owner 2026-11-25), so #221's return to 1.0.0
   and 2.18.0 is not taken. <omx-clap-host/omx_clap_host_verbs.h> left with the verbs (R5).

@@ -31,7 +31,7 @@ if [ -z "${JACK_E2E_INSIDE:-}" ]; then
     for f in "$host" "$gui" "$fake" "$source" "$listen"; do
         [ -e "$f" ] || { echo "missing $f" >&2; exit 2; }
     done
-    for t in Xvfb xdotool pipewire pw-link; do
+    for t in Xvfb xdotool xprop pipewire pw-link; do
         command -v "$t" >/dev/null || { echo "missing $t" >&2; exit 2; }
     done
     JACK_E2E_INSIDE=1 OMX_CLAP_HOST=$host JACK_E2E_PORT=$port \
@@ -194,6 +194,14 @@ for _ in $(seq 30); do [ "$(geometry)" = "320x240" ] && break; sleep 0.1; done
 [ "$(geometry)" = "320x240" ]; step $? "and the host's window is resized to it ($(geometry))"
 xwin windowsize "$xid" 500 400; step $? "the host's window resized to 500x400 on the display"
 wait_logged "set_size 500 400"; step $? "is the plugin's set_size 500 400"
+# the screen's scale changed while the window exists (#229): a new RESOURCE_MANAGER naming Xft.dpi 192, as a session's
+# settings daemon writes it, is the plugin's set_scale 2.0, once; the same resource written again gives it nothing
+DISPLAY=$display run xprop -root -f RESOURCE_MANAGER 8s -set RESOURCE_MANAGER "Xft.dpi:	192"
+step $? "the screen's RESOURCE_MANAGER set to Xft.dpi 192"
+wait_logged "scale 2.0"; step $? "is the plugin's set_scale 2.0 while its window exists"
+DISPLAY=$display run xprop -root -f RESOURCE_MANAGER 8s -set RESOURCE_MANAGER "Xft.dpi:	192"
+sleep 0.3
+[ "$(logged "scale 2.0")" = 1 ] && [ "$(logged "scale 1.0")" = 1 ]; step $? "given once: the same dpi again is no second set_scale"
 audio_runs 0 "with the window open"
 expect "hide_external_ui 0" "resp 0"
 for _ in $(seq 30); do shown "fake gui" || break; sleep 0.1; done

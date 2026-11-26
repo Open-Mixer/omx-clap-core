@@ -31,7 +31,7 @@ fixtures=${HOST_VERBS_FIXTURES:-$here}
 registration=${HOST_VERBS_REGISTRATION:-$root/src/main.c}
 
 : "${OMX_CONTRACT_PATH:?the contract directories to read the declarations from}" "${PHD_PIN_LAYOUT_SCHEME:?}"
-: "${HOST_VERBS_HEADER:?plugin-hostd-protocol's plugin_hostd_protocol_host_verbs.h}"
+: "${HOST_VERBS_HEADER:?the plugin_hostd_protocol_host_verbs.h of plugin-hostd-protocol}"
 
 if [ -z "${HOST_VERBS_INSIDE:-}" ]; then
     for f in "$host" "$fixtures/fake.clap" "$fixtures/fake_synth.clap" "$registration" "$HOST_VERBS_HEADER"; do

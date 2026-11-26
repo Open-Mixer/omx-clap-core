@@ -1457,7 +1457,7 @@ test-jack-window-wl: $(PROG) $(NOX11_PROG) tests/fake_gui_wl.clap tests/fake.cla
 
 # an instrument over jack in the same kind of namespace: MIDI into midi_in, the level that comes out, the silence after the note off
 test-jack-synth: $(PROG) tests/fake_synth.clap tests/fake.clap tests/jack_synth_probe
-	./tests/jack_synth_e2e.sh
+	OMX_REPLY_HOST_NOTE_QUEUE_FULL_RESP='$(call host_declared,OMX_REPLY_HOST_NOTE_QUEUE_FULL_RESP)' ./tests/jack_synth_e2e.sh
 
 # the transport over jack in the same kind of namespace: set_bpm, set_bpb, transport and transport_sync against a CLAP
 # transport probe, then with -t the JACK transport located, started and stopped by tests/jack_transport_ctl

@@ -1207,12 +1207,13 @@ jobs:
 
       - uses: Open-Mixer/.github/.github/actions/build-deb@openmixer-v1
 
-      # the protocol library, omx-contract's data and its domain loader (libomx-domain0, which the host links) the package depends on, from the channel, for the smoke test's container, which has only
-      # the distribution
+      # the protocol library, omx-contract's data, the protocol's contract (plugin-hostd-protocol-contract, which
+      # omx-clap-contract depends on since ruling R5) and its domain loader (libomx-domain0, which the host links) the
+      # package depends on, from the channel, for the smoke test's container, which has only the distribution
       - name: Fetch libplugin-hostd-protocol0 for the smoke test
         run: |
           set -euo pipefail
-          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data libomx-domain0
+          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data plugin-hostd-protocol-contract libomx-domain0
 
       # what the smoke test runs the installed package against, built here for the architecture
       - name: Build the smoke test fixtures
@@ -1308,6 +1309,7 @@ jobs:
             debs/*.deb
             proto-debs/libplugin-hostd-protocol0_*.deb
             proto-debs/omx-contract-data_*.deb
+            proto-debs/plugin-hostd-protocol-contract_*.deb
             proto-debs/libomx-domain0_*.deb
             smoke
           if-no-files-found: error
@@ -1338,7 +1340,8 @@ jobs:
           set -euo pipefail
           apt-get update -qq
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap1_*.deb ./debs/omx-clap-contract_*_all.deb \
-            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb ./proto-debs/libomx-domain0_*.deb
+            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb \
+            ./proto-debs/plugin-hostd-protocol-contract_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
           # the protocol's version relation is the one ${shlibs:Depends} generates from its library, none typed (owner ruling 2026-11-24)
           dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0( \(>= [0-9.]+~?\))?(,|$)'

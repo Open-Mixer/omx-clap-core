@@ -34,7 +34,9 @@
  *   org.omx-clap-host.test.synth-poly     stereo out, CLAP note dialect, a voice per note id: a note off starts a
  *                                         release of FAKE_SYNTH_RELEASE frames, after which the synth pushes
  *                                         CLAP_EVENT_NOTE_END with the voice's id, channel and key. A note on whose
- *                                         id a voice still sounds under is counted (fake_synth_poly_stats). It
+ *                                         id a voice still sounds under is counted (fake_synth_poly_stats); so is
+ *                                         every note expression, and on its own count each one whose id, channel
+ *                                         and key name a voice. It
  *                                         declares clap.voice-info, answered only while active: FAKE_SYNTH_VOICE_COUNT
  *                                         of FAKE_SYNTH_VOICE_CAPACITY voices, overlapping notes supported. No other
  *                                         layout offers voice-info. It names three keys through clap.note-name
@@ -152,6 +154,9 @@ typedef struct FAKE_SYNTH_POLY_STATS_T {
     char last_preset[512];      ///< the last preset-load: "<kind>|<location or ->|<key or ->"
     int32_t status;             ///< what process() returns (CLAP_PROCESS_CONTINUE until a test sets it)
     uint32_t process_calls;     ///< process() calls
+    uint32_t exprs;             ///< note expressions taken
+    uint32_t exprs_on_voice;    ///< of them, those whose note id, channel and key name a voice that sounds or releases
+    uint32_t exprs_channels;    ///< bit c set: an expression of channel c (0 to 15) named its voice so
 } fake_synth_poly_stats_t;
 
 static fake_synth_poly_stats_t g_poly;
@@ -298,6 +303,21 @@ static void poly_event(synth_t *synth, const clap_event_header_t *header)
                                 : (e->channel < 0 || voice->channel == e->channel) && (e->key < 0 || voice->key == e->key))
                 voice->release_left = FAKE_SYNTH_RELEASE;
         }
+    }
+    else if (header->type == CLAP_EVENT_NOTE_EXPRESSION)
+    {
+        const clap_event_note_expression_t *x = (const clap_event_note_expression_t *)header;
+
+        g_poly.exprs++;
+        for (v = 0; v < FAKE_SYNTH_VOICES; v++)
+            if (synth->voices[v].on && x->note_id >= 0 && synth->voices[v].note_id == x->note_id &&
+                synth->voices[v].channel == x->channel && synth->voices[v].key == x->key)
+            {
+                g_poly.exprs_on_voice++;
+                if (x->channel >= 0 && x->channel < 16)
+                    g_poly.exprs_channels |= 1u << x->channel;
+                break;
+            }
     }
 }
 

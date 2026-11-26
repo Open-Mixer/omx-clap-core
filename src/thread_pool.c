@@ -61,7 +61,6 @@
 
 #define POOL_PARK_SPIN_NS       50000u      // a helper spins this long after its last task before it sleeps
 #define POOL_START_WAIT_NS      2000000000u // the making waits this long for every helper to say it runs
-#define POOL_OWNER_SLEEP_NS     1000000L    // past the block the requesting thread sleeps on the count this long at a time
 #define POOL_TASKS_MAX          0xffffu     // the hand-out word's task count and index are 16 bits each
 #define POOL_CLAIM(gen, num, next)  (((uint64_t)(gen) << 32) | ((uint64_t)(num) << 16) | (uint64_t)(next))
 
@@ -105,8 +104,8 @@ static _Atomic uint32_t g_sleepers; // the helpers asleep on it, or about to be
 static _Atomic uint32_t g_owner;    // 1 while a request holds the pool
 static _Atomic uint64_t g_claim;    // the request: POOL_CLAIM(generation, tasks, next index)
 static _Atomic(struct omx_clap_instance *) g_job;   // the instance whose tasks the request hands out
-static _Atomic uint32_t g_done;     // the tasks of the request ended; the futex the requesting thread sleeps on
-static _Atomic uint32_t g_owner_sleeping;   // 1 while the requesting thread sleeps on g_done
+static _Atomic uint32_t g_done;     // the tasks of the request ended: what the requesting thread spins on
+static _Atomic int g_owner_cpu = -1;    // the CPU the requesting thread runs on: a helper on it claims nothing
 static _Atomic uint64_t g_requests, g_busy, g_late, g_tasks_audio;
 static _Atomic pthread_t g_audio_self;  // the thread that made the last request, and its kernel id: what the helpers follow
 static _Atomic int g_audio_tid;
@@ -136,6 +135,18 @@ static inline void cpu_relax(void)
 #endif
 }
 
+/* The calling thread's kernel id, for thread_pool_follow. glibc 2.42 and later read it from the thread's descriptor
+   (pthread_gettid_np: no system call), which the audio thread may call on its first request; an older glibc has only
+   the system call, made once for each thread that makes a request. */
+static pid_t pool_own_tid(void)
+{
+#if defined(__GLIBC__) && __GLIBC_PREREQ(2, 42)
+    return pthread_gettid_np(pthread_self());
+#else
+    return (pid_t)syscall(SYS_gettid);
+#endif
+}
+
 static void futex_wait(_Atomic uint32_t *word, uint32_t expected, const struct timespec *timeout)
 {
     syscall(SYS_futex, (uint32_t *)word, FUTEX_WAIT_PRIVATE, expected, timeout, NULL, 0);
@@ -146,20 +157,34 @@ static void futex_wake(_Atomic uint32_t *word, int count)
     syscall(SYS_futex, (uint32_t *)word, FUTEX_WAKE_PRIVATE, count, NULL, NULL, 0);
 }
 
-/* one task: on a helper, timed and counted as the helper's, with the helper on the instance's audio role for it */
+/* one task: on a helper, timed and counted as the helper's, with the helper on the instance's audio role for it.
+   omx-rt-gate's view (make test-rt-gate defines OMX_RT_GATE_VIEW; never a build): the plugin's exec called through its
+   field, so the gate judges it by the role clap.abi declares for clap_plugin_thread_pool.exec (audio, the plugin's own
+   boundary). The build calls it through OMX_ABI_VCALL, whose trampoline omx_abi_call6 (src/abi_guard.S) the gate
+   cannot read: it saves the callee-saved registers, makes the one call, compares and restores them and counts, with
+   no allocation, lock or system call. GCC places a macro's call at the macro, so the view is spelled here, at the
+   site (omx_abi_call6, ruled 2026-11-15). */
 static void run_task(struct pool_helper *self, struct omx_clap_instance *in, uint32_t index)
 {
     uint64_t t0;
 
     if (!self)
     {
+#ifdef OMX_RT_GATE_VIEW
+        in->thread_pool->exec(in->plugin, index);   // the gate's view: see run_task's note
+#else
         OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "thread_pool.exec", in->thread_pool->exec, in->plugin, index);
+#endif
         atomic_fetch_add_explicit(&g_tasks_audio, 1u, memory_order_relaxed);
         return;
     }
     t0 = pool_now_ns();
     atomic_store_explicit(&self->running, in, memory_order_relaxed);
+#ifdef OMX_RT_GATE_VIEW
+    in->thread_pool->exec(in->plugin, index);   // the gate's view: see run_task's note
+#else
     OMX_ABI_VCALL(OMX_ABI_GUARD_OF(in), "thread_pool.exec", in->thread_pool->exec, in->plugin, index);
+#endif
     atomic_store_explicit(&self->running, NULL, memory_order_relaxed);
     atomic_fetch_add_explicit(&self->tasks, 1u, memory_order_relaxed);
     atomic_fetch_add_explicit(&self->busy_ns, pool_now_ns() - t0, memory_order_relaxed);
@@ -168,12 +193,16 @@ static void run_task(struct pool_helper *self, struct omx_clap_instance *in, uin
 /* Take tasks of the open request until none is left. The instance read between the word's load and the swap that takes
  * an index is the request's: the requesting thread writes the next request's instance only after it has read the word
  * with every index taken, and every swap before that read is a release it acquires, so a swap that took an index of
- * this request was preceded by a read of this request's instance. A helper's last task wakes a requesting thread that
- * sleeps on the count. */
+ * this request was preceded by a read of this request's instance. A helper running on the requesting thread's CPU
+ * claims nothing (ruling A): the requesting thread never waits on a task held by a helper queued behind it on its own
+ * core, which at one SCHED_FIFO priority would never run. The CPU is published before the word (the word's release),
+ * so a helper that acquired the word reads this request's CPU; sched_getcpu reads it through rseq or the vDSO. */
 static void take_tasks(struct pool_helper *self)
 {
     uint64_t w = atomic_load_explicit(&g_claim, memory_order_acquire);
 
+    if (self && sched_getcpu() == atomic_load_explicit(&g_owner_cpu, memory_order_relaxed))
+        return;
     for (;;)
     {
         const uint32_t num = (uint32_t)(w >> 16) & 0xffffu, next = (uint32_t)w & 0xffffu;
@@ -185,9 +214,7 @@ static void take_tasks(struct pool_helper *self)
         if (!atomic_compare_exchange_weak_explicit(&g_claim, &w, w + 1u, memory_order_acq_rel, memory_order_acquire))
             continue;
         run_task(self, in, next);
-        if (atomic_fetch_add_explicit(&g_done, 1u, memory_order_seq_cst) + 1u == num && self &&
-            atomic_load_explicit(&g_owner_sleeping, memory_order_seq_cst))
-            futex_wake(&g_done, 1);
+        atomic_fetch_add_explicit(&g_done, 1u, memory_order_release);
         w = atomic_load_explicit(&g_claim, memory_order_acquire);
     }
 }
@@ -422,11 +449,12 @@ int thread_pool_run(struct omx_clap_instance *in, uint32_t num, uint64_t budget_
     // who asks, for thread_pool_follow: the kernel id is read once for each thread that makes a request
     if (!pthread_equal(atomic_load_explicit(&g_audio_self, memory_order_relaxed), pthread_self()))
     {
-        atomic_store_explicit(&g_audio_tid, (int)syscall(SYS_gettid), memory_order_relaxed);
+        atomic_store_explicit(&g_audio_tid, (int)pool_own_tid(), memory_order_relaxed);
         atomic_store_explicit(&g_audio_self, pthread_self(), memory_order_relaxed);
     }
     atomic_store_explicit(&g_job, in, memory_order_relaxed);
     atomic_store_explicit(&g_done, 0u, memory_order_relaxed);
+    atomic_store_explicit(&g_owner_cpu, sched_getcpu(), memory_order_relaxed);   // -1 (unknown): every helper claims
     atomic_store_explicit(&g_claim, POOL_CLAIM((atomic_load_explicit(&g_claim, memory_order_relaxed) >> 32) + 1u, num, 0u),
                           memory_order_release);
     atomic_fetch_add_explicit(&g_wake, 1u, memory_order_seq_cst);
@@ -434,25 +462,15 @@ int thread_pool_run(struct omx_clap_instance *in, uint32_t num, uint64_t budget_
         futex_wake(&g_wake, INT_MAX);
     // the calling thread takes tasks too: a helper not awake yet is never waited for
     take_tasks(NULL);
-    // what is left is tasks a helper has started: spun on for the block, then slept on
+    // what is left is tasks a helper on another CPU has started: spun on, never slept on (ruling A), and counted late
+    // once past the block
     while (atomic_load_explicit(&g_done, memory_order_acquire) < num)
     {
         cpu_relax();
-        if ((++spins & 63u) == 0u && pool_now_ns() - start > budget_ns)
+        if (!*late && (++spins & 63u) == 0u && pool_now_ns() - start > budget_ns)
         {
-            const struct timespec ts = { 0, POOL_OWNER_SLEEP_NS };
-            uint32_t done;
-
-            if (!*late)
-            {
-                *late = 1;
-                atomic_fetch_add_explicit(&g_late, 1u, memory_order_relaxed);
-            }
-            atomic_store_explicit(&g_owner_sleeping, 1u, memory_order_seq_cst);
-            done = atomic_load_explicit(&g_done, memory_order_seq_cst);
-            if (done < num)
-                futex_wait(&g_done, done, &ts);
-            atomic_store_explicit(&g_owner_sleeping, 0u, memory_order_relaxed);
+            *late = 1;
+            atomic_fetch_add_explicit(&g_late, 1u, memory_order_relaxed);
         }
     }
     atomic_fetch_add_explicit(&g_requests, 1u, memory_order_relaxed);

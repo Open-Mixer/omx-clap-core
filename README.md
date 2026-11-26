@@ -53,6 +53,19 @@ longer walk-through ([docs/overview.md](docs/overview.md)); every command
 [docs/clap-compatibility.md](docs/clap-compatibility.md)); building from source
 ([BUILDING.md](BUILDING.md)).
 
+Release steps
+-------------
+
+The domain document `contract.d/hosting/hosting.json` is the one home of the hosting codes (`HOSTING_*_CODES`, read
+by the omx-contract loader; data/ declares none of them, and the reader refuses a second copy). A code is added, changed or
+documented there, by hand, in omx-contract's one formatting (`omx-contract fmt`). Its `info.version` is `VERSION`, and an
+item added carries that version as its `x-since`. After the `VERSION` bump and before the release commit, raise
+`info.version` and commit the file; `make check-domain`, which CI runs, holds it to the newest release tag that carries it
+with omx-contract's `domain check`: a code added or removed under an unchanged version is refused by name, and so are two
+codes reordered (a new code is appended after the existing ones). Every code carries its doc. `make test-contract`
+renders `clap_host_limits.h`, the vocabulary and the TypeScript modules from it (`--with-domain`) and holds them to the
+committed files, byte for byte.
+
 Licence
 -------
 

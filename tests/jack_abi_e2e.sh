@@ -11,7 +11,7 @@
 #
 # OMX_CLAP_HOST:    the binary (default ./omx-clap-host)
 # JACK_E2E_PORT:    the socket port (default 5580); the feedback port is the next one
-# OMX_HOST_EVENTS_ABI_CLOBBER: the word contract.d/omx-clap/omx-clap.json declares, read from src/omx_clap_vocabulary.h by make
+# OMX_HOST_EVENTS_ABI_CLOBBER: the word plugin-hostd-protocol's domain host declares, read from its plugin_hostd_protocol_vocabulary.h by make
 
 set -u
 

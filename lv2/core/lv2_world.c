@@ -1288,7 +1288,8 @@ static const char *read_ports(struct lv2_plugin *p, const LilvPlugin *pl)
     int has_bypass = 0;
 
     p->controls = calloc(n ? n : 1u, sizeof(*p->controls));
-    if (!p->controls)
+    p->port_symbol = calloc(n ? n : 1u, sizeof(*p->port_symbol));
+    if (!p->controls || !p->port_symbol)
         return LV2_CODE_NO_REALISATION;
     p->latency_port = -1;
     p->patch_in = p->patch_out = -1;
@@ -1459,13 +1460,19 @@ static const char *read_ports(struct lv2_plugin *p, const LilvPlugin *pl)
             if (*count >= LV2_CORE_AUX_PORTS)
                 return LV2_CODE_TOO_MANY_PORTS;
             name[*count] = node_dup(L.lilv_port_get_name(pl, port), sym ? sym : "");
-            if (!name[*count])
+            p->port_symbol[i] = strdup(sym ? sym : "");
+            if (!name[*count] || !p->port_symbol[i])
                 return LV2_CODE_NO_REALISATION;
             (input ? p->cv_in : p->cv_out)[(*count)++] = i;
             continue;
         }
         if (L.lilv_port_is_a(pl, port, g.node[N_AUDIO]))
         {
+            // the name a host that names its ports as mod-host does gives this one (omx_clap_lv2_port_symbol)
+            symbol = L.lilv_node_as_string(L.lilv_port_get_symbol(pl, port));
+            p->port_symbol[i] = strdup(symbol ? symbol : "");
+            if (!p->port_symbol[i])
+                return LV2_CODE_NO_REALISATION;
             nout += !input;
             continue;
         }
@@ -1760,6 +1767,9 @@ void lv2_plugin_close(struct lv2_plugin *p)
     }
     free(p->texts);
     free(p->roles);
+    for (i = 0; p->port_symbol && i < p->n_ports; i++)
+        free(p->port_symbol[i]);
+    free(p->port_symbol);
     free(p->main_in.name);
     free(p->main_out.name);
     for (i = 0; i < LV2_CORE_AUX_PORTS; i++)    // every slot: a refused open has named some ports, not set the counts

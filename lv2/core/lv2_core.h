@@ -311,6 +311,7 @@ struct lv2_plugin
     uint32_t notify_out[LV2_CORE_NOTIFY_PORTS];
     uint32_t notify_min;            // the largest rsz:minimumSize of those outputs, 0: none
     struct lv2_port_bind *roles;    // n_ports, by port index: what the instance connects each to
+    char **port_symbol;             // n_ports, by port index: the lv2:symbol of an audio or a CV port, NULL for any other
     char **required;                // lv2:requiredFeature, NULL-terminated
     int safe_restore;               // state:threadSafeRestore among its features: restore() may run beside run()
     int hard_rt;                    // lv2:hardRTCapable among its features: connect_port is safe on the audio thread

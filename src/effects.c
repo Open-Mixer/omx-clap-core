@@ -70,6 +70,7 @@
 #include "host_verbs.h"
 #include "layout_pin.h"
 #include "omx_clap_vocabulary.h"
+#include <plugin-hostd/plugin_hostd_protocol_vocabulary.h>
 #include "lv2_locate.h"
 #include "window.h"
 #include "xrun_report.h"
@@ -885,8 +886,28 @@ static int aux_blocks(effect_t *effect, uint32_t frames)
     return 0;
 }
 
+/* The lv2:symbol of the LV2 port behind channel `k` of a port of the instance's plugin (`aux` LAYOUT_PORT_MAIN: the
+ * side's main port), for a plugin the LV2 adapter made and names by symbol (omx_clap_lv2_port_symbol: every port of the
+ * plugin or none); NULL for any other plugin and for a port the description does not hold. Control thread. */
+static const char *port_symbol(const effect_t *effect, bool is_input, uint32_t aux, uint32_t k)
+{
+    const struct omx_clap_instance *clap = effect->clap;
+    const struct omx_clap_port *port = aux == LAYOUT_PORT_MAIN ? (is_input ? &clap->main_in : &clap->main_out)
+                                     : aux < (is_input ? clap->aux_inputs : clap->aux_outputs) ? (is_input ? &clap->aux_in[aux] : &clap->aux_out[aux])
+                                     : NULL;
+
+    return port && k < port->channels ? omx_clap_lv2_port_symbol(clap->plugin, is_input, port->id, k) : NULL;
+}
+
+/* the JACK name of channel `k` of a port of the instance: an LV2 plugin's port symbol, the name mod-host gives the port
+ * (port_symbol), and layout_port_name's for a plugin that has none */
+static void port_jack_name(const effect_t *effect, char buf[LAYOUT_PORT_NAME_SIZE], bool is_input, uint32_t aux, uint32_t k)
+{
+    layout_port_jack_name(buf, port_symbol(effect, is_input, aux, k), is_input, aux, k);
+}
+
 /* one side's auxiliary ports as aux_register kept them registered on the instance's client, a JACK port per channel
- * named by layout_port_name: SUCCESS or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
+ * named by port_jack_name: SUCCESS or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
 static int aux_ports_register(effect_t *effect, bool is_input)
 {
     const uint32_t n = is_input ? effect->aux_in_n : effect->aux_out_n;
@@ -898,7 +919,7 @@ static int aux_ports_register(effect_t *effect, bool is_input)
     for (p = 0; p < n; p++)
         for (k = 0; k < widths[p]; k++)
         {
-            layout_port_name(name, is_input, p, k);
+            port_jack_name(effect, name, is_input, p, k);
             jack[c] = jack_port_register(effect->jack_client, name, JACK_DEFAULT_AUDIO_TYPE,
                                          is_input ? JackPortIsInput : JackPortIsOutput, 0);
             if (!jack[c++])
@@ -907,8 +928,8 @@ static int aux_ports_register(effect_t *effect, bool is_input)
     return SUCCESS;
 }
 
-/* A chain's member has no client of its own, so its auxiliary ports go on the head's: <client>_aux_in_<p>_<k>, so that
- * two members' never meet. Control thread, before the member enters the walk. A port JACK will not make stays NULL, said
+/* A chain's member has no client of its own, so its auxiliary ports go on the head's: <client>_aux_in_<p>_<k>, or
+ * <client>_<symbol> for an LV2 plugin's (port_jack_name), so that two members' never meet. Control thread, before the member enters the walk. A port JACK will not make stays NULL, said
  * on stderr: its channel reads silence and writes nothing, and the member runs. */
 static void aux_ports_on_head(effect_t *effect, jack_client_t *head)
 {
@@ -927,7 +948,7 @@ static void aux_ports_on_head(effect_t *effect, jack_client_t *head)
             {
                 char short_name[LAYOUT_PORT_NAME_SIZE], name[sizeof(effect->client_name) + sizeof(short_name) + 1];
 
-                layout_port_name(short_name, is_input, p, k);
+                port_jack_name(effect, short_name, is_input, p, k);
                 snprintf(name, sizeof(name), "%s_%s", effect->client_name, short_name);
                 jack[c] = jack_port_register(head, name, JACK_DEFAULT_AUDIO_TYPE, is_input ? JackPortIsInput : JackPortIsOutput, 0);
                 if (!jack[c])
@@ -2038,24 +2059,24 @@ static int layout_record(effect_t *effect, const char *pin, const char *id)
     return 0;
 }
 
-/* `in_ports` main input and `out_ports` main output ports registered on `client` into `inputs` and `outputs`: SUCCESS
- * or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
-static int main_ports_register_on(jack_client_t *client, uint32_t in_ports, uint32_t out_ports, jack_port_t **inputs,
-                                  jack_port_t **outputs)
+/* the instance's main ports, in_ports inputs and out_ports outputs named by port_jack_name, registered on `client`
+ * into `inputs` and `outputs`: SUCCESS or ERR_JACK_PORT_REGISTER. Before jack_activate: no cycle runs. */
+static int main_ports_register_on(const effect_t *effect, jack_client_t *client, jack_port_t **inputs, jack_port_t **outputs)
 {
+    const uint32_t in_ports = effect->in_ports, out_ports = effect->out_ports;
     char port_name[LAYOUT_PORT_NAME_SIZE];
     uint32_t c;
 
     for (c = 0; c < in_ports; c++)
     {
-        layout_port_name(port_name, true, LAYOUT_PORT_MAIN, c);
+        port_jack_name(effect, port_name, true, LAYOUT_PORT_MAIN, c);
         inputs[c] = jack_port_register(client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
         if (!inputs[c])
             return ERR_JACK_PORT_REGISTER;
     }
     for (c = 0; c < out_ports; c++)
     {
-        layout_port_name(port_name, false, LAYOUT_PORT_MAIN, c);
+        port_jack_name(effect, port_name, false, LAYOUT_PORT_MAIN, c);
         outputs[c] = jack_port_register(client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
         if (!outputs[c])
             return ERR_JACK_PORT_REGISTER;
@@ -2066,8 +2087,7 @@ static int main_ports_register_on(jack_client_t *client, uint32_t in_ports, uint
 /* the instance's main ports registered on its client, as many each side as were registered at add */
 static int main_ports_register(effect_t *effect)
 {
-    return main_ports_register_on(effect->jack_client, effect->in_ports, effect->out_ports, effect->input_ports,
-                                  effect->output_ports);
+    return main_ports_register_on(effect, effect->jack_client, effect->input_ports, effect->output_ports);
 }
 
 /* the callbacks of the instance's own client, before it is activated: its role reads its own slot, which names no
@@ -2096,7 +2116,7 @@ static int client_ready(const effect_t *effect, own_client_t *own)
     own->client = open_jack_client(effect->instance, effect->client_name, NULL, 0);
     if (!own->client)
         return ERR_JACK_CLIENT_CREATION;
-    error = main_ports_register_on(own->client, effect->in_ports, effect->out_ports, own->inputs, own->outputs);
+    error = main_ports_register_on(effect, own->client, own->inputs, own->outputs);
     if (error == SUCCESS && effect->clap->note_inputs
         && !(own->midi_in = jack_port_register(own->client, MIDI_PORT_NAME, JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0)))
         error = ERR_JACK_PORT_REGISTER;
@@ -4070,7 +4090,8 @@ int effects_preset_get(int effect_id, int index, char *reply, size_t size)
     effect = &g_effects[effect_id];
     if (index < 0 || (uint32_t)index >= effect->presets_count)
         return ERR_INVALID_OPERATION;
-    n = snprintf(reply, size, "resp 0 %s %s", effect->preset_keys[index], effect->preset_names[index]);
+    n = snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PRESET_GET), effect->preset_keys[index],
+                 effect->preset_names[index]);
     if (n < 0 || (size_t)n >= size)
         return ERR_INVALID_OPERATION;
     for (char *c = reply; *c; c++)
@@ -4175,7 +4196,7 @@ int effects_pin_layout(int effect_id, char *reply, size_t size)
     if (!g_effects[effect_id].clap ||
         preset_identity(&g_effects[effect_id], &id, &version, fingerprint, sizeof(fingerprint)) != 0)
         return ERR_INVALID_OPERATION;
-    snprintf(reply, size, "resp 0 %s", fingerprint);
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PIN_LAYOUT), fingerprint);
     return SUCCESS;
 }
 
@@ -4492,7 +4513,7 @@ static int preset_show_reply(const struct pj *v, char **reply)
         return ERR_MEMORY_ALLOCATION;
     n = strlen(text) + sizeof("resp 0 ");
     if ((*reply = malloc(n)) != NULL)
-        snprintf(*reply, n, "resp 0 %s", text);
+        snprintf(*reply, n, HOST_FIELDS_FMT(HOST_FIELDS_PRESET_SHOW), text);
     free(text);
     return *reply ? SUCCESS : ERR_MEMORY_ALLOCATION;
 }
@@ -4637,9 +4658,34 @@ int effects_state_load(const char *dir)
 
 #define PORT_NAME_NOW_SIZE  512
 
-/* the name a port has in the graph now: a chain member's auxiliary port is named as it is alone (effect_<n>:aux_in_1_1),
- * which is what a controller knows and a replay repeats, and it is on the head's client (aux_ports_on_head); any other
- * name as it is */
+/* whether `name` is the JACK name of one of the instance's auxiliary ports, either side (port_jack_name) */
+static int aux_port_named(const effect_t *effect, const char *name)
+{
+    int side;
+
+    for (side = 0; side < 2; side++)
+    {
+        const bool is_input = side == 0;
+        const uint32_t n = is_input ? effect->aux_in_n : effect->aux_out_n;
+        const uint32_t *widths = is_input ? effect->aux_in_widths : effect->aux_out_widths;
+        uint32_t p, k;
+
+        for (p = 0; p < n; p++)
+            for (k = 0; k < widths[p]; k++)
+            {
+                char port[LAYOUT_PORT_NAME_SIZE];
+
+                port_jack_name(effect, port, is_input, p, k);
+                if (!strcmp(port, name))
+                    return 1;
+            }
+    }
+    return 0;
+}
+
+/* the name a port has in the graph now: a chain member's auxiliary port is named as it is alone (effect_<n>:aux_in_1_1,
+ * or effect_<n>:<symbol> for an LV2 plugin's), which is what a controller knows and a replay repeats, and it is on the
+ * head's client (aux_ports_on_head); any other name as it is */
 static const char *port_now(const char *name, char *buf, size_t size)
 {
     int i;
@@ -4649,7 +4695,8 @@ static const char *port_now(const char *name, char *buf, size_t size)
         const effect_t *effect = &g_effects[i];
         const size_t len = strlen(effect->client_name);
 
-        if (len && client_borrowed(effect) && !strncmp(name, effect->client_name, len) && !strncmp(name + len, ":aux_", 5))
+        if (len && client_borrowed(effect) && !strncmp(name, effect->client_name, len) && name[len] == ':'
+            && aux_port_named(effect, name + len + 1))
         {
             snprintf(buf, size, "%s:%s_%s", effect->chain->head->client_name, effect->client_name, name + len + 1);
             return buf;
@@ -4697,7 +4744,8 @@ int effects_note_drops(int effect_id, char *reply, size_t size)
     if (!instance_exist(effect_id))
         return ERR_INSTANCE_NON_EXISTS;
     stage = &g_effects[effect_id].clap->stage;
-    snprintf(reply, size, "resp 0 %u %u %u %u", atomic_load_explicit(&stage->notes_dropped, memory_order_relaxed),
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_NOTE_DROPS),
+             atomic_load_explicit(&stage->notes_dropped, memory_order_relaxed),
              atomic_load_explicit(&stage->releases_dropped, memory_order_relaxed),
              atomic_load_explicit(&stage->sysex_dropped, memory_order_relaxed),
              atomic_load_explicit(&stage->notes_unmappable, memory_order_relaxed));
@@ -4709,7 +4757,8 @@ int effects_note_input(int effect_id, char *reply, size_t size)
 {
     if (!instance_exist(effect_id))
         return ERR_INSTANCE_NON_EXISTS;
-    snprintf(reply, size, "resp 0 %s", g_effects[effect_id].note_ring_buf ? MIDI_PORT_NAME : HOST_WORD_NONE);
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_NOTE_INPUT),
+             g_effects[effect_id].note_ring_buf ? MIDI_PORT_NAME : HOST_WORD_NONE);
     return SUCCESS;
 }
 
@@ -4838,11 +4887,13 @@ int effects_idle_hold(char *reply, size_t size)
 
     omx_clap_host_idle_hold(&hold);
     if (hold.aggregate_us < 0)
-        snprintf(aggregate, sizeof(aggregate), "-");
+        snprintf(aggregate, sizeof(aggregate), "%s", HOST_WORD_NONE);
     else
         snprintf(aggregate, sizeof(aggregate), "%d", hold.aggregate_us);
-    snprintf(reply, size, "resp 0 %s %s %s %u %s", idle_hold_word_of(hold.target_us, target, sizeof(target)),
-             idle_hold_word_of(hold.held_us, held, sizeof(held)), aggregate, hold.active, hold.code[0] ? hold.code : "-");
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_IDLE_HOLD),
+             idle_hold_word_of(hold.target_us, target, sizeof(target)),
+             idle_hold_word_of(hold.held_us, held, sizeof(held)), aggregate, hold.active,
+             hold.code[0] ? hold.code : HOST_WORD_NONE);
     return SUCCESS;
 }
 
@@ -4855,7 +4906,8 @@ int effects_note_out_drops(int effect_id, char *reply, size_t size)
     if (!instance_exist(effect_id))
         return ERR_INSTANCE_NON_EXISTS;
     effect = &g_effects[effect_id];
-    snprintf(reply, size, "resp 0 %u %u %u", atomic_load_explicit(&effect->clap->note_out.dropped, memory_order_relaxed),
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_NOTE_OUT_DROPS),
+             atomic_load_explicit(&effect->clap->note_out.dropped, memory_order_relaxed),
              atomic_load_explicit(&effect->clap->note_out.unmapped, memory_order_relaxed),
              atomic_load_explicit(&effect->midi_out_full, memory_order_relaxed));
     return SUCCESS;
@@ -5108,7 +5160,8 @@ int effects_property_info(int effect_id, int index, char *reply, size_t size)
         return OMX_REPLY_HOST_PROPERTY_SYMBOL_INVALID_RESP;
     info.name[sizeof(info.name) - 1] = '\0';
     quoted(name, sizeof(name), info.name);
-    snprintf(reply, size, "resp 0 %s %s %s %s", info.symbol, info.kind == OMX_CLAP_PROPERTY_PATH ? "path" : "string",
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PROPERTY_INFO), info.symbol,
+             info.kind == OMX_CLAP_PROPERTY_PATH ? "path" : "string",
              (info.flags & rw) == rw ? "rw" : (info.flags & OMX_CLAP_PROPERTY_IS_WRITABLE) ? "w" : "r", name);
     return SUCCESS;
 }
@@ -5118,6 +5171,7 @@ int effects_property_get(int effect_id, const char *symbol, char *reply, size_t 
     struct omx_clap_instance *clap;
     omx_clap_property_info_t info;
     char value[OMX_CLAP_PROPERTY_VALUE_MAX];
+    char word[2 * OMX_CLAP_PROPERTY_VALUE_MAX + 3];
     int32_t len;
     int rc;
 
@@ -5133,10 +5187,11 @@ int effects_property_get(int effect_id, const char *symbol, char *reply, size_t 
         return OMX_REPLY_HOST_PROPERTY_ACCESS_RESP;
     if ((size_t)len >= sizeof(value))
         return OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP;
-    // the reply is one line of the protocol: a value whose escaped word does not fit is answered as too large
-    if (size < 8 || quoted_value(reply + 7, size - 7, value) != 0)
+    // the reply is one line of the protocol: a value whose escaped word does not fit beside "resp 0 " is answered as too
+    // large
+    if (size < 8 || quoted_value(word, size - 7 < sizeof(word) ? size - 7 : sizeof(word), value) != 0)
         return OMX_REPLY_HOST_PROPERTY_VALUE_INVALID_RESP;
-    memcpy(reply, "resp 0 ", 7);
+    snprintf(reply, size, HOST_FIELDS_FMT(HOST_FIELDS_PROPERTY_GET), word);
     return SUCCESS;
 }
 
@@ -5223,7 +5278,7 @@ int effects_param_info(int effect_id, const char *symbol, char *reply, size_t si
         || omx_clap_param_number(m.min, min, sizeof(min)) < 0 || omx_clap_param_number(m.max, max, sizeof(max)) < 0
         || omx_clap_param_number(m.def, def, sizeof(def)) < 0 || omx_clap_param_number(m.step, step, sizeof(step)) < 0)
         return OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP;
-    used = snprintf(reply, size, "resp 0 %s %s %s %s %s %s %s", omx_clap_param_unit_name(m.unit),
+    used = snprintf(reply, size, "resp 0 %s %s %s %s %s %s %s", omx_clap_param_unit_id(m.unit),
                     omx_clap_param_scale_name(m.scale), min, max, def, step, m.symbol);
     return used > 0 && (size_t)used < size ? SUCCESS : ERR_INVALID_OPERATION;
 }
@@ -5239,11 +5294,18 @@ static void audio_port_record(FILE *out, const effect_t *effect, bool is_input, 
     const struct omx_clap_port *port = aux == LAYOUT_PORT_MAIN ? (is_input ? &clap->main_in : &clap->main_out)
                                      : aux < (is_input ? clap->aux_inputs : clap->aux_outputs) ? (is_input ? &clap->aux_in[aux] : &clap->aux_out[aux])
                                      : NULL;
+    const char *symbols[OMX_HOSTED_STAGE_PORT_CHANNELS];
     struct layout_port_text t;
+    uint32_t k;
 
     if (port && port->channels != channels)
         port = NULL;
     memset(&t, 0, sizeof(t));
+    // the names the ports were registered under (port_jack_name): an LV2 plugin's symbols, all of a port's or none
+    for (k = 0; k < channels && k < OMX_HOSTED_STAGE_PORT_CHANNELS && (symbols[k] = port_symbol(effect, is_input, aux, k)); k++)
+        ;
+    if (channels && k == channels)
+        t.symbols = symbols;
     t.is_input = is_input;
     t.aux = aux;
     t.channels = channels;

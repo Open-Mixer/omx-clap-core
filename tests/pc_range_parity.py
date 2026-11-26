@@ -2,16 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 #
-# The library floors omx-clap builds against are declared once, in packaging/deps.txt, and generated from it into
-# the rpm spec's BuildRequires and debian/control (Open-Mixer/.github deps-render). Floors only: our own packages carry no
-# ceiling. The installed omx-clap.pc names the same floors in Requires.private, so a consumer that builds through
-# pkg-config alone takes no omx-contract or omx-dsp the package itself refuses. The .pc checked is the one
-# `make install-lib` writes, not its template; it must carry the spec's floor and no upper bound.
+# The installed omx-clap.pc names the libraries whose headers omx-clap's take in Requires.private (omx-contract and
+# omxdsp), by name and with no version: no hand-kept floor and no ceiling (owner ruling 2026-11-24). A consumer that builds through
+# pkg-config takes whatever its build installed of the lower level. The .pc checked is the one `make install-lib`
+# writes, not its template.
 #
-#   pc_range_parity.py <tree>       0 when the installed .pc carries the spec's floors and no ceiling
-#   pc_range_parity.py --self-test  the spec's floor moved in a scratch copy: the installed .pc moves with it, and a
-#                                   ceiling planted in the template is found
-import glob
+#   pc_range_parity.py <tree>       0 when the installed .pc names each library with no version
+#   pc_range_parity.py --self-test  a floor and a ceiling planted in a scratch copy's template are each found
 import os
 import re
 import shutil
@@ -19,31 +16,13 @@ import subprocess
 import sys
 import tempfile
 
-# (the spec's devel package, the pkg-config name)
-LIBRARIES = [
-    ("omx-contract-devel", "omx-contract"),
-    ("omx-dsp-devel", "omxdsp"),
-]
+# the pkg-config names the installed .pc must carry in Requires.private
+LIBRARIES = ["omx-contract", "omxdsp"]
 
 
-def spec_floors(root, devel):
-    """Every (floor, where) the spec's BuildRequires lines declare for <devel>."""
-    pat = re.compile(r"^BuildRequires:\s*%s\s*>=\s*([\d.]+)\s*$" % re.escape(devel))
-    found = []
-    for path in sorted(glob.glob(os.path.join(root, "packaging", "*.spec"))):
-        with open(path, encoding="utf-8") as f:
-            for n, line in enumerate(f, 1):
-                m = pat.search(line)
-                if m:
-                    found.append((m.group(1), "%s:%d" % (os.path.relpath(path, root), n)))
-    return found
-
-
-def pc_range(pc_text, name):
+def requires_private(pc_text):
     req = next((l for l in pc_text.splitlines() if l.startswith("Requires.private:")), "")
-    floor = re.search(r"(?:^|[ ,])%s\s*>=\s*([\d.]+)" % re.escape(name), req.split(":", 1)[-1])
-    ceiling = re.search(r"(?:^|[ ,])%s\s*<\s*([\d.]+)" % re.escape(name), req.split(":", 1)[-1])
-    return (floor.group(1) if floor else None, ceiling.group(1) if ceiling else None)
+    return [e.strip() for e in req.split(":", 1)[-1].split(",") if e.strip()]
 
 
 def installed_pc(root, dest):
@@ -56,67 +35,52 @@ def installed_pc(root, dest):
         return f.read()
 
 
-def check(root, pc_text):
+def check(pc_text):
     found = []
-    for devel, name in LIBRARIES:
-        spec = spec_floors(root, devel)
-        if len(spec) != 1:
-            found.append("%s: the spec declares %d BuildRequires floors, want exactly one" % (devel, len(spec)))
-            continue
-        floor, where = spec[0]
-        got = pc_range(pc_text, name)
-        if got != (floor, None):
-            found.append("omx-clap.pc: %s >= %s, < %s; the spec (%s) declares >= %s and no ceiling" % (name, got[0], got[1], where, floor))
+    entries = requires_private(pc_text)
+    for e in entries:
+        if re.search(r"[<>=]", e):
+            found.append("omx-clap.pc: Requires.private states a version: '%s' (no floor, no ceiling)" % e)
+    for name in LIBRARIES:
+        if name not in [re.split(r"\s", e)[0] for e in entries]:
+            found.append("omx-clap.pc: Requires.private does not name %s" % name)
     return found
 
 
 def run(root):
     with tempfile.TemporaryDirectory() as dest:
-        return check(root, installed_pc(root, dest))
+        return check(installed_pc(root, dest))
 
 
 def self_test():
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     found = run(here)
     if found:
-        print("FAIL the control: this tree's installed .pc already differs from the spec")
+        print("FAIL the control: this tree's installed .pc already states a version or misses a library")
         for line in found:
             print("     " + line)
         return 1
-    print("ok   the tree's installed omx-clap.pc carries the spec's floors and no ceiling")
-    (floor, _), = spec_floors(here, "omx-contract-devel")
-    moved = floor + ".9"
+    print("ok   the tree's installed omx-clap.pc names omx-contract and omxdsp with no version")
     failed = 0
-    with tempfile.TemporaryDirectory() as tmp:
-        tree = os.path.join(tmp, "tree")
-        shutil.copytree(here, tree, symlinks=True, ignore=shutil.ignore_patterns(".git", "build"))
-        spec = glob.glob(os.path.join(tree, "packaging", "*.spec"))[0]
-        with open(spec, encoding="utf-8") as f:
-            text = f.read()
-        before = "BuildRequires: omx-contract-devel >= %s\n" % floor
-        if before not in text:
-            print("FAIL the arm no longer applies: the spec has no '%s'" % before.strip())
-            return 1
-        with open(spec, "w", encoding="utf-8") as f:
-            f.write(text.replace(before, "BuildRequires: omx-contract-devel >= %s\n" % moved))
-        with tempfile.TemporaryDirectory() as dest:
-            pc = installed_pc(tree, dest)
-        if pc_range(pc, "omx-contract") == (moved, None):
-            print("ok   the spec's omx-contract floor moved to >= %s: the installed .pc moved with it" % moved)
-        else:
-            print("FAIL the spec's omx-contract floor moved to >= %s; the installed .pc has %s" % (moved, pc_range(pc, "omx-contract")))
-            failed = 1
-        with open(os.path.join(tree, "omx-clap.pc.in"), encoding="utf-8") as f:
-            tpl = f.read()
-        with open(os.path.join(tree, "omx-clap.pc.in"), "w", encoding="utf-8") as f:
-            f.write(tpl.replace("Requires.private: ", "Requires.private: omx-contract < 4, "))
-        with tempfile.TemporaryDirectory() as dest:
-            pc = installed_pc(tree, dest)
-        if check(tree, pc):
-            print("ok   a ceiling planted in the template is found")
-        else:
-            print("FAIL a ceiling planted in the template is not found")
-            failed = 1
+    for label, planted in (("a floor", "omx-contract >= 3.0.0"), ("a ceiling", "omx-contract < 4")):
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = os.path.join(tmp, "tree")
+            shutil.copytree(here, tree, symlinks=True, ignore=shutil.ignore_patterns(".git", "build"))
+            tpl_path = os.path.join(tree, "omx-clap.pc.in")
+            with open(tpl_path, encoding="utf-8") as f:
+                tpl = f.read()
+            if "Requires.private: omxdsp, omx-contract, " not in tpl:
+                print("FAIL the arm no longer applies: the template's Requires.private changed")
+                return 1
+            with open(tpl_path, "w", encoding="utf-8") as f:
+                f.write(tpl.replace("Requires.private: omxdsp, omx-contract, ", "Requires.private: omxdsp, %s, " % planted))
+            with tempfile.TemporaryDirectory() as dest:
+                pc = installed_pc(tree, dest)
+            if check(pc):
+                print("ok   %s planted in the template is found" % label)
+            else:
+                print("FAIL %s planted in the template is not found" % label)
+                failed = 1
     return failed
 
 
@@ -130,7 +94,7 @@ def main():
         print("FAIL " + line)
     if found:
         sys.exit(1)
-    print("ok   the installed omx-clap.pc carries the spec's omx-contract and omx-dsp floors and no ceiling")
+    print("ok   the installed omx-clap.pc names omx-contract and omxdsp with no version")
 
 
 if __name__ == "__main__":

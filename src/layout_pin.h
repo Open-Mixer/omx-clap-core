@@ -75,6 +75,17 @@ static inline void layout_port_name(char buf[LAYOUT_PORT_NAME_SIZE], bool is_inp
         snprintf(buf, LAYOUT_PORT_NAME_SIZE, "%s_%u_%u", is_input ? "aux_in" : "aux_out", aux + 1, k + 1);
 }
 
+/* the JACK name of channel `k` of a port: `symbol` when the plugin's format names the port behind it (an LV2 plugin's
+ * lv2:symbol, which is what mod-host names it; at most LAYOUT_PORT_NAME_SIZE - 1 bytes of it), layout_port_name's
+ * when it is NULL */
+static inline void layout_port_jack_name(char buf[LAYOUT_PORT_NAME_SIZE], const char *symbol, bool is_input, uint32_t aux, uint32_t k)
+{
+    if (symbol)
+        snprintf(buf, LAYOUT_PORT_NAME_SIZE, "%s", symbol);
+    else
+        layout_port_name(buf, is_input, aux, k);
+}
+
 /* a port as the scan's text and the audio_ports verb print it, field by field */
 struct layout_port_text
 {
@@ -89,6 +100,7 @@ struct layout_port_text
     bool assumed;               /* the ambisonic configuration is the host's assumption (ACN, SN3D), not the plugin's */
     const char *name;
     bool jack;                  /* its JACK ports printed after it: the host registers them */
+    const char *const *symbols; /* each channel's symbol, `channels` of them, for layout_port_jack_name; NULL for none */
 };
 
 /* a name in double quotes, a '"' or a backslash escaped with a backslash and a byte below 0x20 or 0x7f printed as a space */
@@ -111,7 +123,7 @@ static inline void layout_port_quoted(FILE *out, const char *name)
  * port's ` map <ids>` or an ambisonic port's ` <ordering> <normalization>[ assumed]` after the kind. `record` 1: the
  * audio_ports field, no space in it but inside the name, `side:role:index:channels:kind[:layout][:assumed]:"name":jacks`,
  * the layout a surround port's ids or an ambisonic port's ordering and normalisation joined by '+', the JACK names
- * joined by ',' (empty when none are registered).
+ * (layout_port_jack_name) joined by ',' (empty when none are registered).
  */
 static inline void layout_port_text(FILE *out, const struct layout_port_text *t, int record)
 {
@@ -139,7 +151,7 @@ static inline void layout_port_text(FILE *out, const struct layout_port_text *t,
         fputc(':', out);
     for (k = 0; t->jack && k < t->channels; k++)
     {
-        layout_port_name(jack, t->is_input, t->aux, k);
+        layout_port_jack_name(jack, t->symbols ? t->symbols[k] : NULL, t->is_input, t->aux, k);
         fprintf(out, record ? (k ? ",%s" : "%s") : " %s", jack);
     }
 }

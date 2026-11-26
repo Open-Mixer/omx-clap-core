@@ -1,9 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openmixer.org/contract/clap",
+  "x-omx-contract": "0.23",
   "info": {
     "title": "CLAP's own particulars: how the format's words map to the standard vocabulary",
-    "version": "2.18.0",
+    "version": "0.1.0",
     "x-owner": "omx-clap",
     "x-stability": "experimental"
   },
@@ -11,7 +12,7 @@
     "schemas": {
       "CLAP_PARAM_FLAG_SCALES": {
         "description": "The scale a CLAP parameter flag stands for, by the flag's CLAP id (a term of omx-contract's CLAP params terms): the standard scale id of omx-contract's PARAM_SCALES. CLAP has a flag for the stepped scale alone; a parameter with none is linear until its plugin reports another through org.openmixer.param-contract/1.",
-        "x-since": "1.0.0",
+        "x-since": "0.1.0",
         "x-kind": "sheet",
         "x-value": {
           "CLAP_PARAM_IS_STEPPED": "stepped"
@@ -19,7 +20,7 @@
       },
       "CLAP_COLOR_TERMS": {
         "description": "The identifiers of the CLAP header clap/color.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "colorTransparent",
@@ -41,7 +42,7 @@
       },
       "CLAP_EVENTS_TERMS": {
         "description": "The identifiers of the CLAP header clap/events.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "coreEventSpaceId",
@@ -468,7 +469,7 @@
       },
       "CLAP_EXT_AMBISONIC_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/ambisonic.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "ambisonic",
@@ -592,7 +593,7 @@
       },
       "CLAP_EXT_AUDIO_PORTS_ACTIVATION_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/audio-ports-activation.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "audio-ports-activation/2",
@@ -627,7 +628,7 @@
       },
       "CLAP_EXT_AUDIO_PORTS_CONFIG_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/audio-ports-config.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "audio-ports-config",
@@ -674,7 +675,7 @@
       },
       "CLAP_EXT_AUDIO_PORTS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/audio-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "audio-ports",
@@ -850,7 +851,7 @@
       },
       "CLAP_EXT_CONFIGURABLE_AUDIO_PORTS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/configurable-audio-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "configurable-audio-ports.draft1",
@@ -885,7 +886,7 @@
       },
       "CLAP_EXT_CONTEXT_MENU_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/context-menu.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "context-menu.draft/0",
@@ -1008,7 +1009,7 @@
       },
       "CLAP_EXT_DRAFT_BACKGROUND_ACTIVATION_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/background-activation.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "background-activation/1",
@@ -1031,7 +1032,7 @@
       },
       "CLAP_EXT_DRAFT_BACKGROUND_PROGRESS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/background-progress.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "background-progress/1",
@@ -1054,7 +1055,7 @@
       },
       "CLAP_EXT_DRAFT_BACKGROUND_STATE_CONTEXT_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/background-state-context.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "background-state-context/1",
@@ -1077,7 +1078,7 @@
       },
       "CLAP_EXT_DRAFT_EXTENSIBLE_AUDIO_PORTS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/extensible-audio-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "extensible-audio-ports/1",
@@ -1100,7 +1101,7 @@
       },
       "CLAP_EXT_DRAFT_FLUSH_EVENTS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/flush-events.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "flush-events/1",
@@ -1123,7 +1124,7 @@
       },
       "CLAP_EXT_DRAFT_GAIN_ADJUSTMENT_METERING_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/gain-adjustment-metering.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "gain-adjustment-metering/0",
@@ -1148,7 +1149,7 @@
       },
       "CLAP_EXT_DRAFT_MINI_CURVE_DISPLAY_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/mini-curve-display.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "mini-curve-display/3",
@@ -1259,7 +1260,7 @@
       },
       "CLAP_EXT_DRAFT_OCTAVE_NUMBER_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/octave-number.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "octave-number/1",
@@ -1282,7 +1283,7 @@
       },
       "CLAP_EXT_DRAFT_PARAM_HOVERED_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/param-hovered.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "param-hovered/1",
@@ -1305,7 +1306,7 @@
       },
       "CLAP_EXT_DRAFT_PARAMS_ORIGIN_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/params-origin.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "params-origin/1",
@@ -1328,7 +1329,7 @@
       },
       "CLAP_EXT_DRAFT_PROJECT_LOCATION_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/project-location.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "project-location/2",
@@ -1483,7 +1484,7 @@
       },
       "CLAP_EXT_DRAFT_RESOURCE_DIRECTORY_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/resource-directory.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "resource-directory/1",
@@ -1506,7 +1507,7 @@
       },
       "CLAP_EXT_DRAFT_SCRATCH_MEMORY_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/scratch-memory.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "scratch-memory/1",
@@ -1529,7 +1530,7 @@
       },
       "CLAP_EXT_DRAFT_TRANSPORT_CONTROL_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/transport-control.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "transport-control/2",
@@ -1552,7 +1553,7 @@
       },
       "CLAP_EXT_DRAFT_TRIGGERS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/triggers.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "eventTrigger",
@@ -1674,7 +1675,7 @@
       },
       "CLAP_EXT_DRAFT_TUNING_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/tuning.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "tuning/2",
@@ -1697,7 +1698,7 @@
       },
       "CLAP_EXT_DRAFT_UNDO_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/undo.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "undo/4",
@@ -1744,7 +1745,7 @@
       },
       "CLAP_EXT_DRAFT_WEBVIEW_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/draft/webview.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "webview",
@@ -1779,7 +1780,7 @@
       },
       "CLAP_EXT_EVENT_REGISTRY_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/event-registry.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "event-registry",
@@ -1802,7 +1803,7 @@
       },
       "CLAP_EXT_GUI_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/gui.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "cocoa",
@@ -1885,7 +1886,7 @@
       },
       "CLAP_EXT_LATENCY_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/latency.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "latency",
@@ -1913,7 +1914,7 @@
       },
       "CLAP_EXT_LOG_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/log.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "log",
@@ -2021,7 +2022,7 @@
       },
       "CLAP_EXT_NOTE_NAME_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/note-name.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "note-name",
@@ -2047,7 +2048,7 @@
       },
       "CLAP_EXT_NOTE_PORTS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/note-ports.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "note-ports",
@@ -2164,7 +2165,7 @@
       },
       "CLAP_EXT_PARAM_INDICATION_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/param-indication.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "param-indication.draft/4",
@@ -2254,7 +2255,7 @@
       },
       "CLAP_EXT_PARAMS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/params.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "paramClearAll",
@@ -2616,7 +2617,7 @@
       },
       "CLAP_EXT_POSIX_FD_SUPPORT_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/posix-fd-support.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "posix-fd-support",
@@ -2672,7 +2673,7 @@
       },
       "CLAP_EXT_PRESET_LOAD_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/preset-load.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "preset-load.draft/2",
@@ -2714,7 +2715,7 @@
       },
       "CLAP_EXT_REMOTE_CONTROLS_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/remote-controls.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "remote-controls.draft/2",
@@ -2772,7 +2773,7 @@
       },
       "CLAP_EXT_RENDER_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/render.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "render",
@@ -2817,7 +2818,7 @@
       },
       "CLAP_EXT_STATE_CONTEXT_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/state-context.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "state-context/2",
@@ -2873,7 +2874,7 @@
       },
       "CLAP_EXT_STATE_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/state.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "state",
@@ -2900,7 +2901,7 @@
       },
       "CLAP_EXT_SURROUND_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/surround.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "surround",
@@ -3170,7 +3171,7 @@
       },
       "CLAP_EXT_TAIL_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/tail.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "tail",
@@ -3193,7 +3194,7 @@
       },
       "CLAP_EXT_THREAD_CHECK_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/thread-check.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "thread-check",
@@ -3220,7 +3221,7 @@
       },
       "CLAP_EXT_THREAD_POOL_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/thread-pool.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "thread-pool",
@@ -3243,7 +3244,7 @@
       },
       "CLAP_EXT_TIMER_SUPPORT_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/timer-support.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "timer-support",
@@ -3266,7 +3267,7 @@
       },
       "CLAP_EXT_TRACK_INFO_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/track-info.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "track-info.draft/1",
@@ -3390,7 +3391,7 @@
       },
       "CLAP_EXT_VOICE_INFO_TERMS": {
         "description": "The identifiers of the CLAP header clap/ext/voice-info.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "voice-info",
@@ -3432,7 +3433,7 @@
       },
       "CLAP_FACTORY_DRAFT_PLUGIN_INVALIDATION_TERMS": {
         "description": "The identifiers of the CLAP header clap/factory/draft/plugin-invalidation.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "plugin-invalidation-factory/1",
@@ -3455,7 +3456,7 @@
       },
       "CLAP_FACTORY_DRAFT_PLUGIN_STATE_CONVERTER_TERMS": {
         "description": "The identifiers of the CLAP header clap/factory/draft/plugin-state-converter.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "plugin-state-converter-factory/1",
@@ -3478,7 +3479,7 @@
       },
       "CLAP_FACTORY_PLUGIN_FACTORY_TERMS": {
         "description": "The identifiers of the CLAP header clap/factory/plugin-factory.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "plugin-factory",
@@ -3505,7 +3506,7 @@
       },
       "CLAP_FACTORY_PRESET_DISCOVERY_TERMS": {
         "description": "The identifiers of the CLAP header clap/factory/preset-discovery.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "preset-discovery-factory/2",
@@ -3611,7 +3612,7 @@
       },
       "CLAP_FIXEDPOINT_TERMS": {
         "description": "The identifiers of the CLAP header clap/fixedpoint.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "beattimeFactor",
@@ -3649,7 +3650,7 @@
       },
       "CLAP_ID_TERMS": {
         "description": "The identifiers of the CLAP header clap/id.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "invalidId",
@@ -3675,7 +3676,7 @@
       },
       "CLAP_PLUGIN_FEATURES_TERMS": {
         "description": "The identifiers of the CLAP header clap/plugin-features.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "ambisonic",
@@ -4243,7 +4244,7 @@
       },
       "CLAP_PROCESS_TERMS": {
         "description": "The identifiers of the CLAP header clap/process.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "processContinue",
@@ -4317,7 +4318,7 @@
       },
       "CLAP_STRING_SIZES_TERMS": {
         "description": "The identifiers of the CLAP header clap/string-sizes.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "nameSize",
@@ -4354,7 +4355,7 @@
       },
       "CLAP_TIMESTAMP_TERMS": {
         "description": "The identifiers of the CLAP header clap/timestamp.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "timestampUnknown",
@@ -4376,7 +4377,7 @@
       },
       "CLAP_VERSION_TERMS": {
         "description": "The identifiers of the CLAP header clap/version.h (clap 1.2.10), each mapped under its own name with its status for us (docs/data-layout.md).",
-        "x-since": "2.18.0",
+        "x-since": "0.1.0",
         "oneOf": [
           {
             "const": "version",

@@ -13,8 +13,11 @@
 # PRESETS_PORT:    the socket port (default 5575)
 # FIXTURES:        the directory of fake_synth.clap (default tests/)
 # LV2_BUNDLES:     the directory holding omx-host-fixture.lv2, built (default build/lv2)
+# OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP: the resp of reply.host.no-param-contract, plugin-hostd-protocol's domain host,
+#                  read from its <plugin-hostd/plugin_hostd_protocol_vocabulary.h> by make test-jack-presets
 
 set -u
+: "${OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP:?}"
 
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(dirname "$here")
@@ -310,10 +313,10 @@ FAKE_MOVER=info FAKE_MOVER_AT=200 FAKE_MOVER_CONTRACT=follow LV2_PATH=$runtime/w
 rpid=$!
 for _ in $(seq 100); do grep -q 'ready!' "$runtime/host-rename.log" && break; sleep 0.1; done
 grep -q 'ready!' "$runtime/host-rename.log" || { echo "omx-clap-host did not come up" >&2; cat "$runtime/host-rename.log" >&2; exit 2; }
-python3 -I - $((port + 1)) "$fixtures/fake_mover.clap" "$runtime" "$root/contract.d/host/host.json" <<'PY'
+python3 -I - $((port + 1)) "$fixtures/fake_mover.clap" "$runtime" "$OMX_REPLY_HOST_NO_PARAM_CONTRACT_RESP" <<'PY'
 import json, os, socket, sys, time
 port, mover, runtime = int(sys.argv[1]), sys.argv[2], sys.argv[3]
-no_contract = 'resp %d' % [w for w in json.load(open(sys.argv[4]))['components']['schemas']['HOST_REPLY_CODES']['oneOf'] if w['title'] == 'noParamContract'][0]['x-resp']
+no_contract = 'resp %d' % int(sys.argv[4])
 s = socket.create_connection(('127.0.0.1', port), timeout=20)
 def ask(line):
     s.sendall(line.encode() + b'\0')

@@ -457,7 +457,7 @@ test-contract:
 	sh tests/hosting-one-home.sh $(OMX_CONTRACT_DIR) $(OMX_CONTRACT_SCRIPT)
 	# sabotage: a code of the installed hosting domain renamed must turn the byte-for-byte read-back red, and so must a number of
 	# the installed data/hosting.json (the verbs' and the host domain's arms went with them to plugin-hostd-protocol, ruling R5)
-	@for arm in 's/"const": "hosting.idle.hold-refused"/"const": "hosting.idle.hold-refusal"/|hosting/hosting.json' 's/"workerPollUs": 1000,/"workerPollUs": 1001,/|3/omx-clap/hosting.json'; do \
+	@for arm in 's/"const": "hosting.idle.hold-refused"/"const": "hosting.idle.hold-refusal"/|hosting/hosting.json' 's/"workerPollUs": 1000,/"workerPollUs": 1001,/|omx-clap/hosting.json'; do \
 	  expr=$${arm%%|*}; file=$${arm#*|}; rm -rf build/contract/sabotage && cp -r build/contract/dir build/contract/sabotage && sed -i -e "$$expr" build/contract/sabotage/$$file \
 	    && ! cmp -s build/contract/dir/$$file build/contract/sabotage/$$file || { echo "FAIL sabotage: the sed changed nothing in $$file"; exit 1; }; \
 	  if OMX_CONTRACT_SCRIPT=$(OMX_CONTRACT_SCRIPT) sh tests/contract-dir-check.sh $(OMX_CONTRACT_DIR) build/contract/sabotage $(VERSION) >/dev/null 2>&1; then echo "FAIL sabotage: the read-back stayed green over $$file"; exit 1; else echo "ok   sabotage: the read-back is red over a changed $$file"; fi; done

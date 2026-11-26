@@ -6,7 +6,8 @@
 # twice, as text and as JSON, and
 #   - the JSON validates against schema/omx-clap-scan.schema.json (the file the package installs);
 #   - the JSON holds the same data as the text: every plugin, parameter, port, note name, latency, voice figure, resource
-#     hint, panel count, meter, parameter contract, preset and file failure the text lists, each with the same value.
+#     hint, panel count, control layout count, meter, parameter contract, preset and file failure the text lists, each
+#     with the same value.
 # The fields only the JSON carries (description, url, remote controls, enum labels, the panel's tables, ports' ids) are
 # held by the schema alone.
 #
@@ -19,7 +20,7 @@
 import copy, json, math, os, re, subprocess, sys, tempfile
 
 LINE_KINDS = ('param', 'in ', 'out', 'passthrough', 'note ports', 'note name', 'latency', 'voices', 'resource hints',
-              'panel', 'meter', 'contract', 'preset', 'error')
+              'panel', 'control layout', 'meter', 'contract', 'preset', 'error')
 
 
 # ---- a validator for the part of JSON Schema the schema file uses ----
@@ -205,6 +206,16 @@ def parse_text(text):
                         m = re.match(r'(.+) refused \((\d+) past (\d+)\)$', p)
                         counts[m.group(1)] = ('refused', int(m.group(2)), int(m.group(3)))
                 plug['panel'] = {'family': family, 'counts': counts}
+            elif body.startswith('control layout, '):
+                counts = {}
+                for p in body[len('control layout, '):].split(', '):
+                    m = re.match(r'(\d+) (.+)$', p)
+                    if m:
+                        counts[m.group(2)] = int(m.group(1))
+                    else:
+                        m = re.match(r'(.+) refused \((\d+) past (\d+)\)$', p)
+                        counts[m.group(1)] = ('refused', int(m.group(2)), int(m.group(3)))
+                plug['control_layout'] = counts
             elif body.startswith('error: '):
                 plug['error'] = body[len('error: '):]
             else:
@@ -283,6 +294,14 @@ def json_data(doc):
                         t = pan[key]
                         counts[label] = ('refused', t['count'], t['max']) if isinstance(t, dict) else len(t)
                     plug['panel'] = {'family': pan['family'] if isinstance(pan['family'], str) else None, 'counts': counts}
+                lay = p.get('controlLayout')
+                if lay and 'leftOut' in lay:
+                    counts = {}
+                    for key in ('sections', 'controls', 'displays'):
+                        t = lay[key]
+                        counts[key] = ('refused', t['count'], t['max']) if isinstance(t, dict) else len(t)
+                    counts['left out'] = len(lay['leftOut'])
+                    plug['control_layout'] = counts
             out['plugins'].append(plug)
         for r in f.get('presets', []):
             out['presets'].append({'name': put_string(r['name']), 'location_kind': r['location_kind'],
@@ -370,6 +389,8 @@ def sabotages(doc):
         word = next(w for w, v in h.items() if w != 'declared' and v['figure'] is not None)
         h[word]['figure'] = 42
     def a_panel_row(d): first_plugin(d, with_panel)['panel']['sections'].append({})
+    def with_layout(p): return p.get('controlLayout')
+    def a_layout_left_out(d): first_plugin(d, with_layout)['controlLayout']['leftOut'].pop()
     def a_feature(d): first_plugin(d, with_features)['features'].append('extra')
     def a_map(d):
         p = first_plugin(d, with_map)
@@ -391,7 +412,7 @@ def sabotages(doc):
         f['code'] = 'who-knows'
     return [('a parameter default', a_param_default), ('a parameter flag', a_param_flag), ('a port width', a_channel),
             ('a JACK name', a_jack_name), ('a latency', a_latency), ('a note name', a_note_name), ('a voice count', a_voice),
-            ('a resource hint', a_hint), ('a panel table', a_panel_row), ('a meter range', a_meter_range), ('a meter flag', a_meter_flag),
+            ('a resource hint', a_hint), ('a panel table', a_panel_row), ('a control layout entry left out', a_layout_left_out), ('a meter range', a_meter_range), ('a meter flag', a_meter_flag),
             ('a contract version', a_contract_version), ('a contract unit', a_contract_unit), ('a feature', a_feature), ('a surround map', a_map),
             ('a plugin dropped', a_plugin_dropped), ('a field the schema does not declare', an_unknown_field),
             ('a field of the wrong type', a_wrong_type), ('a field the schema requires, gone', a_missing_field),

@@ -274,6 +274,99 @@ typedef struct omx_clap_plugin_panel_description_ext
 
 /*
 ************************************************************************************************************************
+*           org.openmixer.control-layout.draft/1
+************************************************************************************************************************
+*/
+
+/*
+ * The cut-down shape OpenMixer would propose to CLAP as clap.control-layout/1: a plugin's sections, which parameter is
+ * drawn in which section with which widget and when it is shown, and which display is drawn over which section, read by
+ * reference from clap.meters/1, clap.mini-curve-display/3 or clap.gain-adjustment-metering. No family, no roles, no
+ * per-placement defaults, no label keys and no fingerprint: those stay in org.openmixer.panel-description/1. No
+ * geometry, pixels or style. Range, default, value text and units stay in clap.params.
+ *
+ * The host reads it on the main thread after init, three tables each by count and get, in index order. A table counted
+ * past OMX_CLAP_CONTROL_LAYOUT_MAX_ENTRIES is ignored whole; an entry the plugin's get refuses, or that breaks a rule
+ * below, is left out and the rest is drawn:
+ *  - a section's id is unique;
+ *  - a control's param_id is listed by clap.params, its section_id names a section, and its visible_if_param_id is
+ *    CLAP_INVALID_ID or a stepped parameter of clap.params;
+ *  - a display's section_id names a section, its source is one below, and what it reads is offered: each meter id not
+ *    CLAP_INVALID_ID is declared by clap.meters/1 (ids[0] always set), a curve's plugin answers
+ *    clap.mini-curve-display/3 (ids[1] unused), a gain adjustment's answers clap.gain-adjustment-metering.
+ * A widget code the host does not know is AUTO. tests/panel_abi_test.c pins the layout; omx-clap-scan reads it and names
+ * every entry it leaves out with its reason (tests/clap_scan_test.c:layout_checks).
+ */
+
+/** The control-layout extension id: a vendor draft until CLAP has its own. */
+static const char OMX_CLAP_EXT_CONTROL_LAYOUT[] = "org.openmixer.control-layout.draft/1";
+
+/** The most entries a host reads from one table; past it the table is ignored whole. */
+#define OMX_CLAP_CONTROL_LAYOUT_MAX_ENTRIES 4096u
+
+/** The widgets: the panel description's codes, omx-panel's PANEL_WIDGETS, AUTO 0 to SELECTOR 4. */
+#define OMX_CLAP_CONTROL_LAYOUT_WIDGETS(X) OMX_PANEL_WIDGETS(X)
+
+/** Where a display reads from: the extension's own codes, X(code, WORD). */
+#define OMX_CLAP_CONTROL_LAYOUT_DISPLAY_SOURCES(X) X(0, METER) X(1, CURVE) X(2, GAIN_ADJUSTMENT)
+
+/** One X(code, WORD) of the display sources as its enumerator, OMX_CLAP_LAYOUT_DISPLAY_<WORD>. */
+#define OMX_CLAP_CONTROL_LAYOUT_SOURCE_ENUM(code, word) OMX_CLAP_LAYOUT_DISPLAY_##word = code,
+/** A display's source: METER reads clap.meters/1 ids, CURVE a clap.mini-curve-display/3 curve index,
+ * GAIN_ADJUSTMENT clap.gain-adjustment-metering. */
+enum omx_clap_control_layout_display_source
+{
+    OMX_CLAP_CONTROL_LAYOUT_DISPLAY_SOURCES(OMX_CLAP_CONTROL_LAYOUT_SOURCE_ENUM)
+};
+#undef OMX_CLAP_CONTROL_LAYOUT_SOURCE_ENUM
+
+/** A section, drawn in index order. */
+typedef struct omx_clap_control_layout_section
+{
+    clap_id id;  ///< unique within the plugin's sections
+    char name[CLAP_NAME_SIZE];  ///< the section's name
+} omx_clap_control_layout_section_t;
+
+/** A control: one parameter drawn in one section, in index order within it. */
+typedef struct omx_clap_control_layout_control
+{
+    clap_id param_id;  ///< a parameter listed by clap.params
+    clap_id section_id;  ///< a section's id
+    uint32_t widget;  ///< an OMX_CLAP_CONTROL_LAYOUT_WIDGETS code; an unknown one means AUTO
+    char label[CLAP_NAME_SIZE];  ///< a short label; empty means the parameter's clap_param_info.name
+    clap_id visible_if_param_id;  ///< CLAP_INVALID_ID: always shown; else a stepped parameter
+    uint64_t visible_mask;  ///< shown while visible_if_param_id's value rounds to v and bit v is set
+} omx_clap_control_layout_control_t;
+
+/** A display drawn over a section. */
+typedef struct omx_clap_control_layout_display
+{
+    clap_id section_id;  ///< a section's id
+    uint32_t source;  ///< an omx_clap_control_layout_display_source
+    clap_id ids[2];  ///< meter ids, or {curve index, CLAP_INVALID_ID}; CLAP_INVALID_ID when unused
+    char label[CLAP_NAME_SIZE];  ///< the display's label
+} omx_clap_control_layout_display_t;
+
+/** The org.openmixer.control-layout.draft/1 extension a plugin offers. Every function is [main-thread]. */
+typedef struct omx_clap_plugin_control_layout
+{
+    /** [main-thread] The sections' count. */
+    uint32_t (CLAP_ABI *section_count)(const clap_plugin_t *plugin);
+    /** [main-thread] The controls' count. */
+    uint32_t (CLAP_ABI *control_count)(const clap_plugin_t *plugin);
+    /** [main-thread] The displays' count. */
+    uint32_t (CLAP_ABI *display_count)(const clap_plugin_t *plugin);
+    /** [main-thread] Fills the section at index; false when the index is out of range. */
+    bool (CLAP_ABI *get_section)(const clap_plugin_t *plugin, uint32_t index, omx_clap_control_layout_section_t *out);
+    /** [main-thread] Fills the control at index; false when the index is out of range. */
+    bool (CLAP_ABI *get_control)(const clap_plugin_t *plugin, uint32_t index, omx_clap_control_layout_control_t *out);
+    /** [main-thread] Fills the display at index; false when the index is out of range. */
+    bool (CLAP_ABI *get_display)(const clap_plugin_t *plugin, uint32_t index, omx_clap_control_layout_display_t *out);
+} omx_clap_plugin_control_layout_t;
+
+
+/*
+************************************************************************************************************************
 *           org.openmixer.properties/1
 ************************************************************************************************************************
 */

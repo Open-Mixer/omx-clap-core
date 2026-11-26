@@ -481,7 +481,7 @@ docs: $(CORE_HEADERS) Doxyfile
 	doxygen Doxyfile
 
 clean:
-	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test tests/jack_identity_align_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/scan_panel_words_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test tests/lv2_restart_race_tsan
+	@rm -rf src/*.o src/*.d tests/*.d lv2/*/*.o lv2/*/*.d $(LV2_LIB) tests/clap_state_busy_test tests/jack_identity_align_test lv2/tests/lv2_run_test lv2/tests/lv2_host_test lv2/tests/lv2_patch_test lv2/tests/lv2_features_test lv2/tests/lv2_clap_test lv2/tests/lv2_cost lv2/tests/lv2_link_test $(PROG) $(SCAN_PROG) $(CORE_SO)* build tests/clap_host_test tests/core_link_test tests/clap_scan_test tests/clap_stage_test tests/clap_core_test tests/clap_untrusted_test tests/clap_untrusted_asan tests/clap_scan_asan tests/msgring_test tests/transport_seqlock_test tests/transport_seqlock_tsan tests/cycle_gate_tsan tests/active_race_tsan tests/host_transport_test tests/quiet_death_test tests/xrun_report_test tests/live_list_test tests/state_root_test tests/jack_xrun_shim.so tests/fault-*.clap tests/fake.clap tests/fake_synth.clap tests/fake_compressor.clap tests/fake_gui.clap tests/fake_panel.clap tests/crash.clap tests/jack_latency_probe tests/jack_synth_probe tests/jack_notes_out_probe tests/jack_transport_ctl tests/fake_transport.clap tests/jack_meter_source tests/jack_identity tests/jack_parity tests/clap_layout_pin tests/clap_raw_test tests/lv2_locate_test tests/param_contract_test tests/panel_abi_test tests/scan_panel_words_test tests/fake_mover.clap tests/clap_unoffered_test tests/preset_file_test tools/preset-census tests/resource_hints_test tests/thread_pool_test tests/thread_pool_tsan tests/thread_pool_bench tests/chain_bench tests/fake_tool.clap tests/fake_pool.clap tests/fake_pool_tsan.clap tests/open_timed_tsan tests/effects_meter_test tests/window_test tests/lv2_restart_race_tsan
 
 -include $(wildcard src/*.d lv2/*/*.d)
 
@@ -509,6 +509,7 @@ TEST_PLAIN = test-ci-runs-test-list \
     test-core \
     test-xrun-report-sabotage \
     test-effects-meter \
+    test-window \
     test-meter-rate-source \
     test-live-list \
     test-live-list-sabotage \
@@ -527,6 +528,7 @@ TEST_PLAIN = test-ci-runs-test-list \
 TEST_MAIN_ONLY = test-layouts-sabotage \
     test-cycle-gate-sabotage \
     test-effects-meter-sabotage \
+    test-window-sabotage \
     test-thread-pool-sabotage \
     test-jack-params-ready-sabotage \
     test-transport-sabotage
@@ -967,6 +969,42 @@ test-xrun-report-sabotage: tests/xrun_report_test.c src/xrun_report.h
 	    [ $$arm != atomic ] || grep -q '^FAIL two notes whose load and store interleave' build/xrun-report-sabotage/$$arm.log || \
 	        { echo "sabotage atomic: the forced interleaving did not red"; exit 1; }; \
 	    echo "sabotage $$arm: red as it should"; \
+	done
+
+# the host's clap.gui with no display (tests/window_test.c), src/window.c compiled into the test without xcb: the
+# plugin's request_show before it has a window answers false and makes none (#230); an embedded window's plugin is given
+# its output's scale again on the tick after a display says it may have changed, only when it did, a floating one's
+# never (#229)
+WINDOW_TEST_CC = $(CC) -Isrc $(INCS) $(CFLAGS) -Werror
+
+test-window: tests/window_test
+	./tests/window_test
+
+tests/window_test: tests/window_test.c src/window.c src/window.h src/clap_host.h $(CORE_SO)
+	$(WINDOW_TEST_CC) -o $@ $< $(CORE_LINK_TEST) -ldl -lpthread -lm
+
+# the sabotage of each, in a copy of src/window.c: request_show answering true with no window, the tick that never gives
+# the scale again, a floating window given one, an unchanged scale given again: each reds the test on its own line
+test-window-sabotage: tests/window_test.c src/window.c src/window.h src/clap_host.h $(CORE_SO)
+	rm -rf build/window-sabotage
+	for arm in show rescale floating unchanged; do \
+	    dir=build/window-sabotage/$$arm; mkdir -p $$dir/src $$dir/tests; \
+	    cp src/window.c src/window.h $$dir/src/; cp tests/window_test.c $$dir/tests/; \
+	    case $$arm in \
+	    show) sed -i -e '/^static bool host_request_show/,/^}/ s#^        return false;$$#        return true;#' $$dir/src/window.c; \
+	        want="FAIL request_show before the plugin has a window answers false" ;; \
+	    rescale) sed -i -e 's#^    if (g_scale_moved)$$#    if (0)#' $$dir/src/window.c; \
+	        want="FAIL the output's scale became 2.0 and a display said so" ;; \
+	    floating) sed -i -e 's#^    if (w->floating || !w->api->scale#    if (!w->api->scale#' $$dir/src/window.c; \
+	        want="FAIL a floating window's plugin is never given a scale" ;; \
+	    unchanged) sed -i -e 's#^    if (!(scale > 0.0) || scale == w->scale)$$#    if (!(scale > 0.0))#' $$dir/src/window.c; \
+	        want="FAIL a display said it moved and the scale is still 2.0" ;; \
+	    esac; \
+	    ! cmp -s src/window.c $$dir/src/window.c || { echo "FAIL the $$arm sabotage changed nothing"; exit 1; }; \
+	    $(WINDOW_TEST_CC) -o $$dir/test $$dir/tests/window_test.c $(CORE_LINK_TEST) -ldl -lpthread -lm || exit 1; \
+	    ! ./$$dir/test > $$dir/log 2>&1 || { echo "FAIL the $$arm sabotage left the test green"; exit 1; }; \
+	    grep -q -F "$$want" $$dir/log || { echo "FAIL the $$arm sabotage did not red: $$want"; cat $$dir/log; exit 1; }; \
+	    echo "ok   the $$arm sabotage reds: $$want"; \
 	done
 
 # the host's read of a plugin's held meters (docs/meters.md), through the host's own effects.c, which the test includes: a

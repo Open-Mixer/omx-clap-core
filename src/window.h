@@ -43,7 +43,8 @@ int window_show(struct omx_clap_instance *in, const char *title, const char **co
 int window_hide(struct omx_clap_instance *in);
 /* the plugin's window destroyed, before the plugin is: the remove. Nothing when it has none */
 void window_close(struct omx_clap_instance *in);
-/* the idle tick: the X events, and the plugin's requests (resize, show, hide, closed) */
+/* the idle tick: the X events, the plugin's requests (resize, show, hide, closed), and an embedded window's plugin given
+ * its output's scale again when a display said it changed (set_scale, #229) */
 void window_idle(void);
 /* every window closed and the X connection with them */
 void window_finish(void);

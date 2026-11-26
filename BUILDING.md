@@ -134,12 +134,14 @@ opens its own connection to the display and lives on a timer and that
 connection's descriptor, is shown embedded in the host's window titled with its
 name, its timer and descriptor served on the host's tick, its `request_resize`
 resizing the host's window and the host's window resized (xdotool) becoming its
-`set_size`; hidden and shown again without a second `create`; removed while
+`set_size`; a new `Xft.dpi` resource on the screen (xprop) becoming its
+`set_scale` 2.0 once, while its window exists (#229); hidden and shown again
+without a second `create`; removed while
 open, after which the host holds no connection to the display; shown floating
 by `-S`; and refused `hosting.window.no-display` with `DISPLAY` unset or naming
 no server, the plugin never asked to create a window and its audio still
 running. A plugin with no `clap.gui` is refused `hosting.window.unsupported`.
-Needs Xvfb, xdotool and ss besides PipeWire.
+Needs Xvfb, xdotool, xprop and ss besides PipeWire.
 
     make test-jack-window-wl
 

@@ -15,9 +15,11 @@
 # VERSION). pkg-config's --atleast-version/--exact-version/--max-version on our modules, and an install pinned by name
 # (`omx-contract-devel-3.22.0`), are refused too. Every refusal names the package and its relation.
 # Breaks/Replaces/Obsoletes of a renamed package (packaging/renamed.txt) are an upgrade path, no floor, and are not read.
-# THIRD-PARTY floors stay (the ruling covers our own levels): the CLAP headers (clap-devel, clap-headers 1.2.10), nodejs and
-# debhelper-compat keep theirs; every other relation on a number is refused (>=, > or = in the spec, >=, >> or = in
-# debian/control), and so is one on our own packages in a workflow or the Makefile.
+# THIRD-PARTY floors stay only where a channel meets them: nodejs and debhelper-compat keep theirs. The CLAP headers
+# (clap-devel, clap-headers) are named, never floored: no channel served the 1.2.10 their floor asked for (Fedora 45 has
+# 1.2.7, the staging channel none, Debian no clap-headers), so omx-clap-devel installed nowhere. Every other relation on a
+# number is refused (>=, > or = in the spec, >=, >> or = in debian/control), and so is one on our own packages in a
+# workflow or the Makefile.
 #
 #   no_floors_check.py <tree>       0 clean, 1 a floor found
 #   no_floors_check.py --self-test  each kind planted in a scratch copy is found; the clean copy passes
@@ -30,8 +32,8 @@ import sys
 import tempfile
 
 NAME = re.compile(r"^[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*$")
-# third-party packages whose floor stays: the CLAP headers and node
-THIRD_PARTY = ("clap-devel", "clap-headers", "nodejs", "debhelper-compat")
+# third-party packages whose floor stays: node and debhelper (the CLAP headers are named, never floored)
+THIRD_PARTY = ("nodejs", "debhelper-compat")
 # A VERSION VALUE a relation may not carry: a number, or a hand-kept macro or variable that holds one (`%{ocmin}`,
 # `$(OMXDSP_MIN)`, `${MIN}`): a floor through a name is still a floor. The values a build GENERATES stay: rpm's
 # `%{version}`, `%{release}`, `%{?epoch}` and debian's `${binary:Version}`, `${source:Version}` (and the `${...:Upstream-Version}`
@@ -211,6 +213,8 @@ def self_test():
         ("a spec floor", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: omx-dsp-devel\n", "BuildRequires: omx-dsp-devel >= 0.34.0\n"), "a version floor on omx-dsp-devel (>= 0.34.0)"),
         ("a control floor", lambda t: edit(os.path.join(t, "debian", "control"), "libomxdsp-dev,", "libomxdsp-dev (>= 0.34.0~),"), "debian/control:10: a version floor on libomxdsp-dev (>= 0.34.0~)"),
         ("a third-party floor is no finding, an own one is", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: plugin-db-devel\n", "BuildRequires: plugin-db-devel >= 0.5.0\n"), "on plugin-db-devel (>= 0.5.0)"),
+        ("a CLAP floor in the spec", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: clap-devel\n", "BuildRequires: clap-devel >= 1.2.10\n"), "on clap-devel (>= 1.2.10)"),
+        ("a CLAP floor in debian/control", lambda t: edit(os.path.join(t, "debian", "control"), "(= 13), clap-headers,", "(= 13), clap-headers (>= 1.2.10~),"), "on clap-headers (>= 1.2.10~)"),
         ("a spec > floor", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: omx-dsp-devel\n", "BuildRequires: omx-dsp-devel > 0.33\n"), "on omx-dsp-devel (> 0.33)"),
         ("a typed version after the epoch prefix", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: omx-dsp-devel\n", "BuildRequires: omx-dsp-devel = %{?epoch:%{epoch}:}0.34.0\n"), "on omx-dsp-devel (= %{?epoch:%{epoch}:}0.34.0)"),
         ("a spec = pin", lambda t: edit(glob.glob(os.path.join(t, "packaging", "*.spec"))[0], "BuildRequires: omx-dsp-devel\n", "BuildRequires: omx-dsp-devel = 0.34.0\n"), "on omx-dsp-devel (= 0.34.0)"),
@@ -279,7 +283,7 @@ def main():
         print("FAIL " + line)
     if found:
         sys.exit(1)
-    print("ok   no hand-kept version floor: no deps.txt, no relation on a number in the spec, debian/control, .pc templates, workflows or Makefile (third-party CLAP, node and debhelper aside), requires are names")
+    print("ok   no hand-kept version floor: no deps.txt, no relation on a number in the spec, debian/control, .pc templates, workflows or Makefile (third-party node and debhelper aside), requires are names")
 
 
 if __name__ == "__main__":

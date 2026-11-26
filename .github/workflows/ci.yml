@@ -587,6 +587,7 @@ jobs:
       - name: Test the verbs the declarations name for this host
         env:
           GH_TOKEN: ${{ github.token }}
+          DEVEL_PR: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             # the domain plugin-hostd-protocol (chain of omx-clap-host), from the build the headers come from: a staged
@@ -595,6 +596,7 @@ jobs:
             version=$(rpm -q --qf '%{VERSION}' plugin-hostd-protocol-devel)
             commit=$(rpm -q --qf '%{RELEASE}' plugin-hostd-protocol-devel | sed -n 's/.*\.git\([0-9]*\.\)\{0,1\}\([0-9a-f]\{7,40\}\)\..*/\2/p')
             git init -q /tmp/plugin-hostd-protocol
+            declarations=/tmp/plugin-hostd-protocol
             if [ -n "$commit" ]; then
               full=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
                 "https://api.github.com/repos/Open-Mixer/plugin-hostd-protocol/commits/$commit" |
@@ -602,14 +604,25 @@ jobs:
               [ -n "$full" ] || { echo "::error::plugin-hostd-protocol has no commit $commit"; exit 1; }
               git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "$full"
               git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD
-            else
-              git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "refs/tags/v$version"
+            elif git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "refs/tags/v$version"; then
               git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD
+            elif [ "$DEVEL_PR" = true ]; then
+              # a pull request into devel, or a dispatch off main, builds on staging, where a devel merge publishes a
+              # release with no tag and no commit in its name (#234): the declarations are that build's own, installed
+              # beside its headers by plugin-hostd-protocol-contract
+              declarations=
+            else
+              echo "::error::plugin-hostd-protocol $version has no tag v$version and names no commit"; exit 1
             fi
-            echo "plugin-hostd-protocol's declarations: $version at $(git -C /tmp/plugin-hostd-protocol rev-parse --short HEAD)"
-            make test-host-verbs-domains PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
-            make test-host-verbs PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
-            make test-host-verbs-sabotage PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
+            if [ -n "$declarations" ]; then
+              echo "plugin-hostd-protocol's declarations: $version at $(git -C /tmp/plugin-hostd-protocol rev-parse --short HEAD)"
+            else
+              rpm -q plugin-hostd-protocol-contract
+              echo "plugin-hostd-protocol's declarations: $version, installed by $(rpm -q plugin-hostd-protocol-contract)"
+            fi
+            make test-host-verbs-domains PROTOCOL_CONTRACT_DIR=$declarations
+            make test-host-verbs PROTOCOL_CONTRACT_DIR=$declarations
+            make test-host-verbs-sabotage PROTOCOL_CONTRACT_DIR=$declarations
           else
             echo "::warning::test-host-verbs SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
@@ -1059,8 +1072,9 @@ jobs:
           # the domain plugin-hostd-protocol names this host too (chain: required), and the check reads it
           # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)
           rpm -qf /usr/share/omx-contract/contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json | grep -q '^plugin-hostd-protocol-contract-'
-          # plugin-hostd-protocol-devel: the render of the verbs this host answers, which the registration table names (ruling R5)
-          dnf install -y --setopt=install_weak_deps=False plugin-db-devel plugin-hostd-protocol-devel
+          # plugin-hostd-protocol-devel: the render of the verbs this host answers, which the registration table names (ruling R5);
+          # python3-plugin-hostd-client: the protocol's Python client, which tests/host_verbs_check.py imports
+          dnf install -y --setopt=install_weak_deps=False plugin-db-devel plugin-hostd-protocol-devel python3-plugin-hostd-client
           scheme=$(printf '#include <plugin-db/pin.h>\nPHD_PIN_LAYOUT_SCHEME\n' | gcc $(pkg-config --cflags plugin-db) -E -P - | tail -n 1 | tr -d '"')
           header=$(pkg-config --variable=includedir plugin-hostd-protocol)/plugin-hostd-protocol/plugin-hostd/plugin_hostd_protocol_host_verbs.h
           test -f "$header"
@@ -1208,12 +1222,12 @@ jobs:
       - uses: Open-Mixer/.github/.github/actions/build-deb@openmixer-v1
 
       # the protocol library, omx-contract's data, the protocol's contract (plugin-hostd-protocol-contract, which
-      # omx-clap-contract depends on since ruling R5) and its domain loader (libomx-domain0, which the host links) the
+      # omx-clap-contract depends on since ruling R5, with the omx-contract it depends on) and its domain loader (libomx-domain0, which the host links) the
       # package depends on, from the channel, for the smoke test's container, which has only the distribution
       - name: Fetch libplugin-hostd-protocol0 for the smoke test
         run: |
           set -euo pipefail
-          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data plugin-hostd-protocol-contract libomx-domain0
+          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data omx-contract plugin-hostd-protocol-contract libomx-domain0
 
       # what the smoke test runs the installed package against, built here for the architecture
       - name: Build the smoke test fixtures
@@ -1309,6 +1323,7 @@ jobs:
             debs/*.deb
             proto-debs/libplugin-hostd-protocol0_*.deb
             proto-debs/omx-contract-data_*.deb
+            proto-debs/omx-contract_*.deb
             proto-debs/plugin-hostd-protocol-contract_*.deb
             proto-debs/libomx-domain0_*.deb
             smoke
@@ -1341,7 +1356,7 @@ jobs:
           apt-get update -qq
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap1_*.deb ./debs/omx-clap-contract_*_all.deb \
             ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb \
-            ./proto-debs/plugin-hostd-protocol-contract_*.deb ./proto-debs/libomx-domain0_*.deb
+            ./proto-debs/omx-contract_*.deb ./proto-debs/plugin-hostd-protocol-contract_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
           # the protocol's version relation is the one ${shlibs:Depends} generates from its library, none typed (owner ruling 2026-11-24)
           dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0( \(>= [0-9.]+~?\))?(,|$)'

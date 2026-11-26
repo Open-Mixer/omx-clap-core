@@ -217,9 +217,16 @@ OMX_CLAP_CORE_0.33
     omx_clap_host_property_set;
 } OMX_CLAP_CORE_0.26;
 
+/* added after 0.34.1: a chain's cycle between ports of the widths its first member reads and its last member writes */
+OMX_CLAP_CORE_0.34
+{
+  global:
+    omx_clap_chain_process_ports;
+} OMX_CLAP_CORE_0.33;
+
 /* added in 0.36.0: the standard unit id of a parameter contract unit code, the word param_info answers (plugin-hostd#215 D1) */
 OMX_CLAP_CORE_0.36
 {
   global:
     omx_clap_param_unit_id;
-} OMX_CLAP_CORE_0.33;
+} OMX_CLAP_CORE_0.34;

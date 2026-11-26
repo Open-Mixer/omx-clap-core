@@ -21,13 +21,35 @@ A member is one of two kinds, given in `struct omx_clap_chain_member`:
 
 Every member carries:
 
-- its channel layout: its main input and output widths. Both must equal the chain's `channels`, fixed at create
-  (refused `OMX_CLAP_CHAIN_ERR_WIDTH` otherwise). A stage that changes width (mono in, stereo out) stays outside a
-  chain: with one width end to end, a bypass, a removal and an insertion can never leave two neighbours that do not
-  meet.
+- its channel layout: its main input and output widths, each from 1 to the chain's `channels`, fixed at create (a
+  width of 0 or past `channels` is refused `OMX_CLAP_CHAIN_ERR_WIDTH`). A member's widths need not be its
+  neighbours': see Widths below.
 - a bypass flag. A bypassed member is not in the cycle's walk at all: no call, no copy, and no latency. The member
-  before it hands its output straight to the member after it.
+  before it hands its output straight to the member after it. A bypassed member whose widths are not the walk's where
+  it stands stays in the walk as its width change alone (Widths).
 - its reported latency in frames.
+
+### Widths
+
+A chain joins members of different widths, and a width change between neighbours is never a refusal (#232, zynthian-sys#42:
+the guitar board's x42 tuner is mono and the effects after it stereo, and the chain refused them all, so the board ran
+in one worker per plugin). The rule is the one a host applies when it links ports of two widths, the one Zynthian's
+routing and JACK apply to these plugins as clients of their own:
+
+- mono to stereo (or wider): the mono output feeds every channel of the next input;
+- stereo (or wider) to mono: every channel is summed into the mono input, L+R at unity, as JACK sums two links into
+  one port. No -6 dB is applied: the chain sounds as the same plugins linked one client each, bit for bit, and a
+  summed signal can exceed full scale between members as it does there; the chain's one clamp is at its output;
+- any other pair of widths: channel by channel, an output with no input of its number silent;
+- the chain's own input is as wide as its first member's input and its output as wide as its last member's output.
+  `omx_clap_chain_process_ports(chain, inputs, n_in, outputs, n_out, frames)` takes ports of any width from 1 to
+  `channels` and matches them to those ends by the same rule; `omx_clap_chain_process` is that call with both widths
+  `channels`.
+
+A bypassed member keeps its ports, as a bypassed plugin routed alone does: one of 1 in and 2 out gives its input to
+both channels, one of 2 in and 1 out sums them. A bypassed member as wide as the walk on both sides is no step at all.
+So a bypass, a removal and an insertion never leave two neighbours that do not meet: every pair is matched in the
+cycle, with no allocation (the match block is allocated at create beside the two blocks between members).
 
 At most `OMX_CLAP_CHAIN_MEMBERS_MAX` (64) members, the prototype's `CHAIN_MAX`; one more is refused
 `OMX_CLAP_CHAIN_ERR_FULL`. A member is named by the id `omx_clap_chain_add` returns, a number never reused by that
@@ -47,7 +69,9 @@ that counts the published changes.
 `omx_clap_chain_process(chain, inputs, outputs, frames)`, in the audio thread, one thread at a time per chain:
 
 - the first non-bypassed member reads `inputs`, the last writes `outputs`, and between them each member writes a block
-  the chain allocated at create and reads the block before it. Two blocks alternate, so no member is handed its input as
+  the chain allocated at create and reads the block before it. What reaches a member of another width is matched to
+  it in a third block first (Widths), and a last member whose output is not as wide as `outputs` writes a block that is
+  matched onto them. Two blocks alternate, so no member is handed its input as
   its output; each is `channels` channels of `OMX_CLAP_CHAIN_FRAMES_MAX` (8192) frames, every channel 64-byte aligned as
   a JACK port buffer is (`OMX_CLAP_CHAIN_ALIGN`), the prototype's `CHAIN_FRAMES_MAX` and `CHAIN_ALIGN`.
 - a chain of one non-bypassed member hands it `inputs` and `outputs` themselves: it runs exactly as it would alone.
@@ -150,6 +174,11 @@ and freed by the library. The functions are in the version node `OMX_CLAP_CORE_0
   every member once is refused and publishes nothing; a move by one order leaves no cycle without the member, where a
   removal and an add leave a counted gap;
 - a cycle longer than the blocks passes dry and says so;
+- members of different widths (`t_mixed_widths`), on a 1 kHz tone of 0.5 left and 0.25 right, each level exact: a
+  mono member (x 0.5) then a stereo one gives 0.375 on both outputs; a stereo member then a mono one gives the sum,
+  0.75; the fake stereo-mono plugin then the mono-stereo one gives +0.75 and -0.75; through
+  `omx_clap_chain_process_ports`, one input to two outputs gives the tone at 1.0 on both, and two inputs to one output
+  0.75; a bypassed 1 in 2 out gives its input to both, a bypassed 2 in 1 out the sum, neither running its gain;
 - every structure of the wrong `abi` or `size` is refused with `OMX_CLAP_CHAIN_ERR_ABI`, and nothing is written to it;
 - the cycles on a thread of their own while the control thread bypasses, adds and removes members hundreds of times:
   every block is one whole walk, never part of the old one and part of the new.
@@ -177,7 +206,11 @@ connections, and again without a member after that member's `remove`. omx-clap-h
 
 The members run in ONE JACK client: the client of the first member the line names, the chain's head. The head's main
 input ports are the chain's input and its main output ports the chain's output; its note ports and auxiliary ports
-stay its own. Every other member closes its own client, so it has no port and is no node of the graph: a chain of N
+stay its own. When the last member's main output is wider than the head's (a mono head, a stereo member last), the
+head's client registers the outputs past its own under the names a head that wide would have (`out_2`), before any
+cycle writes them, and unregisters them when the last member is narrower again or the chain ends: the chain's node
+has the last member's width. A last member narrower than the head's output is given to every one of the head's
+outputs. `--capabilities` names this `mixed_width`. Every other member closes its own client, so it has no port and is no node of the graph: a chain of N
 plugins is one node, beside the host's own client (`omx-clap-host`, the frame clock, no port). A member's note ports
 go with its client too, and a line does not refuse for them (a third-party LV2 effect such as Calf's declares an atom
 port that supports MIDI, so it has a note input): the note verbs still reach the member through its ring, its note output
@@ -205,8 +238,10 @@ chain's sum between them.
 
 ### What a line may name
 
-Every member is an instance this host holds, named once and in no other chain of this host, and of the chain's width:
-its main input and its main output as wide as the head's main output. Anything else answers `resp -902` with the reason on
+Every member is an instance this host holds, named once and in no other chain of this host, with a main input and a
+main output of one channel or more, none wider than the head's walk: the library's chain at least stereo and as wide as
+the head's main ports. The members' widths need not meet: a mono head takes stereo members, a stereo head a mono one,
+and every width change between them is matched (Widths). Anything else answers `resp -902` with the reason on
 stderr, or `resp -3` for an instance this host does not hold, and changes nothing: the members run one client each.
 plugin-hostd then ends the chain and runs each member in a worker of its own, and answers its own `chain` with `resp -501`.
 The protocol has no code of its own for these refusals; the reason is the
@@ -247,8 +282,8 @@ activated again or built again.
 - An `add` that `chain_expect <instance> <chain>` named just before it joins that chain at its end, in the head's
   client, one walk: no client of its own is opened, registered or activated, so the graph never sees a node for it.
   plugin-hostd sends it for each member after a chain's first, and the line that follows, the
-  chain's order with the new member, changes no walk. An add into a chain this host does not run, or of a plugin not
-  as wide as the head's output, answers `resp -902` and leaves nothing of the plugin; an expectation is spent by the
+  chain's order with the new member, changes no walk. An add into a chain this host does not run, or of a plugin with
+  no main input or output or one wider than the head's walk, answers `resp -902` and leaves nothing of the plugin; an expectation is spent by the
   add it was sent for. On a 24-thread build machine, 24 plugins added into one chain took 887 ms with an add and a line each (the client each
   add opened and the line closed), against 470 ms for mod-host's 24 clients.
 - `remove` of a member that is not the head takes it out of the walk, the chain closing around it, then frees it.
@@ -288,7 +323,16 @@ quarantined member that is not the head takes none of them, and the chain rejoin
   still reach one member, the head's and a member's bypass both; a member's removal, a member left out, added and
   moved (in one walk, the read-back's walk one more), and a new head each give the output of the chain built that way,
   bit for bit; every refusal changes nothing; a member's auxiliary ports are on the head's client, a connect by the name
-  it has alone reaches them, and they leave with it (`make test-jack-fake`: the side chain and the auxiliary output carry their levels in a chain). 
+  it has alone reaches them, and they leave with it (`make test-jack-fake`: the side chain and the auxiliary output carry their levels in a chain).
+  Members of different widths (phase 10): the mono-in stereo-out plugin
+  joins a chain by `chain_expect`; the LV2 fixture's mono gain (1 in, 1 out, -26 dB) at the head of the stereo pass
+  is one node with `out_1` and `out_2`, both outputs bit for bit the two instances in series with the mono output
+  linked to both inputs, and to each other; the pass at the head of the mono gain is bit for bit the series with both
+  outputs linked into the one input; the levels against the source are the gain, 0.050119, on both outputs, and twice
+  it, 0.100237 (+6.02 dB), for the sum. `make test-chain-host-sabotage` puts the old rule back (one width end to end),
+  narrows a mono head's walk to one channel, and drops the outputs past the head's own, each red on its check; `make
+  test-chain-sabotage` drops the copy of a mono output to the second channel and the second channel from a mono sum,
+  each red on the level it breaks.
 - `make test-chain-host-tsan` (`tests/chain_host_tsan.sh`): the host and the core under ThreadSanitizer, 40 rounds of
   joins, a move, a member freed and added again, another head and the first one back, while the quantum changes all
   along (each change the head's buffer-size callback walking the members, each new client's thread-init callback

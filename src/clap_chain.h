@@ -34,7 +34,7 @@
 * The chain is generic: it names no trim, fader, strip or bus. It is not a latency win (https://openmixer.org/notes/one-jack-client-for-a-chain):
 * it saves a JACK client and memory per plugin.
 *
-* Every function is a control-thread call, serialised by the chain's lock, except omx_clap_chain_process, the audio
+* Every function is a control-thread call, serialised by the chain's lock, except omx_clap_chain_process and omx_clap_chain_process_ports, the audio
 * thread's, which takes no lock, allocates nothing and waits for nothing, and omx_clap_chain_report, which reads without
 * the lock from any thread but the audio one. Functions answer one of the OMX_CLAP_CHAIN_* codes.
 *
@@ -86,8 +86,8 @@
 #define OMX_CLAP_CHAIN_PASSED           1       ///< process: the cycle was longer than OMX_CLAP_CHAIN_FRAMES_MAX and passed dry
 #define OMX_CLAP_CHAIN_ERR_ABI          (-1)    ///< a structure of an ABI the library does not know, or of another size
 #define OMX_CLAP_CHAIN_ERR_ARG          (-2)    ///< a NULL, a position past the end, a member neither or both kinds
-#define OMX_CLAP_CHAIN_ERR_WIDTH        (-3)    ///< a member's input or output is not as wide as the chain (a mono member in a stereo chain excepted), or a chain
-                                                ///< width out of 1 to OMX_HOSTED_STAGE_PORT_CHANNELS
+#define OMX_CLAP_CHAIN_ERR_WIDTH        (-3)    ///< a member's input or output of no channel or wider than the chain's blocks, or a chain
+                                                ///< width out of 1 to OMX_HOSTED_STAGE_PORT_CHANNELS; never a width change between members
 #define OMX_CLAP_CHAIN_ERR_FULL         (-4)    ///< the chain holds OMX_CLAP_CHAIN_MEMBERS_MAX members already
 #define OMX_CLAP_CHAIN_ERR_NO_MEMBER    (-5)    ///< no member by that id, or no member at that position
 #define OMX_CLAP_CHAIN_ERR_MEMORY       (-6)    ///< the chain or its blocks could not be allocated
@@ -112,7 +112,8 @@ struct omx_clap_chain_config
 {
     uint32_t abi;               ///< OMX_CLAP_CHAIN_ABI of the header the caller was compiled against
     uint32_t size;              ///< sizeof of this structure as the caller was compiled
-    uint32_t channels;          ///< the chain's width, 1 to OMX_HOSTED_STAGE_PORT_CHANNELS: every member's input and output
+    uint32_t channels;          ///< the chain's width, 1 to OMX_HOSTED_STAGE_PORT_CHANNELS: its blocks', the widest a member's input or
+                                ///< output may be, and omx_clap_chain_process's input and output
     omx_clap_chain_latency_fn latency_changed;  ///< called when the latency changes; NULL: nothing called
     void *ctx;                  ///< handed to latency_changed
 };
@@ -177,7 +178,9 @@ OMX_CLAP_EXPORT int omx_clap_chain_create(const struct omx_clap_chain_config *co
 OMX_CLAP_EXPORT void omx_clap_chain_destroy(struct omx_clap_chain *chain);
 
 /** Add `member` at `position` (0 first, OMX_CLAP_CHAIN_END or the member count after the last), its id in `*id` when
- * `id` is not NULL. Both its widths must be the chain's. The cycle after the call returns runs it, unless bypassed. */
+ * `id` is not NULL. Each of its widths is 1 to the chain's, and need not be its neighbours': what reaches it is matched to
+ * its input (a mono output to every channel, channels summed L+R into a mono input). The cycle after the call returns
+ * runs it, unless bypassed. */
 OMX_CLAP_EXPORT int omx_clap_chain_add(struct omx_clap_chain *chain, const struct omx_clap_chain_member *member, uint32_t position,
                                        uint32_t *id);
 
@@ -212,9 +215,17 @@ OMX_CLAP_EXPORT int omx_clap_chain_member_info(struct omx_clap_chain *chain, uin
 /** RT: one cycle, `inputs` to `outputs`, one buffer per channel of the chain, `frames` long; `inputs` and `outputs` may be
  * the same buffers. The non-bypassed members in order; their input copied to their output when there is none; the input
  * copied to the output dry, no member run, for a cycle longer than OMX_CLAP_CHAIN_FRAMES_MAX (OMX_CLAP_CHAIN_PASSED).
- * One audio thread at a time per chain. */
+ * One audio thread at a time per chain. omx_clap_chain_process_ports with both widths the chain's. */
 OMX_CLAP_EXPORT int omx_clap_chain_process(struct omx_clap_chain *chain, const float *const *inputs, float *const *outputs,
                                            uint32_t frames);
+
+/** RT: omx_clap_chain_process with `n_in` input and `n_out` output channels, each 1 to the chain's width: the caller's
+ * input is matched to the first member's input width and the last member's output to `n_out`, as every width change
+ * between members is (a mono channel to every channel, channels summed L+R into a mono one). A caller whose ports are
+ * the first member's input and the last member's output hands them as they are. OMX_CLAP_CHAIN_ERR_ARG for a width
+ * of 0 or past the chain's. */
+OMX_CLAP_EXPORT int omx_clap_chain_process_ports(struct omx_clap_chain *chain, const float *const *inputs, uint32_t n_in,
+                                                 float *const *outputs, uint32_t n_out, uint32_t frames);
 
 
 /*

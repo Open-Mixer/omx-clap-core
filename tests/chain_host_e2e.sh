@@ -22,11 +22,16 @@
 #     silent), the order before it another output
 #   6 a line with another head: the chain in gain's client       7 remove of a member: the chain closes around it
 #   8 remove of the head: pass in a client of its own; a line of one member
-#   9 an add chain_expect names joins the chain at its end with no client of its own; one that cannot join is refused
+#   9 an add chain_expect names joins the chain at its end with no client of its own, one of another width too; one
+#     that cannot join is refused
+#   10 members of different widths, never refused (#232, the mono tuner at the head of stereo effects): a
+#     mono LV2 head then a stereo member is one node with out_1 and out_2, both outputs bit for bit the same instances in
+#     series with the mono output linked to both inputs, at the tuner's gain; a stereo head then the mono member is the
+#     series with both outputs linked into the one input, at twice that level (L+R)
 #
-# and every refusal (a member it does not hold, one named twice, a word that is no number, a member or a head of
-# another width, a member of another chain) answers its code and changes no node. A member's auxiliary ports go to the
-# head's client under its name, and come back when it leaves.
+# and every refusal (a member it does not hold, one named twice, a word that is no number, a member of another chain)
+# answers its code and changes no node. A member's auxiliary ports go to the head's client under its name, and come
+# back when it leaves.
 # The last line is a CHAIN-HOST json; exit 0 only when every step held.
 #
 # OMX_CLAP_HOST: the binary (default ./omx-clap-host); FRAMES: frames per phase (default 24000)
@@ -106,7 +111,8 @@ step 0 "private pipewire on $runtime"
 
 declare -A port=([chain]=5591 [series]=5592) fd=([chain]=3 [series]=4) host_pid=()
 for arm in chain series; do
-    FAKE_LOG=$runtime/fake.log "$OMX_CLAP_HOST" -n -p "${port[$arm]}" >"$runtime/$arm.log" 2>&1 &
+    # the LV2 fixtures (build/lv2) for phase 10's mono member, as plugin-hostd narrows LV2_PATH to the bundles it needs
+    LV2_PATH=$root/build/lv2 FAKE_LOG=$runtime/fake.log "$OMX_CLAP_HOST" -n -p "${port[$arm]}" >"$runtime/$arm.log" 2>&1 &
     pids+=($!)
     host_pid[$arm]=$!
     host_ready_wait "$runtime/$arm.log" 100; step $? "$arm host ready"
@@ -193,6 +199,8 @@ nodes() {
 }
 # a node's ports must be in the graph before it is linked: a closed client's are gone, a new one's come a moment later
 has_ports() { timeout 10 pw-link -o 2>/dev/null | grep -q "^effect_$1:out_2$"; }
+# port_is <i|o> <port>: the graph has that input or output port
+port_is() { timeout 10 pw-link "-$1" 2>/dev/null | grep -q -x -F "$2"; }
 # linked <output> <input>: the graph links the two (pw-link -l: each output, then "  |-> <input>" per link)
 linked() {
     timeout 10 pw-link -l 2>/dev/null | awk -v a="$1" -v b="$2" '$0 == a { o = 1; next } /^[^ ]/ { o = 0 } o && $NF == b && $1 == "|->" { f = 1 } END { exit !f }'
@@ -241,10 +249,15 @@ play() {
         first=${spec#*=}
         last=${first#*,}
         first=${first%,*}
+        # a mono first instance has in_1 alone, a mono last one out_1 alone, recorded twice (phase 10)
         link identity-src:out "effect_$first:in_1"
-        link identity-src:out "effect_$first:in_2"
+        ! port_is i "effect_$first:in_2" || link identity-src:out "effect_$first:in_2"
         link "effect_$last:out_1" "identity-rec:${recs[$n]}"
-        link "effect_$last:out_2" "identity-rec:${recs[$((n + 1))]}"
+        if port_is o "effect_$last:out_2"; then
+            link "effect_$last:out_2" "identity-rec:${recs[$((n + 1))]}"
+        else
+            link "effect_$last:out_1" "identity-rec:${recs[$((n + 1))]}"
+        fi
         n=$((n + 2))
     done
     sleep 0.5
@@ -447,12 +460,9 @@ expect chain "add $widen 14" "resp 14"
 expect chain "add $notes 13" "resp 13"
 expect chain "add $sidechain 16" "resp 16"
 expect chain "add $auxout 17" "resp 17"
-expect chain "chain 8 15 14" "resp -902"
-expect chain "chain 8 14 15" "resp -902"
 expect chain "chain 8 15 10" "resp -902"
 [ "$(nodes)" = 6 ]; step $? "the refusals changed no node: the chain and five of their own ($(nodes))"
-# a refusal forms nothing: no read-back of chain 8 (a head of another width refused only when its member would join
-# answers the same code, but has formed the chain first)
+# a refusal forms nothing: no read-back of chain 8
 [ -z "$(readback 8)" ]; step $? "the refusals formed no chain 8 ($(readback 8))"
 expect chain "chain 8 16 15" "resp 0"
 wait_nodes 5; step $? "a head with a side chain keeps it: chain 8 16 15 is one node ($(nodes))"
@@ -639,8 +649,12 @@ play p9 chain=11,11 series=21,22
 same "p9 left: gain added into the chain after pass" "$runtime/p9.chain.l" "$runtime/p9.series.l"
 same "p9 right" "$runtime/p9.chain.r" "$runtime/p9.series.r"
 unlink_all
+# a plugin of another width (one channel in, two out, after the stereo pass) joins too: a width change is never a
+# refusal, and no node of its own is made
 expect chain "chain_expect 14 7" "resp 0"
-expect chain "add $widen 14" "resp -902"
+expect chain "add $widen 14" "resp 14"
+[ "$(nodes)" = 1 ]; step $? "chain_expect 14 7, add of the mono-in stereo-out 14: it joins, still one node ($(nodes))"
+expect chain "remove 14" "resp 0"
 expect chain "chain_expect 14 8" "resp 0"
 expect chain "add $pass 14" "resp -902"
 [ "$(nodes)" = 1 ]; step $? "an add into a chain it cannot join is refused and makes no node ($(nodes))"
@@ -649,6 +663,63 @@ wait_nodes 2; step $? "the expectation was for one add: the next add of 14 is a 
 expect chain "remove 14" "resp 0"
 expect chain "remove 13" "resp 0"
 [ "$(nodes)" = 1 ]; step $? "remove 13: the chain closes around it ($(nodes))"
+
+# 10. members of different widths share a chain (#232): the fixture's mono gain (1 in, 1 out, -26 dB, as
+# x42's tuner is mono) at the head of the stereo pass, then the pass at the head of the mono gain. The series is the
+# same instances one client each, linked as a host links ports of two widths: a mono output to both inputs, both
+# outputs into the one input (JACK sums them)
+mono="lv2:urn:openmixer:test:host-fixture"
+expect chain "add $mono 18" "resp 18"
+expect chain "add $pass 19" "resp 19"
+expect series "add $mono 28" "resp 28"
+expect series "add $pass 29" "resp 29"
+expect chain "chain 10 18 19" "resp 0"
+readback 10 | grep -q "^chain 10: effect_18 effect_19 in effect_18's client"
+step $? "chain 10 18 19, mono head and stereo member, forms: $(readback 10)"
+host_wait "${host_pid[chain]}" 50 'has_ports 18'
+step $? "the mono head's node has out_1 and out_2, its stereo member's width ($(timeout 10 pw-link -o 2>/dev/null | grep -c '^effect_18:'))"
+! port_is o effect_19:out_1; step $? "and the stereo member has no node of its own"
+link effect_28:out_1 effect_29:in_1
+link effect_28:out_1 effect_29:in_2
+play p10 chain=18,18 series=28,29
+same "p10 left: mono -> stereo, the chain against the series" "$runtime/p10.chain.l" "$runtime/p10.series.l"
+same "p10 right: mono -> stereo, the chain against the series" "$runtime/p10.chain.r" "$runtime/p10.series.r"
+same "p10: the mono output reaches both of the chain's outputs" "$runtime/p10.chain.l" "$runtime/p10.chain.r"
+unlink_all
+expect chain "chain 10 19 18" "resp 0"
+readback 10 | grep -q "^chain 10: effect_19 effect_18 in effect_19's client"
+step $? "chain 10 19 18, stereo head and mono member, forms: $(readback 10)"
+link effect_29:out_1 effect_28:in_1
+link effect_29:out_2 effect_28:in_1
+play p11 chain=19,19 series=29,28
+same "p11 left: stereo -> mono, the chain against the series" "$runtime/p11.chain.l" "$runtime/p11.series.l"
+same "p11 right: the chain's mono output on both of the head's outputs" "$runtime/p11.chain.r" "$runtime/p11.series.r"
+unlink_all
+# the levels against the source, the lag found: p10 at the gain alone, p11 at twice it, L+R of the same signal
+levels=$(python3 -I - "$runtime" <<'PY'
+import sys
+import numpy as np
+d = sys.argv[1]
+def gain(name):
+    src = np.fromfile(d + "/" + name.split(".")[0] + ".source", dtype=np.float32).astype(np.float64)
+    out = np.fromfile(d + "/" + name, dtype=np.float32).astype(np.float64)
+    best = None
+    for lag in range(0, 512):
+        a, b = out[lag:], src[:len(out) - lag]
+        g = float(np.dot(a, b) / np.dot(b, b))
+        err = float(np.max(np.abs(a - g * b)))
+        if best is None or err < best[2]:
+            best = (lag, g, err)
+    return best
+want = 10 ** (-26 / 20)
+p10l, p10r, p11l = gain("p10.chain.l"), gain("p10.chain.r"), gain("p11.chain.l")
+ok = abs(p10l[1] / want - 1) < 1e-4 and abs(p10r[1] / want - 1) < 1e-4 and abs(p11l[1] / (2 * want) - 1) < 1e-4
+print("%d p10 left %.6f right %.6f (lag %d), p11 %.6f (lag %d), the gain %.6f, the ratio %.4f (%.2f dB)" % (
+    0 if ok else 1, p10l[1], p10r[1], p10l[0], p11l[1], p11l[0], want, p11l[1] / p10l[1],
+    20 * np.log10(p11l[1] / p10l[1])))
+PY
+)
+step "${levels%% *}" "the levels: ${levels#* }"
 
 expect chain "remove -1" "resp 0"
 expect chain "quit" "resp 0"

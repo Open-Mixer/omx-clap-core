@@ -187,7 +187,11 @@ Print what a planner may ask of this host, one word a line, and exit:
 (a member joins a chain with no JACK client of its own) and
 .B mono_in_stereo
 (a member of one channel in and out runs inside a stereo chain, its input
-the sum of both channels and its output given to both). A planner reads
+the sum of both channels and its output given to both) and
+.B mixed_width
+(members of any widths share a chain: a mono output feeds both channels of
+a stereo input, a stereo output is summed L+R into a mono input, and the
+chain's output is as wide as its last member's). A planner reads
 this list, not the version.
 .TP
 .BR \-h ", " \-\-help

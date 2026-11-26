@@ -65,3 +65,8 @@ Lines for the next release; the release moves them into debian/changelog and the
   vsnprintf), the URID lookup never allocates, the thread pool reads its thread id without a system call and no helper
   claims on the requesting thread's CPU.
 - omx-clap-host gives an embedded window's plugin its scale again (clap.gui `set_scale`) while the window exists, when the screen's `Xft.dpi` resource changes; never a floating window's (#229). `request_show` before the plugin has a window answers false, now held by `tests/window_test.c` (#230).
+- A chain joins members of different widths (#232, zynthian-sys#42): a mono member feeds both channels of a stereo
+  one, a stereo member is summed L+R into a mono one, as JACK links ports of two widths, and a width change between
+  neighbours is never refused; a mono head takes stereo members, and its node carries the last member's outputs
+  (`out_2`). `omx_clap_chain_process_ports` (version node OMX_CLAP_CORE_0.34) runs a chain between ports of the widths
+  its ends have; `--capabilities` adds `mixed_width` (docs/chain.md, Widths).

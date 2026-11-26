@@ -1632,7 +1632,8 @@ test-chain-identity: $(PROG) tests/jack_identity tests/jack_latency_probe tests/
 # the chain line in one JACK client (#104, docs/chain.md): three instances
 # one node, its output the same instances one client each in series bit for bit, changed while it runs, every refusal
 # changing nothing (tests/chain_host_e2e.sh)
-test-chain-host: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap
+test-chain-host: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap \
+    build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
 	./tests/chain_host_e2e.sh
 
 # the chain's members walked by JACK's buffer-size callback while the control thread joins, frees, adds and lets go
@@ -1644,7 +1645,8 @@ build/tsan/omx-clap-host: $(SRC) $(CORE_SRC) $(CORE_HEADERS) src/effects.h $(LV2
 	    -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $(SRC) $(CORE_SRC) src/abi_guard.S $(LV2_LIB) \
 	    $(CRYPTO_LIBS) $(PROTOCOL_LIBS) $(PIN_LIBS) $(LIBS) $(X11_LIBS)
 
-test-chain-host-tsan: build/tsan/omx-clap-host tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap
+test-chain-host-tsan: build/tsan/omx-clap-host tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap \
+    build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
 	./tests/chain_host_tsan.sh $(abspath build/tsan/omx-clap-host) $(abspath build/tsan)
 
 # each guard of the host's chain broken in a copy of the tree, the test seen red on the check that names it
@@ -1652,7 +1654,8 @@ test-chain-host-sabotage:
 	PLUGIN_HOSTD=$(PLUGIN_HOSTD) ./tests/chain_host_sabotage.sh
 
 # the chain e2e against a chain host that stops answering mid-run: it must end on its own, red, and name the line
-test-chain-host-stall: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap
+test-chain-host-stall: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap \
+    build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
 	./tests/chain_host_stall.sh
 
 tests/jack_identity: tests/jack_identity.c

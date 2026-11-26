@@ -326,7 +326,7 @@ quarantined member that is not the head takes none of them, and the chain rejoin
   it has alone reaches them, and they leave with it (`make test-jack-fake`: the side chain and the auxiliary output carry their levels in a chain).
   Members of different widths (phase 10): the mono-in stereo-out plugin
   joins a chain by `chain_expect`; the LV2 fixture's mono gain (1 in, 1 out, -26 dB) at the head of the stereo pass
-  is one node with `out_1` and `out_2`, both outputs bit for bit the two instances in series with the mono output
+  is one node with `out` (its lv2:symbol) and `out_2`, both outputs bit for bit the two instances in series with the mono output
   linked to both inputs, and to each other; the pass at the head of the mono gain is bit for bit the series with both
   outputs linked into the one input; the levels against the source are the gain, 0.050119, on both outputs, and twice
   it, 0.100237 (+6.02 dB), for the sum. `make test-chain-host-sabotage` puts the old rule back (one width end to end),

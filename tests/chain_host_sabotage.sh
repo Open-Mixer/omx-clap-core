@@ -195,7 +195,7 @@ arm walk-width src/effects.c '/^static uint32_t walk_width/,/^}/s/^    uint32_t 
 
 # 7c. a mono head's node has the outputs its stereo last member writes: none registered past the head's own
 arm outputs-wide src/effects.c '/^static void chain_outputs/,/^}/s/^    head_outputs_set(chain->head, last->out_ports);$/    (void)last;/' \
-    'the mono head.s node has out_1 and out_2'
+    'the mono head.s node has out and out_2'
 
 # 8. a member with a note port is no refusal (#400): the refusal of the first version taken back
 arm note-port src/effects.c 's/^        \/\/ every member.s main input and output of one channel or more and no wider than the head.s walk; a change of$/        if (i > 0 \&\& (effect->midi_port || effect->midi_out_port))\n            return ERR_INVALID_OPERATION;\n&/' \

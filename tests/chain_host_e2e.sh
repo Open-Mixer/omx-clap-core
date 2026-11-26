@@ -25,7 +25,7 @@
 #   9 an add chain_expect names joins the chain at its end with no client of its own, one of another width too; one
 #     that cannot join is refused
 #   10 members of different widths, never refused (#232, the mono tuner at the head of stereo effects): a
-#     mono LV2 head then a stereo member is one node with out_1 and out_2, both outputs bit for bit the same instances in
+#     mono LV2 head then a stereo member is one node with out and out_2, both outputs bit for bit the same instances in
 #     series with the mono output linked to both inputs, at the tuner's gain; a stereo head then the mono member is the
 #     series with both outputs linked into the one input, at twice that level (L+R)
 #
@@ -201,6 +201,10 @@ nodes() {
 has_ports() { timeout 10 pw-link -o 2>/dev/null | grep -q "^effect_$1:out_2$"; }
 # port_is <i|o> <port>: the graph has that input or output port
 port_is() { timeout 10 pw-link "-$1" 2>/dev/null | grep -q -x -F "$2"; }
+# first_in <n>, first_out <n>: an instance's first main input and output, in_1 and out_1, or an LV2 plugin's, named by its
+# lv2:symbol as mod-host names it (the fixture's mono gain: in and out)
+first_in() { if port_is i "effect_$1:in_1"; then echo "effect_$1:in_1"; else echo "effect_$1:in"; fi; }
+first_out() { if port_is o "effect_$1:out_1"; then echo "effect_$1:out_1"; else echo "effect_$1:out"; fi; }
 # linked <output> <input>: the graph links the two (pw-link -l: each output, then "  |-> <input>" per link)
 linked() {
     timeout 10 pw-link -l 2>/dev/null | awk -v a="$1" -v b="$2" '$0 == a { o = 1; next } /^[^ ]/ { o = 0 } o && $NF == b && $1 == "|->" { f = 1 } END { exit !f }'
@@ -249,21 +253,21 @@ play() {
         first=${spec#*=}
         last=${first#*,}
         first=${first%,*}
-        # a mono first instance has in_1 alone, a mono last one out_1 alone, recorded twice (phase 10)
-        link identity-src:out "effect_$first:in_1"
+        # a mono first instance has one input, a mono last one one output, recorded twice (phase 10)
+        link identity-src:out "$(first_in "$first")"
         ! port_is i "effect_$first:in_2" || link identity-src:out "effect_$first:in_2"
-        link "effect_$last:out_1" "identity-rec:${recs[$n]}"
+        link "$(first_out "$last")" "identity-rec:${recs[$n]}"
         if port_is o "effect_$last:out_2"; then
             link "effect_$last:out_2" "identity-rec:${recs[$((n + 1))]}"
         else
-            link "effect_$last:out_1" "identity-rec:${recs[$((n + 1))]}"
+            link "$(first_out "$last")" "identity-rec:${recs[$((n + 1))]}"
         fi
         n=$((n + 2))
     done
     sleep 0.5
     set -- "$@"
-    lat_a=$(timeout 30 "$latency_probe" "effect_${1##*,}:out_1" capture 2>/dev/null)
-    lat_b=$(timeout 30 "$latency_probe" "effect_${2##*,}:out_1" capture 2>/dev/null)
+    lat_a=$(timeout 30 "$latency_probe" "$(first_out "${1##*,}")" capture 2>/dev/null)
+    lat_b=$(timeout 30 "$latency_probe" "$(first_out "${2##*,}")" capture 2>/dev/null)
     [ -n "$lat_a" ] && [ "$lat_a" = "$lat_b" ]
     step $? "$phase: the latency to the last output, ${1%%=*} $lat_a, ${2%%=*} $lat_b (min max frames)"
     echo go >&7
@@ -665,9 +669,9 @@ expect chain "remove 13" "resp 0"
 [ "$(nodes)" = 1 ]; step $? "remove 13: the chain closes around it ($(nodes))"
 
 # 10. members of different widths share a chain (#232): the fixture's mono gain (1 in, 1 out, -26 dB, as
-# x42's tuner is mono) at the head of the stereo pass, then the pass at the head of the mono gain. The series is the
-# same instances one client each, linked as a host links ports of two widths: a mono output to both inputs, both
-# outputs into the one input (JACK sums them)
+# x42's tuner is mono; its ports are in and out, its lv2:symbols) at the head of the stereo pass, then the pass at
+# the head of the mono gain. The series is the same instances one client each, linked as a host links ports of two
+# widths: a mono output to both inputs, both outputs into the one input (JACK sums them)
 mono="lv2:urn:openmixer:test:host-fixture"
 expect chain "add $mono 18" "resp 18"
 expect chain "add $pass 19" "resp 19"
@@ -677,10 +681,10 @@ expect chain "chain 10 18 19" "resp 0"
 readback 10 | grep -q "^chain 10: effect_18 effect_19 in effect_18's client"
 step $? "chain 10 18 19, mono head and stereo member, forms: $(readback 10)"
 host_wait "${host_pid[chain]}" 50 'has_ports 18'
-step $? "the mono head's node has out_1 and out_2, its stereo member's width ($(timeout 10 pw-link -o 2>/dev/null | grep -c '^effect_18:'))"
+step $? "the mono head's node has out and out_2, its stereo member's width ($(timeout 10 pw-link -o 2>/dev/null | grep -c '^effect_18:'))"
 ! port_is o effect_19:out_1; step $? "and the stereo member has no node of its own"
-link effect_28:out_1 effect_29:in_1
-link effect_28:out_1 effect_29:in_2
+link effect_28:out effect_29:in_1
+link effect_28:out effect_29:in_2
 play p10 chain=18,18 series=28,29
 same "p10 left: mono -> stereo, the chain against the series" "$runtime/p10.chain.l" "$runtime/p10.series.l"
 same "p10 right: mono -> stereo, the chain against the series" "$runtime/p10.chain.r" "$runtime/p10.series.r"
@@ -689,8 +693,8 @@ unlink_all
 expect chain "chain 10 19 18" "resp 0"
 readback 10 | grep -q "^chain 10: effect_19 effect_18 in effect_19's client"
 step $? "chain 10 19 18, stereo head and mono member, forms: $(readback 10)"
-link effect_29:out_1 effect_28:in_1
-link effect_29:out_2 effect_28:in_1
+link effect_29:out_1 effect_28:in
+link effect_29:out_2 effect_28:in
 play p11 chain=19,19 series=29,28
 same "p11 left: stereo -> mono, the chain against the series" "$runtime/p11.chain.l" "$runtime/p11.series.l"
 same "p11 right: the chain's mono output on both of the head's outputs" "$runtime/p11.chain.r" "$runtime/p11.series.r"

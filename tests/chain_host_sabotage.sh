@@ -184,15 +184,21 @@ arm client-back src/effects.c 's/^        if (client_take(leaving\[j\], \&own\[j
 arm head-remove src/effects.c 's/^        if (effect->chain)$/        if (0)/' \
     'remove 12: pass alone in its own client'
 
-# 7. one width end to end, checked before anything changes: not checked. A member of another width is still refused by
-# the library's own guard (OMX_CLAP_CHAIN_ERR_WIDTH) when it would join, so the host's check shows on a head of
-# another width, which the library refuses only once the chain has formed and the member would join, answering the
-# same code: the chain formed is what shows
-arm width src/effects.c 's/^        if (!member_fits(effect, head))$/        if (0)/' \
-    'the refusals formed no chain 8'
+# 7. members of different widths share a chain (#232): the old rule, one width end to end, put back
+arm width src/effects.c '/^static int member_fits/,/^}/s/^    return effect->in_ports >= 1u .*$/    return effect->in_ports == head->out_ports \&\& effect->out_ports == head->out_ports;/' \
+    'chain: chain 10 18 19 -> '
+
+# 7b. and the library's walk is at least stereo: a mono head's walk only as wide as the head, the stereo member refused
+# by the library when it would join
+arm walk-width src/effects.c '/^static uint32_t walk_width/,/^}/s/^    uint32_t width = 2u;$/    uint32_t width = 1u;/' \
+    'chain 10 18 19, mono head and stereo member, forms'
+
+# 7c. a mono head's node has the outputs its stereo last member writes: none registered past the head's own
+arm outputs-wide src/effects.c '/^static void chain_outputs/,/^}/s/^    head_outputs_set(chain->head, last->out_ports);$/    (void)last;/' \
+    'the mono head.s node has out_1 and out_2'
 
 # 8. a member with a note port is no refusal (#400): the refusal of the first version taken back
-arm note-port src/effects.c 's/^        \/\/ every member.s main input and output as wide as the head.s main output, or a mono member of a stereo walk$/        if (i > 0 \&\& (effect->midi_port || effect->midi_out_port))\n            return ERR_INVALID_OPERATION;\n&/' \
+arm note-port src/effects.c 's/^        \/\/ every member.s main input and output of one channel or more and no wider than the head.s walk; a change of$/        if (i > 0 \&\& (effect->midi_port || effect->midi_out_port))\n            return ERR_INVALID_OPERATION;\n&/' \
     'chain: chain 9 15 13 -> '
 
 # 8b. and the member gets its note port again in a client of its own: the client made ready for it registers none
@@ -211,9 +217,9 @@ arm rt-print src/effects.c '/^static void chain_stage/,/^}/s/^    effect_t \*eff
 arm rt-callee src/effects.c '/^static void transport_block/,/^}/s/^    struct omx_clap_transport rec;$/&\n\n    free(malloc(1));/' \
     "the host's chain cycle names an allocator"
 
-# 10c. and nothing the core runs for it either: an allocation in omx_clap_chain_process, the library's walk the head's
+# 10c. and nothing the core runs for it either: an allocation in omx_clap_chain_process_ports, the library's walk the head's
 # cycle runs (src/clap_chain.c, which the scan reads with clap_host.c, clap_host.h and hosted_stage.h)
-arm rt-core src/clap_chain.c '/^int omx_clap_chain_process/,/^}/s/^    uint32_t s;$/&\n\n    free(malloc(1));/' \
+arm rt-core src/clap_chain.c '/^int omx_clap_chain_process/,/^}/s/^    uint32_t s, width;$/&\n\n    free(malloc(1));/' \
     "the host's chain cycle names an allocator"
 
 # 12. a member's auxiliary ports are on the head's client, under the name it has alone too, and leave with it

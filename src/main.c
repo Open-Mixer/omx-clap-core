@@ -865,8 +865,11 @@ int main(int argc, char **argv)
                 /* what a planner may ask of this host, one word a line, read instead of a version:
                  * chain_expect     a member joins a chain with no JACK client of its own (add ... chain_expect)
                  * mono_in_stereo   a member of 1 channel in and out runs inside a stereo chain, its input the sum
-                 *                  of both channels and its output given to both (docs/chain.md) */
-                printf("chain_expect\nmono_in_stereo\n");
+                 *                  of both channels and its output given to both (docs/chain.md)
+                 * mixed_width      members of any widths share a chain: each width change between neighbours is
+                 *                  matched (a mono output to both channels, a stereo output summed L+R into a mono
+                 *                  input), and the chain's output is as wide as its last member's (docs/chain.md) */
+                printf("chain_expect\nmono_in_stereo\nmixed_width\n");
                 exit(EXIT_SUCCESS);
                 break;
 
@@ -901,7 +904,7 @@ int main(int argc, char **argv)
                     "  -n, --nofork                   run in nonforking mode\n"
                     "  -V, --version                  print program version and exit\n"
                     "      --capabilities             print what a planner may ask of this host, one word a\n"
-                    "                                 line (chain_expect, mono_in_stereo), and exit\n"
+                    "                                 line (chain_expect, mono_in_stereo, mixed_width), and exit\n"
                     "  -h, --help                     print this help and exit\n"
                     "A crash ends the host without a core dump; " QUIET_DEATH_KEEP_CORES_ENV "=1 keeps it.\n",
                 argv[0]);

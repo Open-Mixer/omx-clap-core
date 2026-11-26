@@ -167,6 +167,10 @@ typedef struct EFFECT_T {
     uint32_t chain_member;
     struct CHAIN_T *_Atomic chain_run;
     struct omx_cycle_gate chain_gate;
+    /* the main output ports a chain's cycle writes on its head's client: the head's own, then those registered after
+     * them while the chain's last member is wider (chain_outputs). Changed by the control thread with chain_gate closed
+     * and under g_chain_members; read by the cycle inside chain_gate and by the latency callback under g_chain_members */
+    _Atomic uint32_t chain_outputs;
     jack_port_t *input_ports[OMX_HOSTED_STAGE_PORT_CHANNELS];
     jack_port_t *output_ports[OMX_HOSTED_STAGE_PORT_CHANNELS];
     uint32_t in_ports, out_ports;           // the main ports registered at add: what each cycle reads and writes
@@ -746,7 +750,15 @@ static int process(jack_nframes_t nframes, void *arg)
     for (c = 0; c < effect->out_ports; c++)
         outputs[c] = jack_port_get_buffer(effect->output_ports[c], nframes);
     if (omx_cycle_gate_enter(&effect->chain_gate) && (chain = atomic_load_explicit(&effect->chain_run, memory_order_relaxed)))
-        omx_clap_chain_process(chain->walk, inputs, outputs, nframes);
+    {
+        // a chain's ports: the head's input and its own outputs, then those its last member's wider output needs
+        const uint32_t n_out = atomic_load_explicit(&effect->chain_outputs, memory_order_relaxed);
+
+        for (c = effect->out_ports; c < n_out; c++)
+            outputs[c] = jack_port_get_buffer(effect->output_ports[c], nframes);
+        omx_clap_chain_process_ports(chain->walk, inputs, effect->in_ports, outputs, n_out > effect->out_ports ? n_out : effect->out_ports,
+                                     nframes);
+    }
     else
         chain_stage(effect, inputs, outputs, nframes);
     omx_cycle_gate_leave(&effect->chain_gate);
@@ -798,6 +810,16 @@ static void latency(jack_latency_callback_mode_t mode, void *arg)
     total.max += own;
     for (c = 0; c < to_count; c++)
         jack_port_set_latency_range(to[c], mode, &total);
+    // a chain's head: the outputs registered after its own for the chain's last member carry the same latency; skipped
+    // while the control thread holds the lock, which asks JACK for the latencies again once it lets go (chain_outputs)
+    if (mode == JackCaptureLatency && pthread_mutex_trylock(&g_chain_members) == 0)
+    {
+        const uint32_t n_out = atomic_load_explicit(&effect->chain_outputs, memory_order_relaxed);
+
+        for (c = to_count; c < n_out; c++)
+            jack_port_set_latency_range(effect->output_ports[c], mode, &total);
+        pthread_mutex_unlock(&g_chain_members);
+    }
 }
 
 /* control thread: the figure the latency callback answers with, and a recompute so the graph asks. A chain's member
@@ -2169,23 +2191,88 @@ static int client_back(effect_t *effect, own_client_t *own)
     return error;
 }
 
-/* whether `effect` may run in a walk whose head is `head`: as wide as the head's main output in and out, or, a member of
- * a stereo walk, one channel in and out, which the walk runs on the sum of both channels and gives to both, as Zynthian
- * routes it as a client of its own (clap_chain.c, #361) */
-static int member_fits(const effect_t *effect, const effect_t *head)
+/* the width of the library's chain a head's walk runs on: at least stereo, and as wide as the head's main ports, so a
+ * mono head takes stereo members (#232: a mono tuner at the head of stereo effects) */
+static uint32_t walk_width(const effect_t *head)
 {
-    if (effect->in_ports == head->out_ports && effect->out_ports == head->out_ports)
-        return 1;
-    return effect != head && head->out_ports == 2u && effect->in_ports == 1u && effect->out_ports == 1u;
+    uint32_t width = 2u;
+
+    if (head->in_ports > width)
+        width = head->in_ports;
+    if (head->out_ports > width)
+        width = head->out_ports;
+    return width;
 }
 
-/* control thread: a chain as it stands, on stderr, after every change: the read-back of a chain (docs/chain.md) */
-static void chain_say(const chain_t *chain)
+/* whether `effect` may run in a walk whose head is `head`: a main input and a main output of one channel or more, none
+ * wider than the walk. Its widths need not be its neighbours': the library matches each width change as a host routes
+ * one port to another, a mono output to both channels of a stereo input and a stereo output summed L+R into a mono
+ * one (clap_chain.c, docs/chain.md). A change of width is never a refusal */
+static int member_fits(const effect_t *effect, const effect_t *head)
+{
+    const uint32_t width = walk_width(head);
+
+    return effect->in_ports >= 1u && effect->in_ports <= width && effect->out_ports >= 1u && effect->out_ports <= width;
+}
+
+/* the main outputs of `head`'s client a chain's cycle writes made `n` (never fewer than its own): the ports past its own
+ * registered (out_<k>, the names a head that wide would have) before the cycles may write them, or, fewer, the cycles
+ * kept from them before they are unregistered. A port JACK will not register stops the count there, said on stderr: the
+ * library then matches the last member's output to the ports there are. JACK is asked for the latencies again. */
+static void head_outputs_set(effect_t *head, uint32_t n)
+{
+    char port_name[LAYOUT_PORT_NAME_SIZE];
+    uint32_t c, was = atomic_load_explicit(&head->chain_outputs, memory_order_relaxed);
+
+    if (was < head->out_ports)
+        was = head->out_ports;
+    if (n < head->out_ports)
+        n = head->out_ports;
+    for (c = was; c < n; c++)
+    {
+        layout_port_name(port_name, false, LAYOUT_PORT_MAIN, c);
+        head->output_ports[c] = jack_port_register(head->jack_client, port_name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
+        if (!head->output_ports[c])
+        {
+            fprintf(stderr, "chain: effect_%d's client cannot register %s for its chain's output\n", head->instance, port_name);
+            n = c;
+            break;
+        }
+    }
+    if (n == was)
+        return;
+    omx_cycle_gate_close(&head->chain_gate, OMX_HOSTED_STAGE_ROLE_POLL_US);
+    pthread_mutex_lock(&g_chain_members);
+    atomic_store_explicit(&head->chain_outputs, n, memory_order_relaxed);
+    pthread_mutex_unlock(&g_chain_members);
+    omx_cycle_gate_open(&head->chain_gate);
+    for (c = n; c < was; c++)
+    {
+        jack_port_unregister(head->jack_client, head->output_ports[c]);
+        head->output_ports[c] = NULL;
+    }
+    jack_recompute_total_latencies(head->jack_client);
+}
+
+/* control thread, after every change of a chain's members: its output is as wide as the head's own output, or its
+ * last member's when that is wider (a mono head, a stereo member last: the chain's node has out_1 and out_2) */
+static void chain_outputs(chain_t *chain)
+{
+    const uint32_t count = atomic_load_explicit(&chain->count, memory_order_relaxed);
+    const effect_t *last = count ? atomic_load_explicit(&chain->members[count - 1], memory_order_relaxed) : chain->head;
+
+    head_outputs_set(chain->head, last->out_ports);
+}
+
+/* control thread: a chain as it stands, on stderr, after every change: the read-back of a chain (docs/chain.md); its
+ * output ports made as wide as its last member's output first (chain_outputs) */
+static void chain_say(chain_t *chain)
 {
     struct omx_clap_chain_report report;
     const uint32_t count = atomic_load_explicit(&chain->count, memory_order_relaxed);
     uint32_t i;
 
+    chain_outputs(chain);
     omx_clap_chain_report_init(&report);
     omx_clap_chain_report(chain->walk, &report);
     fprintf(stderr, "chain %d:", chain->id);
@@ -2573,7 +2660,7 @@ static int chain_walk_make(chain_t *chain, int id, const effect_t *head, struct 
     struct omx_clap_chain_config config;
 
     omx_clap_chain_config_init(&config);
-    config.channels = head->out_ports;
+    config.channels = walk_width(head);
     config.latency_changed = chain_latency_changed;
     config.ctx = chain;
     if (omx_clap_chain_create(&config, walk) == OMX_CLAP_CHAIN_OK)
@@ -2592,6 +2679,7 @@ static void chain_start(chain_t *chain, int id, effect_t *head, struct omx_clap_
     chain->id = id;
     atomic_store_explicit(&chain->count, 0, memory_order_relaxed);
     (void)chain_insert(chain, head, 0);
+    atomic_store_explicit(&head->chain_outputs, head->out_ports, memory_order_relaxed);
     omx_cycle_gate_close(&head->chain_gate, OMX_HOSTED_STAGE_ROLE_POLL_US);
     atomic_store_explicit(&head->chain_run, chain, memory_order_relaxed);
     omx_cycle_gate_open(&head->chain_gate);
@@ -2603,6 +2691,8 @@ static void chain_end(chain_t *chain)
 {
     effect_t *head = chain->head;
 
+    // the outputs registered for the chain's last member go first: alone, the head has its own
+    head_outputs_set(head, head->out_ports);
     omx_cycle_gate_close(&head->chain_gate, OMX_HOSTED_STAGE_ROLE_POLL_US);
     atomic_store_explicit(&head->chain_run, NULL, memory_order_relaxed);
     omx_cycle_gate_open(&head->chain_gate);
@@ -3146,11 +3236,11 @@ int effects_add(const char *uri, int instance, const char *client_name)
 
     effect->in_ports = effect->clap->in_channels;
     effect->out_ports = effect->clap->channels;
-    // the width a chain line asks of every member (member_fits)
+    // the widths a chain's walk takes (member_fits): any change of width between members is matched, never refused
     if (chain && !member_fits(effect, chain->head))
     {
-        fprintf(stderr, "chain %d: effect_%d (%u in, %u out) is not as wide as effect_%d's output (%u)\n", chain->id,
-                instance, effect->in_ports, effect->out_ports, chain->head->instance, chain->head->out_ports);
+        fprintf(stderr, "chain %d: effect_%d (%u in, %u out) has no channel on a side, or more than effect_%d's walk (%u)\n",
+                chain->id, instance, effect->in_ports, effect->out_ports, chain->head->instance, walk_width(chain->head));
         error = ERR_INVALID_OPERATION;
         goto error;
     }
@@ -3400,11 +3490,12 @@ int effects_chain(int id, const int *instances, int n)
             fprintf(stderr, "chain %d: effect_%d is in chain %d\n", id, instances[i], effect->chain->id);
             return ERR_INVALID_OPERATION;
         }
-        // every member's main input and output as wide as the head's main output, or a mono member of a stereo walk
+        // every member's main input and output of one channel or more and no wider than the head's walk; a change of
+        // width between neighbours is matched by the walk, never refused (#232)
         if (!member_fits(effect, head))
         {
-            fprintf(stderr, "chain %d: effect_%d (%u in, %u out) is not as wide as effect_%d's output (%u)\n", id, instances[i],
-                    effect->in_ports, effect->out_ports, head->instance, head->out_ports);
+            fprintf(stderr, "chain %d: effect_%d (%u in, %u out) has no channel on a side, or more than effect_%d's walk (%u)\n",
+                    id, instances[i], effect->in_ports, effect->out_ports, head->instance, walk_width(head));
             return ERR_INVALID_OPERATION;
         }
     }

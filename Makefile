@@ -808,13 +808,15 @@ test-transport-sabotage: tests/transport_seqlock_test.c src/clap_stage.h src/hos
 test-layouts-sabotage:
 	./tests/layout_sabotage.sh
 
-# the chain (docs/chain.md, #311): its values over the fake plugins and stages of the test's own; and its cycle, pass_dry and
-# omx_clap_chain_process, names nothing that allocates, waits, locks or prints
+# the chain (docs/chain.md, #311): its values over the fake plugins and stages of the test's own; and its cycle, pass_dry,
+# match_width, run_step, omx_clap_chain_process and omx_clap_chain_process_ports, names nothing that allocates, waits,
+# locks or prints
 test-chain: tests/clap_chain_test tests/fake.clap tests/fake_compressor.clap
-	mkdir -p build && sed -n '/^static void pass_dry/,/^}/p; /^int omx_clap_chain_process/,/^}/p' src/clap_chain.c > build/clap_chain_rt.c
+	mkdir -p build && sed -n '/^static void match_width/,/^}/p; /^static void pass_dry/,/^}/p; /^static void run_step/,/^}/p; /^int omx_clap_chain_process/,/^}/p' src/clap_chain.c > build/clap_chain_rt.c
 	grep -q 'omx_clap_host_run_ports' build/clap_chain_rt.c && grep -q 'memcpy' build/clap_chain_rt.c \
+	    && grep -q 'omx_clap_chain_process_ports' build/clap_chain_rt.c && grep -q 'match_width(from' build/clap_chain_rt.c \
 	    && ! grep -n -E '\<(malloc|calloc|realloc|free|posix_memalign|usleep|nanosleep|sleep|printf|fprintf|snprintf|puts)\s*\(|pthread_|_lock\s*\(' build/clap_chain_rt.c \
-	    && echo "ok   the chain's cycle (pass_dry, omx_clap_chain_process) names no allocator, sleep, lock or printf"
+	    && echo "ok   the chain's cycle (match_width, pass_dry, run_step, omx_clap_chain_process, _process_ports) names no allocator, sleep, lock or printf"
 	./tests/clap_chain_test $(abspath tests/fake.clap) $(abspath tests/fake_compressor.clap)
 
 # each guard of the chain broken in a copy of the tree, the test seen red on the check that names it
@@ -1415,15 +1417,17 @@ test-chain-identity: $(PROG) tests/jack_identity tests/jack_latency_probe tests/
 
 # the chain line in one JACK client (#104, docs/chain.md): the client's process callback and every function of this
 # tree it reaches (tests/rt_reach.py: chain_stage, process_gated, notes_out, transport_block, publish_gain_adjustment,
-# the header functions they run, and the core's: omx_clap_chain_process, omx_clap_host_run_ports, the note and stage
+# the header functions they run, and the core's: omx_clap_chain_process_ports and the width matching it runs between
+# members of different widths (run_step, match_width), omx_clap_host_run_ports, the note and stage
 # functions of clap_host.c and hosted_stage.h) names nothing that allocates, waits, locks or prints; three instances
 # one node, its output the same instances one client each in series bit for bit, changed while it runs, every refusal
 # changing nothing (tests/chain_host_e2e.sh)
 RT_CHAIN_FILES = src/effects.c src/cycle_gate.h src/omx_msgring.h src/host_transport.h src/clap_stage.h \
     src/clap_host.c src/clap_host.h src/clap_chain.c src/hosted_stage.h
 RT_CHAIN_CALLEES = chain_stage process_gated notes_out transport_block publish_gain_adjustment host_transport_read omx_cycle_gate_enter \
-    omx_clap_chain_process omx_clap_host_run_ports omx_clap_host_notes_out omx_clap_host_note_in
-test-chain-host: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap
+    omx_clap_chain_process_ports run_step match_width omx_clap_host_run_ports omx_clap_host_notes_out omx_clap_host_note_in
+test-chain-host: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap \
+    build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
 	mkdir -p build && python3 -I tests/rt_reach.py build/chain_host_rt.c process $(RT_CHAIN_FILES)
 	@unreached=; for f in $(RT_CHAIN_CALLEES); do grep -q -E "^# reached: .*\<$$f\>" build/chain_host_rt.c || unreached="$$unreached $$f"; done; \
 	    [ -z "$$unreached" ] || { echo "FAIL the scan of the host's chain cycle does not reach$$unreached"; false; }
@@ -1441,7 +1445,8 @@ build/tsan/omx-clap-host: $(SRC) $(CORE_SRC) $(CORE_HEADERS) src/effects.h $(LV2
 	    -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u -o $@ $(SRC) $(CORE_SRC) src/abi_guard.S $(LV2_LIB) \
 	    $(CRYPTO_LIBS) $(PROTOCOL_LIBS) $(PIN_LIBS) $(LIBS) $(X11_LIBS)
 
-test-chain-host-tsan: build/tsan/omx-clap-host tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap
+test-chain-host-tsan: build/tsan/omx-clap-host tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap \
+    build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
 	./tests/chain_host_tsan.sh $(abspath build/tsan/omx-clap-host) $(abspath build/tsan)
 
 # each guard of the host's chain broken in a copy of the tree, the test seen red on the check that names it
@@ -1449,7 +1454,8 @@ test-chain-host-sabotage:
 	PLUGIN_HOSTD=$(PLUGIN_HOSTD) ./tests/chain_host_sabotage.sh
 
 # the chain e2e against a chain host that stops answering mid-run: it must end on its own, red, and name the line
-test-chain-host-stall: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap
+test-chain-host-stall: $(PROG) tests/jack_identity tests/jack_latency_probe tests/fake.clap tests/fake_compressor.clap tests/fault-14.clap \
+    build/lv2/omx-host-fixture.lv2/omx-host-fixture.so
 	./tests/chain_host_stall.sh
 
 tests/jack_identity: tests/jack_identity.c

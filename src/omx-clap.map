@@ -216,3 +216,10 @@ OMX_CLAP_CORE_0.33
     omx_clap_host_property_get;
     omx_clap_host_property_set;
 } OMX_CLAP_CORE_0.26;
+
+/* added after 0.34.1: a chain's cycle between ports of the widths its first member reads and its last member writes */
+OMX_CLAP_CORE_0.34
+{
+  global:
+    omx_clap_chain_process_ports;
+} OMX_CLAP_CORE_0.33;

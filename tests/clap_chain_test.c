@@ -782,22 +782,30 @@ static void t_refusals(void)
     d.instance = (struct omx_clap_instance *)&st;
     CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_ARG, "and one that is both");
     d.instance = NULL;
-    d.in_channels = 1;
+    // a width wider than the chain's blocks is refused, and so are a member that reads nothing and one that writes
+    // nothing: a width change between neighbours never is (t_mixed_widths)
+    d.in_channels = CH + 1u;
     d.out_channels = CH;
-    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_WIDTH, "a stage of one channel in, two out is refused");
+    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_WIDTH, "a stage of %u channels in, %u out is refused", CH + 1u, CH);
     d.in_channels = CH;
-    d.out_channels = 1;
-    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_WIDTH, "and one of two in, one out");
-    if (omx_clap_host_open(g_fake, FAKE_MONO_STEREO, &wide, why) == 0 && wide)
+    d.out_channels = CH + 1u;
+    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_WIDTH, "and one of %u in, %u out", CH, CH + 1u);
+    d.in_channels = 0;
+    d.out_channels = CH;
+    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_WIDTH, "and one of no channel in");
+    d.in_channels = CH;
+    d.out_channels = 0;
+    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_WIDTH, "and one of no channel out");
+    if (omx_clap_host_open(g_fake, FAKE_WIDE, &wide, why) == 0 && wide)
     {
         omx_clap_chain_member_init(&d);
         d.instance = wide;
         CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL) == OMX_CLAP_CHAIN_ERR_WIDTH,
-              "an instance of %u channel in, %u out is refused by its own widths", wide->main_in.channels, wide->main_out.channels);
+              "an instance of %u channels in, %u out is refused by its own widths", wide->main_in.channels, wide->main_out.channels);
         omx_clap_host_close(wide);
     }
     else
-        CHECK(0, "%s opens: %s", FAKE_MONO_STEREO, why);
+        CHECK(0, "%s opens: %s", FAKE_WIDE, why);
     omx_clap_chain_member_init(&d);
     d.process = stage_process;
     d.ctx = &st;
@@ -1101,15 +1109,15 @@ static void t_mono_member(void)
         omx_clap_chain_destroy(chain);
         chain = NULL;
     }
-    // a member of 1 channel in and 2 out, or 2 in and 1 out, is refused: the run ends there
+    // a member of 1 channel in and 2 out, or 2 in and 1 out, joins: a width change is never refused (t_mixed_widths)
     omx_clap_chain_config_init(&config);
     config.channels = CH;
     CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "mono: a stereo chain is created again");
     omx_clap_chain_member_init(&d);
     d.process = mono_process, d.ctx = &mono, d.in_channels = 1, d.out_channels = 2;
-    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, &id) == OMX_CLAP_CHAIN_ERR_WIDTH, "mono: a member of 1 in, 2 out is refused");
+    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, &id) == OMX_CLAP_CHAIN_OK, "mono: a member of 1 in, 2 out joins");
     d.in_channels = 2, d.out_channels = 1;
-    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, &id) == OMX_CLAP_CHAIN_ERR_WIDTH, "mono: a member of 2 in, 1 out is refused");
+    CHECK(omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, &id) == OMX_CLAP_CHAIN_OK, "mono: a member of 2 in, 1 out joins");
     omx_clap_chain_destroy(chain);
     for (c = 0; c < CH; c++)
     {
@@ -1120,6 +1128,210 @@ static void t_mono_member(void)
     free(m_in);
     free(m_out);
     io_free(&io);
+}
+
+/* a stage of `in` channels in and `out` out, each output `gain` times its input: the same channel when the widths are
+ * equal, the one input to every output (1 in), the sum of every input (1 out) */
+struct wstage
+{
+    uint32_t in, out;
+    float gain;
+};
+
+static void wstage_process(void *ctx, const float *const *in, float *const *out, uint32_t n)
+{
+    const struct wstage *w = ctx;
+    uint32_t c, k, i;
+
+    for (c = 0; c < w->out; c++)
+        for (i = 0; i < n; i++)
+        {
+            float x = 0.0f;
+
+            if (w->in == w->out)
+                x = in[c][i];
+            else if (w->in == 1u)
+                x = in[0][i];
+            else
+                for (k = 0; k < w->in; k++)
+                    x += in[k][i];
+            out[c][i] = w->gain * x;
+        }
+}
+
+static int wstage_add(struct omx_clap_chain *chain, struct wstage *w, uint32_t bypass)
+{
+    struct omx_clap_chain_member d;
+
+    omx_clap_chain_member_init(&d);
+    d.process = wstage_process, d.ctx = w, d.in_channels = w->in, d.out_channels = w->out, d.bypass = bypass;
+    return omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL);
+}
+
+static int instance_add(struct omx_clap_chain *chain, struct omx_clap_instance *in)
+{
+    struct omx_clap_chain_member d;
+
+    omx_clap_chain_member_init(&d);
+    d.instance = in;
+    return omx_clap_chain_add(chain, &d, OMX_CLAP_CHAIN_END, NULL);
+}
+
+static struct omx_clap_instance *instance_of(const char *id)
+{
+    struct omx_clap_instance *in = NULL;
+    char why[OMX_CLAP_WHY_MAX] = "";
+
+    if (omx_clap_host_open(g_fake, id, &in, why) != 0 || !in || omx_clap_host_activate(in, SAMPLE_RATE, FRAMES, why) != 0)
+    {
+        printf("FAIL %s cannot be opened and activated: %s\n", id, why);
+        exit(1);
+    }
+    omx_clap_host_publish(in, pthread_self());
+    return in;
+}
+
+/* the largest |got - want * ref| over n frames */
+static float off_by(const float *got, const float *ref, float want, uint32_t n)
+{
+    float worst = 0.0f;
+    uint32_t i;
+
+    for (i = 0; i < n; i++)
+    {
+        const float d = fabsf(got[i] - want * ref[i]);
+
+        if (d > worst)
+            worst = d;
+    }
+    return worst;
+}
+
+/* a chain joins members of different widths and never refuses a width change between neighbours (the guitar board of
+ * #232: a mono tuner at the head of stereo effects): a mono output feeds both channels of a stereo input,
+ * a stereo output is summed into a mono input, L+R, as JACK sums two links into one port, and a chain of a stereo
+ * width hands its caller every channel. Each level is asserted on a steady block of a 1 kHz tone */
+static void t_mixed_widths(void)
+{
+    struct omx_clap_chain_config config;
+    struct omx_clap_chain *chain = NULL;
+    struct omx_clap_instance *to_mono, *to_stereo;
+    struct wstage mono = { 1, 1, 0.5f }, stereo = { 2, 2, 1.0f }, unity = { 1, 1, 1.0f };
+    float *tone, *in[CH], *out[CH];
+    const uint32_t n = 256;
+    uint32_t c, b;
+    float l, r;
+
+    tone = block_new();
+    fill_tone(tone, n, 0, 1.0f);
+    for (c = 0; c < CH; c++)
+    {
+        in[c] = block_new();
+        out[c] = block_new();
+    }
+    // the chain's stereo input, L at 0.5 and R at 0.25 of the tone
+    for (b = 0; b < n; b++)
+        in[0][b] = 0.5f * tone[b], in[1][b] = 0.25f * tone[b];
+
+    // mono -> stereo: the mono member (x 0.5) reads L+R, 0.75, and its output reaches both channels of the stereo one
+    omx_clap_chain_config_init(&config);
+    config.channels = CH;
+    CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+    CHECK(wstage_add(chain, &mono, 0) == OMX_CLAP_CHAIN_OK, "widths: a mono member (1 in, 1 out) heads the chain");
+    CHECK(wstage_add(chain, &stereo, 0) == OMX_CLAP_CHAIN_OK, "widths: a stereo member (2 in, 2 out) follows it");
+    omx_clap_chain_process(chain, (const float *const *)in, out, n);
+    l = off_by(out[0], tone, 0.375f, n), r = off_by(out[1], tone, 0.375f, n);
+    CHECK(l == 0.0f && r == 0.0f, "widths: mono -> stereo reaches both outputs at 0.375 of the tone, (0.5 + 0.25) x 0.5: off by %g left, %g right", l, r);
+    omx_clap_chain_destroy(chain);
+
+    // stereo -> mono: the stereo member's L and R summed into the mono one (x 1), its output to both channels
+    CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+    CHECK(wstage_add(chain, &stereo, 0) == OMX_CLAP_CHAIN_OK, "widths: a stereo member heads the chain");
+    CHECK(wstage_add(chain, &unity, 0) == OMX_CLAP_CHAIN_OK, "widths: a mono member follows it");
+    omx_clap_chain_process(chain, (const float *const *)in, out, n);
+    l = off_by(out[0], tone, 0.75f, n), r = off_by(out[1], tone, 0.75f, n);
+    CHECK(l == 0.0f && r == 0.0f, "widths: stereo -> mono is the sum L+R, 0.5 + 0.25 = 0.75 of the tone: off by %g left, %g right", l, r);
+    omx_clap_chain_destroy(chain);
+
+    // plugins that change width themselves: stereo-mono (out = L + R) then mono-stereo (out = in, -in), as the board's
+    // mono tuner feeds the stereo effects; the instances run their own fades first, so the level is read after them
+    to_mono = instance_of(FAKE_STEREO_MONO);
+    to_stereo = instance_of(FAKE_MONO_STEREO);
+    CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+    CHECK(instance_add(chain, to_mono) == OMX_CLAP_CHAIN_OK, "widths: an instance of 2 in, 1 out heads the chain");
+    CHECK(instance_add(chain, to_stereo) == OMX_CLAP_CHAIN_OK, "widths: an instance of 1 in, 2 out follows it");
+    for (b = 0; b < 8; b++)
+        omx_clap_chain_process(chain, (const float *const *)in, out, n);
+    l = off_by(out[0], tone, 0.75f, n), r = off_by(out[1], tone, -0.75f, n);
+    CHECK(l < 1e-6f && r < 1e-6f, "widths: stereo-mono then mono-stereo: left +0.75, right -0.75 of the tone: off by %g, %g", l, r);
+    omx_clap_chain_destroy(chain);
+
+    // and the other way: mono-stereo heads (it reads L+R of the chain's input), the stereo stage after it
+    CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+    CHECK(instance_add(chain, to_stereo) == OMX_CLAP_CHAIN_OK, "widths: an instance of 1 in, 2 out heads the chain");
+    CHECK(wstage_add(chain, &stereo, 0) == OMX_CLAP_CHAIN_OK, "widths: a stereo member follows it");
+    for (b = 0; b < 8; b++)
+        omx_clap_chain_process(chain, (const float *const *)in, out, n);
+    l = off_by(out[0], tone, 0.75f, n), r = off_by(out[1], tone, -0.75f, n);
+    CHECK(l < 1e-6f && r < 1e-6f, "widths: mono-stereo then stereo: left +0.75, right -0.75 of the tone: off by %g, %g", l, r);
+    omx_clap_chain_destroy(chain);
+    omx_clap_host_close(to_mono);
+    omx_clap_host_close(to_stereo);
+
+    // the board itself, between ports of the widths its ends have (omx_clap_chain_process_ports): one input, the mono
+    // tuner's (x 1), two outputs, the stereo effect's; the tone at 1.0 arrives on both at 1.0
+    CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+    CHECK(wstage_add(chain, &unity, 0) == OMX_CLAP_CHAIN_OK, "widths: a mono member heads the chain");
+    CHECK(wstage_add(chain, &stereo, 0) == OMX_CLAP_CHAIN_OK, "widths: a stereo member ends it");
+    memset(out[1], 0, n * sizeof(float));
+    CHECK(omx_clap_chain_process_ports(chain, (const float *const *)&tone, 1, out, 2, n) == OMX_CLAP_CHAIN_OK,
+          "widths: a cycle of one input and two outputs runs");
+    l = off_by(out[0], tone, 1.0f, n), r = off_by(out[1], tone, 1.0f, n);
+    CHECK(l == 0.0f && r == 0.0f, "widths: mono in, stereo out: the tone at 1.0 on both outputs: off by %g left, %g right", l, r);
+    CHECK(omx_clap_chain_process_ports(chain, (const float *const *)&tone, 1, out, CH + 1u, n) == OMX_CLAP_CHAIN_ERR_ARG
+              && omx_clap_chain_process_ports(chain, (const float *const *)&tone, 0, out, 2, n) == OMX_CLAP_CHAIN_ERR_ARG,
+          "widths: a cycle of no input channel, or more outputs than the chain's width, is refused");
+    omx_clap_chain_destroy(chain);
+
+    // the reverse: two inputs into a stereo head, one output from the mono member at the end, L + R
+    CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+    CHECK(wstage_add(chain, &stereo, 0) == OMX_CLAP_CHAIN_OK, "widths: a stereo member heads the chain");
+    CHECK(wstage_add(chain, &unity, 0) == OMX_CLAP_CHAIN_OK, "widths: a mono member ends it");
+    CHECK(omx_clap_chain_process_ports(chain, (const float *const *)in, 2, out, 1, n) == OMX_CLAP_CHAIN_OK,
+          "widths: a cycle of two inputs and one output runs");
+    l = off_by(out[0], tone, 0.75f, n);
+    CHECK(l == 0.0f, "widths: stereo in, mono out: L + R, 0.75 of the tone: off by %g", l);
+    omx_clap_chain_destroy(chain);
+
+    // a bypassed member that changes width keeps its ports, as it would routed alone: 1 -> 2 gives its input to both
+    // channels, 2 -> 1 sums them; a bypassed member never takes the width change away from its neighbours
+    {
+        struct wstage widen = { 1, 2, 4.0f }, narrow = { 2, 1, 4.0f };
+
+        CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+        CHECK(wstage_add(chain, &unity, 0) == OMX_CLAP_CHAIN_OK && wstage_add(chain, &widen, 1) == OMX_CLAP_CHAIN_OK
+                  && wstage_add(chain, &stereo, 0) == OMX_CLAP_CHAIN_OK,
+              "widths: mono, a bypassed 1 -> 2 (x 4), stereo");
+        omx_clap_chain_process_ports(chain, (const float *const *)&tone, 1, out, 2, n);
+        l = off_by(out[0], tone, 1.0f, n), r = off_by(out[1], tone, 1.0f, n);
+        CHECK(l == 0.0f && r == 0.0f, "widths: the bypassed 1 -> 2 gives the tone to both at 1.0, its gain not run: off by %g, %g", l, r);
+        omx_clap_chain_destroy(chain);
+        CHECK(omx_clap_chain_create(&config, &chain) == OMX_CLAP_CHAIN_OK, "widths: a chain is created");
+        CHECK(wstage_add(chain, &stereo, 0) == OMX_CLAP_CHAIN_OK && wstage_add(chain, &narrow, 1) == OMX_CLAP_CHAIN_OK
+                  && wstage_add(chain, &unity, 0) == OMX_CLAP_CHAIN_OK,
+              "widths: stereo, a bypassed 2 -> 1 (x 4), mono");
+        omx_clap_chain_process_ports(chain, (const float *const *)in, 2, out, 1, n);
+        l = off_by(out[0], tone, 0.75f, n);
+        CHECK(l == 0.0f, "widths: the bypassed 2 -> 1 sums L + R, 0.75 of the tone, its gain not run: off by %g", l);
+        omx_clap_chain_destroy(chain);
+    }
+
+    for (c = 0; c < CH; c++)
+    {
+        free(in[c]);
+        free(out[c]);
+    }
+    free(tone);
 }
 
 /* the buffers each wrapped plugin's process() was handed, its last call: the plugin is the stage's copy of it whose
@@ -1360,6 +1572,7 @@ int main(int argc, char **argv)
     t_order();
     t_move_gap();
     t_mono_member();
+    t_mixed_widths();
     t_no_copy();
     t_held_fades();
     t_input_written();

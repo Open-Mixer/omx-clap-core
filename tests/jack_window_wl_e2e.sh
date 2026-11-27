@@ -154,6 +154,7 @@ xwin() { DISPLAY=$display run xdotool "$@" 2>/dev/null; }
 shown() { [ -n "$(xwin search --onlyvisible --name "^$1\$")" ]; }
 logged() { grep -c -x -F "$1" "$runtime/gui.log" 2>/dev/null; }
 created() { grep -c '^create ' "$runtime/gui.log" 2>/dev/null; }
+transients() { grep -c '^set_transient ' "$runtime/gui.log" 2>/dev/null; }
 at() { grep -n -x -F "$1" "$runtime/gui.log" 2>/dev/null | head -1 | cut -d: -f1; }
 in_order() {
     local prev=0 n
@@ -195,6 +196,7 @@ step $? "Wayland first: the plugin was asked create wayland floating, and no X11
 order="$(at "create wayland 1") $(at "title fake gui") $(at "show")"
 [ "$(echo $order | wc -w)" = 3 ] && in_order $order; step $? "told its title, then shown: the plugin's log lines $order"
 [ "$(logged "set_parent x11")" = 0 ] && [ "$(logged "scale 1.0")" = 0 ]; step $? "never set_parent nor set_scale: a floating window"
+[ "$(transients)" = 0 ]; step $? "never set_transient: Wayland gives the host no parent surface to name (free-audio/clap#474)"
 wait_count "wayland configured with its buffer" 1; step $? "the compositor configured the plugin's toplevel, its buffer attached"
 wait_count "wayland frame" 1; step $? "and drew it (a frame callback from weston)"
 mapped "fake gui"; step $? "weston maps it: a toplevel of the host's process titled with the plugin's name, fake gui"
@@ -282,6 +284,7 @@ expect "add clap:$gui#org.omx-clap-host.test.gui 0" "resp 0"
 feed 0
 expect "show_external_ui 0" "resp 0"
 [ "$(logged "create wayland 1")" = 1 ] && [ "$(created)" = 1 ]; step $? "X11=0: the plugin was asked create wayland floating"
+[ "$(transients)" = 0 ]; step $? "X11=0: and never set_transient"
 wait_count "wayland frame" 1; step $? "X11=0: and its toplevel drawn by weston"
 mapped "fake gui"; step $? "X11=0: weston maps it, a toplevel of the host's process titled fake gui"
 [ "$(x_connections)" = 0 ]; step $? "X11=0: nothing connected to the X display ($(x_connections))"

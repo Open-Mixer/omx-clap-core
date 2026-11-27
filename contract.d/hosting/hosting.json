@@ -516,7 +516,7 @@
         ],
         "x-source": {
           "impl": [
-            "src/clap_host.c#resource_hints_read",
+            "src/clap_host.c#resource_hints_judge",
             "lv2/core/lv2_world.c#resource_hints_read"
           ]
         },

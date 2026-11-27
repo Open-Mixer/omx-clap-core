@@ -15,6 +15,7 @@ Lines for the next release; the release moves them into debian/changelog and the
   draw and names every entry it leaves out with its reason (`controlLayout` in `--json`, a count line in the listing);
   `tests/clap_scan_test.c:layout_checks` holds one entry per rule (#249).
 - The window tests hold that a floating window's plugin is never asked clap.gui `set_transient`: `tests/fake_gui.c` logs the call, and `make test-jack-window` (X11 floating) and `make test-jack-window-wl` (Wayland, and the build with no X11) require none (#247).
+- docs/panel-description.md: how any host reads `org.openmixer.panel-description/1` (when, the five tables, the 4096 limit, the reader's rules, visibility, display sources, what never to assume, the fallback), linked from the README and the extension's row (#252).
 - The vocabulary pass: omx-clap 0.35.1 (#221) and V23d on devel (#223) merged into the wave, nothing of the 0.35 line
   dropped. Every domain stays at the package version, 0.M.m until 1.0 (owner 2026-11-25), so #221's return to 1.0.0
   and 2.18.0 is not taken. <omx-clap-host/omx_clap_host_verbs.h> left with the verbs (R5).

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.35.1
+Version:        0.35.2
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -316,6 +316,10 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Fri Nov 27 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.2-1
+- the release's same-pass list no longer names plugin-hostd-full, which
+  moved to its own repository and no channel serves
+
 * Thu Nov 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.1-1
 - Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin its
   scale again (clap.gui set_scale) when the screen's Xft.dpi changes (#229),

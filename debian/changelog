@@ -1,3 +1,10 @@
+omx-clap-host (0.35.2) unstable; urgency=medium
+
+  * the release's same-pass list no longer names plugin-hostd-full, which
+    moved to its own repository and no channel serves
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Fri, 27 Nov 2026 13:56:48 +0100
+
 omx-clap-host (0.35.1) unstable; urgency=medium
 
   * Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin

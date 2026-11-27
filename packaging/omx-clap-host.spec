@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.35.1
+Version:        0.36.0
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -316,6 +316,20 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Fri Nov 27 2026 Pau Aliagas <linuxnow@gmail.com> - 0.36.0-1
+- omx-clap-scan reads clap.mini-curve-display/3; a panel display naming a
+  curve the plugin does not draw is refused (#244).
+- org.openmixer.control-layout.draft/1, the cut-down shape of clap.control-
+  layout/1, declared and read by omx-clap-scan under the host's rules
+  (#249).
+- The window tests hold that a floating window's plugin is never asked
+  set_transient (#247).
+- docs/panel-description.md: how any host reads org.openmixer.panel-
+  description/1 (#252).
+- Resource hints before any instance: the entry's org.openmixer.resource-
+  hints-factory.draft/0 read by plugin id, and the LV2 adapter's entry
+  offers it (#254).
+
 * Thu Nov 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.1-1
 - Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin its
   scale again (clap.gui set_scale) when the screen's Xft.dpi changes (#229),

@@ -1,3 +1,20 @@
+omx-clap-host (0.36.0) unstable; urgency=medium
+
+  * omx-clap-scan reads clap.mini-curve-display/3; a panel display naming a
+    curve the plugin does not draw is refused (#244).
+  * org.openmixer.control-layout.draft/1, the cut-down shape of
+    clap.control-layout/1, declared and read by omx-clap-scan under the
+    host's rules (#249).
+  * The window tests hold that a floating window's plugin is never asked
+    set_transient (#247).
+  * docs/panel-description.md: how any host reads org.openmixer.panel-
+    description/1 (#252).
+  * Resource hints before any instance: the entry's org.openmixer.resource-
+    hints-factory.draft/0 read by plugin id, and the LV2 adapter's entry
+    offers it (#254).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Fri, 27 Nov 2026 03:27:16 +0100
+
 omx-clap-host (0.35.1) unstable; urgency=medium
 
   * Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin

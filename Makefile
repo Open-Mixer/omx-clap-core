@@ -899,13 +899,16 @@ test-cycle-gate-sabotage: tests/cycle_gate_test.c src/cycle_gate.h $(CORE_SRC) $
 	! TSAN_OPTIONS=halt_on_error=1 ./build/cycle-gate-sabotage/test $(abspath tests/fake.clap) > build/cycle-gate-sabotage/log 2>&1
 	grep -q 'ThreadSanitizer: data race' build/cycle-gate-sabotage/log
 
-# the sabotage of test-transport: the read without its sequence re-check must let torn records through
+# the sabotage of test-transport: the read without its sequence re-check must let torn records through. Its expected
+# FAIL line goes to build/transport-sabotage/log, so the log of a green make test holds no FAIL line of it (#228)
 test-transport-sabotage: tests/transport_seqlock_test.c src/clap_stage.h src/hosted_stage.h
 	mkdir -p build/transport-sabotage
 	sed -e '/if (atomic_load_explicit(&src->seq, memory_order_relaxed) != s1)/{N;d;}' src/clap_stage.h > build/transport-sabotage/clap_stage.h
 	! grep -q 'memory_order_relaxed) != s1' build/transport-sabotage/clap_stage.h
 	$(CC) -Ibuild/transport-sabotage -Isrc $(CLAP_CFLAGS) $(CFLAGS) -pthread -o build/transport-sabotage/test $< -lm
-	! ./build/transport-sabotage/test
+	! ./build/transport-sabotage/test > build/transport-sabotage/log 2>&1
+	grep -Eq '^FAIL no reader saw a record whose fields come from two publishes \([1-9][0-9]* torn\)' build/transport-sabotage/log
+	@echo "ok   sabotage caught: the read without its sequence re-check lets torn records through ($$(grep -Eo '[0-9]+ torn' build/transport-sabotage/log)); its FAIL line is kept in build/transport-sabotage/log"
 
 # the sabotage of the audio layouts (#92): each rule broken in a copy of the sources under build/sabotage-<arm>, the
 # test that guards it built there and red on the check that names it; an arm that survives fails the target

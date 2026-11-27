@@ -1422,39 +1422,75 @@ static unsigned flag_byte(const bool *flag)
     return byte;
 }
 
-/* At create, on the opening thread: the plugin's org.openmixer.resource-hints.draft/0, whole or refused. No extension,
- * or a get that answers false, states none. A declaration that sets a bit RESOURCE_HINTS has no hint for, or a declared
- * flag whose byte is neither 0 nor 1, is refused with its code and reads as none: no hint of it is trusted. A member whose
- * bit is clear is unknown and kept 0, whatever the plugin left in it. */
-static void resource_hints_read(struct omx_clap_instance *in)
+/* A declaration `h` as the plugin answered it, judged whole: 1 with `out` the declaration, or -1 refused with `*why` its
+ * code and `out` all clear. A declaration that sets a bit RESOURCE_HINTS has no hint for, or a declared flag whose byte is
+ * neither 0 nor 1, is refused: no hint of it is trusted. A member whose bit is clear is unknown and kept 0, whatever the
+ * plugin left in it. */
+static int resource_hints_judge(const omx_resource_hints_t *h, omx_resource_hints_t *out, const char **why)
 {
-    const omx_clap_plugin_resource_hints_t *ext = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, OMX_CLAP_EXT_RESOURCE_HINTS_DRAFT);
-    omx_resource_hints_t h, *out = &in->resource_hints;
-    uint32_t d, i;
+    const uint32_t d = h->declared;
+    uint32_t i;
 
     memset(out, 0, sizeof(*out));
-    in->resource_hints_why = NULL;
-    memset(&h, 0, sizeof(h));
-    if (!ext || !ext->get || !OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ext.get", ext->get, in->plugin, &h))
-        return;
+    *why = NULL;
     // refused by the codes of HOSTING_RESOURCE_HINTS_CODES (data/hosting/resource-hints.json)
-    d = h.declared;
     if (d & ~RESOURCE_HINTS_ALL)
     {
-        in->resource_hints_why = OMX_HOSTING_RESOURCE_HINTS_UNKNOWN_HINT;
-        return;
+        *why = OMX_HOSTING_RESOURCE_HINTS_UNKNOWN_HINT;
+        return -1;
     }
-    if (((d & OMX_RESOURCE_HINT_STREAMS_FROM_DISK) && flag_byte(&h.streams_from_disk) > 1u) ||
-        ((d & OMX_RESOURCE_HINT_OPENS_SOCKETS) && flag_byte(&h.opens_sockets) > 1u))
+    if (((d & OMX_RESOURCE_HINT_STREAMS_FROM_DISK) && flag_byte(&h->streams_from_disk) > 1u) ||
+        ((d & OMX_RESOURCE_HINT_OPENS_SOCKETS) && flag_byte(&h->opens_sockets) > 1u))
     {
-        in->resource_hints_why = OMX_HOSTING_RESOURCE_HINTS_WRONG_UNIT;
-        return;
+        *why = OMX_HOSTING_RESOURCE_HINTS_WRONG_UNIT;
+        return -1;
     }
     // a flag's byte is 0 or 1 here, which its bool then holds as it is
     out->declared = d;
     for (i = 0; i < OMX_RESOURCE_HINT_COUNT; i++)
         if (d & resource_hints_table[i].bit)
-            resource_hint_set(out, i, resource_hint_get(&h, i));
+            resource_hint_set(out, i, resource_hint_get(h, i));
+    return d != 0;
+}
+
+/* The binary's org.openmixer.resource-hints-factory.draft/0 asked for plugin `id`, before any instance of it exists:
+ * -2 when the entry offers no such factory, 0 when it states none (unknown id, a get that answers false), else what
+ * resource_hints_judge makes of its answer. */
+static int resource_hints_from_factory(struct omx_clap_binary *bin, struct omx_abi_guard *g, const char *id, double rate,
+                                       omx_resource_hints_t *out, const char **why)
+{
+    const omx_clap_resource_hints_factory_t *factory =
+        OMX_ABI_CALL(g, "entry.get_factory", bin->entry->get_factory, OMX_CLAP_RESOURCE_HINTS_FACTORY_ID_DRAFT);
+    omx_resource_hints_t h;
+
+    memset(out, 0, sizeof(*out));
+    *why = NULL;
+    if (!factory)
+        return -2;
+    memset(&h, 0, sizeof(h));
+    if (!factory->get || !id ||
+        !OMX_ABI_BOOL(omx_abi_gd(g, "resource_hints_factory.get", (const void *)factory->get, OMX_ABI_A(factory), OMX_ABI_A(id),
+                                 OMX_ABI_A(&h), 0, rate)))
+        return 0;
+    return resource_hints_judge(&h, out, why);
+}
+
+/* At create, on the opening thread: the plugin's hints, whole or refused, from the entry's factory when it offers one
+ * (the same answer omx_clap_host_file_resource_hints gives before any instance), else from the instance's
+ * org.openmixer.resource-hints.draft/0, which plugins built before the factory still serve. No factory and no extension,
+ * or a get that answers false, states none. */
+static void resource_hints_read(struct omx_clap_instance *in)
+{
+    const omx_clap_plugin_resource_hints_t *ext;
+    omx_resource_hints_t h;
+
+    if (resource_hints_from_factory(in->bin, OMX_ABI_GUARD_OF(in), in->desc->id, 0.0, &in->resource_hints, &in->resource_hints_why) != -2)
+        return;
+    ext = OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "get_extension", in->plugin->get_extension, in->plugin, OMX_CLAP_EXT_RESOURCE_HINTS_DRAFT);
+    memset(&h, 0, sizeof(h));
+    if (!ext || !ext->get || !OMX_ABI_CALL(OMX_ABI_GUARD_OF(in), "ext.get", ext->get, in->plugin, &h))
+        return;
+    (void)resource_hints_judge(&h, &in->resource_hints, &in->resource_hints_why);
 }
 
 /* Create the plugin of `desc`, init it and read its extensions, with no layout judged. Takes over the caller's reference
@@ -2538,6 +2574,53 @@ int omx_clap_host_standard_page(struct omx_clap_instance *in, uint32_t index, cl
     uint32_t count;
 
     return standard_pages(in, index, page, &count) == 0 && index < count ? 0 : -1;
+}
+
+/* the hints of plugin `id` of a referenced binary, which is let go after: no instance is created */
+static int binary_resource_hints(struct omx_clap_binary *bin, const char *id, double rate, omx_resource_hints_t *hints, const char **why)
+{
+    omx_resource_hints_t h;
+    const char *w = NULL;
+    int rc;
+
+    rc = resource_hints_from_factory(bin, NULL, id, rate, &h, &w);
+    binary_unref(bin);
+    if (rc == -2)
+        rc = 0;
+    if (hints)
+        *hints = h;
+    if (why)
+        *why = w;
+    return rc;
+}
+
+int omx_clap_host_file_resource_hints(const char *path, const char *id, double sample_rate, omx_resource_hints_t *hints, const char **why)
+{
+    struct omx_clap_binary *bin;
+    char reason[256];
+
+    if (hints)
+        memset(hints, 0, sizeof(*hints));
+    if (why)
+        *why = NULL;
+    if (!path || !id || !(bin = binary_ref(path, reason, sizeof(reason))))
+        return -2;
+    return binary_resource_hints(bin, id, sample_rate, hints, why);
+}
+
+int omx_clap_host_entry_resource_hints(const clap_plugin_entry_t *entry, const char *id, double sample_rate, omx_resource_hints_t *hints,
+                                       const char **why)
+{
+    struct omx_clap_binary *bin;
+    char reason[256];
+
+    if (hints)
+        memset(hints, 0, sizeof(*hints));
+    if (why)
+        *why = NULL;
+    if (!entry || !id || !(bin = binary_ref_entry(entry, id, reason, sizeof(reason))))
+        return -2;
+    return binary_resource_hints(bin, id, sample_rate, hints, why);
 }
 
 int omx_clap_host_resource_hints(const struct omx_clap_instance *in, omx_resource_hints_t *hints, const char **why)

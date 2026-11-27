@@ -52,18 +52,30 @@ hints_test() {
 }
 
 # 1. a declared flag is read as its byte: compared with 9 rather than 1, a flag of 2 passes as declared
-arm flag-byte src/clap_host.c 's/flag_byte(&h\.streams_from_disk) > 1u/flag_byte(\&h.streams_from_disk) > 9u/' \
+arm flag-byte src/clap_host.c 's/flag_byte(&h->streams_from_disk) > 1u/flag_byte(\&h->streams_from_disk) > 9u/' \
     'a flag of 2' hints_test
 
 # 2. a bit RESOURCE_HINTS has no hint for refuses the declaration
 arm unknown-bit src/clap_host.c 's/    if (d & ~RESOURCE_HINTS_ALL)/    if (0)/' 'a bit past the seventh' hints_test
 
 # 3. an unknown hint's member is never read: the plugin's struct copied whole, its garbage reaches the reader
-arm unknown-member src/clap_host.c 's/^    out->declared = d;$/    *out = h;/' "an unknown hint's member is 0" hints_test
+arm unknown-member src/clap_host.c 's/^    out->declared = d;$/    *out = *h;/' "an unknown hint's member is 0" hints_test
 
 # 4. the LV2 face: a flag the TTL states as an integer is refused, wrong-unit; with the boolean test gone it reads as a figure
 arm lv2-flag lv2/core/lv2_world.c 's/        if (!L.lilv_node_is_bool(v))$/        if (0)/' \
     'wrong-unit offers no draft, refused with hosting.resource-hints.wrong-unit' make -j"$jobs" test-lv2-clap
+
+# 5. the read before any instance asks the entry's factory: without it the file states nothing until a plugin is created
+arm factory-free src/clap_host.c 's/^    rc = resource_hints_from_factory(bin, NULL, id, rate, &h, &w);$/    rc = -2; memset(\&h, 0, sizeof(h));/' \
+    'before any instance, the factory states the two' hints_test
+
+# 6. at create the factory answers first: read from the instance alone, a plugin whose entry states them reads none
+arm factory-first src/clap_host.c 's/^    if (resource_hints_from_factory(in->bin, /    if (0 \&\& resource_hints_from_factory(in->bin, /' \
+    'at create the factory answers' hints_test
+
+# 7. the LV2 adapter's entry offers the factory: without it the TTL's hints wait for an instance
+arm lv2-factory lv2/clap/lv2_clap.c 's/^        return &g_slots\[index\]\.hints;$/        return NULL;/' \
+    "the bundle's factory states the two before any instance" make -j"$jobs" test-lv2-clap
 
 if [ "$failures" -eq 0 ]; then
     echo "resource hints sabotage ok"

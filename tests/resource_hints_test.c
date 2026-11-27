@@ -20,8 +20,10 @@
 
 
 /*
- * The resource hints a plugin declares about itself (org.openmixer.resource-hints.draft/0, omx-contract's
- * RESOURCE_HINTS), through libomx-clap against tests/fake_ext.clap, which states two of them and leaves five clear
+ * The resource hints a plugin declares about itself (omx-contract's RESOURCE_HINTS), through libomx-clap against
+ * tests/fake_ext.clap. Before any instance, its entry's org.openmixer.resource-hints-factory.draft/0 states them by
+ * plugin id and create_plugin is never called; at create the factory answers, and the instance's
+ * org.openmixer.resource-hints.draft/0 only where the entry offers no factory. It states two of them and leaves five clear
  * with garbage in their members: the two read back, the five read as unknown and never as zero; one bit flipped and
  * restored; a bit RESOURCE_HINTS has no hint for, and a flag that is neither 0 nor 1, refused with their codes; no
  * extension, and a get that answers false, read as none. The words are omx-contract's, in its order.
@@ -44,6 +46,7 @@ typedef struct
 {
     uint32_t offer, answer, streams_byte;
     omx_resource_hints_t hints;
+    uint32_t factory, creates;
 } fixture_hints_t;
 
 /* the hints of an instance opened afresh, the plugin's get asked again: rc of omx_clap_host_resource_hints */
@@ -115,6 +118,45 @@ int main(int argc, char **argv)
     CHECK(omx_clap_resource_hint_word(OMX_RESOURCE_HINT_COUNT) == NULL && omx_clap_resource_hint_unit(OMX_RESOURCE_HINT_COUNT) == NULL,
           "no word and no unit past the seventh");
 
+    /* before any instance: the entry's factory states them by plugin id, and no plugin is created to learn them */
+    fx->creates = 0;
+    memset(&h, 0x5a, sizeof(h));
+    rc = omx_clap_host_file_resource_hints(argv[1], EXT_ID, 48000.0, &h, &why);
+    CHECK(rc == 1 && why == NULL && h.declared == TWO && h.footprint_at_rest == AT_REST && h.threads_spawned == THREADS &&
+              unknowns(&h) == 5u,
+          "before any instance, the factory states the two (%d, %#x, %s)", rc, h.declared, why ? why : "-");
+    CHECK(fx->creates == 0, "and no plugin was created to learn them (%u create_plugin)", fx->creates);
+    rc = omx_clap_host_file_resource_hints(argv[1], "org.omx-clap-host.test.none", 0.0, &h, &why);
+    CHECK(rc == 0 && why == NULL && h.declared == 0, "an id the factory does not know states none (%d)", rc);
+    fx->hints.declared |= 1u << OMX_RESOURCE_HINT_COUNT;
+    rc = omx_clap_host_file_resource_hints(argv[1], EXT_ID, 0.0, &h, &why);
+    CHECK(rc == -1 && why && !strcmp(why, "hosting.resource-hints.unknown-hint") && h.declared == 0,
+          "before any instance, a bit past the seventh is refused as at create (%d, %s)", rc, why ? why : "-");
+    *fx = saved;
+    fx->factory = 0;
+    rc = omx_clap_host_file_resource_hints(argv[1], EXT_ID, 0.0, &h, &why);
+    CHECK(rc == 0 && why == NULL && h.declared == 0 && fx->creates == 0,
+          "no factory: none before any instance, and still no plugin created (%d, %u)", rc, fx->creates);
+    *fx = saved;
+    CHECK(omx_clap_host_file_resource_hints("/nonexistent/fake.clap", EXT_ID, 0.0, &h, &why) == -2 && why == NULL && h.declared == 0,
+          "a file that does not load: -2");
+    CHECK(omx_clap_host_file_resource_hints(argv[1], NULL, 0.0, &h, &why) == -2 &&
+              omx_clap_host_entry_resource_hints(NULL, EXT_ID, 0.0, &h, &why) == -2,
+          "no id, or no entry: -2");
+
+    /* at create: the factory answers, the instance's extension withdrawn; with no factory, the instance's extension */
+    fx->offer = 0;
+    rc = reopen(argv[1], &h, &why);
+    CHECK(rc == 1 && why == NULL && h.declared == TWO, "at create the factory answers, the instance offering no extension (%d, %#x)", rc,
+          h.declared);
+    *fx = saved;
+    fx->factory = 0;
+    rc = reopen(argv[1], &h, &why);
+    CHECK(rc == 1 && why == NULL && h.declared == TWO,
+          "no factory: the instance's extension answers at create, as a plugin built before the factory serves it (%d, %#x)", rc,
+          h.declared);
+    *fx = saved;
+
     /* the declaration: two hints read back, the five others unknown, whatever their members held */
     rc = reopen(argv[1], &h, &why);
     CHECK(rc == 1 && why == NULL && h.declared == TWO, "two hints declared (%d, %#x, %s)", rc, h.declared, why ? why : "-");
@@ -162,8 +204,9 @@ int main(int argc, char **argv)
     CHECK(rc == 0 && why == NULL && h.declared == 0 && unknowns(&h) == 7u, "a get that answers false states none (%d)", rc);
     *fx = saved;
     fx->offer = 0;
+    fx->factory = 0;
     rc = reopen(argv[1], &h, &why);
-    CHECK(rc == 0 && why == NULL && h.declared == 0 && unknowns(&h) == 7u, "no extension states none: the mask all clear (%d)", rc);
+    CHECK(rc == 0 && why == NULL && h.declared == 0 && unknowns(&h) == 7u, "no factory and no extension state none: the mask all clear (%d)", rc);
     *fx = saved;
 
     CHECK(omx_clap_host_resource_hints(NULL, &h, &why) == 0 && h.declared == 0 && why == NULL, "no instance: none");

@@ -229,4 +229,7 @@ OMX_CLAP_CORE_0.36
 {
   global:
     omx_clap_param_unit_id;
+    /* the resource hints read from the entry's factory, before any instance */
+    omx_clap_host_entry_resource_hints;
+    omx_clap_host_file_resource_hints;
 } OMX_CLAP_CORE_0.34;

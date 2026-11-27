@@ -1680,6 +1680,20 @@ static void t_hints(void)
         struct omx_clap_instance *in = NULL;
         uint64_t f = 0;
 
+        const omx_clap_resource_hints_factory_t *factory =
+            entry ? entry->get_factory(OMX_CLAP_RESOURCE_HINTS_FACTORY_ID_DRAFT) : NULL;
+
+        // before any instance: the bundle's factory states what the TTL does, by plugin URI
+        memset(&h, 0x5a, sizeof(h));
+        CHECK(factory && factory->get && factory->get(factory, HINTS_TWO, 0.0, &h) &&
+                  h.declared == (OMX_RESOURCE_HINT_FOOTPRINT_AT_REST | OMX_RESOURCE_HINT_THREADS_SPAWNED) &&
+                  h.footprint_at_rest == HINTS_AT_REST && h.threads_spawned == HINTS_THREADS,
+              "hints: the bundle's factory states the two before any instance (%#x)", factory ? h.declared : 0u);
+        CHECK(factory && factory->get && !factory->get(factory, HINTS_NONE, 0.0, &h) && !factory->get(factory, "urn:none", 0.0, &h),
+              "hints: the factory states none for a pad that states none, or a URI the bundle does not have");
+        CHECK(omx_clap_host_entry_resource_hints(entry, HINTS_TWO, 48000.0, &h, &why) == 1 && why == NULL &&
+                  omx_clap_resource_hint_figure(&h, 0, &f) == 1 && f == HINTS_AT_REST && omx_clap_resource_hint_figure(&h, 6, &f) == 0,
+              "hints: the core reads them from the factory, no instance made, footprint-at-rest %u bytes", HINTS_AT_REST);
         CHECK(entry && omx_clap_host_open_entry(entry, HINTS_TWO, &in, cwhy) == 0, "hints: the core opens the two-hint pad (%s)", cwhy);
         if (in)
         {
@@ -1693,6 +1707,8 @@ static void t_hints(void)
         omx_clap_lv2_entry_release(entry);
         entry = omx_clap_lv2_entry(g_hints_refused, awhy);
         in = NULL;
+        CHECK(omx_clap_host_entry_resource_hints(entry, HINTS_WRONG_UNIT, 0.0, &h, &why) == 0 && h.declared == 0,
+              "hints: a refused declaration reaches the core as none before any instance too");
         CHECK(entry && omx_clap_host_open_entry(entry, HINTS_WRONG_UNIT, &in, cwhy) == 0, "hints: the core opens the wrong-unit pad (%s)", cwhy);
         if (in)
         {

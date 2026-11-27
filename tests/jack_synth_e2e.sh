@@ -19,9 +19,10 @@ set -u
 here=$(cd "$(dirname "$0")" && pwd)
 . "${PLUGIN_HOSTD_TESTS_LIB:-$here/../../plugin-hostd/tests/lib}/protocol.sh"
 root=$(dirname "$here")
-# the refusal's number is the vocabulary header's, never a literal of this script
-note_full=$(sed -n 's/^#define OMX_REPLY_HOST_NOTE_QUEUE_FULL_RESP[[:space:]]*(\(-[0-9]*\)).*/\1/p' "$root/src/omx_clap_vocabulary.h")
-case $note_full in -[0-9]*) ;; *) echo "no OMX_REPLY_HOST_NOTE_QUEUE_FULL_RESP in src/omx_clap_vocabulary.h" >&2; exit 2 ;; esac
+# the refusal's number is plugin-hostd-protocol's vocabulary (ruling R5: the host words are that package's), as the
+# compiler reads it (make test-jack-synth passes it), never a literal of this script
+note_full=${OMX_REPLY_HOST_NOTE_QUEUE_FULL_RESP:-}
+case $note_full in -[0-9]*) ;; *) echo "no OMX_REPLY_HOST_NOTE_QUEUE_FULL_RESP from plugin-hostd-protocol's vocabulary ('$note_full')" >&2; exit 2 ;; esac
 host=${OMX_CLAP_HOST:-$root/omx-clap-host}
 port=${JACK_E2E_PORT:-5561}
 synth=$here/fake_synth.clap

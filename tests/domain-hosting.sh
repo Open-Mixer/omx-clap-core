@@ -18,7 +18,8 @@ set -eu
 command -v "$OMX_DOMAIN" >/dev/null || { echo "FAIL domain-hosting: no $OMX_DOMAIN command: install libomx-domain" >&2; exit 1; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-fresh() { rm -rf "$tmp/t"; mkdir "$tmp/t"; cp -r Makefile VERSION data contract.d "$tmp/t/" 2>/dev/null || true; }
+# the Makefile with the one makefile it includes (tests/fixtures.mk), VERSION and the contract sources
+fresh() { rm -rf "$tmp/t"; mkdir -p "$tmp/t/tests"; cp -r Makefile VERSION data contract.d "$tmp/t/" 2>/dev/null || true; cp tests/fixtures.mk "$tmp/t/tests/"; }
 D=contract.d/hosting/hosting.json
 tool="node $OMX_CONTRACT_DIR/bin/omx-contract.mjs"
 
@@ -100,7 +101,7 @@ d["HOSTING_IDLE_CODES"] = {"kind": "codes", "since": "2.20.0", "doc": it["descri
 open(sys.argv[1], "w").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
 P
 mkdir -p "$tmp/dup"
-sh "$INSTALL_CONTRACT_DIR" omx-clap "$(cat VERSION)" 3 "$tmp/t/data" "$tmp/dup" data >/dev/null
+sh "$INSTALL_CONTRACT_DIR" omx-clap "$(cat VERSION)" "$tmp/t/data" "$tmp/dup" data >/dev/null
 sh "$INSTALL_CONTRACT_DIR" --domain "$tmp/t/contract.d/hosting" "$tmp/dup" omx-clap >/dev/null
 if out=$($tool validate --contract-dir "$tmp/dup" 2>&1); then echo "FAIL HOSTING_IDLE_CODES in data/ and in the domain validates"; exit 1; fi
 printf '%s\n' "$out" | grep -q "contract.item.duplicate.*HOSTING_IDLE_CODES" || { echo "FAIL a second home is refused without naming it: $out"; exit 1; }
@@ -123,7 +124,7 @@ fresh
 edit 'w[0], w[1] = w[1], w[0]; w[0]["x-code"], w[1]["x-code"] = 0, 1'
 refused "two words reordered" "the words were reordered"
 fresh
-edit 'd["info"]["version"] = "0.1.0"'
+edit 'd["info"]["version"] = "0.0.1"'
 refused "a version going down" "is below"
 # a word appended under a new version passes, and the earlier words keep their codes
 fresh

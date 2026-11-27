@@ -13,8 +13,9 @@ that tool writes.
   python3 tools/clap_inventory.py [--clap <include dir>] [--out <dir>] [--check]   write or check inventory/clap.json
   python3 tools/clap_inventory.py coverage [--inventory <dir>] [--domain <clap.json>]
 
---clap defaults to pkg-config's includedir for clap (else /usr/include). The headers are read as text. Exit 0 written,
-equal or covered; 1 a difference or a coverage problem (each named) or a source that cannot be read; 2 usage."""
+--clap defaults to pkg-config's includedir for clap (else /usr/include). The headers are read as text. --check takes an
+older CLAP installed when every identifier it declares is in the inventory (a distribution behind the release the domain
+maps), never a newer or a different one. Exit 0 written, equal, held or covered; 1 a difference or a coverage problem (each named) or a source that cannot be read; 2 usage."""
 import json
 import os
 import re
@@ -202,12 +203,34 @@ def main(argv):
         print(f"clap_inventory: wrote {p}")
         return 0
     have = open(p).read() if os.path.exists(p) else ""
-    if have != text:
-        print(f"clap_inventory: {p} is not the inventory of the installed CLAP: run python3 tools/clap_inventory.py and map "
-              "what changed", file=sys.stderr)
-        return 1
-    print("clap_inventory: the committed inventory is the installed CLAP's")
-    return 0
+    if have == text:
+        print("clap_inventory: the committed inventory is the installed CLAP's")
+        return 0
+    # an older CLAP installed (a distribution behind the release the domain maps, Fedora 45's 1.2.7 under 1.2.10): what it
+    # declares is held to the inventory, each identifier in its header with its group; a newer or a different one is
+    # refused until the inventory is written from it and mapped
+    try:
+        committed, installed = json.loads(have), json.loads(text)
+    except ValueError:
+        committed = installed = None
+    if committed and version_key(installed["version"]) < version_key(committed["version"]):
+        missing = [f"{h}: {i['name']} ({i['group']})" for h, ids in installed["headers"].items() for i in ids
+                   if not any(c["name"] == i["name"] and c["group"] == i["group"] for c in committed["headers"].get(h, []))]
+        for m in missing:
+            print(f"clap_inventory: the installed CLAP {installed['version']} declares {m}, which the inventory "
+                  f"({committed['version']}) lacks", file=sys.stderr)
+        if missing:
+            return 1
+        print(f"clap_inventory: the installed CLAP {installed['version']} is older than the inventory's "
+              f"{committed['version']}, and every identifier it declares is in the inventory")
+        return 0
+    print(f"clap_inventory: {p} is not the inventory of the installed CLAP: run python3 tools/clap_inventory.py and map "
+          "what changed", file=sys.stderr)
+    return 1
+
+
+def version_key(v):
+    return tuple(int(x) for x in v.split("."))
 
 
 if __name__ == "__main__":

@@ -184,15 +184,21 @@ arm client-back src/effects.c 's/^        if (client_take(leaving\[j\], \&own\[j
 arm head-remove src/effects.c 's/^        if (effect->chain)$/        if (0)/' \
     'remove 12: pass alone in its own client'
 
-# 7. one width end to end, checked before anything changes: not checked. A member of another width is still refused by
-# the library's own guard (OMX_CLAP_CHAIN_ERR_WIDTH) when it would join, so the host's check shows on a head of
-# another width, which the library refuses only once the chain has formed and the member would join, answering the
-# same code: the chain formed is what shows
-arm width src/effects.c 's/^        if (!member_fits(effect, head))$/        if (0)/' \
-    'the refusals formed no chain 8'
+# 7. members of different widths share a chain (#232): the old rule, one width end to end, put back
+arm width src/effects.c '/^static int member_fits/,/^}/s/^    return effect->in_ports >= 1u .*$/    return effect->in_ports == head->out_ports \&\& effect->out_ports == head->out_ports;/' \
+    'chain: chain 10 18 19 -> '
+
+# 7b. and the library's walk is at least stereo: a mono head's walk only as wide as the head, the stereo member refused
+# by the library when it would join
+arm walk-width src/effects.c '/^static uint32_t walk_width/,/^}/s/^    uint32_t width = 2u;$/    uint32_t width = 1u;/' \
+    'chain 10 18 19, mono head and stereo member, forms'
+
+# 7c. a mono head's node has the outputs its stereo last member writes: none registered past the head's own
+arm outputs-wide src/effects.c '/^static void chain_outputs/,/^}/s/^    head_outputs_set(chain->head, last->out_ports);$/    (void)last;/' \
+    'the mono head.s node has out and out_2'
 
 # 8. a member with a note port is no refusal (#400): the refusal of the first version taken back
-arm note-port src/effects.c 's/^        \/\/ every member.s main input and output as wide as the head.s main output, or a mono member of a stereo walk$/        if (i > 0 \&\& (effect->midi_port || effect->midi_out_port))\n            return ERR_INVALID_OPERATION;\n&/' \
+arm note-port src/effects.c 's/^        \/\/ every member.s main input and output of one channel or more and no wider than the head.s walk; a change of$/        if (i > 0 \&\& (effect->midi_port || effect->midi_out_port))\n            return ERR_INVALID_OPERATION;\n&/' \
     'chain: chain 9 15 13 -> '
 
 # 8b. and the member gets its note port again in a client of its own: the client made ready for it registers none
@@ -206,7 +212,7 @@ arm other-chain src/effects.c 's/if (effect->chain \&\& effect->chain != chain)/
 # 12. a member's auxiliary ports are on the head's client, under the name it has alone too, and leave with it
 arm aux-port src/effects.c 's/^        aux_ports_on_head(effect, head->jack_client);$/        ;/' \
     'the side chain of member 16 is'
-arm aux-connect src/effects.c "s/^        if (len \&\& client_borrowed(effect) .*/        if (0)/" \
+arm aux-connect src/effects.c "/^        if (len \&\& client_borrowed(effect) /{N;s/.*/        if (0)/}" \
     'connect effect_10:out_1 effect_16:aux_in_1_1'
 arm aux-leave src/effects.c '/^static void chain_extract/,/^}/s/^        aux_ports_off_head(effect, chain->head->jack_client);$/        ;/' \
     'and the head.s client no longer holds it'

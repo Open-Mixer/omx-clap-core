@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.35.0
+Version:        0.35.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -22,8 +22,8 @@ BuildRequires: plugin-hostd-protocol-devel
 BuildRequires: plugin-hostd-protocol-contract
 # plugin-db's pin.h: the layout fingerprint pin_expect names, one implementation
 BuildRequires: plugin-db-devel
-# the CLAP headers: 1.2.10, a third-party floor that stays (the channel serves it where the distribution's own is older)
-BuildRequires: clap-devel >= 1.2.10
+# the CLAP headers, by name: no floor, since no channel served the 1.2.10 one (Fedora 45 has 1.2.7)
+BuildRequires: clap-devel
 BuildRequires: pkgconfig(libcrypto)
 BuildRequires: omx-dsp-devel
 # make install ships the core's call graphs (make install-rt-gate-graphs) for a plugin's omx-rt-gate run to join
@@ -103,7 +103,7 @@ License: GPL-3.0-or-later
 # the name this package had before 0.34.0 (packaging/renamed.txt)
 Obsoletes: omx-clap-core-devel < 0.34.0
 Requires: omx-clap-libs%{?_isa} = %{version}-%{release}
-Requires: clap-devel >= 1.2.10
+Requires: clap-devel
 # hosted_stage.h includes omx-dsp's headers
 Requires: omx-dsp-devel
 # omxcontract/omx_resource_hints.h, which clap_host.h includes
@@ -141,7 +141,7 @@ Its documentation is on openmixer.org.
 Summary: The LV2 adapter of omx-clap-host, as a static library to link
 License: GPL-3.0-or-later
 Requires: omx-clap-devel%{?_isa} = %{version}-%{release}
-Requires: clap-devel >= 1.2.10
+Requires: clap-devel
 # the parameter contract's fingerprint is libcrypto's SHA-256: a program that links the static adapter links it too
 Requires: pkgconfig(libcrypto)
 Requires: pkgconfig
@@ -316,6 +316,15 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Thu Nov 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.1-1
+- Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin its
+  scale again (clap.gui set_scale) when the screen's Xft.dpi changes (#229),
+  and request_show before a window is held by a test (#230); a chain joins
+  mono and stereo members, a width change between them matched, never
+  refused (#232, omx_clap_chain_process_ports); the CLAP headers are named
+  without a floor no channel meets; CI builds a pull request into devel, and
+  a dispatch off main, on plugin-hostd's devel and the staging channel (#234).
+
 * Tue Nov 24 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.0-1
 - Chain 3: the host verbs check reads plugin-hostd-protocol's words from the
   domain plugin-hostd-protocol (V16) and the verb hosts are HOSTING_VERB_HOSTS

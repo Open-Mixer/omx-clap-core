@@ -157,12 +157,17 @@ Wayland connection of its own, and `hide_external_ui` and `remove` call the
 plugin's `hide` and `destroy` as for X11.
 
 A plugin that can embed over X11 is set into a window of the host's, titled with the
-plugin's name: `create`, `set_scale` 1.0, `can_resize` and `get_size`, then
-`set_parent` and `show`. Resizing that window asks the plugin to take the size
+plugin's name: `create`, `set_scale`, `can_resize` and `get_size`, then
+`set_parent` and `show`. The scale is the screen's `Xft.dpi` resource over 96
+(1.0 when no resource names one); X11 gives every output of a screen that one
+scale, and when a new resource names another, the plugin is given it again by
+`set_scale` while its window exists. A floating window is never given one.
+Resizing that window asks the plugin to take the size
 (`adjust_size`, then `set_size`); a plugin that cannot resize keeps its size,
 and the window says so to the window manager. The plugin's `request_resize`
 resizes the host's window, `request_show` and `request_hide` show and hide
-it, and its close button hides the plugin. A plugin that only floats opens its
+it (before the plugin has a window, `request_show` answers false and makes
+none), and its close button hides the plugin. A plugin that only floats opens its
 own window, told its title by `suggest_title`. The window lives on the
 plugin's timers and descriptors (`clap.timer-support`, `clap.posix-fd-support`),
 which the host's tick serves every 20 ms beside the X events, on the control

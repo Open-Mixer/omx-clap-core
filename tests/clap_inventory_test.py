@@ -7,13 +7,16 @@ V27b). Not tests/clap_coverage.py, which covers the host.
 
 (a) the call: `tools/clap_inventory.py coverage` over the committed domain and inventory exits 0, and the inventory
     holds the 58 headers and 297 identifiers it held in omx-contract;
-(b) the inventory is the installed CLAP's, where the CLAP headers are installed (else skipped);
+(b) the inventory is the installed CLAP's, or an older one whose every identifier it holds, where the CLAP headers are
+    installed (else skipped), an identifier it lacks or a newer CLAP refused;
 (c) sabotage, each through the same call on a scratch domain or inventory, refused by name: one identifier unmapped, a
     term without its status, a wrong id, a wrong version, an identifier the header does not declare, and a newer CLAP
     installed with one identifier more."""
 import copy
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -67,7 +70,23 @@ def main():
 
         if os.path.exists(os.path.join(sys.prefix, "include", "clap")) or os.path.exists("/usr/include/clap/version.h"):  # (b)
             rc, problems = run("--check")
-            check(rc == 0, f"the committed inventory is the installed CLAP's ({problems})")
+            check(rc == 0, f"the committed inventory is the installed CLAP's, or an older one it holds ({problems})")
+            # sabotage of (b), on a copy of the installed headers: an identifier the inventory lacks, and a version above it
+            src = os.path.join(sys.prefix, "include") if os.path.exists(os.path.join(sys.prefix, "include", "clap")) else "/usr/include"
+            for arm, extra, bump in (("an installed identifier the inventory lacks", True, False),
+                                     ("a newer CLAP installed", False, True)):
+                inc = os.path.join(tmp, "inc-" + str(int(bump)))
+                shutil.copytree(os.path.join(src, "clap"), os.path.join(inc, "clap"))
+                if extra:
+                    with open(os.path.join(inc, "clap", "color.h"), "a") as f:
+                        f.write("\n#define CLAP_OMX_SABOTAGE_ONLY 1\n")
+                if bump:
+                    vh = os.path.join(inc, "clap", "version.h")
+                    t = open(vh).read()
+                    t = re.sub(r"(#define CLAP_VERSION_MAJOR )\d+", lambda m: m.group(1) + "99", t)
+                    open(vh, "w").write(t)
+                rc, problems = run("--check", "--clap", inc)
+                check(rc == 1 and problems != [], f"sabotage of (b): {arm} is refused ({problems[:1]})")
         else:
             print("skip no CLAP headers installed: the inventory is not read again here")
 

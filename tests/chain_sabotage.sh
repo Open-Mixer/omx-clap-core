@@ -52,7 +52,7 @@ arm() {
 }
 
 # 1. a bypassed member is not in the walk: built into the plan anyway, it is called and its output reaches the chain's
-arm bypass-walk '/^static void publish/,/^}/{s/if (!chain->slot\[i\]\.bypass || chain->slot\[i\]\.mono)$/if (1)/;s/const int runs = !chain->slot\[i\]\.bypass;/const int runs = 1;/}' \
+arm bypass-walk '/^static void publish/,/^}/s/const int runs = !slot->bypass;/const int runs = 1;/' \
     'the bypassed members are never called'
 
 # 2. a bypassed member adds no latency: counted anyway
@@ -76,7 +76,7 @@ arm long-bound 's/if (frames > OMX_CLAP_CHAIN_FRAMES_MAX)/if (frames >= OMX_CLAP
     'the blocks. length, runs the members'
 
 # 7. a longer cycle passes dry: its input never reaches its output
-arm long-dry '/if (frames > OMX_CLAP_CHAIN_FRAMES_MAX)/,/return OMX_CLAP_CHAIN_PASSED;/s/^        pass_dry(chain, inputs, outputs, frames);$/        (void)0;/' \
+arm long-dry '/if (frames > OMX_CLAP_CHAIN_FRAMES_MAX)/,/return OMX_CLAP_CHAIN_PASSED;/s/^        pass_dry(inputs, n_in, outputs, n_out, frames);$/        (void)0;/' \
     'its input is its output, dry'
 
 # 8. the two blocks alternate: one block for every member, each in place on the block before it
@@ -99,6 +99,14 @@ arm order-publish '/^int omx_clap_chain_order/,/^}/s/^    publish(chain);$/    (
 # 12. a new order is one walk: the walk without the last member published first, as a removal and an add would
 arm order-one-walk '/^int omx_clap_chain_order/,/^}/s/^    memcpy(chain->slot, slot, n \* sizeof(slot\[0\]));$/    chain->count--;\n    publish(chain);\n    chain->count++;\n&/' \
     'a move by one order: [1-9][0-9]* of'
+
+# 13. a mono output feeds every channel of a wider input: the copy to the channels after the first dropped
+arm mono-to-stereo '/^static void match_width/,/^}/s/^        for (c = 0; c < m; c++)$/        for (c = 0; c < 1u; c++)/' \
+    'mono -> stereo reaches both outputs'
+
+# 14. a stereo output is summed into a mono input: the channels after the first dropped from the sum
+arm stereo-to-mono '/^static void match_width/,/^}/s/^        for (k = 1; k < n; k++)$/        for (k = 1; k < 1u; k++)/' \
+    'stereo -> mono is the sum'
 
 if [ "$failures" -ne 0 ]; then
     echo "FAIL chain sabotage: $failures arm(s) did not hold"

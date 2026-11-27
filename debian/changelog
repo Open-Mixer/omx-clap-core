@@ -1,3 +1,16 @@
+omx-clap-host (0.35.1) unstable; urgency=medium
+
+  * Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin
+    its scale again (clap.gui set_scale) when the screen's Xft.dpi changes
+    (#229), and request_show before a window is held by a test (#230); a
+    chain joins mono and stereo members, a width change between them
+    matched, never refused (#232, omx_clap_chain_process_ports); the CLAP
+    headers are named without a floor no channel meets; CI builds a pull
+    request into devel, and a dispatch off main, on plugin-hostd's devel and
+    the staging channel (#234).
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Thu, 26 Nov 2026 21:00:00 +0100
+
 omx-clap-host (0.35.0) unstable; urgency=medium
 
   * Chain 3: the host verbs check reads plugin-hostd-protocol's words from

@@ -28,8 +28,9 @@ env:
   # omx-clap line's tests, while plugin-hostd still builds and installs after omx-clap. Its pin header and vocabulary
   # (pkg-config plugin-hostd), the daemon the pin and chain tests run behind and the tests' lib/protocol.sh all come from
   # this one tree; the protocol, and its Python client python3-plugin-hostd-client, are the plugin-hostd-protocol the job
-  # installs
-  PLUGIN_HOSTD_BRANCH: main
+  # installs. A pull request into devel, or a dispatch off main (devel, a devel-wave head), takes plugin-hostd's devel, the
+  # level it is built and staged with (#234); every other run its main
+  PLUGIN_HOSTD_BRANCH: ${{ (((startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')) && 'devel') || 'main' }}
   # omx-contract's reader, render and install script, which data/ is read back through, from this release tag
   OMX_CONTRACT_REF: v3.20.0
 
@@ -158,23 +159,25 @@ jobs:
       # the channel, as consumers get it; its installed omx-contract tree is what test-contract reads
       - name: Add the OpenMixer channel
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
       - name: omx-contract
         run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec && dnf install -y --setopt=install_weak_deps=False omx-contract
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
       # (plugin-hostd-protocol#27: a stale staged contract package outranked the channel)
-      # a pull request into devel builds against the staging channel (devel -> staging -> prod, Open-Mixer/.github
-      # add-openmixer): there a package from staging is expected; anywhere else one is refused as before
+      # a pull request into devel, or a dispatch off main, builds against the staging channel (devel -> staging -> prod,
+      # Open-Mixer/.github add-openmixer): there a package from staging is expected; anywhere else one is refused as before
       - name: Every omx package comes from the channel
         env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.base_ref }}
+          DEVEL_PR: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
         run: |
           set -euo pipefail
           dnf repoquery --installed --qf '%{name} %{version} %{from_repo}\n' 'omx-*' | tee /tmp/from-repo
-          case $EVENT:$BASE in
-            pull_request*:devel) echo "a pull request into devel: a package from the staging channel is expected here" ;;
-            *) if grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi ;;
-          esac
+          # a pull request into devel, or a dispatch off main, builds against the staging channel: a staged package is
+          # what it tests, so only every other run refuses one
+          if [ "$DEVEL_PR" = true ]; then echo "a pull request into devel or a dispatch off main: a package from the staging channel is expected here"
+          elif grep staging /tmp/from-repo; then echo "a package above came from the staging channel: an ordinary run builds against the channel"; exit 1; fi
 
       - name: make test-contract
         run: make test-contract OMX_CONTRACT_DIR=/usr/lib/omx-contract
@@ -271,13 +274,16 @@ jobs:
           dnf install -y --setopt=install_weak_deps=False git gcc make python3 perl-interpreter diffutils pkgconf-pkg-config clap-devel openssl-devel \
             lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jack-tools jq iproute util-linux procps-ng libasan libubsan libtsan \
             python3-numpy python3-lilv \
-            libxcb-devel xorg-x11-server-Xvfb xdotool wayland-devel wayland-protocols-devel weston \
+            libxcb-devel xorg-x11-server-Xvfb xdotool xprop wayland-devel wayland-protocols-devel weston \
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
       # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - uses: actions/checkout@v4
 
@@ -581,6 +587,7 @@ jobs:
       - name: Test the verbs the declarations name for this host
         env:
           GH_TOKEN: ${{ github.token }}
+          DEVEL_PR: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
         run: |
           if unshare --user --map-root-user --net --pid --fork --mount-proc true; then
             # the domain plugin-hostd-protocol (chain of omx-clap-host), from the build the headers come from: a staged
@@ -589,6 +596,7 @@ jobs:
             version=$(rpm -q --qf '%{VERSION}' plugin-hostd-protocol-devel)
             commit=$(rpm -q --qf '%{RELEASE}' plugin-hostd-protocol-devel | sed -n 's/.*\.git\([0-9]*\.\)\{0,1\}\([0-9a-f]\{7,40\}\)\..*/\2/p')
             git init -q /tmp/plugin-hostd-protocol
+            declarations=/tmp/plugin-hostd-protocol
             if [ -n "$commit" ]; then
               full=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
                 "https://api.github.com/repos/Open-Mixer/plugin-hostd-protocol/commits/$commit" |
@@ -596,14 +604,25 @@ jobs:
               [ -n "$full" ] || { echo "::error::plugin-hostd-protocol has no commit $commit"; exit 1; }
               git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "$full"
               git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD
-            else
-              git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "refs/tags/v$version"
+            elif git -C /tmp/plugin-hostd-protocol fetch -q --depth 1 https://github.com/Open-Mixer/plugin-hostd-protocol "refs/tags/v$version"; then
               git -C /tmp/plugin-hostd-protocol checkout -q FETCH_HEAD
+            elif [ "$DEVEL_PR" = true ]; then
+              # a pull request into devel, or a dispatch off main, builds on staging, where a devel merge publishes a
+              # release with no tag and no commit in its name (#234): the declarations are that build's own, installed
+              # beside its headers by plugin-hostd-protocol-contract
+              declarations=
+            else
+              echo "::error::plugin-hostd-protocol $version has no tag v$version and names no commit"; exit 1
             fi
-            echo "plugin-hostd-protocol's declarations: $version at $(git -C /tmp/plugin-hostd-protocol rev-parse --short HEAD)"
-            make test-host-verbs-domains PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
-            make test-host-verbs PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
-            make test-host-verbs-sabotage PROTOCOL_CONTRACT_DIR=/tmp/plugin-hostd-protocol
+            if [ -n "$declarations" ]; then
+              echo "plugin-hostd-protocol's declarations: $version at $(git -C /tmp/plugin-hostd-protocol rev-parse --short HEAD)"
+            else
+              rpm -q plugin-hostd-protocol-contract
+              echo "plugin-hostd-protocol's declarations: $version, installed by $(rpm -q plugin-hostd-protocol-contract)"
+            fi
+            make test-host-verbs-domains PROTOCOL_CONTRACT_DIR=$declarations
+            make test-host-verbs PROTOCOL_CONTRACT_DIR=$declarations
+            make test-host-verbs-sabotage PROTOCOL_CONTRACT_DIR=$declarations
           else
             echo "::warning::test-host-verbs SKIPPED: this runner refuses a private user and pid namespace with its own /proc"
           fi
@@ -745,13 +764,16 @@ jobs:
           dnf install -y --setopt=install_weak_deps=False git gcc make python3 perl-interpreter diffutils pkgconf-pkg-config clap-devel openssl-devel \
             lv2-devel lilv-devel sord binutils pipewire-jack-audio-connection-kit-devel pipewire pipewire-devel pipewire-utils jq iproute util-linux procps-ng libasan libubsan libtsan \
             python3-numpy python3-lilv \
-            libxcb-devel xorg-x11-server-Xvfb xdotool wayland-devel wayland-protocols-devel weston \
+            libxcb-devel xorg-x11-server-Xvfb xdotool xprop wayland-devel wayland-protocols-devel weston \
             dnf5-plugins
 
       # omx-dsp's headers, which hosted_stage.h takes its DSP words from, and omx-contract's, the contract directory and
       # its install script data/ (the hosting codes) installs with, from the OpenMixer channel; mod-host, the LV2 identity test's reference arm
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - uses: actions/checkout@v4
 
@@ -826,6 +848,9 @@ jobs:
 
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - uses: actions/checkout@v4
 
@@ -868,6 +893,9 @@ jobs:
       # the spec's BuildRequires: omx-dsp-devel, and omx-contract-devel under it, come from the OpenMixer channel
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - name: Fetch plugin-hostd
         run: |
@@ -938,6 +966,12 @@ jobs:
               /usr/include/omx-clap-host/clap_host_limits.h /usr/include/omx-clap-host/omx_clap_vocabulary.h /usr/include/omx-clap-host/omx_param_units.h /usr/include/omx-clap-host/omx_param_unit_ids.h /usr/include/omx-clap-host/omx_param_scales.h /usr/include/omx-clap-host/hosted_stage_limits.h /usr/include/omx-clap-host/clap_stage.h /usr/include/omx-clap-host/hosted_stage.h \
               /usr/include/omx-clap-host/clap_host_extensions.h /usr/include/omx-clap-host/omx_clap_ext.h /usr/include/omx-clap-host/omx_msgring.h /usr/include/omx-clap-host/clap_meters.h /usr/include/omx-clap-host/omx_clap_raw.h /usr/include/omx-clap-host/omx_clap_midi.h /usr/include/omx-clap-host/clap_chain.h /usr/include/omx-clap-host/abi_guard.h \
               /usr/share/omx-clap/omx-clap.map \
+              /usr/share/omx-clap/fixtures/fault_clap.c /usr/share/omx-clap/fixtures/fixtures.mk /usr/share/omx-clap/fixtures/lv2_worker_gain.c \
+              /usr/share/omx-clap/fixtures/lv2_worker_gain.h /usr/share/omx-clap/fixtures/omx-worker-gain.lv2/manifest.ttl \
+              /usr/share/omx-clap/fixtures/omx-worker-gain.lv2/omx-worker-gain.ttl \
+              /usr/share/omx-clap/rt-gate/graphs/clap_chain.ci /usr/share/omx-clap/rt-gate/graphs/clap_host.ci /usr/share/omx-clap/rt-gate/graphs/idle_hold.ci \
+              /usr/share/omx-clap/rt-gate/graphs/lv2_clap.ci /usr/share/omx-clap/rt-gate/graphs/lv2_features.ci /usr/share/omx-clap/rt-gate/graphs/lv2_instance.ci \
+              /usr/share/omx-clap/rt-gate/graphs/lv2_rtmempool.ci /usr/share/omx-clap/rt-gate/graphs/lv2_world.ci /usr/share/omx-clap/rt-gate/graphs/thread_pool.ci \
               /usr/share/licenses/omx-clap-devel/COPYING /usr/share/doc/omx-clap-devel/README.md | sort > expected.txt
             diff -u <(sed 's,/usr/lib64/,/usr/lib*/,' files.txt) expected.txt
           done
@@ -947,7 +981,6 @@ jobs:
             rpm -qlp "$rpm"
             files "$rpm" > files.txt
             printf '%s\n' /usr/share/omx-contract/contract.d/omx-clap/MANIFEST.json /usr/share/omx-contract/contract.d/omx-clap/hosting.json /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json \
-              /usr/share/omx-contract/contract.d/omx-clap/hosting/clap.json /usr/share/omx-contract/contract.d/omx-clap/hosting/cost.json /usr/share/omx-contract/contract.d/omx-clap/hosting/features.json /usr/share/omx-contract/contract.d/omx-clap/hosting/latency.json /usr/share/omx-contract/contract.d/omx-clap/hosting/memory.json /usr/share/omx-contract/contract.d/omx-clap/hosting/output.json /usr/share/omx-contract/contract.d/omx-clap/hosting/override.json /usr/share/omx-contract/contract.d/omx-clap/hosting/patch.json /usr/share/omx-contract/contract.d/omx-clap/hosting/preset.json /usr/share/omx-contract/contract.d/omx-clap/hosting/provenance.json /usr/share/omx-contract/contract.d/omx-clap/hosting/realised.json /usr/share/omx-contract/contract.d/omx-clap/hosting/resource-hints.json /usr/share/omx-contract/contract.d/omx-clap/hosting/rt-safety.json /usr/share/omx-contract/contract.d/omx-clap/hosting/stability.json /usr/share/omx-contract/contract.d/omx-clap/hosting/state.json /usr/share/omx-contract/contract.d/omx-clap/hosting/topology.json /usr/share/omx-contract/contract.d/omx-clap/hosting/worker.json \
               /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json /usr/share/omx-contract/contract.d/omx-clap-scale/omx-clap-scale.json /usr/share/omx-contract/contract.d/clap/clap.json /usr/share/omx-contract/contract.d/hosting/hosting.json /usr/share/omx-contract/contract.d/scan/scan.json /usr/share/omx-contract/contract.d/scan/catalogs/ca.json /usr/share/omx-contract/contract.d/scan/catalogs/de.json /usr/share/omx-contract/contract.d/scan/catalogs/es.json /usr/share/omx-contract/contract.d/scan/catalogs/fr.json /usr/share/omx-contract/contract.d/scan/catalogs/it.json /usr/share/omx-contract/contract.d/scan/catalogs/pt.json \
               /usr/share/licenses/omx-clap-contract/COPYING /usr/share/doc/omx-clap-contract/README.md | sort > expected.txt
             diff -u expected.txt files.txt
@@ -1039,8 +1072,9 @@ jobs:
           # the domain plugin-hostd-protocol names this host too (chain: required), and the check reads it
           # through omx-contract's reader (the omx-contract package: lib/domain.mjs, run by node)
           rpm -qf /usr/share/omx-contract/contract.d/plugin-hostd-protocol/plugin-hostd-protocol.json | grep -q '^plugin-hostd-protocol-contract-'
-          # plugin-hostd-protocol-devel: the render of the verbs this host answers, which the registration table names (ruling R5)
-          dnf install -y --setopt=install_weak_deps=False plugin-db-devel plugin-hostd-protocol-devel
+          # plugin-hostd-protocol-devel: the render of the verbs this host answers, which the registration table names (ruling R5);
+          # python3-plugin-hostd-client: the protocol's Python client, which tests/host_verbs_check.py imports
+          dnf install -y --setopt=install_weak_deps=False plugin-db-devel plugin-hostd-protocol-devel python3-plugin-hostd-client
           scheme=$(printf '#include <plugin-db/pin.h>\nPHD_PIN_LAYOUT_SCHEME\n' | gcc $(pkg-config --cflags plugin-db) -E -P - | tail -n 1 | tr -d '"')
           header=$(pkg-config --variable=includedir plugin-hostd-protocol)/plugin-hostd-protocol/plugin-hostd/plugin_hostd_protocol_host_verbs.h
           test -f "$header"
@@ -1161,6 +1195,9 @@ jobs:
       # the Build-Depends on libomxdsp-dev (and libomx-contract-dev under it) come from the OpenMixer channel
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
+          staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
       - name: Fetch plugin-hostd
         run: .github/plugin-hostd.sh /tmp/plugin-hostd
@@ -1184,12 +1221,13 @@ jobs:
 
       - uses: Open-Mixer/.github/.github/actions/build-deb@openmixer-v1
 
-      # the protocol library, omx-contract's data and its domain loader (libomx-domain0, which the host links) the package depends on, from the channel, for the smoke test's container, which has only
-      # the distribution
+      # the protocol library, omx-contract's data, the protocol's contract (plugin-hostd-protocol-contract, which
+      # omx-clap-contract depends on since ruling R5, with the omx-contract it depends on) and its domain loader (libomx-domain0, which the host links) the
+      # package depends on, from the channel, for the smoke test's container, which has only the distribution
       - name: Fetch libplugin-hostd-protocol0 for the smoke test
         run: |
           set -euo pipefail
-          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data libomx-domain0
+          mkdir -p proto-debs && cd proto-debs && apt-get download libplugin-hostd-protocol0 omx-contract-data omx-contract plugin-hostd-protocol-contract libomx-domain0
 
       # what the smoke test runs the installed package against, built here for the architecture
       - name: Build the smoke test fixtures
@@ -1217,7 +1255,6 @@ jobs:
           dpkg -L omx-clap-contract | tee contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/omx-clap/MANIFEST.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/omx-clap/hosting.json contract-files.txt
-          grep -qx /usr/share/omx-contract/contract.d/omx-clap/hosting/features.json contract-files.txt
           grep -qx /usr/share/omx-contract/contract.d/omx-clap/omx-clap.json contract-files.txt
           # the scan domain, installed by the installer's domain mode, with its catalogs, in the same data package
           grep -qx /usr/share/omx-contract/contract.d/omx-param-contract/omx-param-contract.json contract-files.txt
@@ -1286,6 +1323,8 @@ jobs:
             debs/*.deb
             proto-debs/libplugin-hostd-protocol0_*.deb
             proto-debs/omx-contract-data_*.deb
+            proto-debs/omx-contract_*.deb
+            proto-debs/plugin-hostd-protocol-contract_*.deb
             proto-debs/libomx-domain0_*.deb
             smoke
           if-no-files-found: error
@@ -1316,7 +1355,8 @@ jobs:
           set -euo pipefail
           apt-get update -qq
           apt-get install -y --no-install-recommends ./debs/omx-clap-host_*.deb ./debs/libomx-clap1_*.deb ./debs/omx-clap-contract_*_all.deb \
-            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb ./proto-debs/libomx-domain0_*.deb
+            ./proto-debs/libplugin-hostd-protocol0_*.deb ./proto-debs/omx-contract-data_*.deb \
+            ./proto-debs/omx-contract_*.deb ./proto-debs/plugin-hostd-protocol-contract_*.deb ./proto-debs/libomx-domain0_*.deb
           dpkg -s libplugin-hostd-protocol0 | grep '^Status: install ok installed'
           # the protocol's version relation is the one ${shlibs:Depends} generates from its library, none typed (owner ruling 2026-11-24)
           dpkg-deb -f debs/omx-clap-host_*.deb Depends | grep -qE 'libplugin-hostd-protocol0( \(>= [0-9.]+~?\))?(,|$)'
@@ -1374,6 +1414,8 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       arm: false  # aarch64/arm64 build at release only
+      # a dispatch off main (devel, a devel-wave head) builds against the staging channel, as the jobs above do (#234)
+      staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
 
 
   pr-fixes-issue:

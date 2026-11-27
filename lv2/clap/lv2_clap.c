@@ -128,6 +128,7 @@ struct slot
     clap_plugin_entry_t entry;
     clap_plugin_factory_t factory;
     clap_preset_discovery_factory_t presets;    ///< the bundle's pset:Preset, through one provider
+    omx_clap_resource_hints_factory_t hints;    ///< org.openmixer.resource-hints-factory.draft/0: each plugin's TTL hints
     struct lv2_bundle *bundle;
     unsigned refs;
     clap_plugin_descriptor_t *descs;
@@ -1724,6 +1725,28 @@ static struct slot *slot_of_factory(const clap_plugin_factory_t *factory)
     return (struct slot *)((const char *)factory - offsetof(struct slot, factory));
 }
 
+/* org.openmixer.resource-hints-factory.draft/0: what the TTL of the bundle's plugin `plugin_id` states, read from its
+ * description, no instance made and no binary loaded. False as the instance's draft is: an unknown plugin, none stated,
+ * or a refusal (its code answered by omx_clap_lv2_resource_hints_why once an instance exists). [main-thread], as
+ * create_plugin is: the description is read through the one lilv world. */
+static bool hints_factory_get(const omx_clap_resource_hints_factory_t *factory, const char *plugin_id, double sample_rate,
+                              omx_resource_hints_t *hints)
+{
+    struct slot *slot = (struct slot *)((const char *)factory - offsetof(struct slot, hints));
+    char why[LV2_CORE_WHY_MAX];
+    struct lv2_plugin *lv2;
+    bool stated;
+
+    (void)sample_rate;  // the TTL's figures do not depend on it
+    if (!plugin_id || !hints || !(lv2 = lv2_plugin_open(slot->bundle, plugin_id, why)))
+        return false;
+    stated = !lv2->hints_why && lv2->hints.declared;
+    if (stated)
+        *hints = lv2->hints;
+    lv2_plugin_close(lv2);
+    return stated;
+}
+
 static uint32_t factory_count(const clap_plugin_factory_t *factory)
 {
     return lv2_bundle_count(slot_of_factory(factory)->bundle);
@@ -1912,6 +1935,8 @@ static const void *slot_factory(uint32_t index, const char *id)
         return NULL;
     if (!strcmp(id, CLAP_PRESET_DISCOVERY_FACTORY_ID))
         return &g_slots[index].presets;
+    if (!strcmp(id, OMX_CLAP_RESOURCE_HINTS_FACTORY_ID_DRAFT))
+        return &g_slots[index].hints;
     if (strcmp(id, CLAP_PLUGIN_FACTORY_ID) != 0)
         return NULL;
     return &g_slots[index].factory;
@@ -2037,6 +2062,7 @@ const clap_plugin_entry_t *omx_clap_lv2_entry(const char *bundle_path, char why[
     slot->presets.count = presets_count;
     slot->presets.get_descriptor = presets_descriptor;
     slot->presets.create = presets_create;
+    slot->hints.get = hints_factory_get;
     why_set(why, "");
     return &slot->entry;
 }

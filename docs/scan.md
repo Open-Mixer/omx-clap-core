@@ -53,7 +53,9 @@ A `plugin` is its descriptor, `id`, `name`, `vendor`, `version`, `description`, 
 | `latency` | the frames the plugin reports; absent when it reports none or 0 |
 | `voice_info` | `{count, capacity, overlapping_notes}` from `clap.voice-info`; absent when the plugin offers none |
 | `resource_hints` | what the plugin declares (`org.openmixer.resource-hints.draft/0`): `declared` and one `{unit, figure}` for each hint by omx-contract's word, `figure` `null` when unknown and never 0, or `refused` and the reason; absent when the plugin states none |
-| `panel` | `null` for a plugin that serves no panel description, else `{family, fingerprint, sections, controls, roles, displays, placementDefaults}`, each table its entries or `{refused:"too-many", count, max}` |
+| `panel` | `null` for a plugin that serves no panel description, else `{family, fingerprint, sections, controls, roles, displays, placementDefaults}`, each table its entries or `{refused:"too-many", count, max}`; a display of source `curve` carries `curve`, `{index}` when the plugin draws that curve or `{refused:"no-such-curve", count}` when it does not |
+| `curves` | the curves the plugin draws through `clap.mini-curve-display/3`, each `{index, xName, yName}`, a name `null` when the plugin gives none, or `{refused:"too-many", count, max}`; absent when the plugin serves the extension not at all |
+| `controlLayout` | `null` for a plugin that serves no `org.openmixer.control-layout.draft/1`, else `{sections, controls, displays, leftOut}` as a host may draw it: each table its kept entries in the plugin's order or `{refused:"too-many", count, max}`, and `leftOut` every entry the scan left out as `{table, index, reason}`, the reason one of `get`, `duplicate-id`, `param`, `section`, `visibility`, `source`, `meter`, `curve`, `gain-adjustment` (the rules of `src/omx_clap_ext.h`) |
 
 A `preset` is `{name, location_kind: plugin or file, location, load_key, provider, plugins, flags}`.
 
@@ -66,7 +68,7 @@ Every line of the text listing has its field in the JSON, with the same value, a
 test-scan-json` runs the scanner as text and as JSON over a set of fixture plugins (`tests/fake.clap`, `fake_synth.clap`,
 `fake_ext.clap`, `fake_panel.clap`, `fake_tool.clap`, `fake_compressor.clap` and a plugin that crashes; `fake.clap` with
 its contract offered), parses the text back to data, and fails when a parameter, a parameter's contract entry, the
-contract, a meter, a port, a note name, a latency, a voice figure, a resource hint, a panel count, a preset, a failure or a
-plugin differs, or when the JSON does not validate. `--self-test` breaks each of twenty-one things in the JSON after the scan and
+contract, a meter, a port, a note name, a latency, a voice figure, a resource hint, a panel count, a control layout count, a preset, a failure or a
+plugin differs, or when the JSON does not validate. `--self-test` breaks each of twenty-two things in the JSON after the scan and
 requires the check to name each. What only the JSON carries (`description`, `url`, `remote_controls`, enum `labels`, the
 panel's tables, a port's `id`) is held by the schema alone.

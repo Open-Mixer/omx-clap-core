@@ -29,7 +29,7 @@
  *  - with FAKE_GUI_RESIZE=<w>x<h> asks the host for that size (request_resize) once, on its fifth timer while shown;
  *  - appends a line per call to the file FAKE_GUI_LOG, in the order the calls come, so a test reads their order off the
  *    line numbers: "host gui offered" or "host gui none" at init, "create <api>
- *    <floating>", "scale", "set_parent", "show", "hide", "set_size <w> <h>", "title <title>", "destroy", "request_resize
+ *    <floating>", "scale", "set_parent", "show", "hide", "set_size <w> <h>", "title <title>", "set_transient <api>", "destroy", "request_resize
  *    <w> <h> <answer>", and once after each show "timer on the tick" and "fd on the tick" when the host calls them.
  *
  * Built with FAKE_GUI_WAYLAND (tests/fake_gui_wl.clap, #329) it offers a Wayland window too, floating only as CLAP
@@ -558,7 +558,7 @@ static bool gui_set_parent(const clap_plugin_t *plugin, const clap_window_t *win
 static bool gui_set_transient(const clap_plugin_t *plugin, const clap_window_t *window)
 {
     (void)plugin;
-    (void)window;
+    say("set_transient %s", window && window->api ? window->api : "-");
     return g_floating != 0;
 }
 

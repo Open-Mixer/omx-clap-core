@@ -162,6 +162,8 @@ jobs:
         with:
           # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
           staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
+          # a pull request into devel in a wave reads that wave's devel channel above staging (Open-Mixer/.github#329)
+          devel-channel: ${{ startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel' && vars.OMX_DEVEL_CHANNEL || '' }}
       - name: omx-contract
         run: dnf builddep -y --setopt=install_weak_deps=False packaging/omx-clap-host.spec && dnf install -y --setopt=install_weak_deps=False omx-contract
       # an ordinary run builds against the channel: name where each omx package came from, refuse one from staging
@@ -284,6 +286,8 @@ jobs:
         with:
           # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
           staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
+          # a pull request into devel in a wave reads that wave's devel channel above staging (Open-Mixer/.github#329)
+          devel-channel: ${{ startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel' && vars.OMX_DEVEL_CHANNEL || '' }}
 
       - uses: actions/checkout@v4
 
@@ -774,6 +778,8 @@ jobs:
         with:
           # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
           staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
+          # a pull request into devel in a wave reads that wave's devel channel above staging (Open-Mixer/.github#329)
+          devel-channel: ${{ startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel' && vars.OMX_DEVEL_CHANNEL || '' }}
 
       - uses: actions/checkout@v4
 
@@ -851,6 +857,8 @@ jobs:
         with:
           # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
           staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
+          # a pull request into devel in a wave reads that wave's devel channel above staging (Open-Mixer/.github#329)
+          devel-channel: ${{ startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel' && vars.OMX_DEVEL_CHANNEL || '' }}
 
       - uses: actions/checkout@v4
 
@@ -896,6 +904,8 @@ jobs:
         with:
           # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
           staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
+          # a pull request into devel in a wave reads that wave's devel channel above staging (Open-Mixer/.github#329)
+          devel-channel: ${{ startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel' && vars.OMX_DEVEL_CHANNEL || '' }}
 
       - name: Fetch plugin-hostd
         run: |
@@ -1198,6 +1208,8 @@ jobs:
         with:
           # a pull request into devel, or a dispatch off main (devel, a devel-wave head), builds against the staging channel
           staging: ${{ (startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
+          # a pull request into devel in a wave reads that wave's devel channel above staging (Open-Mixer/.github#329)
+          devel-channel: ${{ startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel' && vars.OMX_DEVEL_CHANNEL || '' }}
 
       - name: Fetch plugin-hostd
         run: .github/plugin-hostd.sh /tmp/plugin-hostd

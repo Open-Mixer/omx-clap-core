@@ -50,7 +50,8 @@ Documentation
 longer walk-through ([docs/overview.md](docs/overview.md)); every command
 ([doc/reference.md](doc/reference.md)); LV2 and CLAP support, row by row
 ([docs/lv2-compatibility.md](docs/lv2-compatibility.md),
-[docs/clap-compatibility.md](docs/clap-compatibility.md)); building from source
+[docs/clap-compatibility.md](docs/clap-compatibility.md)); how any host reads a plugin's
+`org.openmixer.panel-description/1` ([docs/panel-description.md](docs/panel-description.md)); building from source
 ([BUILDING.md](BUILDING.md)).
 
 Release steps

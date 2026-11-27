@@ -7,6 +7,23 @@ Lines for the next release; the release moves them into debian/changelog and the
 - CI: a pull request into devel, and a dispatch off main, fetches plugin-hostd's devel (PLUGIN_HOSTD_BRANCH) and builds
   against the staging channel in every job and the release dry run, the condition plugin-hostd's own ci.yml uses; the
   staging-provenance guard allows a staged package under it alone (#234).
+- omx-clap-scan reads a plugin's `clap.mini-curve-display/3`: the curve count and each curve's axis names, in `--json` (`curves`) and `--fields`, a count past 4096 refused whole; a panel display of source curve whose `curve_index` names no curve the plugin draws carries `curve: {refused: "no-such-curve", count}` (#244).
+- `org.openmixer.control-layout.draft/1`, the cut-down shape OpenMixer would propose to CLAP as `clap.control-layout/1`
+  (sections, controls, displays; no family, roles, placement defaults, label keys or fingerprint), is declared in
+  `src/omx_clap_ext.h` and pinned by `make test-panel-abi`. omx-clap-scan reads it against what the plugin offers
+  (`clap.params`, `clap.meters/1`, `clap.mini-curve-display/3`, `clap.gain-adjustment-metering`), keeps what a host may
+  draw and names every entry it leaves out with its reason (`controlLayout` in `--json`, a count line in the listing);
+  `tests/clap_scan_test.c:layout_checks` holds one entry per rule (#249).
+- The window tests hold that a floating window's plugin is never asked clap.gui `set_transient`: `tests/fake_gui.c` logs the call, and `make test-jack-window` (X11 floating) and `make test-jack-window-wl` (Wayland, and the build with no X11) require none (#247).
+- docs/panel-description.md: how any host reads `org.openmixer.panel-description/1` (when, the five tables, the 4096 limit, the reader's rules, visibility, display sources, what never to assume, the fallback), linked from the README and the extension's row (#252).
+- The resource hints are read before any instance (#254): `omx_clap_host_file_resource_hints` and
+  `omx_clap_host_entry_resource_hints` ask the entry's factory `org.openmixer.resource-hints-factory.draft/0`
+  (omx-contract#268) by plugin id and never call `create_plugin`; at create the factory answers first and the instance's
+  `org.openmixer.resource-hints.draft/0` only where the entry offers no factory, as omx-plugins' faces still do. The LV2
+  adapter's entry offers the factory per bundle from the TTL's `omxres:` properties. Both are judged by the same codes.
+  tests/resource_hints_test.c counts the fixture's create_plugin calls; test-resource-hints-sabotage gains three arms.
+- `make test-transport-sabotage` sends the sabotaged run's output to `build/transport-sabotage/log`, requires its
+  torn-record FAIL line there and prints an `ok   sabotage caught` line, so a green `make test` prints no FAIL line (#228).
 - The vocabulary pass: omx-clap 0.35.1 (#221) and V23d on devel (#223) merged into the wave, nothing of the 0.35 line
   dropped. Every domain stays at the package version, 0.M.m until 1.0 (owner 2026-11-25), so #221's return to 1.0.0
   and 2.18.0 is not taken. <omx-clap-host/omx_clap_host_verbs.h> left with the verbs (R5).

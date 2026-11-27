@@ -144,6 +144,7 @@ xwin() { DISPLAY=$display run xdotool "$@" 2>/dev/null; }
 shown() { [ -n "$(xwin search --onlyvisible --name "^$1\$")" ]; }
 named() { [ -n "$(xwin search --name "^$1\$")" ]; }
 logged() { grep -c -x -F "$1" "$runtime/gui.log" 2>/dev/null; }
+transients() { grep -c '^set_transient ' "$runtime/gui.log" 2>/dev/null; }
 # the line of the plugin's log, one call per line in the order they came, that first says $1
 at() { grep -n -x -F "$1" "$runtime/gui.log" 2>/dev/null | head -1 | cut -d: -f1; }
 # every number given, and each greater than the one before it
@@ -235,6 +236,7 @@ for _ in $(seq 30); do shown "fake gui" && break; sleep 0.1; done
 shown "fake gui"; step $? "-S: the floating plugin's own window is on the display at its add"
 [ "$(logged "create x11 1")" = 1 ] && [ "$(logged "title fake gui")" = 1 ] && [ "$(logged "set_parent x11")" = 0 ]
 step $? "the plugin was asked create x11 floating and told its title, never set_parent"
+[ "$(transients)" = 0 ]; step $? "nor set_transient: the host makes no window for a floating plugin to sit over"
 expect "hide_external_ui 0" "resp 0"
 for _ in $(seq 30); do shown "fake gui" || break; sleep 0.1; done
 ! shown "fake gui"; step $? "hidden"

@@ -15,6 +15,8 @@
 #include <ctype.h>
 #include <string.h>
 
+#include <clap/ext/draft/mini-curve-display.h>
+
 #include "scan_panel.h"
 #include "abi_guard.h"
 
@@ -154,6 +156,52 @@ void scan_panel_free(struct scan_panel *panel)
         free(panel->table[t].index);
     }
     memset(panel, 0, sizeof(*panel));
+}
+
+int scan_curves_read(const clap_plugin_t *plugin, struct scan_curves *curves)
+{
+    const clap_plugin_mini_curve_display_t *ext = OMX_ABI_CALL(NULL, "get_extension", plugin->get_extension, plugin, CLAP_EXT_MINI_CURVE_DISPLAY);
+    uint32_t count, i;
+
+    memset(curves, 0, sizeof(*curves));
+    if (!ext)
+        return 0;
+    curves->served = true;
+    count = ext->get_curve_count ? OMX_ABI_CALL(NULL, "ext.get_curve_count", ext->get_curve_count, plugin) : 0;
+    // the count is the plugin's: past the maximum nothing is reserved for it
+    if (count > OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES)
+    {
+        curves->refused = count;
+        return 1;
+    }
+    if (count == 0)
+        return 1;
+    if (!(curves->curve = calloc(count, sizeof(*curves->curve))))
+        return -1;
+    curves->n = count;
+    for (i = 0; i < count && ext->get_axis_name; i++)
+    {
+        struct scan_curve *c = &curves->curve[i];
+
+        c->named = OMX_ABI_CALL(NULL, "ext.get_axis_name", ext->get_axis_name, plugin, i, c->x_name, c->y_name,
+                                (uint32_t)sizeof(c->x_name));
+        TERMINATE(c->x_name);
+        TERMINATE(c->y_name);
+        if (!c->named)
+            c->x_name[0] = c->y_name[0] = '\0';
+    }
+    return 1;
+}
+
+void scan_curves_free(struct scan_curves *curves)
+{
+    free(curves->curve);
+    memset(curves, 0, sizeof(*curves));
+}
+
+bool scan_panel_curve_missing(const omx_clap_panel_description_display_t *display, const struct scan_curves *curves)
+{
+    return display->source == OMX_PANEL_DISPLAY_SOURCES_CURVE && display->curve_index >= curves->n;
 }
 
 /* each code's word and enumerator, from omx_clap_ext.h's lists, which are omx-panel's X-macros: X(code, WORD). The word as

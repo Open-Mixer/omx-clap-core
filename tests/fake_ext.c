@@ -36,9 +36,10 @@
  *    the context of a load;
  *  - records audio-ports-activation.set_active for its auxiliary output, and answers can_activate_while_processing with
  *    `while_processing`; counts its activate calls;
- *  - declares two resource hints through org.openmixer.resource-hints.draft/0, footprint-at-rest (FAKE_EXT_AT_REST
- *    bytes) and threads-spawned (FAKE_EXT_THREADS), and leaves the five others clear with garbage in their members;
- *    fake_ext_hints changes what get answers, its byte of streams_from_disk included.
+ *  - declares two resource hints through org.openmixer.resource-hints.draft/0 and through its entry's
+ *    org.openmixer.resource-hints-factory.draft/0, footprint-at-rest (FAKE_EXT_AT_REST bytes) and threads-spawned
+ *    (FAKE_EXT_THREADS), and leaves the five others clear with garbage in their members; fake_ext_hints changes what
+ *    both answer, its byte of streams_from_disk included, and counts the create_plugin calls.
  * Everything it records is in the struct fake_ext_stats returns, for a test that dlsyms it.
  */
 
@@ -87,19 +88,23 @@ typedef struct FAKE_EXT_STATS_T {
 
 static fake_ext_stats_t g_stats;
 
-/* what org.openmixer.resource-hints.draft/0 answers: `hints` when `answer`, and, when `streams_byte` is not 0, that byte
- * written over streams_from_disk as it lies, which a bool cannot hold; `offer` 0 offers no extension */
+/* what org.openmixer.resource-hints.draft/0 and the entry's org.openmixer.resource-hints-factory.draft/0 answer:
+ * `hints` when `answer`, and, when `streams_byte` is not 0, that byte written over streams_from_disk as it lies, which a
+ * bool cannot hold; `offer` 0 offers no extension, `factory` 0 no factory; `creates` counts create_plugin calls */
 typedef struct FAKE_EXT_HINTS_T {
     uint32_t offer;
     uint32_t answer;
     uint32_t streams_byte;
     omx_resource_hints_t hints;
+    uint32_t factory;
+    uint32_t creates;
 } fake_ext_hints_t;
 
 static fake_ext_hints_t g_hints = {
     1u, 1u, 0u,
     { OMX_RESOURCE_HINT_FOOTPRINT_AT_REST | OMX_RESOURCE_HINT_THREADS_SPAWNED, FAKE_EXT_AT_REST, 999u, 4096u, FAKE_EXT_THREADS,
       true, true, 77u },
+    1u, 0u,
 };
 
 CLAP_EXPORT fake_ext_hints_t *fake_ext_hints(void)
@@ -420,6 +425,19 @@ static bool hints_get(const clap_plugin_t *plugin, omx_resource_hints_t *hints)
 
 static const omx_clap_plugin_resource_hints_t g_resource_hints = { hints_get };
 
+/* the factory: the same answer by plugin id, with no instance */
+static bool hints_factory_get(const omx_clap_resource_hints_factory_t *factory, const char *plugin_id, double sample_rate,
+                              omx_resource_hints_t *hints)
+{
+    (void)factory;
+    (void)sample_rate;
+    if (!plugin_id || strcmp(plugin_id, ID_EXT) != 0)
+        return false;
+    return hints_get(NULL, hints);
+}
+
+static const omx_clap_resource_hints_factory_t g_hints_factory = { hints_factory_get };
+
 static const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 {
     (void)plugin;
@@ -466,6 +484,7 @@ static const clap_plugin_descriptor_t *factory_descriptor(const clap_plugin_fact
 static const clap_plugin_t *factory_create(const clap_plugin_factory_t *factory, const clap_host_t *host, const char *id)
 {
     (void)factory;
+    g_hints.creates++;
     if (!id || strcmp(id, ID_EXT) != 0 || g_plugin)
         return NULL;
     memset(&g_stats, 0, sizeof(g_stats));
@@ -480,6 +499,11 @@ static const clap_plugin_factory_t g_factory = { factory_count, factory_descript
 
 static bool entry_init(const char *path) { (void)path; return true; }
 static void entry_deinit(void) {}
-static const void *entry_get_factory(const char *id) { return !strcmp(id, CLAP_PLUGIN_FACTORY_ID) ? &g_factory : NULL; }
+static const void *entry_get_factory(const char *id)
+{
+    if (!strcmp(id, OMX_CLAP_RESOURCE_HINTS_FACTORY_ID_DRAFT))
+        return g_hints.factory ? &g_hints_factory : NULL;
+    return !strcmp(id, CLAP_PLUGIN_FACTORY_ID) ? &g_factory : NULL;
+}
 
 CLAP_EXPORT const clap_plugin_entry_t clap_entry = { CLAP_VERSION_INIT, entry_init, entry_deinit, entry_get_factory };

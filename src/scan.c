@@ -45,6 +45,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <clap/ext/draft/mini-curve-display.h>
 #include <omxcontract/omx_json_write.h>
 #include <omxcontract/omx_vocabulary.h>
 
@@ -52,6 +53,7 @@
 #include "layout_pin.h"
 #include "scan_fields.h"
 #include "scan_panel.h"
+#include "scan_layout.h"
 
 
 /*
@@ -1048,6 +1050,126 @@ static void put_panel(FILE *out, const struct omx_clap_instance *instance)
     scan_curves_free(&curves);
 }
 
+/* the control layout the plugin publishes (org.openmixer.control-layout.draft/1) as a host may draw it, read against what
+ * the plugin offers: JSON ,"controlLayout":{sections, controls, displays, leftOut}, a table ignored whole in place of
+ * its array as {"refused":"too-many", count, max}, every entry left out named with its table, index and reason; null
+ * when the plugin serves none. The listing for a person counts the tables and what was left out. */
+static void put_layout(FILE *out, const struct omx_clap_instance *instance)
+{
+    const clap_plugin_params_t *params = instance->params;
+    const uint32_t pc = params ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(instance), "params.count", params->count, instance->plugin) : 0;
+    const uint32_t mc = omx_clap_host_meter_count(instance);
+    clap_id *param_ids = calloc(pc ? pc : 1, sizeof(*param_ids));
+    bool *param_stepped = calloc(pc ? pc : 1, sizeof(*param_stepped));
+    clap_id meter_ids[OMX_CLAP_METER_COUNT_MAX];
+    struct scan_layout_offer offer = { param_ids, param_stepped, 0, meter_ids, 0, 0, false };
+    const clap_plugin_mini_curve_display_t *curve_ext;
+    struct scan_layout l;
+    struct omx_clap_meter m;
+    uint32_t i, t;
+    int rc = -1;
+
+    if (param_ids && param_stepped)
+    {
+        for (i = 0; i < pc; i++)
+        {
+            clap_param_info_t info;
+
+            memset(&info, 0, sizeof(info));
+            if (!OMX_ABI_CALL(OMX_ABI_GUARD_OF(instance), "params.get_info", params->get_info, instance->plugin, i, &info))
+                continue;
+            param_ids[offer.param_count] = info.id;
+            param_stepped[offer.param_count++] = (info.flags & CLAP_PARAM_IS_STEPPED) != 0;
+        }
+        for (i = 0; i < mc && i < OMX_CLAP_METER_COUNT_MAX; i++)
+            if (omx_clap_host_meter_info(instance, i, &m) == 0)
+                meter_ids[offer.meter_count++] = m.id;
+        curve_ext = OMX_ABI_CALL(OMX_ABI_GUARD_OF(instance), "get_extension", instance->plugin->get_extension,
+                                 instance->plugin, CLAP_EXT_MINI_CURVE_DISPLAY);
+        offer.curve_count = curve_ext && curve_ext->get_curve_count
+                                ? OMX_ABI_CALL(OMX_ABI_GUARD_OF(instance), "ext.get_curve_count", curve_ext->get_curve_count,
+                                               instance->plugin)
+                                : 0;
+        // a count past the maximum reads no curve, as the panel's displays read it (scan_curves_read)
+        if (offer.curve_count > OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES)
+            offer.curve_count = 0;
+        offer.gain_adjustment = OMX_ABI_CALL(OMX_ABI_GUARD_OF(instance), "get_extension", instance->plugin->get_extension,
+                                             instance->plugin, "clap.gain-adjustment-metering/0") != NULL;
+        rc = scan_layout_read(instance->plugin, &offer, &l);
+    }
+    free(param_ids);
+    free(param_stepped);
+    if (!g_json)
+    {
+        if (rc != 1)
+            return;
+        fputs("    control layout", out);
+        for (t = 0; t < SCAN_LAYOUT_TABLE_COUNT; t++)
+            if (l.refused[t])
+                fprintf(out, ", %s refused (%u past %u)", scan_layout_table_name(t), l.refused[t], OMX_CLAP_CONTROL_LAYOUT_MAX_ENTRIES);
+            else
+                fprintf(out, ", %u %s", l.n[t], scan_layout_table_name(t));
+        fprintf(out, ", %u left out\n", l.n_left_out);
+        scan_layout_free(&l);
+        return;
+    }
+    if (rc != 1)
+    {
+        fputs(rc == 0 ? ",\"controlLayout\":null" : ",\"controlLayout\":{\"error\":\"out of memory\"}", out);
+        return;
+    }
+    fputs(",\"controlLayout\":{", out);
+    for (t = 0; t < SCAN_LAYOUT_TABLE_COUNT; t++)
+    {
+        fprintf(out, "%s\"%s\":", t ? "," : "", scan_layout_table_name(t));
+        if (l.refused[t])
+        {
+            fprintf(out, "{\"refused\":\"too-many\",\"count\":%u,\"max\":%u}", l.refused[t], OMX_CLAP_CONTROL_LAYOUT_MAX_ENTRIES);
+            continue;
+        }
+        fputc('[', out);
+        for (i = 0; i < l.n[t]; i++)
+        {
+            fputs(i ? ",{" : "{", out);
+            if (t == SCAN_LAYOUT_SECTIONS)
+            {
+                fprintf(out, "\"id\":%u", l.sections[i].id);
+                put_panel_text(out, "name", l.sections[i].name);
+            }
+            else if (t == SCAN_LAYOUT_CONTROLS)
+            {
+                const omx_clap_control_layout_control_t *c = &l.controls[i];
+
+                fprintf(out, "\"paramId\":%u,\"sectionId\":%u,\"widget\":\"%s\"", c->param_id, c->section_id,
+                        scan_layout_widget_word(c->widget));
+                put_panel_text(out, "label", c->label);
+                fputs(",\"visibleIfParamId\":", out);
+                put_panel_id(out, c->visible_if_param_id);
+                fprintf(out, ",\"visibleMask\":\"%llx\"", (unsigned long long)c->visible_mask);
+            }
+            else
+            {
+                const omx_clap_control_layout_display_t *d = &l.displays[i];
+
+                fprintf(out, "\"sectionId\":%u,\"source\":\"%s\",\"ids\":[", d->section_id, scan_layout_source_word(d->source));
+                put_panel_id(out, d->ids[0]);
+                fputc(',', out);
+                put_panel_id(out, d->ids[1]);
+                fputc(']', out);
+                put_panel_text(out, "label", d->label);
+            }
+            fputc('}', out);
+        }
+        fputc(']', out);
+    }
+    fputs(",\"leftOut\":[", out);
+    for (i = 0; i < l.n_left_out; i++)
+        fprintf(out, "%s{\"table\":\"%s\",\"index\":%u,\"reason\":\"%s\"}", i ? "," : "",
+                scan_layout_table_name(l.left_out[i].table), l.left_out[i].index, l.left_out[i].reason);
+    fputs("]}", out);
+    scan_layout_free(&l);
+}
+
 /* what a plugin that is only initialised answers; a plugin not yet activated may say 0, so 0 is left out as unknown */
 static void put_latency(FILE *out, const struct omx_clap_instance *instance)
 {
@@ -1138,6 +1260,7 @@ static void put_plugin(FILE *out, const char *path, struct omx_clap_binary *bina
     put_voice_info(out, instance);
     put_resource_hints(out, instance);
     put_panel(out, instance);
+    put_layout(out, instance);
     if (g_json)
         fputc('}', out);
     omx_clap_host_close(instance);

@@ -32,6 +32,13 @@
  *  - org.omx-clap-host.test.panel-hostile serves the same description but counts its controls UINT32_MAX and its roles
  *    one past OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES, and its get fills a row for any index of those two tables, so a
  *    host that believes the counts reserves and walks every one; its clap.mini-curve-display/3 counts UINT32_MAX curves.
+ * The panel plugin also serves org.openmixer.control-layout.draft/1, the cut-down shape, with entries a host keeps and
+ * entries it leaves out, one per rule: sections 1 Main, 2 Detail and a second 1 (a duplicate id); controls threshold a
+ * fader in 1, mode a switch in 2 with no label, knee a knob in 2 shown while mode is 1 or 2, an unknown parameter 9, knee
+ * in a section 5 that does not exist, knee shown by the threshold (not stepped), and the threshold with an unknown widget
+ * 77 (drawn as auto); displays meter 7 over 1 (served through clap.meters/1, its only meter), meter 8 (not declared),
+ * curve 2 (it draws two, 0 and 1) and a source 9 that does not exist. panel-hostile's control layout counts its controls
+ * UINT32_MAX the same way, and its sections, displays and meter are the panel plugin's.
  */
 
 #include <stdio.h>
@@ -41,6 +48,7 @@
 #include <clap/ext/draft/mini-curve-display.h>
 
 #include "omx_clap_ext.h"
+#include "clap_meters.h"
 
 #define ID_PANEL        "org.omx-clap-host.test.panel"
 #define ID_NONE         "org.omx-clap-host.test.panel-none"
@@ -86,6 +94,92 @@ static const struct { const void *rows; uint32_t count; size_t size; } g_tables[
     { NULL, 0, sizeof(omx_clap_panel_description_default_t) },
 };
 #define TABLE_COUNT (sizeof(g_tables) / sizeof(g_tables[0]))
+
+#define NO_ID CLAP_INVALID_ID
+static const omx_clap_control_layout_section_t g_layout_sections[] = {
+    { 1, "Main" }, { 2, "Detail" }, { 1, "Again" },
+};
+static const omx_clap_control_layout_control_t g_layout_controls[] = {
+    { 0, 1, 2, "Thresh", NO_ID, 0 },
+    { 1, 2, 3, "", NO_ID, 0 },
+    { 2, 2, 1, "Knee", 1, 0x6 },
+    { 9, 1, 1, "Ghost", NO_ID, 0 },
+    { 2, 5, 1, "Lost", NO_ID, 0 },
+    { 2, 2, 1, "Odd", 0, 0x1 },
+    { 0, 1, 77, "Wide", NO_ID, 0 },
+};
+static const omx_clap_control_layout_display_t g_layout_displays[] = {
+    { 1, OMX_CLAP_LAYOUT_DISPLAY_METER, { 7, NO_ID }, "Gain reduction" },
+    { 1, OMX_CLAP_LAYOUT_DISPLAY_METER, { 8, NO_ID }, "Missing" },
+    { 2, OMX_CLAP_LAYOUT_DISPLAY_CURVE, { 2, NO_ID }, "Curve" },
+    { 2, 9, { 7, NO_ID }, "Odd" },
+};
+#define N_OF(a) (uint32_t)(sizeof(a) / sizeof((a)[0]))
+
+static uint32_t layout_section_count(const clap_plugin_t *plugin) { (void)plugin; return N_OF(g_layout_sections); }
+static uint32_t layout_control_count(const clap_plugin_t *plugin) { (void)plugin; return N_OF(g_layout_controls); }
+static uint32_t layout_hostile_control_count(const clap_plugin_t *plugin) { (void)plugin; return UINT32_MAX; }
+static uint32_t layout_display_count(const clap_plugin_t *plugin) { (void)plugin; return N_OF(g_layout_displays); }
+
+static bool layout_get_section(const clap_plugin_t *plugin, uint32_t index, omx_clap_control_layout_section_t *out)
+{
+    (void)plugin;
+    if (index >= N_OF(g_layout_sections))
+        return false;
+    *out = g_layout_sections[index];
+    return true;
+}
+
+/* any index past the table is its first row, so a host that believes the hostile count walks every one */
+static bool layout_get_control(const clap_plugin_t *plugin, uint32_t index, omx_clap_control_layout_control_t *out)
+{
+    *out = g_layout_controls[index < N_OF(g_layout_controls) ? index : 0];
+    return index < N_OF(g_layout_controls) || strcmp(plugin->desc->id, ID_HOSTILE) == 0;
+}
+
+static bool layout_get_display(const clap_plugin_t *plugin, uint32_t index, omx_clap_control_layout_display_t *out)
+{
+    (void)plugin;
+    if (index >= N_OF(g_layout_displays))
+        return false;
+    *out = g_layout_displays[index];
+    return true;
+}
+
+static const omx_clap_plugin_control_layout_t g_layout = { layout_section_count, layout_control_count, layout_display_count,
+                                                          layout_get_section, layout_get_control, layout_get_display };
+static const omx_clap_plugin_control_layout_t g_hostile_layout = { layout_section_count, layout_hostile_control_count,
+                                                                  layout_display_count, layout_get_section,
+                                                                  layout_get_control, layout_get_display };
+
+/* clap.meters/1: one meter, id 7, the gain reduction the layout's first display reads */
+static uint32_t meters_count(const clap_plugin_t *plugin) { (void)plugin; return 1; }
+
+static bool meters_get_info(const clap_plugin_t *plugin, uint32_t index, clap_meter_info_t *info)
+{
+    (void)plugin;
+    if (index != 0)
+        return false;
+    memset(info, 0, sizeof(*info));
+    info->id = 7;
+    snprintf(info->name, sizeof(info->name), "gr");
+    info->kind = CLAP_METER_KIND_GAIN_REDUCTION;
+    info->channel_count = 1;
+    info->min_value = -24.0;
+    info->max_value = 0.0;
+    return true;
+}
+
+static uint32_t meters_get_values(const clap_plugin_t *plugin, clap_id id, double *values, uint32_t capacity)
+{
+    (void)plugin;
+    if (id != 7 || capacity < 1)
+        return 0;
+    values[0] = 0.0;
+    return 1;
+}
+
+static const clap_plugin_meters_t g_meters = { meters_count, meters_get_info, meters_get_values };
 
 typedef struct FAKE_PANEL_T {
     clap_plugin_t plugin;
@@ -319,6 +413,12 @@ static const void *plugin_get_extension(const clap_plugin_t *plugin, const char 
         return &g_curves;
     if (!strcmp(id, CLAP_EXT_MINI_CURVE_DISPLAY) && !strcmp(plugin->desc->id, ID_HOSTILE))
         return &g_hostile_curves;
+    if (!strcmp(id, OMX_CLAP_EXT_CONTROL_LAYOUT) && !strcmp(plugin->desc->id, ID_PANEL))
+        return &g_layout;
+    if (!strcmp(id, OMX_CLAP_EXT_CONTROL_LAYOUT) && !strcmp(plugin->desc->id, ID_HOSTILE))
+        return &g_hostile_layout;
+    if (!strcmp(id, CLAP_EXT_METERS) && strcmp(plugin->desc->id, ID_NONE) != 0)
+        return &g_meters;
     return NULL;
 }
 

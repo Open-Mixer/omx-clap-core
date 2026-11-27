@@ -571,6 +571,54 @@ static void panel_checks(const char *scan, const char *fake, const char *panel, 
           count(out, "\ndisplay:"));
 }
 
+/* the control layout fake_panel.clap's panel plugin publishes (org.openmixer.control-layout.draft/1, the cut-down shape
+ * of proposal clap.control-layout/1), as a host may draw it: the entries kept in the plugin's order, and every entry that
+ * breaks a rule of src/omx_clap_ext.h left out with its reason, one per rule; its panel-hostile plugin counts its
+ * controls UINT32_MAX, which the scan refuses whole while it still reads the other tables */
+static void layout_checks(const char *scan, const char *fake, const char *panel, char *out)
+{
+    int status = run(out, "%s --json %s", scan, panel);
+
+    CHECK(status == 0 && plugin_has(out, "panel", ",\"controlLayout\":{\"sections\":[{\"id\":1,\"name\":\"Main\"},{\"id\":2,\"name\":\"Detail\"}],"),
+          "layout: its two sections by id and name, the duplicate id 1 not among them (%i)", status);
+    CHECK(plugin_has(out, "panel", "\"controls\":[{\"paramId\":0,\"sectionId\":1,\"widget\":\"fader\",\"label\":\"Thresh\","
+                                   "\"visibleIfParamId\":null,\"visibleMask\":\"0\"},"
+                                   "{\"paramId\":1,\"sectionId\":2,\"widget\":\"switch\",\"label\":\"\",\"visibleIfParamId\":null,\"visibleMask\":\"0\"},"
+                                   "{\"paramId\":2,\"sectionId\":2,\"widget\":\"knob\",\"label\":\"Knee\",\"visibleIfParamId\":1,\"visibleMask\":\"6\"},"),
+          "layout: threshold a fader in 1, mode a switch in 2 with no label of its own, knee a knob shown while mode is 1 or 2");
+    CHECK(plugin_has(out, "panel", "{\"paramId\":0,\"sectionId\":1,\"widget\":\"auto\",\"label\":\"Wide\",\"visibleIfParamId\":null,\"visibleMask\":\"0\"}],"),
+          "layout: a widget code the host does not know (77) is drawn as auto");
+    CHECK(plugin_has(out, "panel", "\"displays\":[{\"sectionId\":1,\"source\":\"meter\",\"ids\":[7,null],\"label\":\"Gain reduction\"}],"),
+          "layout: one display kept, meter 7 over section 1, a meter the plugin serves through clap.meters/1");
+    CHECK(plugin_has(out, "panel", "{\"table\":\"sections\",\"index\":2,\"reason\":\"duplicate-id\"}"),
+          "layout: a section whose id is taken is left out");
+    CHECK(plugin_has(out, "panel", "{\"table\":\"controls\",\"index\":3,\"reason\":\"param\"}"),
+          "layout: a control of a parameter clap.params does not list is left out");
+    CHECK(plugin_has(out, "panel", "{\"table\":\"controls\",\"index\":4,\"reason\":\"section\"}"),
+          "layout: a control in a section that does not exist is left out");
+    CHECK(plugin_has(out, "panel", "{\"table\":\"controls\",\"index\":5,\"reason\":\"visibility\"}"),
+          "layout: a control shown by a parameter that is not stepped is left out");
+    CHECK(plugin_has(out, "panel", "{\"table\":\"displays\",\"index\":1,\"reason\":\"meter\"}"),
+          "layout: a display of a meter clap.meters/1 does not declare is left out");
+    CHECK(plugin_has(out, "panel", "{\"table\":\"displays\",\"index\":2,\"reason\":\"curve\"}"),
+          "layout: a curve display naming curve 2 of a plugin that draws two through clap.mini-curve-display/3 is left out");
+    CHECK(plugin_has(out, "panel", "{\"table\":\"displays\",\"index\":3,\"reason\":\"source\"}]}"),
+          "layout: a display source the extension does not name is left out, and nothing more");
+    CHECK(count(out, "\"reason\":") == 7 + 4, "layout: seven entries left out, one per rule, and the hostile plugin's four of "
+          "the tables it still reads (%i)", count(out, "\"reason\":"));
+    CHECK(plugin_has(out, "panel-hostile", ",\"controlLayout\":{\"sections\":[{\"id\":1,\"name\":\"Main\"},{\"id\":2,\"name\":\"Detail\"}],"
+                                           "\"controls\":{\"refused\":\"too-many\",\"count\":4294967295,\"max\":4096},\"displays\":["),
+          "layout: controls counted UINT32_MAX are refused whole, the sections and displays still read");
+    CHECK(plugin_has(out, "panel-none", ",\"controlLayout\":null"), "layout: a plugin that serves none has null");
+    status = run(out, "%s --json %s", scan, fake);
+    CHECK(status == 0 && count(out, "\"controlLayout\":null") == 24, "layout: none of fake.clap's 24 plugins serves one (%i null)",
+          count(out, "\"controlLayout\":null"));
+    status = run(out, "%s %s", scan, panel);
+    CHECK(status == 0 && has(out, "\n    control layout, 2 sections, 4 controls, 1 displays, 7 left out\n")
+          && has(out, "\n    control layout, 2 sections, controls refused (4294967295 past 4096), 1 displays, 4 left out\n"),
+          "layout: the listing for a person counts the tables, the refused one and what was left out (%i)", status);
+}
+
 int main(int argc, char **argv)
 {
     char *out;
@@ -605,7 +653,10 @@ int main(int argc, char **argv)
         synth_checks(scan, argv[5], out);
     fields_checks(scan, argv[2], argv[3], argv[5], argc > 6 ? argv[6] : "-", out);
     if (argc > 7)
+    {
         panel_checks(scan, argv[2], argv[7], out);
+        layout_checks(scan, argv[2], argv[7], out);
+    }
 
     printf("%s\n", g_failures == 0 ? "clap scan test ok" : "clap scan test FAILED");
     free(out);

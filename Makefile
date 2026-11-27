@@ -157,7 +157,7 @@ CORE_OBJ = $(CORE_SRC:.c=.o) src/abi_guard.o
 
 # the scanner shares the plugin loading with the host through the core, and the LV2 adapter's world for --fields lv2:,
 # and needs neither jack nor the protocol library
-SCAN_SRC = src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c
+SCAN_SRC = src/scan.c src/scan_fields.c src/scan_panel.c src/scan_layout.c src/lv2_locate.c
 SCAN_OBJ = $(SCAN_SRC:.c=.o)
 # the scanner reads the scan domain's words at start-up through libomx-domain (omx-contract's C loader, docs/consumer-move.md)
 DOMAIN_CFLAGS = $(shell $(PKG_CONFIG) --cflags libomx-domain)
@@ -643,10 +643,10 @@ test-scan-fake: $(SCAN_PROG) tests/clap_scan_test tests/fake.clap tests/crash.cl
 # the scanner's sources and the core compiled directly into the test, bypassing the shared library so the whole walk
 # carries AddressSanitizer's instrumentation: a directory of real .clap files listed, then everything main() built
 # (roots, files, failures, seen) must be off the heap again. Needs libasan; CI runs it, the package builds do not
-tests/clap_scan_asan: src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c src/layout_pin.h $(CORE_SRC) $(CORE_HEADERS) $(LV2_LIB) src/abi_guard.S $(PROTOCOL_LIB)
+tests/clap_scan_asan: src/scan.c src/scan_fields.c src/scan_panel.c src/scan_layout.c src/lv2_locate.c src/layout_pin.h $(CORE_SRC) $(CORE_HEADERS) $(LV2_LIB) src/abi_guard.S $(PROTOCOL_LIB)
 	$(CC) -Isrc -Ilv2/core $(LV2_CFLAGS) $(CLAP_CFLAGS) $(DSP_CFLAGS) $(PIN_CFLAGS) $(PROTOCOL_CFLAGS) $(DOMAIN_CFLAGS) -O1 -g -std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Werror -fno-omit-frame-pointer \
 	    -fsanitize=address,undefined -fno-sanitize-recover=all -DOMX_CLAP_VERSION='"$(VERSION)"' -DOMX_CLAP_VERSION_NUM=$(VERSION_NUM)u \
-	    -o $@ src/scan.c src/scan_fields.c src/scan_panel.c src/lv2_locate.c $(CORE_SRC) $(LV2_LIB) $(CRYPTO_LIBS) src/abi_guard.S $(PROTOCOL_LIBS) $(DOMAIN_LIBS) -ldl -lpthread -lm
+	    -o $@ src/scan.c src/scan_fields.c src/scan_panel.c src/scan_layout.c src/lv2_locate.c $(CORE_SRC) $(LV2_LIB) $(CRYPTO_LIBS) src/abi_guard.S $(PROTOCOL_LIBS) $(DOMAIN_LIBS) -ldl -lpthread -lm
 
 test-scan-asan: tests/clap_scan_asan tests/fake.clap tests/crash.clap
 	ASAN_OPTIONS=detect_leaks=1 ./tests/clap_scan_asan $(abspath tests/fake.clap) $(abspath tests/crash.clap) >/dev/null
@@ -1342,7 +1342,7 @@ tests/fake.clap: tests/fake_plugin.c src/omx_clap_ext.h
 tests/fake_mover.clap: tests/fake_mover.c src/omx_clap_ext.h
 	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -shared -o $@ $<
 
-tests/fake_panel.clap: tests/fake_panel.c src/omx_clap_ext.h
+tests/fake_panel.clap: tests/fake_panel.c src/omx_clap_ext.h src/clap_meters.h
 	$(CC) -Isrc $(CLAP_CFLAGS) $(CFLAGS) -Werror -shared -o $@ $<
 
 tests/fake_synth.clap: tests/fake_synth.c

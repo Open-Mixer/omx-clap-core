@@ -149,7 +149,8 @@
         "remote_controls",
         "audio_ports",
         "note_ports",
-        "panel"
+        "panel",
+        "controlLayout"
       ],
       "properties": {
         "id": {
@@ -249,6 +250,9 @@
         },
         "curves": {
           "$ref": "#/$defs/curves"
+        },
+        "controlLayout": {
+          "$ref": "#/$defs/controlLayout"
         },
         "meters": {
           "type": "array",
@@ -676,6 +680,84 @@
             },
             "placementDefaults": {
               "$ref": "#/$defs/table"
+            }
+          }
+        }
+      ]
+    },
+    "controlLayout": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "error"
+          ],
+          "properties": {
+            "error": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sections",
+            "controls",
+            "displays",
+            "leftOut"
+          ],
+          "properties": {
+            "sections": {
+              "$ref": "#/$defs/table"
+            },
+            "controls": {
+              "$ref": "#/$defs/table"
+            },
+            "displays": {
+              "$ref": "#/$defs/table"
+            },
+            "leftOut": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "table",
+                  "index",
+                  "reason"
+                ],
+                "properties": {
+                  "table": {
+                    "enum": [
+                      "sections",
+                      "controls",
+                      "displays"
+                    ]
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "enum": [
+                      "get",
+                      "duplicate-id",
+                      "param",
+                      "section",
+                      "visibility",
+                      "source",
+                      "meter",
+                      "curve",
+                      "gain-adjustment"
+                    ]
+                  }
+                }
+              }
             }
           }
         }

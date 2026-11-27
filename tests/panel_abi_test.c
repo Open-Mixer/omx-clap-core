@@ -70,6 +70,41 @@ AT(omx_clap_plugin_panel_description_ext_t, family, 1 * sizeof(void *));
 AT(omx_clap_plugin_panel_description_ext_t, count, 2 * sizeof(void *));
 AT(omx_clap_plugin_panel_description_ext_t, get, 3 * sizeof(void *));
 
+/* org.openmixer.control-layout.draft/1, the cut-down shape: the sketch's members in its order */
+_Static_assert(OMX_CLAP_CONTROL_LAYOUT_MAX_ENTRIES == 4096u, "the control layout's table limit");
+
+SIZE(omx_clap_control_layout_section_t, 260);
+AT(omx_clap_control_layout_section_t, id, 0);
+AT(omx_clap_control_layout_section_t, name, 4);
+
+SIZE(omx_clap_control_layout_control_t, 280);
+AT(omx_clap_control_layout_control_t, param_id, 0);
+AT(omx_clap_control_layout_control_t, section_id, 4);
+AT(omx_clap_control_layout_control_t, widget, 8);
+AT(omx_clap_control_layout_control_t, label, 12);
+AT(omx_clap_control_layout_control_t, visible_if_param_id, 268);
+AT(omx_clap_control_layout_control_t, visible_mask, 272);
+
+SIZE(omx_clap_control_layout_display_t, 272);
+AT(omx_clap_control_layout_display_t, section_id, 0);
+AT(omx_clap_control_layout_display_t, source, 4);
+AT(omx_clap_control_layout_display_t, ids, 8);
+AT(omx_clap_control_layout_display_t, label, 16);
+
+SIZE(omx_clap_plugin_control_layout_t, 6 * sizeof(void *));
+AT(omx_clap_plugin_control_layout_t, section_count, 0 * sizeof(void *));
+AT(omx_clap_plugin_control_layout_t, control_count, 1 * sizeof(void *));
+AT(omx_clap_plugin_control_layout_t, display_count, 2 * sizeof(void *));
+AT(omx_clap_plugin_control_layout_t, get_section, 3 * sizeof(void *));
+AT(omx_clap_plugin_control_layout_t, get_control, 4 * sizeof(void *));
+AT(omx_clap_plugin_control_layout_t, get_display, 5 * sizeof(void *));
+
+_Static_assert(OMX_CLAP_LAYOUT_DISPLAY_METER == 0 && OMX_CLAP_LAYOUT_DISPLAY_CURVE == 1
+               && OMX_CLAP_LAYOUT_DISPLAY_GAIN_ADJUSTMENT == 2, "the display sources: meter 0, curve 1, gain adjustment 2");
+_Static_assert(OMX_PANEL_WIDGETS_AUTO == 0 && OMX_PANEL_WIDGETS_KNOB == 1 && OMX_PANEL_WIDGETS_FADER == 2
+               && OMX_PANEL_WIDGETS_SWITCH == 3 && OMX_PANEL_WIDGETS_SELECTOR == 4,
+               "the widgets: auto 0, knob 1, fader 2, switch 3, selector 4, as the proposal's sketch numbers them");
+
 static int g_failures;
 
 #define CHECK(cond, ...) \
@@ -81,6 +116,8 @@ static int g_failures;
 int main(void)
 {
     CHECK(strcmp(OMX_CLAP_EXT_PANEL_DESCRIPTION, "org.openmixer.panel-description/1") == 0, "the extension id: %s", OMX_CLAP_EXT_PANEL_DESCRIPTION);
+    CHECK(strcmp(OMX_CLAP_EXT_CONTROL_LAYOUT, "org.openmixer.control-layout.draft/1") == 0, "the control layout's id: %s",
+          OMX_CLAP_EXT_CONTROL_LAYOUT);
     CHECK(CLAP_INVALID_ID == 0xffffffffu, "no parameter is CLAP_INVALID_ID");
     printf("%s\n", g_failures == 0 ? "panel abi test ok" : "panel abi test FAILED");
     return g_failures == 0 ? 0 : 1;

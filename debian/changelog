@@ -12,6 +12,8 @@ omx-clap-host (0.36.0) unstable; urgency=medium
   * Resource hints before any instance: the entry's org.openmixer.resource-
     hints-factory.draft/0 read by plugin id, and the LV2 adapter's entry
     offers it (#254).
+  * make test-transport-sabotage keeps its expected FAIL line in a log, so
+    a green make test prints none (#228).
 
  -- Pau Aliagas <linuxnow@gmail.com>  Fri, 27 Nov 2026 03:27:16 +0100
 

@@ -329,6 +329,8 @@ the English source sentence.
 - Resource hints before any instance: the entry's org.openmixer.resource-
   hints-factory.draft/0 read by plugin id, and the LV2 adapter's entry
   offers it (#254).
+- make test-transport-sabotage keeps its expected FAIL line in a log, so a
+  green make test prints none (#228).
 
 * Thu Nov 26 2026 Pau Aliagas <linuxnow@gmail.com> - 0.35.1-1
 - Devel wave 2026-11-26: omx-clap-host gives an embedded window's plugin its

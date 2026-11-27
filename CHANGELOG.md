@@ -22,6 +22,8 @@ Lines for the next release; the release moves them into debian/changelog and the
   `org.openmixer.resource-hints.draft/0` only where the entry offers no factory, as omx-plugins' faces still do. The LV2
   adapter's entry offers the factory per bundle from the TTL's `omxres:` properties. Both are judged by the same codes.
   tests/resource_hints_test.c counts the fixture's create_plugin calls; test-resource-hints-sabotage gains three arms.
+- `make test-transport-sabotage` sends the sabotaged run's output to `build/transport-sabotage/log`, requires its
+  torn-record FAIL line there and prints an `ok   sabotage caught` line, so a green `make test` prints no FAIL line (#228).
 - The vocabulary pass: omx-clap 0.35.1 (#221) and V23d on devel (#223) merged into the wave, nothing of the 0.35 line
   dropped. Every domain stays at the package version, 0.M.m until 1.0 (owner 2026-11-25), so #221's return to 1.0.0
   and 2.18.0 is not taken. <omx-clap-host/omx_clap_host_verbs.h> left with the verbs (R5).

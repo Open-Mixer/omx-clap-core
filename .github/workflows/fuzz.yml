@@ -96,6 +96,9 @@ jobs:
       # src/preset_file.h <plugin-hostd/protocol.h> for the ceiling its file limit is asserted under
       - name: Add the OpenMixer repository
         uses: Open-Mixer/.github/.github/actions/add-openmixer@openmixer-v1
+        with:
+          # a pull request into devel in a wave reads that wave's devel channel above staging (Open-Mixer/.github#329)
+          devel-channel: ${{ startsWith(github.event_name, 'pull_request') && github.base_ref == 'devel' && vars.OMX_DEVEL_CHANNEL || '' }}
 
       # the checkout comes first: dnf builddep reads the spec from it
       - uses: actions/checkout@v4

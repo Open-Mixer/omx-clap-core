@@ -126,7 +126,7 @@ open for the extensions `instance_create` in `src/clap_host.c` reads, and later 
 | `clap.extensible-audio-ports/1` | — | unsupported | — | |
 | `clap.flush-events/1` | undecided | undecided | 3 | |
 | `clap.gain-adjustment-metering/0` | — | supported in omx-clap-host only: read on the audio thread after `process()` when the plugin has no `clap.meters/1` (`make test-jack-meters`) | — | not read in process ([Surfaces](#surfaces), `docs/meters.md`) |
-| `clap.mini-curve-display/3` | unsupported: to be supported, the console's panels draw EQ and dynamics curves | unsupported | 33 | |
+| `clap.mini-curve-display/3` | unsupported: to be supported, the console's panels draw EQ and dynamics curves | supported in omx-clap-scan only: the curve count and each curve's axis names, read on the main thread without a render, listed in `--json` (`curves`) and `--fields`; a count past 4096 refused whole, and a panel display of source curve whose `curve_index` names no curve the plugin draws refused `no-such-curve` (`tests/clap_scan_test.c:panel_checks`) | 33 | the host never renders a curve; the console's panels drawing them is still to come |
 | `clap.octave-number/1` | — | undecided | — | |
 | `clap.param-hovered/1` | undecided | — | 3 | |
 | `clap.params-origin/1` | undecided | undecided | 3 | |

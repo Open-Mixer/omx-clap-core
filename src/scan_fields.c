@@ -858,6 +858,35 @@ static void clap_panel(const struct omx_clap_instance *in)
     scan_panel_free(&p);
 }
 
+/* the curves the plugin draws (clap.mini-curve-display/3), under plugin: the count, or the refused count, and each curve's
+ * axis names as x_name[<index>] and y_name[<index>]; nothing for a plugin that serves none */
+static void clap_curves(const struct omx_clap_instance *in)
+{
+    struct scan_curves c;
+    char field[96];
+    uint32_t i;
+
+    if (scan_curves_read(in->plugin, &c) != 1)
+        return;
+    if (c.refused)
+    {
+        snprintf(field, sizeof(field), "%u refused, past %u", c.refused, (unsigned)OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES);
+        record(SCOPE(PLUGIN), "clap_plugin_mini_curve_display.get_curve_count", field);
+    }
+    else
+        record_number(SCOPE(PLUGIN), "clap_plugin_mini_curve_display.get_curve_count", c.n);
+    for (i = 0; i < c.n; i++)
+    {
+        if (!c.curve[i].named)
+            continue;
+        snprintf(field, sizeof(field), "clap_plugin_mini_curve_display.x_name[%u]", i);
+        record_text(SCOPE(PLUGIN), field, c.curve[i].x_name);
+        snprintf(field, sizeof(field), "clap_plugin_mini_curve_display.y_name[%u]", i);
+        record_text(SCOPE(PLUGIN), field, c.curve[i].y_name);
+    }
+    scan_curves_free(&c);
+}
+
 /* the one activation: clap.latency and clap.voice-info answer while active */
 static void clap_active(const struct omx_clap_instance *in)
 {
@@ -933,6 +962,7 @@ static int fields_clap(const char *path, const char *id)
     clap_audio_ports(in, false);
     clap_note_ports(in, true);
     clap_note_ports(in, false);
+    clap_curves(in);
     clap_panel(in);
     clap_active(in);
     omx_clap_host_close(in);

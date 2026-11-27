@@ -1144,7 +1144,7 @@ this table does not; a row for a header an older CLAP lacks is kept.
 | `ext/draft/extensible-audio-ports.h` | not supported | |
 | `ext/draft/flush-events.h` | not supported | a draft; not decided |
 | `ext/draft/gain-adjustment-metering.h` | supported | read by omx-clap-host's meters (docs/meters.md) |
-| `ext/draft/mini-curve-display.h` | not supported | to be supported: the console's panels draw EQ and dynamics curves |
+| `ext/draft/mini-curve-display.h` | read by omx-clap-scan | the curve count and axis names, and a panel display naming a curve the plugin does not draw refused; rendering is to be supported: the console's panels draw EQ and dynamics curves |
 | `ext/draft/octave-number.h` | not supported | a draft; not decided |
 | `ext/draft/param-hovered.h` | not supported | a draft; not decided |
 | `ext/draft/params-origin.h` | not supported | a draft; not decided |

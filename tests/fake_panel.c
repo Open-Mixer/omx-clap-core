@@ -25,17 +25,20 @@
  *  - org.omx-clap-host.test.panel serves a known description: family dynamics; two sections, main and detail; three
  *    controls, threshold a fader in main, mode a switch in detail and knee a knob in detail shown while mode is 1 or 2
  *    (visible_param_id 1, mask 6); one role, threshold; one display, a gain reduction bar over main from meter 7 with a
- *    -24 dB floor; and no placement default, its table empty;
+ *    -24 dB floor, and two curve displays over detail, curve 1 (the transfer curve) and curve 2, which the plugin does not
+ *    draw; no placement default, its table empty; and it draws two curves through clap.mini-curve-display/3, 0 Hz
+ *    against dB and 1 input dB against output dB;
  *  - org.omx-clap-host.test.panel-none serves none;
  *  - org.omx-clap-host.test.panel-hostile serves the same description but counts its controls UINT32_MAX and its roles
  *    one past OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES, and its get fills a row for any index of those two tables, so a
- *    host that believes the counts reserves and walks every one.
+ *    host that believes the counts reserves and walks every one; its clap.mini-curve-display/3 counts UINT32_MAX curves.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <clap/clap.h>
+#include <clap/ext/draft/mini-curve-display.h>
 
 #include "omx_clap_ext.h"
 
@@ -70,6 +73,8 @@ static const omx_clap_panel_description_role_t g_roles[] = {
 
 static const omx_clap_panel_description_display_t g_displays[] = {
     { 0, 0, 1, { 7, CLAP_INVALID_ID }, 0, CLAP_INVALID_ID, -24.0, "panel.display.gain_reduction", "Gain reduction" },
+    { 0, 1, 3, { CLAP_INVALID_ID, CLAP_INVALID_ID }, 1, CLAP_INVALID_ID, 0.0, "panel.display.transfer", "Transfer" },
+    { 0, 1, 3, { CLAP_INVALID_ID, CLAP_INVALID_ID }, 2, CLAP_INVALID_ID, 0.0, "panel.display.phase", "Phase" },
 };
 
 /* each table's rows and their size, by its OMX_CLAP_PANEL_TABLES code; the placement defaults have none */
@@ -267,6 +272,35 @@ static bool remote_controls_get(const clap_plugin_t *plugin, uint32_t index, cla
     return true;
 }
 
+static uint32_t curves_count(const clap_plugin_t *plugin) { (void)plugin; return 2; }
+static uint32_t hostile_curves_count(const clap_plugin_t *plugin) { (void)plugin; return UINT32_MAX; }
+
+static uint32_t curves_render(const clap_plugin_t *plugin, clap_mini_curve_display_curve_data_t *curves, uint32_t size)
+{
+    (void)plugin;
+    (void)curves;
+    (void)size;
+    return 0;
+}
+
+static void curves_set_observed(const clap_plugin_t *plugin, bool is_observed) { (void)plugin; (void)is_observed; }
+
+static bool curves_get_axis_name(const clap_plugin_t *plugin, uint32_t index, char *x_name, char *y_name, uint32_t capacity)
+{
+    static const char *const names[2][2] = { { "Hz", "dB" }, { "input dB", "output dB" } };
+
+    (void)plugin;
+    if (index >= 2)
+        return false;
+    snprintf(x_name, capacity, "%s", names[index][0]);
+    snprintf(y_name, capacity, "%s", names[index][1]);
+    return true;
+}
+
+static const clap_plugin_mini_curve_display_t g_curves = { curves_count, curves_render, curves_set_observed, curves_get_axis_name };
+static const clap_plugin_mini_curve_display_t g_hostile_curves = { hostile_curves_count, curves_render, curves_set_observed,
+                                                                   curves_get_axis_name };
+
 static const clap_plugin_remote_controls_t g_remote_controls = { remote_controls_count, remote_controls_get };
 
 static const void *plugin_get_extension(const clap_plugin_t *plugin, const char *id)
@@ -281,6 +315,10 @@ static const void *plugin_get_extension(const clap_plugin_t *plugin, const char 
         return &g_panel;
     if (!strcmp(id, OMX_CLAP_EXT_PANEL_DESCRIPTION) && !strcmp(plugin->desc->id, ID_HOSTILE))
         return &g_hostile;
+    if (!strcmp(id, CLAP_EXT_MINI_CURVE_DISPLAY) && !strcmp(plugin->desc->id, ID_PANEL))
+        return &g_curves;
+    if (!strcmp(id, CLAP_EXT_MINI_CURVE_DISPLAY) && !strcmp(plugin->desc->id, ID_HOSTILE))
+        return &g_hostile_curves;
     return NULL;
 }
 

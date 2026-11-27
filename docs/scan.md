@@ -53,7 +53,8 @@ A `plugin` is its descriptor, `id`, `name`, `vendor`, `version`, `description`, 
 | `latency` | the frames the plugin reports; absent when it reports none or 0 |
 | `voice_info` | `{count, capacity, overlapping_notes}` from `clap.voice-info`; absent when the plugin offers none |
 | `resource_hints` | what the plugin declares (`org.openmixer.resource-hints.draft/0`): `declared` and one `{unit, figure}` for each hint by omx-contract's word, `figure` `null` when unknown and never 0, or `refused` and the reason; absent when the plugin states none |
-| `panel` | `null` for a plugin that serves no panel description, else `{family, fingerprint, sections, controls, roles, displays, placementDefaults}`, each table its entries or `{refused:"too-many", count, max}` |
+| `panel` | `null` for a plugin that serves no panel description, else `{family, fingerprint, sections, controls, roles, displays, placementDefaults}`, each table its entries or `{refused:"too-many", count, max}`; a display of source `curve` carries `curve`, `{index}` when the plugin draws that curve or `{refused:"no-such-curve", count}` when it does not |
+| `curves` | the curves the plugin draws through `clap.mini-curve-display/3`, each `{index, xName, yName}`, a name `null` when the plugin gives none, or `{refused:"too-many", count, max}`; absent when the plugin serves the extension not at all |
 
 A `preset` is `{name, location_kind: plugin or file, location, load_key, provider, plugins, flags}`.
 

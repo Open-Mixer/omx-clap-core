@@ -52,6 +52,34 @@ int scan_panel_read(const clap_plugin_t *plugin, struct scan_panel *panel);
 
 void scan_panel_free(struct scan_panel *panel);
 
+/* The curves a plugin draws through clap.mini-curve-display/3, which a panel display of source CURVE reads by index: the
+ * count and each curve's axis names, asked on the main thread (no render: that needs the curve observed). A count past
+ * OMX_CLAP_PANEL_DESCRIPTION_MAX_ENTRIES is refused whole, `refused` its count, and no name is read. */
+struct scan_curve
+{
+    bool named;  ///< get_axis_name answered true
+    char x_name[64];
+    char y_name[64];
+};
+
+struct scan_curves
+{
+    bool served;  ///< the plugin answers the extension
+    uint32_t n;  ///< the curves read, 0 when refused
+    uint32_t refused;  ///< the count the plugin answered when it is past the maximum, 0 when read
+    struct scan_curve *curve;
+};
+
+/* Reads the plugin's curves into `*curves`: 1 read (free it with scan_curves_free), 0 the plugin does not serve the
+ * extension, -1 out of memory. */
+int scan_curves_read(const clap_plugin_t *plugin, struct scan_curves *curves);
+
+void scan_curves_free(struct scan_curves *curves);
+
+/* Whether a display of the panel reads a curve the plugin does not draw: its source is CURVE and its curve_index is not
+ * one of the curves read. */
+bool scan_panel_curve_missing(const omx_clap_panel_description_display_t *display, const struct scan_curves *curves);
+
 /* The rows of a table, typed. */
 #define SCAN_PANEL_ROW(panel, t, type, i) (&((const type *)(panel)->table[t].rows)[i])
 

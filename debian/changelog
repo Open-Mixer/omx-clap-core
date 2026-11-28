@@ -1,3 +1,12 @@
+omx-clap-host (0.36.1) unstable; urgency=medium
+
+  * param_of: a CLAP parameter is named by the symbol its parameter contract
+    keeps, as well as by its id
+  * ci: a job reading the wave's devel channel reads its base wave too
+  * docs: Debian is trixie only
+
+ -- Pau Aliagas <linuxnow@gmail.com>  Sat, 28 Nov 2026 16:15:17 +0100
+
 omx-clap-host (0.36.0) unstable; urgency=medium
 
   * omx-clap-scan reads clap.mini-curve-display/3; a panel display naming a

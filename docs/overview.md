@@ -45,7 +45,7 @@ For your own program, install the `-devel` / `-dev` package and build with
 Status
 ------
 
-The latest release is packaged for Fedora 44 and Debian bookworm and trixie. What
+The latest release is packaged for Fedora 45 and Debian trixie. What
 the continuous integration runs on every push, and the packages it builds:
 
 - The plugin lifecycle and the scanner against fake plugins, including a plugin that crashes.
@@ -57,7 +57,7 @@ the continuous integration runs on every push, and the packages it builds:
 - The host in a JACK graph, over PipeWire's JACK and over JACK2's `jackd` (x86_64): port layout,
   latency, MIDI input for instruments, meters.
 - The exported symbols of `libomx-clap` against a versioned baseline.
-- RPMs (Fedora 44, x86_64 and aarch64) and DEBs (bookworm and trixie, amd64 and arm64), each
+- RPMs (Fedora 45, x86_64 and aarch64) and DEBs (Debian trixie, amd64 and arm64), each
   installed in a clean root or container.
 
 Almost all of LV2 is supported: [docs/lv2-compatibility.md](lv2-compatibility.md) lists
@@ -78,7 +78,9 @@ Start the host. It prints `omx-clap-host ready!`:
 
 In another terminal, load a limiter, set its output gain to -6 dB and read it back
 (messages end in a NUL byte, which `printf` adds; a parameter is the plugin's CLAP id,
-which the scan prints):
+which the scan prints, or, for a plugin that states `org.openmixer.param-contract/1`, the
+symbol its contract keeps, the one a panel description and a `curve_bind` term name it by,
+as `param_set 1 thresholdDb -24` for omx-comp's threshold):
 
     send() { printf '%s\0' "$1" | nc -w3 127.0.0.1 5555 | tr '\0' '\n'; }
     send "add clap:/usr/lib64/clap/lsp-plugins.clap#in.lsp-plug.limiter_stereo 0"   # resp 0

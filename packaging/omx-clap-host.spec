@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 Name: omx-clap-host
-Version:        0.36.0
+Version:        0.36.1
 Release: 1%{?dist}
 License: GPL-3.0-or-later
 Summary: Use CLAP and LV2 plugins on a JACK or PipeWire rig, driven like mod-host
@@ -316,6 +316,12 @@ the English source sentence.
 # END langpacks
 
 %changelog
+* Sat Nov 28 2026 Pau Aliagas <linuxnow@gmail.com> - 0.36.1-1
+- param_of: a CLAP parameter is named by the symbol its parameter contract
+  keeps, as well as by its id
+- ci: a job reading the wave's devel channel reads its base wave too
+- docs: Debian is trixie only
+
 * Fri Nov 27 2026 Pau Aliagas <linuxnow@gmail.com> - 0.36.0-1
 - omx-clap-scan reads clap.mini-curve-display/3; a panel display naming a
   curve the plugin does not draw is refused (#244).

@@ -36,7 +36,7 @@
 #include "../src/param_contract.h"
 #include "../src/omx_param_unit_ids.h"
 
-#include <omxcontract/omx_contract_limits.h>
+#include <omxcontract/omx_contract.h>
 
 // the scale codes are omx-contract's PARAM_SCALES positions: how many scales there are, here; which word stands at which
 // ordinal, in main

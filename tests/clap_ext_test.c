@@ -35,7 +35,7 @@
 #include <unistd.h>
 
 #include "../src/clap_host.h"
-#include <omxcontract/omx_contract_limits.h>
+#include <omxcontract/omx_contract.h>
 #include <omxdsp/omxdsp_definitions.h>
 #include "test_util.h"
 

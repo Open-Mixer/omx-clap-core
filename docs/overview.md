@@ -45,7 +45,7 @@ For your own program, install the `-devel` / `-dev` package and build with
 Status
 ------
 
-The latest release is packaged for Fedora 44 and Debian bookworm and trixie. What
+The latest release is packaged for Fedora 45 and Debian trixie. What
 the continuous integration runs on every push, and the packages it builds:
 
 - The plugin lifecycle and the scanner against fake plugins, including a plugin that crashes.
@@ -57,7 +57,7 @@ the continuous integration runs on every push, and the packages it builds:
 - The host in a JACK graph, over PipeWire's JACK and over JACK2's `jackd` (x86_64): port layout,
   latency, MIDI input for instruments, meters.
 - The exported symbols of `libomx-clap` against a versioned baseline.
-- RPMs (Fedora 44, x86_64 and aarch64) and DEBs (bookworm and trixie, amd64 and arm64), each
+- RPMs (Fedora 45, x86_64 and aarch64) and DEBs (Debian trixie, amd64 and arm64), each
   installed in a clean root or container.
 
 Almost all of LV2 is supported: [docs/lv2-compatibility.md](lv2-compatibility.md) lists

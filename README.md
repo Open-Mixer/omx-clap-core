@@ -15,12 +15,12 @@ programs that host CLAP plugins themselves. The host, the core and the adapter s
 Install
 -------
 
-Fedora 45 (x86_64):
+Fedora 45 (x86_64, aarch64):
 
     sudo dnf install https://www.openmixer.org/rpm/openmixer-release.noarch.rpm
     sudo dnf install omx-clap-host
 
-Debian trixie and Raspberry Pi OS (arm64):
+Debian trixie (amd64, arm64), also Raspberry Pi OS and Zynthian:
 
     cd /tmp && curl -fsSLO https://www.openmixer.org/deb/openmixer-release.deb && sudo apt install ./openmixer-release.deb
     sudo apt update && sudo apt install omx-clap-host

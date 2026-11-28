@@ -582,6 +582,7 @@ TEST_PLAIN = test-ci-runs-test-list \
     test-core \
     test-xrun-report-sabotage \
     test-effects-meter \
+    test-effects-param-symbol \
     test-window \
     test-meter-rate-source \
     test-live-list \
@@ -1124,6 +1125,14 @@ test-effects-meter: tests/effects_meter_test
 	./tests/effects_meter_test
 
 tests/effects_meter_test: tests/effects_meter_test.c src/effects.c src/effects.h src/meter_reader.h src/clap_host.h tests/test_util.h src/lv2_locate.o src/preset_file.o src/window.o $(LV2_LIB) $(CORE_SO) $(PROTOCOL_LIB)
+	$(EFFECTS_METER_CC) -o $@ $< $(EFFECTS_METER_LINK)
+
+# a CLAP parameter named by its contract's symbol as well as its id (param_get, param_set, param_info and the curve verbs'
+# reads), through the host's own effects.c, against tests/fake.clap's passthrough
+test-effects-param-symbol: tests/effects_param_symbol_test tests/fake.clap
+	./tests/effects_param_symbol_test tests/fake.clap
+
+tests/effects_param_symbol_test: tests/effects_param_symbol_test.c src/effects.c src/effects.h src/clap_host.h tests/test_util.h src/lv2_locate.o src/preset_file.o src/window.o $(LV2_LIB) $(CORE_SO) $(PROTOCOL_LIB)
 	$(EFFECTS_METER_CC) -o $@ $< $(EFFECTS_METER_LINK)
 
 # the sabotage of each guard, in a copy of the sources: a reduction that is not stepped by elapsed time, a clip word that

@@ -78,7 +78,9 @@ Start the host. It prints `omx-clap-host ready!`:
 
 In another terminal, load a limiter, set its output gain to -6 dB and read it back
 (messages end in a NUL byte, which `printf` adds; a parameter is the plugin's CLAP id,
-which the scan prints):
+which the scan prints, or, for a plugin that states `org.openmixer.param-contract/1`, the
+symbol its contract keeps, the one a panel description and a `curve_bind` term name it by,
+as `param_set 1 thresholdDb -24` for omx-comp's threshold):
 
     send() { printf '%s\0' "$1" | nc -w3 127.0.0.1 5555 | tr '\0' '\n'; }
     send "add clap:/usr/lib64/clap/lsp-plugins.clap#in.lsp-plug.limiter_stereo 0"   # resp 0

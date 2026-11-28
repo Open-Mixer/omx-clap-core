@@ -3621,8 +3621,29 @@ int effects_bypass(int effect_id, int value)
     return SUCCESS;
 }
 
-/* the parameter a param_set, param_get or param_info names: its CLAP id in decimal, or, for an LV2 plugin, a control
- * port's lv2:symbol; `*lv2` the LV2 control port it is, NULL for a CLAP plugin's parameter or a patch parameter */
+/* the CLAP parameter whose org.openmixer.param-contract/1 entry keeps `symbol`: 0 with `*id`, -1 for an uncontracted
+ * plugin or a symbol no entry keeps. The contract is the one the open read and checked (R1: no two entries share a
+ * symbol), held by the instance; the plugin is not asked. */
+static int clap_param_by_symbol(const effect_t *effect, const char *symbol, clap_id *id)
+{
+    const struct omx_clap_instance *clap = effect->clap;
+    uint32_t i;
+
+    if (!clap || !clap->contract)
+        return -1;
+    for (i = 0; i < clap->contract_count; i++)
+        if (strcmp(clap->contract[i].symbol, symbol) == 0)
+        {
+            *id = clap->contract[i].param_id;
+            return 0;
+        }
+    return -1;
+}
+
+/* the parameter a param_set, param_get or param_info names (and a curve_bind term, whose values the curve verbs read
+ * through param_get): its CLAP id in decimal; for an LV2 plugin, a control port's lv2:symbol; for a CLAP plugin, the
+ * symbol its parameter contract keeps, the one a panel description serves the parameter by (omx-panel's describe,
+ * servedSymbolOf); `*lv2` the LV2 control port it is, NULL for a CLAP plugin's parameter or a patch parameter */
 static int param_of(const effect_t *effect, const char *control_symbol, clap_id *id, const lv2_param_t **lv2)
 {
     const lv2_param_t *param = NULL;
@@ -3631,7 +3652,7 @@ static int param_of(const effect_t *effect, const char *control_symbol, clap_id 
         param = effect->lv2_entry ? lv2_param_by_id(effect, *id) : NULL;
     else if (effect->lv2_entry && (param = lv2_param_by_symbol(effect, control_symbol)) != NULL)
         *id = param->id;
-    else
+    else if (effect->lv2_entry || clap_param_by_symbol(effect, control_symbol, id) != 0)
         return -1;
     *lv2 = param;
     return 0;
